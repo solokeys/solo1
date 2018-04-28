@@ -1,3 +1,6 @@
 [submodule "tinycbor"]
 	path = tinycbor
 	url = https://github.com/intel/tinycbor
+[submodule "python-fido2"]
+	path = python-fido2
+	url = https://github.com/conorpp/python-fido2
