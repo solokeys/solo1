@@ -21,6 +21,11 @@
 
 #define CTAPHID_BUFFER_SIZE         4096
 
+#define CAPABILITY_WINK             0x01
+#define CAPABILITY_LOCK             0x02
+#define CAPABILITY_CBOR             0x04
+#define CAPABILITY_NMSG             0x08
+
 typedef struct
 {
     uint32_t cid;
@@ -38,9 +43,46 @@ typedef struct
     } pkt;
 } CTAPHID_PACKET;
 
+
+typedef struct
+{
+    uint32_t broadcast;
+    uint8_t cmd;
+    uint8_t bcnth;
+    uint8_t bcntl;
+    uint8_t nonce[8];
+    uint32_t cid;
+    uint8_t protocol_version;
+    uint8_t version_major;
+    uint8_t version_minor;
+    uint8_t build_version;
+    uint8_t capabilities;
+} __attribute__((packed)) CTAPHID_INIT_RESPONSE;
+
+
+// API specific, not protocol specific //
+typedef enum
+{
+    NO_RESPONSE = 0,
+    CTAPHID_RESPONSE,
+    U2F_RESPONSE,
+    CBOR_RESPONSE,
+} CTAPHID_CODE;
+
+typedef struct
+{
+    int status;
+    uint8_t * data;
+    int length;
+} CTAPHID_STATUS;
+////////
+
+
 void ctaphid_init();
 
-void ctaphid_handle_packet(uint8_t * pkt_raw);
+void ctaphid_handle_packet(uint8_t * pkt_raw, CTAPHID_STATUS * stat);
+
+void ctaphid_dump_status(CTAPHID_STATUS * stat);
 
 #define ctaphid_packet_len(pkt)     ((uint16_t)((pkt)->pkt.init.bcnth << 8) | ((pkt)->pkt.init.bcntl))
 

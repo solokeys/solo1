@@ -17,6 +17,7 @@ void check_ret(CborError ret)
     }
 }
 
+
 int main(int argc, char * argv[])
 {
     /*CborError ret;*/
@@ -34,7 +35,9 @@ int main(int argc, char * argv[])
     printf("init ctaphid\n");
     ctaphid_init();
 
+    int count = 0;
     uint8_t hidmsg[64];
+    CTAPHID_STATUS res;
     memset(hidmsg,0,sizeof(hidmsg));
 
     printf("recv'ing hid msg \n");
@@ -42,11 +45,20 @@ int main(int argc, char * argv[])
     while(1)
     {
         usbhid_recv(hidmsg);
-        printf(">> "); dump_hex(hidmsg,sizeof(hidmsg));
+        printf("%d>> ",count++); dump_hex(hidmsg,sizeof(hidmsg));
 
-        ctaphid_handle_packet(hidmsg);
-        printf("<< "); dump_hex(hidmsg,sizeof(hidmsg));
-        usbhid_send(hidmsg);
+        ctaphid_handle_packet(hidmsg, &res);
+        memset(hidmsg, 0, sizeof(hidmsg));
+        ctaphid_dump_status(&res);
+
+        int i;
+        for(i = 0; i < res.length; i += 64)
+        {
+            memmove(hidmsg, res.data + i, MIN(res.length - i, 64));
+            usbhid_send(hidmsg);
+            printf("<< "); dump_hex(hidmsg,sizeof(hidmsg));
+        }
+        printf("\n");
     }
 
 
