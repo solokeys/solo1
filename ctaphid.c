@@ -23,13 +23,17 @@ typedef enum
 #define SEQUENCE_ERROR  1
 
 static int state;
+
 static int active_cid;
 static uint64_t active_cid_timestamp;
+
 static uint8_t ctap_buffer[CTAPHID_BUFFER_SIZE];
 static int ctap_buffer_cmd;
 static int ctap_buffer_bcnt;
 static int ctap_buffer_offset;
 static int ctap_packet_seq;
+
+static uint32_t _next_cid = 0;
 
 void ctaphid_init()
 {
@@ -41,9 +45,22 @@ void ctaphid_init()
     ctap_packet_seq = 0;
 }
 
-uint32_t get_new_cid()
+static uint32_t set_next_cid(uint32_t cid)
+{
+    _next_cid = cid;
+}
+
+static uint32_t get_new_cid()
 {
     static uint32_t cid = 1;
+
+    if (_next_cid != 0)
+    {
+        int tmp = _next_cid;
+        _next_cid = 0;
+        return tmp;
+    }
+
     return cid++;
 }
 
@@ -54,7 +71,7 @@ static int is_broadcast(CTAPHID_PACKET * pkt)
 
 static int is_init_pkt(CTAPHID_PACKET * pkt)
 {
-    return (pkt->pkt.init.cmd == CTAPHID_INIT);
+    return (pkt->pkt.init.cmd == CTAPHID_INIT) && ctaphid_packet_len(pkt) == 8;
 }
 
 static int is_cont_pkt(CTAPHID_PACKET * pkt)
@@ -165,8 +182,9 @@ start_over:
                 if (is_init_pkt(pkt))
                 {
                     printf("received abort request from %08x\n", pkt->cid);
-                    ctaphid_init();
 
+                    ctaphid_init();
+                    buffer_packet(pkt);
                 }
 
                 if (!is_cont_pkt(pkt) && buffer_status() == BUFFERING)
