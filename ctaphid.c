@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,11 +30,13 @@ static uint64_t active_cid_timestamp;
 
 static uint8_t ctap_buffer[CTAPHID_BUFFER_SIZE];
 static int ctap_buffer_cmd;
-static int ctap_buffer_bcnt;
+static uint16_t ctap_buffer_bcnt;
 static int ctap_buffer_offset;
 static int ctap_packet_seq;
 
 static uint32_t _next_cid = 0;
+
+static void ctaphid_write(void * _data, int len);
 
 void ctaphid_init()
 {
@@ -43,6 +46,7 @@ void ctaphid_init()
     ctap_buffer_bcnt = 0;
     ctap_buffer_offset = 0;
     ctap_packet_seq = 0;
+    ctaphid_write(NULL, -1);
 }
 
 static uint32_t set_next_cid(uint32_t cid)
@@ -146,6 +150,59 @@ static int buffer_cmd()
     return ctap_buffer_cmd;
 }
 
+static int buffer_len()
+{
+    return ctap_buffer_bcnt;
+}
+
+// Buffer data and send in HID_MESSAGE_SIZE chunks
+static void ctaphid_write(void * _data, int len)
+{
+    static uint8_t buf[HID_MESSAGE_SIZE];
+    static int offset = 0;
+
+    uint8_t * data = (uint8_t *) _data;
+
+    if (len == 0)
+    {
+        if (offset > 0)
+        {
+            memset(buf + offset, 0, HID_MESSAGE_SIZE - offset);
+            ctaphid_write_block(buf);
+        }
+        return;
+    }
+    else if (len == -1)
+    {
+        memset(buf, 0, HID_MESSAGE_SIZE);
+        offset = 0;
+    }
+
+    int i;
+    for (i = 0; i < len; i++)
+    {
+        buf[offset++] = data[i];
+        if (offset == HID_MESSAGE_SIZE)
+        {
+            ctaphid_write_block(buf);
+            offset = 0;
+        }
+    }
+}
+
+static void ctaphid_send_error(uint32_t cid, uint8_t error)
+{
+    uint8_t buf[HID_MESSAGE_SIZE];
+    memset(buf,0,sizeof(buf));
+    CTAPHID_ERROR_RESPONSE * resp = (CTAPHID_ERROR_RESPONSE *) buf;
+    resp->cid = cid;
+    resp->cmd = CTAPHID_ERROR;
+    resp->bcnth = 0;
+    resp->bcntl = 1;
+    resp->error = error;
+    ctaphid_write_block(buf);
+}
+
 void ctaphid_handle_packet(uint8_t * pkt_raw, CTAPHID_STATUS * stat)
 {
     CTAPHID_PACKET * pkt = (CTAPHID_PACKET *)(pkt_raw);
@@ -157,6 +214,8 @@ void ctaphid_handle_packet(uint8_t * pkt_raw, CTAPHID_STATUS * stat)
 
     int ret;
     static CTAPHID_INIT_RESPONSE init_resp;
+    static CTAPHID_PING_RESPONSE ping_resp;
+    static CTAPHID_WINK_RESPONSE wink_resp;
 
     memset(stat, 0, sizeof(CTAPHID_STATUS));
 
@@ -174,6 +233,8 @@ start_over:
             else
             {
                 printf("Error, unknown request\n");
+                ctaphid_send_error(pkt->cid, ERR_INVALID_PAR);
+                return;
             }
             break;
         case HANDLING_REQUEST:
@@ -183,30 +244,49 @@ start_over:
                 {
                     printf("received abort request from %08x\n", pkt->cid);
 
+                    set_next_cid(active_cid);   // reuse last CID in current channel
                     ctaphid_init();
                     buffer_packet(pkt);
                 }
-
-                if (!is_cont_pkt(pkt) && buffer_status() == BUFFERING)
+                else if (!is_cont_pkt(pkt) && buffer_status() == BUFFERING)
                 {
                     printf("Error, expecting cont packet\n");
+                    ctaphid_send_error(pkt->cid, ERR_INVALID_PAR);
+                    return;
                 }
+                else if(!is_cont_pkt(pkt))
+                {
+                    if (ctaphid_packet_len(pkt) > CTAPHID_BUFFER_SIZE)
+                    {
+                        printf("Error, internal buffer not big enough\n");
+                        ctaphid_send_error(pkt->cid, ERR_INVALID_LEN);
+                        ctaphid_init();
+                        return;
+                    }
+                }
+
                 active_cid_timestamp = millis();
                 ret = buffer_packet(pkt);
                 if (ret == SEQUENCE_ERROR)
                 {
                     printf("Sequence error\n");
+                    ctaphid_send_error(pkt->cid, ERR_INVALID_SEQ);
+                    ctaphid_init();
+                    return;
                 }
             }
             else if (is_timed_out())
             {
                 ctaphid_init();
                 printf("dropping last channel -- timeout");
+                ctaphid_send_error(pkt->cid, ERR_MSG_TIMEOUT);
                 goto start_over;
             }
             else
             {
+                ctaphid_send_error(pkt->cid, ERR_CHANNEL_BUSY);
                 printf("Too busy with current transaction\n");
+                return;
             }
             break;
         default:
@@ -220,17 +300,28 @@ start_over:
         case BUFFERING:
             printf("BUFFERING\n");
             stat->status = NO_RESPONSE;
-            stat->length = 0;
-            stat->data= NULL;
             active_cid_timestamp = millis();
             break;
+
+        case EMPTY:
+            printf("empty buffer!\n");
         case BUFFERED:
             switch(buffer_cmd())
             {
                 case CTAPHID_INIT:
                     printf("CTAPHID_INIT\n");
 
+                    if (buffer_len() != 8)
+                    {
+                        printf("Error,invalid length field for init packet\n");
+                        ctaphid_send_error(pkt->cid, ERR_INVALID_LEN);
+                        ctaphid_init();
+                        return;
+                    }
+
                     active_cid = get_new_cid();
+
+                    printf("cid: %08x\n",active_cid);
                     active_cid_timestamp = millis();
 
                     init_resp.broadcast = CTAPHID_BROADCAST_CID;
@@ -245,24 +336,52 @@ start_over:
                     init_resp.build_version = 0;//?
                     init_resp.capabilities = CAPABILITY_WINK | CAPABILITY_CBOR;
 
+                    ctaphid_write(&init_resp,sizeof(CTAPHID_INIT_RESPONSE));
+                    ctaphid_write(NULL,0);
+
                     stat->status = CTAPHID_RESPONSE;
-                    stat->length = sizeof(CTAPHID_INIT_RESPONSE);
-                    stat->data = (uint8_t *)&init_resp;
 
                     break;
                 case CTAPHID_PING:
+
+                    ping_resp.cid = active_cid;
+                    ping_resp.cmd = CTAPHID_PING;
+                    ping_resp.bcnth = (buffer_len() & 0xff00) >> 8;
+                    ping_resp.bcntl = (buffer_len() & 0xff) >> 0;
+
+                    ctaphid_write(&ping_resp,sizeof(CTAPHID_PING_RESPONSE));
+                    ctaphid_write(ctap_buffer, buffer_len());
+                    ctaphid_write(NULL,0);
+
                     printf("CTAPHID_PING\n");
                     break;
+
                 case CTAPHID_WINK:
+
+                    if (buffer_len() != 0)
+                    {
+                        printf("Error,invalid length field for wink packet\n");
+                        ctaphid_send_error(pkt->cid, ERR_INVALID_LEN);
+                        ctaphid_init();
+                        return;
+                    }
+
+                    wink_resp.cid = active_cid;
+                    wink_resp.cmd = CTAPHID_WINK;
+                    wink_resp.bcnt = 0;
+
+                    ctaphid_write(&wink_resp,sizeof(CTAPHID_WINK_RESPONSE));
+                    ctaphid_write(NULL,0);
+
                     printf("CTAPHID_WINK\n");
                     break;
+
                 default:
                     printf("error, unimplemented HID cmd: %02x\r\n", buffer_cmd());
                     break;
             }
             break;
-        case EMPTY:
-            printf("empty buffer!\n");
+
         default:
             printf("invalid buffer state; abort\n");
             exit(1);
@@ -293,11 +412,12 @@ void ctaphid_dump_status(CTAPHID_STATUS * stat)
             printf("\ninvalid status %d; abort\n", stat->status);
             exit(1);
     }
-    printf(" (%d)\n  ", stat->length);
-    if (stat->length > 0)
-    {
-        dump_hex(stat->data, stat->length);
-    }
+    printf("\n");
+    /*printf(" (%d)\n  ", stat->length);*/
+    /*if (stat->length > 0)*/
+    /*{*/
+        /*dump_hex(stat->data, stat->length);*/
+    /*}*/
 }
 
 

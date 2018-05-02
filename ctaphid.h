@@ -3,16 +3,25 @@
 
 #include "usbhid.h"
 
-#define TYPE_MASK               0x80    // Frame type mask
-#define TYPE_INIT               0x80    // Initial frame identifier
-#define TYPE_CONT               0x00    // Continuation frame identifier
+#define TYPE_INIT               0x80
+#define TYPE_CONT               0x00
 
-#define CTAPHID_PING         (TYPE_INIT | 0x01) // Echo data through local processor only
-#define CTAPHID_MSG          (TYPE_INIT | 0x03) // Send U2F message frame
-#define CTAPHID_LOCK         (TYPE_INIT | 0x04) // Send lock channel command
-#define CTAPHID_INIT         (TYPE_INIT | 0x06) // Channel initialization
-#define CTAPHID_WINK         (TYPE_INIT | 0x08) // Send device identification wink
-#define CTAPHID_ERROR        (TYPE_INIT | 0x3f) // Error response
+#define CTAPHID_PING         (TYPE_INIT | 0x01)
+#define CTAPHID_MSG          (TYPE_INIT | 0x03)
+#define CTAPHID_LOCK         (TYPE_INIT | 0x04)
+#define CTAPHID_INIT         (TYPE_INIT | 0x06)
+#define CTAPHID_WINK         (TYPE_INIT | 0x08)
+#define CTAPHID_CBOR         (TYPE_INIT | 0x10)
+#define CTAPHID_CANCEL       (TYPE_INIT | 0x11)
+#define CTAPHID_ERROR        (TYPE_INIT | 0x3f)
+
+    #define ERR_INVALID_CMD         0x01
+    #define ERR_INVALID_PAR         0x02
+    #define ERR_INVALID_LEN         0x03
+    #define ERR_INVALID_SEQ         0x04
+    #define ERR_MSG_TIMEOUT         0x05
+    #define ERR_CHANNEL_BUSY        0x06
+
 
 #define CTAPHID_INIT_PAYLOAD_SIZE  (HID_MESSAGE_SIZE-7)
 #define CTAPHID_CONT_PAYLOAD_SIZE  (HID_MESSAGE_SIZE-5)
@@ -59,6 +68,34 @@ typedef struct
     uint8_t capabilities;
 } __attribute__((packed)) CTAPHID_INIT_RESPONSE;
 
+typedef struct
+{
+    uint32_t cid;
+    uint8_t cmd;
+    uint8_t bcnth;
+    uint8_t bcntl;
+} __attribute__((packed)) CTAPHID_PING_RESPONSE;
+
+
+typedef struct
+{
+    uint32_t cid;
+    uint8_t cmd;
+    uint16_t bcnt;
+} __attribute__((packed)) CTAPHID_WINK_RESPONSE;
+
+
+typedef struct
+{
+    uint32_t cid;
+    uint8_t cmd;
+    uint8_t bcnth;
+    uint8_t bcntl;
+    uint8_t error;
+} __attribute__((packed)) CTAPHID_ERROR_RESPONSE;
+
+
+
 
 // API specific, not protocol specific //
 typedef enum
@@ -72,8 +109,6 @@ typedef enum
 typedef struct
 {
     int status;
-    uint8_t * data;
-    int length;
 } CTAPHID_STATUS;
 ////////
 
@@ -83,6 +118,10 @@ void ctaphid_init();
 void ctaphid_handle_packet(uint8_t * pkt_raw, CTAPHID_STATUS * stat);
 
 void ctaphid_dump_status(CTAPHID_STATUS * stat);
+
+// Must be implemented by application
+// data is HID_MESSAGE_SIZE long in bytes
+extern void ctaphid_write_block(uint8_t * data);
 
 #define ctaphid_packet_len(pkt)     ((uint16_t)((pkt)->pkt.init.bcnth << 8) | ((pkt)->pkt.init.bcntl))
 

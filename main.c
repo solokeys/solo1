@@ -18,6 +18,14 @@ void check_ret(CborError ret)
 }
 
 
+void ctaphid_write_block(uint8_t * data)
+{
+    printf("usbhid send\n");
+    dump_hex(data, 64);
+    usbhid_send(data);
+}
+
+
 int main(int argc, char * argv[])
 {
     /*CborError ret;*/
@@ -51,14 +59,14 @@ int main(int argc, char * argv[])
         memset(hidmsg, 0, sizeof(hidmsg));
         ctaphid_dump_status(&res);
 
-        int i;
-        for(i = 0; i < res.length; i += 64)
-        {
-            memmove(hidmsg, res.data + i, MIN(res.length - i, 64));
-            usbhid_send(hidmsg);
-            printf("<< "); dump_hex(hidmsg,sizeof(hidmsg));
-        }
-        printf("\n");
+        /*int i;*/
+        /*for(i = 0; i < res.length; i += 64)*/
+        /*{*/
+            /*memmove(hidmsg, res.data + i, MIN(res.length - i, 64));*/
+            /*usbhid_send(hidmsg);*/
+            /*printf("<< "); dump_hex(hidmsg,sizeof(hidmsg));*/
+        /*}*/
+        /*printf("\n");*/
     }
 
 
