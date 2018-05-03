@@ -8,3 +8,6 @@ name = main
 
 $(name):  $(obj)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
+
+clean:
+	rm -f *.o main.exe main

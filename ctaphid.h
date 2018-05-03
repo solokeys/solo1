@@ -74,54 +74,17 @@ typedef struct
     uint8_t cmd;
     uint8_t bcnth;
     uint8_t bcntl;
-} __attribute__((packed)) CTAPHID_PING_RESPONSE;
-
-
-typedef struct
-{
-    uint32_t cid;
-    uint8_t cmd;
-    uint16_t bcnt;
-} __attribute__((packed)) CTAPHID_WINK_RESPONSE;
-
-
-typedef struct
-{
-    uint32_t cid;
-    uint8_t cmd;
-    uint8_t bcnth;
-    uint8_t bcntl;
-    uint8_t error;
-} __attribute__((packed)) CTAPHID_ERROR_RESPONSE;
+} __attribute__((packed)) CTAPHID_RESPONSE;
 
 
 
-
-// API specific, not protocol specific //
-typedef enum
-{
-    NO_RESPONSE = 0,
-    CTAPHID_RESPONSE,
-    U2F_RESPONSE,
-    CBOR_RESPONSE,
-} CTAPHID_CODE;
-
-typedef struct
-{
-    int status;
-} CTAPHID_STATUS;
-////////
 
 
 void ctaphid_init();
 
-void ctaphid_handle_packet(uint8_t * pkt_raw, CTAPHID_STATUS * stat);
+void ctaphid_handle_packet(uint8_t * pkt_raw);
 
-void ctaphid_dump_status(CTAPHID_STATUS * stat);
 
-// Must be implemented by application
-// data is HID_MESSAGE_SIZE long in bytes
-extern void ctaphid_write_block(uint8_t * data);
 
 #define ctaphid_packet_len(pkt)     ((uint16_t)((pkt)->pkt.init.bcnth << 8) | ((pkt)->pkt.init.bcntl))
 

@@ -8,21 +8,13 @@
 #include "util.h"
 
 
-void check_ret(CborError ret)
+static void check_ret(CborError ret)
 {
     if (ret != CborNoError)
     {
         printf("CborError: %d\n", ret);
         exit(1);
     }
-}
-
-
-void ctaphid_write_block(uint8_t * data)
-{
-    printf("usbhid send\n");
-    dump_hex(data, 64);
-    usbhid_send(data);
 }
 
 
@@ -45,7 +37,6 @@ int main(int argc, char * argv[])
 
     int count = 0;
     uint8_t hidmsg[64];
-    CTAPHID_STATUS res;
     memset(hidmsg,0,sizeof(hidmsg));
 
     printf("recv'ing hid msg \n");
@@ -55,9 +46,8 @@ int main(int argc, char * argv[])
         usbhid_recv(hidmsg);
         printf("%d>> ",count++); dump_hex(hidmsg,sizeof(hidmsg));
 
-        ctaphid_handle_packet(hidmsg, &res);
+        ctaphid_handle_packet(hidmsg);
         memset(hidmsg, 0, sizeof(hidmsg));
-        ctaphid_dump_status(&res);
 
         /*int i;*/
         /*for(i = 0; i < res.length; i += 64)*/

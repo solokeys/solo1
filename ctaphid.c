@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "ctaphid.h"
+#include "ctap.h"
 #include "time.h"
 #include "util.h"
 
@@ -36,8 +37,6 @@ static int ctap_packet_seq;
 
 static uint32_t _next_cid = 0;
 
-static void ctaphid_write(void * _data, int len);
-
 void ctaphid_init()
 {
     state = IDLE;
@@ -46,7 +45,7 @@ void ctaphid_init()
     ctap_buffer_bcnt = 0;
     ctap_buffer_offset = 0;
     ctap_packet_seq = 0;
-    ctaphid_write(NULL, -1);
+    ctap_write(NULL, -1);
 }
 
 static uint32_t set_next_cid(uint32_t cid)
@@ -155,69 +154,35 @@ static int buffer_len()
     return ctap_buffer_bcnt;
 }
 
-// Buffer data and send in HID_MESSAGE_SIZE chunks
-static void ctaphid_write(void * _data, int len)
-{
-    static uint8_t buf[HID_MESSAGE_SIZE];
-    static int offset = 0;
-
-    uint8_t * data = (uint8_t *) _data;
-
-    if (len == 0)
-    {
-        if (offset > 0)
-        {
-            memset(buf + offset, 0, HID_MESSAGE_SIZE - offset);
-            ctaphid_write_block(buf);
-        }
-        return;
-    }
-    else if (len == -1)
-    {
-        memset(buf, 0, HID_MESSAGE_SIZE);
-        offset = 0;
-    }
-
-    int i;
-    for (i = 0; i < len; i++)
-    {
-        buf[offset++] = data[i];
-        if (offset == HID_MESSAGE_SIZE)
-        {
-            ctaphid_write_block(buf);
-            offset = 0;
-        }
-    }
-}
 
 static void ctaphid_send_error(uint32_t cid, uint8_t error)
 {
     uint8_t buf[HID_MESSAGE_SIZE];
     memset(buf,0,sizeof(buf));
-    CTAPHID_ERROR_RESPONSE * resp = (CTAPHID_ERROR_RESPONSE *) buf;
+    CTAPHID_RESPONSE * resp = (CTAPHID_RESPONSE *) buf;
     resp->cid = cid;
     resp->cmd = CTAPHID_ERROR;
     resp->bcnth = 0;
     resp->bcntl = 1;
-    resp->error = error;
-    ctaphid_write_block(buf);
+    buf[sizeof(CTAPHID_RESPONSE)] = error;
+    ctap_write_block(buf);
 }
 
-void ctaphid_handle_packet(uint8_t * pkt_raw, CTAPHID_STATUS * stat)
+void ctaphid_handle_packet(uint8_t * pkt_raw)
 {
     CTAPHID_PACKET * pkt = (CTAPHID_PACKET *)(pkt_raw);
 
     printf("Recv packet\n");
-    printf("  CID: %08x\n", pkt->cid);
+    printf("  CID: %08x active(%08x)\n", pkt->cid, active_cid);
     printf("  cmd: %02x\n", pkt->pkt.init.cmd);
     printf("  length: %d\n", ctaphid_packet_len(pkt));
 
     int ret;
     static CTAPHID_INIT_RESPONSE init_resp;
-    static CTAPHID_PING_RESPONSE ping_resp;
-    static CTAPHID_WINK_RESPONSE wink_resp;
+    static CTAPHID_RESPONSE resp;
 
-    memset(stat, 0, sizeof(CTAPHID_STATUS));
+    CTAP_RESPONSE ctap_resp;
+
 
 start_over:
 
@@ -299,7 +264,6 @@ start_over:
     {
         case BUFFERING:
             printf("BUFFERING\n");
-            stat->status = NO_RESPONSE;
             active_cid_timestamp = millis();
             break;
 
@@ -336,22 +300,21 @@ start_over:
                     init_resp.build_version = 0;//?
                     init_resp.capabilities = CAPABILITY_WINK | CAPABILITY_CBOR;
 
-                    ctaphid_write(&init_resp,sizeof(CTAPHID_INIT_RESPONSE));
-                    ctaphid_write(NULL,0);
+                    ctap_write(&init_resp,sizeof(CTAPHID_INIT_RESPONSE));
+                    ctap_write(NULL,0);
 
-                    stat->status = CTAPHID_RESPONSE;
 
                     break;
                 case CTAPHID_PING:
 
-                    ping_resp.cid = active_cid;
-                    ping_resp.cmd = CTAPHID_PING;
-                    ping_resp.bcnth = (buffer_len() & 0xff00) >> 8;
-                    ping_resp.bcntl = (buffer_len() & 0xff) >> 0;
+                    resp.cid = active_cid;
+                    resp.cmd = CTAPHID_PING;
+                    resp.bcnth = (buffer_len() & 0xff00) >> 8;
+                    resp.bcntl = (buffer_len() & 0xff) >> 0;
 
-                    ctaphid_write(&ping_resp,sizeof(CTAPHID_PING_RESPONSE));
-                    ctaphid_write(ctap_buffer, buffer_len());
-                    ctaphid_write(NULL,0);
+                    ctap_write(&resp,sizeof(CTAPHID_RESPONSE));
+                    ctap_write(ctap_buffer, buffer_len());
+                    ctap_write(NULL,0);
 
                     printf("CTAPHID_PING\n");
                     break;
@@ -366,14 +329,39 @@ start_over:
                         return;
                     }
 
-                    wink_resp.cid = active_cid;
-                    wink_resp.cmd = CTAPHID_WINK;
-                    wink_resp.bcnt = 0;
+                    resp.cid = active_cid;
+                    resp.cmd = CTAPHID_WINK;
+                    resp.bcntl = 0;
+                    resp.bcnth = 0;
 
-                    ctaphid_write(&wink_resp,sizeof(CTAPHID_WINK_RESPONSE));
-                    ctaphid_write(NULL,0);
+                    ctap_write(&resp,sizeof(CTAPHID_RESPONSE));
+                    ctap_write(NULL,0);
 
                     printf("CTAPHID_WINK\n");
+                    break;
+
+                case CTAPHID_CBOR:
+                    printf("CTAPHID_CBOR\n");
+                    if (buffer_len() == 0)
+                    {
+                        printf("Error,invalid 0 length field for cbor packet\n");
+                        ctaphid_send_error(pkt->cid, ERR_INVALID_LEN);
+                        ctaphid_init();
+                        return;
+                    }
+
+                    ctap_handle_packet(ctap_buffer, buffer_len(), &ctap_resp);
+
+                    resp.cid = active_cid;
+                    resp.cmd = CTAPHID_MSG;
+                    resp.bcntl = (ctap_resp.length & 0x00ff) >> 0;
+                    resp.bcnth = (ctap_resp.length & 0xff00) >> 8;
+
+                    ctap_write(&resp,sizeof(CTAPHID_RESPONSE));
+                    ctap_write(ctap_resp.data, ctap_resp.length);
+                    ctap_write(NULL, 0);
+
+
                     break;
 
                 default:
@@ -387,37 +375,8 @@ start_over:
             exit(1);
             break;
     }
-
-
-}
-
-
-void ctaphid_dump_status(CTAPHID_STATUS * stat)
-{
-    switch(stat->status)
-    {
-        case NO_RESPONSE:
-            printf("NO_RESPONSE");
-            break;
-        case CTAPHID_RESPONSE:
-            printf("CTAPHID_RESPONSE");
-            break;
-        case U2F_RESPONSE:
-            printf("U2F_RESPONSE");
-            break;
-        case CBOR_RESPONSE:
-            printf("CBOR_RESPONSE");
-            break;
-        default:
-            printf("\ninvalid status %d; abort\n", stat->status);
-            exit(1);
-    }
+    
     printf("\n");
-    /*printf(" (%d)\n  ", stat->length);*/
-    /*if (stat->length > 0)*/
-    /*{*/
-        /*dump_hex(stat->data, stat->length);*/
-    /*}*/
-}
 
+}
 
