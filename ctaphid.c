@@ -37,14 +37,14 @@ static int ctap_packet_seq;
 
 static uint32_t _next_cid = 0;
 
+static void buffer_reset();
+
 void ctaphid_init()
 {
     state = IDLE;
     active_cid = 0;
+    buffer_reset();
     active_cid_timestamp = millis();
-    ctap_buffer_bcnt = 0;
-    ctap_buffer_offset = 0;
-    ctap_packet_seq = 0;
     ctap_write(NULL, -1);
 }
 
@@ -79,7 +79,7 @@ static int is_init_pkt(CTAPHID_PACKET * pkt)
 
 static int is_cont_pkt(CTAPHID_PACKET * pkt)
 {
-    return (pkt->pkt.init.cmd == CTAPHID_INIT);
+    return !(pkt->pkt.init.cmd & CTAPHID_INIT);
 }
 
 static int is_active_cid(CTAPHID_PACKET * pkt)
@@ -126,6 +126,13 @@ static int buffer_packet(CTAPHID_PACKET * pkt)
         }
     }
     return SUCESS;
+}
+
+static void buffer_reset()
+{
+    ctap_buffer_bcnt = 0;
+    ctap_buffer_offset = 0;
+    ctap_packet_seq = 0;
 }
 
 static int buffer_status()
@@ -178,6 +185,8 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
     printf("  length: %d\n", ctaphid_packet_len(pkt));
 
     int ret;
+    uint8_t status;
+    uint32_t oldcid;
     static CTAPHID_INIT_RESPONSE init_resp;
     static CTAPHID_RESPONSE resp;
 
@@ -242,9 +251,10 @@ start_over:
             }
             else if (is_timed_out())
             {
-                ctaphid_init();
                 printf("dropping last channel -- timeout");
-                ctaphid_send_error(pkt->cid, ERR_MSG_TIMEOUT);
+                oldcid = active_cid;
+                ctaphid_init();
+                ctaphid_send_error(active_cid, ERR_MSG_TIMEOUT);
                 goto start_over;
             }
             else
@@ -350,14 +360,15 @@ start_over:
                         return;
                     }
 
-                    ctap_handle_packet(ctap_buffer, buffer_len(), &ctap_resp);
+                    status = ctap_handle_packet(ctap_buffer, buffer_len(), &ctap_resp);
 
                     resp.cid = active_cid;
-                    resp.cmd = CTAPHID_MSG;
-                    resp.bcntl = (ctap_resp.length & 0x00ff) >> 0;
-                    resp.bcnth = (ctap_resp.length & 0xff00) >> 8;
+                    resp.cmd = CTAPHID_CBOR;
+                    resp.bcntl = ((ctap_resp.length+1) & 0x00ff) >> 0;
+                    resp.bcnth = ((ctap_resp.length+1) & 0xff00) >> 8;
 
                     ctap_write(&resp,sizeof(CTAPHID_RESPONSE));
+                    ctap_write(&status, 1);
                     ctap_write(ctap_resp.data, ctap_resp.length);
                     ctap_write(NULL, 0);
 
@@ -368,6 +379,8 @@ start_over:
                     printf("error, unimplemented HID cmd: %02x\r\n", buffer_cmd());
                     break;
             }
+
+            buffer_reset();
             break;
 
         default:

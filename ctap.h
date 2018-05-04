@@ -11,6 +11,8 @@
 #define CTAP_VENDOR_FIRST           0x40
 #define CTAP_VENDOR_LAST            0xBF
 
+#define CTAP_AAGUID                 ((uint8_t*)"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff")
+
 typedef struct
 {
     uint8_t * data;
@@ -18,7 +20,7 @@ typedef struct
 } CTAP_RESPONSE;
 
 
-void ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp);
+uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp);
 
 // Must be implemented by application
 // data is HID_MESSAGE_SIZE long in bytes
