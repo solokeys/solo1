@@ -1,8 +1,8 @@
-src = $(wildcard *.c)
+src = $(wildcard *.c) $(wildcard crypto/*.c)
 obj = $(src:.c=.o)
 
 LDFLAGS = -Wl,--gc-sections ./tinycbor/lib/libtinycbor.a
-CFLAGS = -O2 -fdata-sections -ffunction-sections -I./tinycbor/src
+CFLAGS = -O2 -fdata-sections -ffunction-sections -I./tinycbor/src -I./crypto
 
 name = main
 
