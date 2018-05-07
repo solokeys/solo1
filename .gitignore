@@ -52,3 +52,6 @@ Mkfile.old
 dkms.conf
 
 *.swp
+*.pem
+*.der
+*.csr
