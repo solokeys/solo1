@@ -736,7 +736,7 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     pkt_raw++;
 
 
-    uint8_t buf[1024];
+    static uint8_t buf[1024];
     memset(buf,0,sizeof(buf));
 
     resp->data = buf;
@@ -769,6 +769,7 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
 
+
             break;
         case CTAP_CLIENT_PIN:
             printf("CTAP_CLIENT_PIN\n");
@@ -783,6 +784,7 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             printf("error, invalid cmd\n");
     }
 
-    printf("cbor structure: %d bytes\n", length - 1);
+    printf("cbor input structure: %d bytes\n", length - 1);
+    printf("cbor output structure: %d bytes\n", resp->length);
     return 0;
 }

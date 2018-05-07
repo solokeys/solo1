@@ -21,6 +21,19 @@ typedef enum
     BUFFERED,
 } CTAP_BUFFER_STATE;
 
+
+typedef struct
+{
+    uint8_t cmd;
+    uint32_t cid;
+    uint16_t bcnt;
+    int offset;
+    int bytes_written;
+    uint8_t seq;
+    uint8_t buf[HID_MESSAGE_SIZE];
+} CTAPHID_WRITE_BUFFER;
+
+
 #define SUCESS          0
 #define SEQUENCE_ERROR  1
 
@@ -39,13 +52,19 @@ static uint32_t _next_cid = 0;
 
 static void buffer_reset();
 
+#define CTAPHID_WRITE_INIT      0x01
+#define CTAPHID_WRITE_FLUSH     0x02
+#define CTAPHID_WRITE_RESET     0x04
+
+#define     ctaphid_write_buffer_init(x)    memset(x,0,sizeof(CTAPHID_WRITE_BUFFER))
+static void ctaphid_write(CTAPHID_WRITE_BUFFER * wb, void * _data, int len);
+
 void ctaphid_init()
 {
     state = IDLE;
     active_cid = 0;
     buffer_reset();
     active_cid_timestamp = millis();
-    ctap_write(NULL, -1);
 }
 
 static uint32_t set_next_cid(uint32_t cid)
@@ -161,18 +180,75 @@ static int buffer_len()
     return ctap_buffer_bcnt;
 }
 
+// Buffer data and send in HID_MESSAGE_SIZE chunks
+// if len == 0, FLUSH
+static void ctaphid_write(CTAPHID_WRITE_BUFFER * wb, void * _data, int len)
+{
+    uint8_t * data = (uint8_t *)_data;
+    if (len == 0)
+    {
+        if (wb->offset == 0 && wb->bytes_written == 0)
+        {
+            memmove(wb->buf, &wb->cid, 4);
+            wb->offset += 4;
+
+            wb->buf[4] = wb->cmd;
+            wb->buf[5] = (wb->bcnt & 0xff00) >> 8;
+            wb->buf[6] = (wb->bcnt & 0xff) >> 0;
+            wb->offset += 3;
+        }
+
+        if (wb->offset > 0)
+        {
+            memset(wb->buf + wb->offset, 0, HID_MESSAGE_SIZE - wb->offset);
+            ctaphid_write_block(wb->buf);
+        }
+        return;
+    }
+    int i;
+    for (i = 0; i < len; i++)
+    {
+        if (wb->offset == 0 )
+        {
+            memmove(wb->buf, &wb->cid, 4);
+            wb->offset += 4;
+
+            if (wb->bytes_written == 0)
+            {
+                wb->buf[4] = wb->cmd;
+                wb->buf[5] = (wb->bcnt & 0xff00) >> 8;
+                wb->buf[6] = (wb->bcnt & 0xff) >> 0;
+                wb->offset += 3;
+            }
+            else
+            {
+                wb->buf[4] = wb->seq++;
+                wb->offset += 1;
+            }
+        }
+        wb->buf[wb->offset++] = data[i];
+        wb->bytes_written += 1;
+        if (wb->offset == HID_MESSAGE_SIZE)
+        {
+            ctaphid_write_block(wb->buf);
+            wb->offset = 0;
+        }
+    }
+}
+
 
 static void ctaphid_send_error(uint32_t cid, uint8_t error)
 {
     uint8_t buf[HID_MESSAGE_SIZE];
-    memset(buf,0,sizeof(buf));
-    CTAPHID_RESPONSE * resp = (CTAPHID_RESPONSE *) buf;
-    resp->cid = cid;
-    resp->cmd = CTAPHID_ERROR;
-    resp->bcnth = 0;
-    resp->bcntl = 1;
-    buf[sizeof(CTAPHID_RESPONSE)] = error;
-    ctap_write_block(buf);
+    CTAPHID_WRITE_BUFFER wb;
+    ctaphid_write_buffer_init(&wb);
+
+    wb.cid = cid;
+    wb.cmd = CTAPHID_ERROR;
+    wb.bcnt = 1;
+
+    ctaphid_write(&wb, &error, 1);
+    ctaphid_write(&wb, NULL, 0);
 }
 
 void ctaphid_handle_packet(uint8_t * pkt_raw)
@@ -188,7 +264,7 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
     uint8_t status;
     uint32_t oldcid;
     static CTAPHID_INIT_RESPONSE init_resp;
-    static CTAPHID_RESPONSE resp;
+    static CTAPHID_WRITE_BUFFER wb;
 
     CTAP_RESPONSE ctap_resp;
 
@@ -298,10 +374,11 @@ start_over:
                     printf("cid: %08x\n",active_cid);
                     active_cid_timestamp = millis();
 
-                    init_resp.broadcast = CTAPHID_BROADCAST_CID;
-                    init_resp.cmd = CTAPHID_INIT;
-                    init_resp.bcnth = (17 & 0xff00) >> 8;
-                    init_resp.bcntl = (17 & 0xff) >> 0;
+                    ctaphid_write_buffer_init(&wb);
+                    wb.cid = CTAPHID_BROADCAST_CID;
+                    wb.cmd = CTAPHID_INIT;
+                    wb.bcnt = 17;
+
                     memmove(init_resp.nonce, pkt->pkt.init.payload, 8);
                     init_resp.cid = active_cid;
                     init_resp.protocol_version = 0;//?
@@ -310,21 +387,20 @@ start_over:
                     init_resp.build_version = 0;//?
                     init_resp.capabilities = CAPABILITY_WINK | CAPABILITY_CBOR;
 
-                    ctap_write(&init_resp,sizeof(CTAPHID_INIT_RESPONSE));
-                    ctap_write(NULL,0);
+                    ctaphid_write(&wb,&init_resp,sizeof(CTAPHID_INIT_RESPONSE));
+                    ctaphid_write(&wb,NULL,0);
 
 
                     break;
                 case CTAPHID_PING:
 
-                    resp.cid = active_cid;
-                    resp.cmd = CTAPHID_PING;
-                    resp.bcnth = (buffer_len() & 0xff00) >> 8;
-                    resp.bcntl = (buffer_len() & 0xff) >> 0;
+                    ctaphid_write_buffer_init(&wb);
+                    wb.cid = active_cid;
+                    wb.cmd = CTAPHID_PING;
+                    wb.bcnt = buffer_len();
 
-                    ctap_write(&resp,sizeof(CTAPHID_RESPONSE));
-                    ctap_write(ctap_buffer, buffer_len());
-                    ctap_write(NULL,0);
+                    ctaphid_write(&wb, ctap_buffer, buffer_len());
+                    ctaphid_write(&wb, NULL,0);
 
                     printf("CTAPHID_PING\n");
                     break;
@@ -339,13 +415,12 @@ start_over:
                         return;
                     }
 
-                    resp.cid = active_cid;
-                    resp.cmd = CTAPHID_WINK;
-                    resp.bcntl = 0;
-                    resp.bcnth = 0;
+                    ctaphid_write_buffer_init(&wb);
 
-                    ctap_write(&resp,sizeof(CTAPHID_RESPONSE));
-                    ctap_write(NULL,0);
+                    wb.cid = active_cid;
+                    wb.cmd = CTAPHID_WINK;
+
+                    ctaphid_write(&wb,NULL,0);
 
                     printf("CTAPHID_WINK\n");
                     break;
@@ -362,17 +437,14 @@ start_over:
 
                     status = ctap_handle_packet(ctap_buffer, buffer_len(), &ctap_resp);
 
-                    resp.cid = active_cid;
-                    resp.cmd = CTAPHID_CBOR;
-                    resp.bcntl = ((ctap_resp.length+1) & 0x00ff) >> 0;
-                    resp.bcnth = ((ctap_resp.length+1) & 0xff00) >> 8;
+                    ctaphid_write_buffer_init(&wb);
+                    wb.cid = active_cid;
+                    wb.cmd = CTAPHID_CBOR;
+                    wb.bcnt = (ctap_resp.length+1);
 
-                    ctap_write(&resp,sizeof(CTAPHID_RESPONSE));
-                    ctap_write(&status, 1);
-                    ctap_write(ctap_resp.data, ctap_resp.length);
-                    ctap_write(NULL, 0);
-
-
+                    ctaphid_write(&wb, &status, 1);
+                    ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
+                    ctaphid_write(&wb, NULL, 0);
                     break;
 
                 default:

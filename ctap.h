@@ -138,11 +138,7 @@ extern int ctap_user_verification(uint8_t arg);
 
 // Must be implemented by application
 // data is HID_MESSAGE_SIZE long in bytes
-extern void ctap_write_block(uint8_t * data);
+extern void ctaphid_write_block(uint8_t * data);
 
-// Buffer data and send in HID_MESSAGE_SIZE chunks
-// if len == 0, FLUSH
-// if len == -1, RESET
-extern void ctap_write(void * _data, int len);
 
 #endif

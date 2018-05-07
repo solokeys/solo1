@@ -55,10 +55,6 @@ typedef struct
 
 typedef struct
 {
-    uint32_t broadcast;
-    uint8_t cmd;
-    uint8_t bcnth;
-    uint8_t bcntl;
     uint8_t nonce[8];
     uint32_t cid;
     uint8_t protocol_version;
@@ -67,16 +63,6 @@ typedef struct
     uint8_t build_version;
     uint8_t capabilities;
 } __attribute__((packed)) CTAPHID_INIT_RESPONSE;
-
-typedef struct
-{
-    uint32_t cid;
-    uint8_t cmd;
-    uint8_t bcnth;
-    uint8_t bcntl;
-} __attribute__((packed)) CTAPHID_RESPONSE;
-
-
 
 
 
