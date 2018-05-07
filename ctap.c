@@ -5,16 +5,17 @@
 #include "cbor.h"
 
 #include "ctap.h"
+#include "cose_key.h"
 #include "crypto.h"
 #include "util.h"
 
 
-
-static void check_ret(CborError ret)
+#define check_ret(r)    _check_ret(r,__LINE__, __FILE__)
+static void _check_ret(CborError ret, int line, const char * filename)
 {
     if (ret != CborNoError)
     {
-        printf("CborError: %d: %s\n", ret, cbor_error_string(ret));
+        printf("CborError: 0x%x: %s: %d: %s\n", ret, filename, line, cbor_error_string(ret));
         exit(1);
     }
 }
@@ -527,13 +528,89 @@ static int ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * en
     return 0;
 }
 
+static int ctap_generate_cose_key(CTAP_makeCredential * MC, CborEncoder * cose_key, uint8_t * rpId, int l1, uint8_t * entropy, int l2)
+{
+    uint8_t x[32], y[32];
+    int ret;
+    CborEncoder map;
+
+    ret = cbor_encoder_create_map(cose_key, &map, 5);
+    check_ret(ret);
+
+    if (MC->publicKeyCredentialType != PUB_KEY_CRED_PUB_KEY)
+    {
+        printf("Error, pubkey credential type not supported\n");
+        return -1;
+    }
+    switch(MC->COSEAlgorithmIdentifier)
+    {
+        case COSE_ALG_ES256:
+            crypto_ecc256_init();
+            crypto_derive_ecc256_public_key(rpId, l1,
+                    entropy, l2, x, y);
+            break;
+        default:
+            printf("Error, COSE alg %d not supported\n", MC->COSEAlgorithmIdentifier);
+            return -1;
+    }
+
+    {
+        ret = cbor_encode_int(&map, COSE_KEY_LABEL_KTY);
+        check_ret(ret);
+        ret = cbor_encode_int(&map, COSE_KEY_KTY_EC2);
+        check_ret(ret);
+    }
+
+    {
+        ret = cbor_encode_int(&map, COSE_KEY_LABEL_ALG);
+        check_ret(ret);
+        ret = cbor_encode_int(&map, MC->COSEAlgorithmIdentifier);
+        check_ret(ret);
+    }
+
+    {
+        ret = cbor_encode_int(&map, COSE_KEY_LABEL_CRV);
+        check_ret(ret);
+        ret = cbor_encode_int(&map, COSE_KEY_CRV_P256);
+        check_ret(ret);
+    }
+
+
+    {
+        ret = cbor_encode_int(&map, COSE_KEY_LABEL_X);
+        check_ret(ret);
+        ret = cbor_encode_byte_string(&map, x, 32);
+        check_ret(ret);
+    }
+
+    {
+        ret = cbor_encode_int(&map, COSE_KEY_LABEL_Y);
+        check_ret(ret);
+        ret = cbor_encode_byte_string(&map, y, 32);
+        check_ret(ret);
+    }
+
+    ret = cbor_encoder_close_container(cose_key, &map);
+    check_ret(ret);
+}
 
 void ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_makeCredential MC;
-    CTAP_authData authData;
-
     int ret;
+    uint8_t auth_data_buf[200];
+    uint8_t * cose_key_buf = auth_data_buf +  + sizeof(CTAP_authData);
+    uint8_t hashbuf[32];
+    uint8_t sigbuf[64];
+    uint8_t sigder[64 + 2 + 6];
+    int auth_data_sz;
+    CTAP_authData * authData = (CTAP_authData *)auth_data_buf;
+    CborEncoder cose_key;
+    CborEncoder map;
+        CborEncoder stmtmap;
+
+    cbor_encoder_init(&cose_key, cose_key_buf, sizeof(auth_data_buf) - sizeof(CTAP_authData), 0);
+
     ret = ctap_parse_make_credential(&MC,encoder,request,length);
     if (ret != 0)
     {
@@ -548,28 +625,109 @@ void ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
 
     crypto_sha256_init();
     crypto_sha256_update(MC.rpId, MC.rpIdSize);
-    crypto_sha256_final(authData.rpIdHash);
+    crypto_sha256_final(authData->rpIdHash);
 
-    authData.flags = (ctap_user_presence_test() << 0);
-    authData.flags |= (ctap_user_verification(0) << 2);
-    authData.flags |= (1 << 6);//include attestation data
+    authData->flags = (ctap_user_presence_test() << 0);
+    authData->flags |= (ctap_user_verification(0) << 2);
+    authData->flags |= (1 << 6);//include attestation data
 
-    authData.signCount = ctap_atomic_count();
+    authData->signCount = ctap_atomic_count();
 
-    memmove(authData.attest.aaguid, CTAP_AAGUID, 16);
-    authData.attest.credLenL = CREDENTIAL_ID_SIZE & 0x00FF;
-    authData.attest.credLenH = (CREDENTIAL_ID_SIZE & 0xFF00) >> 8;
+    memmove(authData->attest.aaguid, CTAP_AAGUID, 16);
+    authData->attest.credLenL = CREDENTIAL_ID_SIZE & 0x00FF;
+    authData->attest.credLenH = (CREDENTIAL_ID_SIZE & 0xFF00) >> 8;
 
-#if CREDENTIAL_ID_SIZE != 32
+#if CREDENTIAL_ID_SIZE != 48
 #error "need to update credential ID layout"
 #else
-    memmove(authData.attest.credentialId, authData.rpIdHash, 16);
-    ctap_generate_rng(authData.attest.credentialId + 16, 16);
+    memmove(authData->attest.credentialId, authData->rpIdHash, 16);
+    ctap_generate_rng(authData->attest.credentialId + 16, 32);
+
+    ctap_generate_cose_key(&MC, &cose_key, authData->attest.credentialId, 16,
+            authData->attest.credentialId, 32);
+
+    printf("COSE_KEY: "); dump_hex(cose_key_buf, cbor_encoder_get_buffer_size(&cose_key, cose_key_buf));
+
+    auth_data_sz = sizeof(CTAP_authData) + cbor_encoder_get_buffer_size(&cose_key, cose_key_buf);
 #endif
 
+    ret = cbor_encoder_create_map(encoder, &map, 3);
+    check_ret(ret);
 
+    {
+        ret = cbor_encode_int(&map,RESP_authData);
+        check_ret(ret);
+        ret = cbor_encode_byte_string(&map, auth_data_buf, auth_data_sz);
+
+        check_ret(ret);
+    }
+
+    {
+        ret = cbor_encode_int(&map,RESP_fmt);
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&map, "packed");
+        check_ret(ret);
+    }
+
+    // calculate attestation sig
+    crypto_sha256_init();
+    crypto_sha256_update(auth_data_buf, auth_data_sz);
+    crypto_sha256_update(MC.clientDataHash, CLIENT_DATA_HASH_SIZE);
+    crypto_sha256_final(hashbuf);
+
+    crypto_ecc256_load_attestation_key();
+    crypto_ecc256_sign(hashbuf, 32, sigbuf);
+
+    // Need to caress into dumb der format ..
+    uint8_t pad_s = (sigbuf[32] & 0x80) == 0x80;
+    uint8_t pad_r = (sigbuf[0] & 0x80) == 0x80;
+    sigder[0] = 0x30;
+    sigder[1] = 0x44 + pad_s + pad_r;
+
+    sigder[2] = 0x02;
+    sigder[3 + pad_r] = 0;
+    sigder[3] = 0x20 + pad_r;
+    memmove(sigder + 4 + pad_r, sigbuf, 32);
+
+    sigder[4 + 32 + pad_r] = 0x02;
+    sigder[5 + 32 + pad_r + pad_s] = 0;
+    sigder[5 + 32 + pad_r] = 0x20 + pad_s;
+    memmove(sigder + 6 + 32 + pad_r + pad_s, sigbuf + 32, 32);
+    //
+    printf("der sig [%d]: ", 0x44+pad_s+pad_r); dump_hex(sigder, 0x44+pad_s+pad_r);
+
+    {
+        ret = cbor_encode_int(&map,RESP_attStmt);
+        check_ret(ret);
+        ret = cbor_encoder_create_map(&map, &stmtmap, 3);
+        check_ret(ret);
+        {
+            ret = cbor_encode_text_stringz(&stmtmap,"alg");
+            check_ret(ret);
+            ret = cbor_encode_int(&stmtmap,COSE_ALG_ES256);
+            check_ret(ret);
+        }
+        {
+            ret = cbor_encode_text_stringz(&stmtmap,"sig");
+            check_ret(ret);
+            ret = cbor_encode_byte_string(&stmtmap, sigder, 0x44 + pad_s + pad_r);
+            check_ret(ret);
+        }
+        {
+            ret = cbor_encode_text_stringz(&stmtmap,"x5c");
+            check_ret(ret);
+            ret = cbor_encode_byte_string(&stmtmap, attestation_cert_der, attestation_cert_der_size);
+            check_ret(ret);
+        }
+
+        cbor_encoder_close_container(&map, &stmtmap);
+        check_ret(ret);
+
+    }
+
+
+    cbor_encoder_close_container(encoder, &map);
 }
-
 
 
 uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
@@ -578,7 +736,7 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     pkt_raw++;
 
 
-    uint8_t buf[100];
+    uint8_t buf[1024];
     memset(buf,0,sizeof(buf));
 
     resp->data = buf;

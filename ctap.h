@@ -40,6 +40,12 @@
 #define CP_getKeyAgreement        0x07
 #define CP_getRetries             0x08
 
+#define RESP_fmt                    0x01
+#define RESP_authData               0x02
+#define RESP_attStmt                0x03
+
+
+
 #define PARAM_clientDataHash        (1 << 0)
 #define PARAM_rp                    (1 << 1)
 #define PARAM_user                  (1 << 2)
@@ -61,7 +67,7 @@
 #define USER_ID_MAX_SIZE            64
 #define USER_NAME_LIMIT             65  // Must be minimum of 64 bytes but can be more.
 
-#define CREDENTIAL_ID_SIZE          32
+#define CREDENTIAL_ID_SIZE          48
 
 #define PUB_KEY_CRED_PUB_KEY        0x01
 #define PUB_KEY_CRED_UNKNOWN        0x3F
@@ -69,7 +75,6 @@
 #define CREDENTIAL_IS_SUPPORTED     1
 #define CREDENTIAL_NOT_SUPPORTED    0
 
-#define COSE_ALG_ES256              -7
 
 typedef struct
 {
@@ -139,6 +144,5 @@ extern void ctap_write_block(uint8_t * data);
 // if len == 0, FLUSH
 // if len == -1, RESET
 extern void ctap_write(void * _data, int len);
-
 
 #endif
