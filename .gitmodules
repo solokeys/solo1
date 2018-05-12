@@ -7,3 +7,6 @@
 [submodule "crypto/micro-ecc"]
 	path = crypto/micro-ecc
 	url = https://github.com/kmackay/micro-ecc.git
+[submodule ".\\crypto\\micro-ecc"]
+	path = .\\crypto\\micro-ecc
+	url = https://github.com/kmackay/micro-ecc.git
