@@ -79,8 +79,8 @@
 typedef struct
 {
     uint8_t aaguid[16];
-    uint8_t credLenL;
     uint8_t credLenH;
+    uint8_t credLenL;
     uint8_t credentialId[CREDENTIAL_ID_SIZE];
 } __attribute__((packed)) CTAP_attestHeader;
 

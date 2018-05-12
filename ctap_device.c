@@ -46,5 +46,6 @@ int ctap_generate_rng(uint8_t * dst, size_t num)
     }
     fread(dst, 1, num, urand);
     fclose(urand);
+    return 1;
 }
 

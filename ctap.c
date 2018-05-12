@@ -601,13 +601,14 @@ void ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
     uint8_t auth_data_buf[200];
     uint8_t * cose_key_buf = auth_data_buf +  + sizeof(CTAP_authData);
     uint8_t hashbuf[32];
-    uint8_t sigbuf[64];
+    static uint8_t sigbuf[164];
     uint8_t sigder[64 + 2 + 6];
     int auth_data_sz;
     CTAP_authData * authData = (CTAP_authData *)auth_data_buf;
     CborEncoder cose_key;
     CborEncoder map;
         CborEncoder stmtmap;
+        CborEncoder x5carr;
 
     cbor_encoder_init(&cose_key, cose_key_buf, sizeof(auth_data_buf) - sizeof(CTAP_authData), 0);
 
@@ -678,6 +679,10 @@ void ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
     crypto_ecc256_load_attestation_key();
     crypto_ecc256_sign(hashbuf, 32, sigbuf);
 
+    printf("signature hash: "); dump_hex(hashbuf, 32);
+    printf("R: "); dump_hex(sigbuf, 32);
+    printf("S: "); dump_hex(sigbuf+32, 32);
+
     // Need to caress into dumb der format ..
     uint8_t pad_s = (sigbuf[32] & 0x80) == 0x80;
     uint8_t pad_r = (sigbuf[0] & 0x80) == 0x80;
@@ -694,7 +699,7 @@ void ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
     sigder[5 + 32 + pad_r] = 0x20 + pad_s;
     memmove(sigder + 6 + 32 + pad_r + pad_s, sigbuf + 32, 32);
     //
-    printf("der sig [%d]: ", 0x44+pad_s+pad_r); dump_hex(sigder, 0x44+pad_s+pad_r);
+    printf("der sig [%d]: ", 0x44+pad_s+pad_r); dump_hex(sigder, 0x46+pad_s+pad_r);
 
     {
         ret = cbor_encode_int(&map,RESP_attStmt);
@@ -710,23 +715,30 @@ void ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
         {
             ret = cbor_encode_text_stringz(&stmtmap,"sig");
             check_ret(ret);
-            ret = cbor_encode_byte_string(&stmtmap, sigder, 0x44 + pad_s + pad_r);
+            ret = cbor_encode_byte_string(&stmtmap, sigder, 0x46 + pad_s + pad_r);
             check_ret(ret);
         }
         {
             ret = cbor_encode_text_stringz(&stmtmap,"x5c");
             check_ret(ret);
-            ret = cbor_encode_byte_string(&stmtmap, attestation_cert_der, attestation_cert_der_size);
+            ret = cbor_encoder_create_array(&stmtmap, &x5carr, 1);
             check_ret(ret);
+            {
+                ret = cbor_encode_byte_string(&x5carr, attestation_cert_der, attestation_cert_der_size);
+                check_ret(ret);
+                ret = cbor_encoder_close_container(&stmtmap, &x5carr);
+                check_ret(ret);
+            }
         }
 
-        cbor_encoder_close_container(&map, &stmtmap);
+        ret = cbor_encoder_close_container(&map, &stmtmap);
         check_ret(ret);
 
     }
 
 
-    cbor_encoder_close_container(encoder, &map);
+    ret = cbor_encoder_close_container(encoder, &map);
+    check_ret(ret);
 }
 
 

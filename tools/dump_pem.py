@@ -17,5 +17,14 @@ if len(sys.argv) not in [2]:
 pemkey = sys.argv[1]
 attestkey = ecdsa.SigningKey.from_pem(open(pemkey).read())
 
-print(binascii.hexlify(attestkey.to_string()))
-print(repr(attestkey.to_string()))
+hstr = binascii.hexlify(attestkey.to_string())
+print(hstr)
+
+cstr = ''
+it = iter(hstr)
+for d1 in it:
+    d2 = next(it)
+    cstr += '\\x'+d1+d2
+
+print('"%s"' % cstr)
+
