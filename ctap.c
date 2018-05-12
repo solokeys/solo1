@@ -763,7 +763,7 @@ void ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
 
     printf("der sig [%d]: ", sigder_sz); dump_hex(sigder, sigder_sz);
 
-    ctap_add_attest_statement(&map, sigder, sigderlen);
+    ctap_add_attest_statement(&map, sigder, sigder_sz);
 
     ret = cbor_encoder_close_container(encoder, &map);
     check_ret(ret);
