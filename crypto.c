@@ -25,7 +25,7 @@ const uint16_t attestation_key_size;
 
 static SHA256_CTX sha256_ctx;
 static const struct uECC_Curve_t * _es256_curve = NULL;
-static uint8_t * _signing_key = NULL;
+static const uint8_t * _signing_key = NULL;
 
 // Secret for testing only
 static uint8_t master_secret[32] = "\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff"
@@ -56,11 +56,6 @@ void crypto_ecc256_init()
     _es256_curve = uECC_secp256r1();
 }
 
-void crypto_ecc256_load_key(uint8_t * rpId, int len1, uint8_t * entropy, int len2)
-{
-    // TODO
-}
-
 
 void crypto_ecc256_load_attestation_key()
 {
@@ -76,24 +71,36 @@ void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig)
     }
 }
 
-
-/*int uECC_compute_public_key(const uint8_t *private_key, uint8_t *public_key, uECC_Curve curve);*/
-void crypto_derive_ecc256_public_key(uint8_t * rpId, int len1, uint8_t * entropy, int len2, uint8_t * x, uint8_t * y)
+static void generate_private_key(uint8_t * rpId, int len1, uint8_t * entropy, int len2, uint8_t * privkey)
 {
-    uint8_t privkey[32];
-    uint8_t pubkey[64];
-
     // poor man's hmac
     crypto_sha256_init();
     crypto_sha256_update(rpId, len1);
     crypto_sha256_update(entropy, len2);
     crypto_sha256_update(master_secret, 32);
     crypto_sha256_final(privkey);
+}
+
+
+/*int uECC_compute_public_key(const uint8_t *private_key, uint8_t *public_key, uECC_Curve curve);*/
+void crypto_ecc256_derive_public_key(uint8_t * rpId, int len1, uint8_t * entropy, int len2, uint8_t * x, uint8_t * y)
+{
+    uint8_t privkey[32];
+    uint8_t pubkey[64];
+
+    generate_private_key(rpId,len1,entropy,len2,privkey);
 
     memset(pubkey,0,sizeof(pubkey));
     uECC_compute_public_key(privkey, pubkey, _es256_curve);
     memmove(x,pubkey,32);
     memmove(y,pubkey+32,32);
+}
+
+void crypto_ecc256_load_key(uint8_t * rpId, int len1, uint8_t * entropy, int len2)
+{
+    static uint8_t privkey[32];
+    generate_private_key(rpId,len1,entropy,len2,privkey);
+    _signing_key = privkey;
 }
 
 

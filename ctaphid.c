@@ -258,7 +258,7 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
     printf("Recv packet\n");
     printf("  CID: %08x active(%08x)\n", pkt->cid, active_cid);
     printf("  cmd: %02x\n", pkt->pkt.init.cmd);
-    printf("  length: %d\n", ctaphid_packet_len(pkt));
+    if (!is_cont_pkt(pkt)) printf("  length: %d\n", ctaphid_packet_len(pkt));
 
     int ret;
     uint8_t status;

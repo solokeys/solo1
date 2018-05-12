@@ -546,7 +546,7 @@ static int ctap_generate_cose_key(CTAP_makeCredential * MC, CborEncoder * cose_k
     {
         case COSE_ALG_ES256:
             crypto_ecc256_init();
-            crypto_derive_ecc256_public_key(rpId, l1,
+            crypto_ecc256_derive_public_key(rpId, l1,
                     entropy, l2, x, y);
             break;
         default:
@@ -594,38 +594,17 @@ static int ctap_generate_cose_key(CTAP_makeCredential * MC, CborEncoder * cose_k
     check_ret(ret);
 }
 
-void ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
+static int ctap_make_auth_data(CTAP_makeCredential * MC, CborEncoder * map, uint8_t * auth_data_buf, int len)
 {
-    CTAP_makeCredential MC;
-    int ret;
-    uint8_t auth_data_buf[200];
-    uint8_t * cose_key_buf = auth_data_buf +  + sizeof(CTAP_authData);
-    uint8_t hashbuf[32];
-    static uint8_t sigbuf[164];
-    uint8_t sigder[64 + 2 + 6];
-    int auth_data_sz;
-    CTAP_authData * authData = (CTAP_authData *)auth_data_buf;
     CborEncoder cose_key;
-    CborEncoder map;
-        CborEncoder stmtmap;
-        CborEncoder x5carr;
+    int auth_data_sz, ret;
+    CTAP_authData * authData = (CTAP_authData *)auth_data_buf;
 
-    cbor_encoder_init(&cose_key, cose_key_buf, sizeof(auth_data_buf) - sizeof(CTAP_authData), 0);
-
-    ret = ctap_parse_make_credential(&MC,encoder,request,length);
-    if (ret != 0)
-    {
-        printf("error, parse_make_credential failed\n");
-        return;
-    }
-    if ((MC.paramsParsed & MC_requiredMask) != MC_requiredMask)
-    {
-        printf("error, required parameter(s) for makeCredential are missing\n");
-        return;
-    }
+    uint8_t * cose_key_buf = auth_data_buf + sizeof(CTAP_authData);
+    cbor_encoder_init(&cose_key, cose_key_buf, len - sizeof(CTAP_authData), 0);
 
     crypto_sha256_init();
-    crypto_sha256_update(MC.rpId, MC.rpIdSize);
+    crypto_sha256_update(MC->rpId, MC->rpIdSize);
     crypto_sha256_final(authData->rpIdHash);
 
     authData->flags = (ctap_user_presence_test() << 0);
@@ -644,7 +623,7 @@ void ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
     memmove(authData->attest.credentialId, authData->rpIdHash, 16);
     ctap_generate_rng(authData->attest.credentialId + 16, 32);
 
-    ctap_generate_cose_key(&MC, &cose_key, authData->attest.credentialId, 16,
+    ctap_generate_cose_key(MC, &cose_key, authData->attest.credentialId, 16,
             authData->attest.credentialId, 32);
 
     printf("COSE_KEY: "); dump_hex(cose_key_buf, cbor_encoder_get_buffer_size(&cose_key, cose_key_buf));
@@ -652,36 +631,43 @@ void ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
     auth_data_sz = sizeof(CTAP_authData) + cbor_encoder_get_buffer_size(&cose_key, cose_key_buf);
 #endif
 
-    ret = cbor_encoder_create_map(encoder, &map, 3);
-    check_ret(ret);
-
     {
-        ret = cbor_encode_int(&map,RESP_authData);
+        ret = cbor_encode_int(map,RESP_authData);
         check_ret(ret);
-        ret = cbor_encode_byte_string(&map, auth_data_buf, auth_data_sz);
+        ret = cbor_encode_byte_string(map, auth_data_buf, auth_data_sz);
 
         check_ret(ret);
     }
 
     {
-        ret = cbor_encode_int(&map,RESP_fmt);
+        ret = cbor_encode_int(map,RESP_fmt);
         check_ret(ret);
-        ret = cbor_encode_text_stringz(&map, "packed");
+        ret = cbor_encode_text_stringz(map, "packed");
         check_ret(ret);
     }
+    return auth_data_sz;
+}
 
+// @data data to hash before signature
+// @clientDataHash for signature
+// @tmp buffer for hash.  (can be same as data if data >= 32 bytes)
+// @sigbuf location to deposit signature (must be 64 bytes)
+// @sigder location to deposit der signature (must be 72 bytes)
+// @return length of der signature
+int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHash, uint8_t * hashbuf, uint8_t * sigbuf, uint8_t * sigder)
+{
     // calculate attestation sig
     crypto_sha256_init();
-    crypto_sha256_update(auth_data_buf, auth_data_sz);
-    crypto_sha256_update(MC.clientDataHash, CLIENT_DATA_HASH_SIZE);
+    crypto_sha256_update(data, datalen);
+    crypto_sha256_update(clientDataHash, CLIENT_DATA_HASH_SIZE);
     crypto_sha256_final(hashbuf);
 
     crypto_ecc256_load_attestation_key();
     crypto_ecc256_sign(hashbuf, 32, sigbuf);
 
-    printf("signature hash: "); dump_hex(hashbuf, 32);
-    printf("R: "); dump_hex(sigbuf, 32);
-    printf("S: "); dump_hex(sigbuf+32, 32);
+    /*printf("signature hash: "); dump_hex(hashbuf, 32);*/
+    /*printf("R: "); dump_hex(sigbuf, 32);*/
+    /*printf("S: "); dump_hex(sigbuf+32, 32);*/
 
     // Need to caress into dumb der format ..
     uint8_t pad_s = (sigbuf[32] & 0x80) == 0x80;
@@ -699,43 +685,85 @@ void ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
     sigder[5 + 32 + pad_r] = 0x20 + pad_s;
     memmove(sigder + 6 + 32 + pad_r + pad_s, sigbuf + 32, 32);
     //
-    printf("der sig [%d]: ", 0x44+pad_s+pad_r); dump_hex(sigder, 0x46+pad_s+pad_r);
 
+    return 0x46 + pad_s + pad_r;
+}
+
+void ctap_add_attest_statement(CborEncoder * map, uint8_t * sigder, int len)
+{
+    int ret;
+
+    CborEncoder stmtmap;
+    CborEncoder x5carr;
+
+
+    ret = cbor_encode_int(map,RESP_attStmt);
+    check_ret(ret);
+    ret = cbor_encoder_create_map(map, &stmtmap, 3);
+    check_ret(ret);
     {
-        ret = cbor_encode_int(&map,RESP_attStmt);
+        ret = cbor_encode_text_stringz(&stmtmap,"alg");
         check_ret(ret);
-        ret = cbor_encoder_create_map(&map, &stmtmap, 3);
+        ret = cbor_encode_int(&stmtmap,COSE_ALG_ES256);
+        check_ret(ret);
+    }
+    {
+        ret = cbor_encode_text_stringz(&stmtmap,"sig");
+        check_ret(ret);
+        ret = cbor_encode_byte_string(&stmtmap, sigder, len);
+        check_ret(ret);
+    }
+    {
+        ret = cbor_encode_text_stringz(&stmtmap,"x5c");
+        check_ret(ret);
+        ret = cbor_encoder_create_array(&stmtmap, &x5carr, 1);
         check_ret(ret);
         {
-            ret = cbor_encode_text_stringz(&stmtmap,"alg");
+            ret = cbor_encode_byte_string(&x5carr, attestation_cert_der, attestation_cert_der_size);
             check_ret(ret);
-            ret = cbor_encode_int(&stmtmap,COSE_ALG_ES256);
-            check_ret(ret);
-        }
-        {
-            ret = cbor_encode_text_stringz(&stmtmap,"sig");
-            check_ret(ret);
-            ret = cbor_encode_byte_string(&stmtmap, sigder, 0x46 + pad_s + pad_r);
+            ret = cbor_encoder_close_container(&stmtmap, &x5carr);
             check_ret(ret);
         }
-        {
-            ret = cbor_encode_text_stringz(&stmtmap,"x5c");
-            check_ret(ret);
-            ret = cbor_encoder_create_array(&stmtmap, &x5carr, 1);
-            check_ret(ret);
-            {
-                ret = cbor_encode_byte_string(&x5carr, attestation_cert_der, attestation_cert_der_size);
-                check_ret(ret);
-                ret = cbor_encoder_close_container(&stmtmap, &x5carr);
-                check_ret(ret);
-            }
-        }
-
-        ret = cbor_encoder_close_container(&map, &stmtmap);
-        check_ret(ret);
-
     }
 
+    ret = cbor_encoder_close_container(map, &stmtmap);
+    check_ret(ret);
+}
+
+
+void ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
+{
+    CTAP_makeCredential MC;
+    int ret;
+    uint8_t auth_data_buf[200];
+    uint8_t * hashbuf = auth_data_buf + 0;
+    uint8_t * sigbuf = auth_data_buf + 32;
+    uint8_t * sigder = auth_data_buf + 32 + 64;
+
+    ret = ctap_parse_make_credential(&MC,encoder,request,length);
+    if (ret != 0)
+    {
+        printf("error, parse_make_credential failed\n");
+        return;
+    }
+    if ((MC.paramsParsed & MC_requiredMask) != MC_requiredMask)
+    {
+        printf("error, required parameter(s) for makeCredential are missing\n");
+        return;
+    }
+
+
+    CborEncoder map;
+    ret = cbor_encoder_create_map(encoder, &map, 3);
+    check_ret(ret);
+
+    int auth_data_sz = ctap_make_auth_data(&MC, &map, auth_data_buf, sizeof(auth_data_buf));
+
+    int sigder_sz = ctap_calculate_signature(auth_data_buf, auth_data_sz, MC.clientDataHash, auth_data_buf, sigbuf, sigder);
+
+    printf("der sig [%d]: ", sigder_sz); dump_hex(sigder, sigder_sz);
+
+    ctap_add_attest_statement(&map, sigder, sigderlen);
 
     ret = cbor_encoder_close_container(encoder, &map);
     check_ret(ret);

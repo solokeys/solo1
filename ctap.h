@@ -118,6 +118,7 @@ typedef struct
     int32_t COSEAlgorithmIdentifier;
 
     uint8_t pinProtocol;
+
 } CTAP_makeCredential;
 
 uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp);
