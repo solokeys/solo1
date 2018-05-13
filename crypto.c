@@ -43,6 +43,10 @@ void crypto_sha256_update(uint8_t * data, size_t len)
     sha256_update(&sha256_ctx, data, len);
 }
 
+void crypto_sha256_update_secret()
+{
+    sha256_update(&sha256_ctx, master_secret, 32);
+}
 
 void crypto_sha256_final(uint8_t * hash)
 {
@@ -71,24 +75,24 @@ void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig)
     }
 }
 
-static void generate_private_key(uint8_t * rpId, int len1, uint8_t * entropy, int len2, uint8_t * privkey)
+void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey)
 {
     // poor man's hmac
     crypto_sha256_init();
-    crypto_sha256_update(rpId, len1);
-    crypto_sha256_update(entropy, len2);
+    crypto_sha256_update(data, len);
+    crypto_sha256_update(data2, len2);
     crypto_sha256_update(master_secret, 32);
     crypto_sha256_final(privkey);
 }
 
 
 /*int uECC_compute_public_key(const uint8_t *private_key, uint8_t *public_key, uECC_Curve curve);*/
-void crypto_ecc256_derive_public_key(uint8_t * rpId, int len1, uint8_t * entropy, int len2, uint8_t * x, uint8_t * y)
+void crypto_ecc256_derive_public_key(uint8_t * data, int len, uint8_t * x, uint8_t * y)
 {
     uint8_t privkey[32];
     uint8_t pubkey[64];
 
-    generate_private_key(rpId,len1,entropy,len2,privkey);
+    generate_private_key(data,len,NULL,0,privkey);
 
     memset(pubkey,0,sizeof(pubkey));
     uECC_compute_public_key(privkey, pubkey, _es256_curve);
@@ -96,10 +100,10 @@ void crypto_ecc256_derive_public_key(uint8_t * rpId, int len1, uint8_t * entropy
     memmove(y,pubkey+32,32);
 }
 
-void crypto_ecc256_load_key(uint8_t * rpId, int len1, uint8_t * entropy, int len2)
+void crypto_ecc256_load_key(uint8_t * data, int len)
 {
     static uint8_t privkey[32];
-    generate_private_key(rpId,len1,entropy,len2,privkey);
+    generate_private_key(data,len,NULL,0,privkey);
     _signing_key = privkey;
 }
 

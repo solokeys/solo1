@@ -30,10 +30,18 @@ int ctap_user_verification(uint8_t arg)
 }
 
 
-uint32_t ctap_atomic_count()
+uint32_t ctap_atomic_count(int sel)
 {
-    static uint32_t counter = 25;
-    return counter++;
+    static uint32_t counter1 = 25;
+    static uint32_t counter2 = 25;
+    if (sel == 0)
+    {
+        return counter1++;
+    }
+    else
+    {
+        return counter2++;
+    }
 }
 
 int ctap_generate_rng(uint8_t * dst, size_t num)

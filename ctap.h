@@ -44,6 +44,12 @@
 #define RESP_authData               0x02
 #define RESP_attStmt                0x03
 
+#define RESP_credential             0x01
+#define RESP_signature              0x03
+#define RESP_publicKeyCredentialUserEntity 0x04
+#define RESP_numberOfCredentials    0x05
+
+
 
 
 #define PARAM_clientDataHash        (1 << 0)
@@ -67,7 +73,9 @@
 #define USER_ID_MAX_SIZE            64
 #define USER_NAME_LIMIT             65  // Must be minimum of 64 bytes but can be more.
 
-#define CREDENTIAL_ID_SIZE          48
+#define CREDENTIAL_TAG_SIZE         16
+#define CREDENTIAL_COUNTER_SIZE     (4)
+#define CREDENTIAL_ID_SIZE          (CREDENTIAL_TAG_SIZE + USER_ID_MAX_SIZE + USER_NAME_LIMIT + CREDENTIAL_COUNTER_SIZE + 1)
 
 #define PUB_KEY_CRED_PUB_KEY        0x01
 #define PUB_KEY_CRED_UNKNOWN        0x3F
@@ -75,13 +83,30 @@
 #define CREDENTIAL_IS_SUPPORTED     1
 #define CREDENTIAL_NOT_SUPPORTED    0
 
+#define ALLOW_LIST_MAX_SIZE         20
+
+typedef struct
+{
+    uint8_t id[USER_ID_MAX_SIZE];
+    uint8_t id_size;
+    uint8_t name[USER_NAME_LIMIT];
+} CTAP_userEntity;
+
+union _credential {
+    struct {
+        uint8_t tag[CREDENTIAL_TAG_SIZE];
+        CTAP_userEntity user;
+        uint32_t count;
+    }__attribute__((packed)) fields;
+    uint8_t id[CREDENTIAL_ID_SIZE];
+};
 
 typedef struct
 {
     uint8_t aaguid[16];
     uint8_t credLenH;
     uint8_t credLenL;
-    uint8_t credentialId[CREDENTIAL_ID_SIZE];
+    union _credential credential;
 } __attribute__((packed)) CTAP_attestHeader;
 
 
@@ -93,26 +118,25 @@ typedef struct
     CTAP_attestHeader attest;
 } __attribute__((packed)) CTAP_authData;
 
-
-
 typedef struct
 {
     uint8_t * data;
     uint16_t length;
 } CTAP_RESPONSE;
 
+struct rpId
+{
+    uint8_t id[DOMAIN_NAME_MAX_SIZE + 1];     // extra for NULL termination
+    size_t size;
+    uint8_t name[RP_NAME_LIMIT];
+};
+
 typedef struct
 {
     uint32_t paramsParsed;
     uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
-
-    uint8_t rpId[DOMAIN_NAME_MAX_SIZE + 1];     // extra for NULL termination
-    size_t rpIdSize;
-    uint8_t rpName[RP_NAME_LIMIT];
-
-    uint8_t userId[USER_ID_MAX_SIZE];
-    uint8_t userIdSize;
-    uint8_t userName[USER_NAME_LIMIT];
+    struct rpId rp;
+    CTAP_userEntity user;
 
     uint8_t publicKeyCredentialType;
     int32_t COSEAlgorithmIdentifier;
@@ -120,6 +144,33 @@ typedef struct
     uint8_t pinProtocol;
 
 } CTAP_makeCredential;
+
+typedef struct
+{
+    uint8_t type;
+    union _credential credential;
+} CTAP_credentialDescriptor;
+
+typedef struct
+{
+    uint32_t paramsParsed;
+    uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
+
+    struct rpId rp;
+
+    CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
+    int credLen;
+
+    //uint8_t userId[USER_ID_MAX_SIZE];
+    //uint8_t userIdSize;
+    //uint8_t userName[USER_NAME_LIMIT];
+
+    //uint8_t publicKeyCredentialType;
+    //int32_t COSEAlgorithmIdentifier;
+
+    //uint8_t pinProtocol;
+
+} CTAP_getAssertion;
 
 uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp);
 
@@ -130,8 +181,9 @@ extern int ctap_user_presence_test();
 // Generate @num bytes of random numbers to @dest
 extern int ctap_generate_rng(uint8_t * dst, size_t num);
 
-// Increment atomic counter and return it
-extern uint32_t ctap_atomic_count();
+// Increment atomic counter and return it.  
+// Must support two counters, @sel selects counter0 or counter1.
+uint32_t ctap_atomic_count(int sel);
 
 // Verify the user
 // return 1 if user is verified, 0 if not
