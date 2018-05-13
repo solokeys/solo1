@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -639,6 +640,7 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
 {
     CborEncoder cose_key;
     int auth_data_sz, ret;
+    uint32_t count;
     CTAP_authData * authData = (CTAP_authData *)auth_data_buf;
 
     uint8_t * cose_key_buf = auth_data_buf + sizeof(CTAP_authData);
@@ -656,7 +658,8 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     authData->flags = (ctap_user_presence_test() << 0);
     authData->flags |= (ctap_user_verification(0) << 2);
 
-    authData->signCount = ctap_atomic_count( 0 );
+    count = ctap_atomic_count( 0 );
+    authData->signCount = ntohl(count);
 
     if (credtype != 0)
     {
@@ -676,11 +679,11 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
         memset(authData->attest.credential.id, 0, CREDENTIAL_ID_SIZE);
 
         // Make a tag we can later check to make sure this is a token we made
-        make_auth_tag(rp, user, authData->signCount, authData->attest.credential.fields.tag);
+        make_auth_tag(rp, user, count, authData->attest.credential.fields.tag);
 
         memmove(&authData->attest.credential.fields.user, user, sizeof(CTAP_userEntity)); //TODO encrypt this
 
-        authData->attest.credential.fields.count = authData->signCount;
+        authData->attest.credential.fields.count = count;
 
         ctap_generate_cose_key(&cose_key, authData->attest.credential.id, CREDENTIAL_ID_SIZE, credtype, algtype);
 
@@ -1152,7 +1155,7 @@ void ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     {
         ret = cbor_encode_int(&map, RESP_signature);
         check_ret(ret);
-        ret = cbor_encode_byte_string(&map, sigbuf, 64);
+        ret = cbor_encode_byte_string(&map, sigder, sigder_sz);
         check_ret(ret);
     }
 
