@@ -76,33 +76,73 @@ void ctap_get_info(CborEncoder * encoder)
     int ret;
     CborEncoder array;
     CborEncoder map;
+    CborEncoder options;
 
-    const int number_of_map_items = 2;
     const int number_of_versions = 2;
 
-    ret = cbor_encoder_create_map(encoder, &map, number_of_map_items);
+    ret = cbor_encoder_create_map(encoder, &map, 3);
     check_ret(ret);
     {
 
-        ret = cbor_encode_uint(&map, 0x01);     //  versions key
+        ret = cbor_encode_uint(&map, RESP_versions);     //  versions key
         check_ret(ret);
         {
             ret = cbor_encoder_create_array(&map, &array, number_of_versions);
             check_ret(ret);
-            ret = cbor_encode_text_stringz(&array, "1.0");
+            ret = cbor_encode_text_stringz(&array, "U2F_V2");
             check_ret(ret);
-            ret = cbor_encode_text_stringz(&array, "2.0");
+            ret = cbor_encode_text_stringz(&array, "FIDO_2_0");
             check_ret(ret);
             ret = cbor_encoder_close_container(&map, &array);
             check_ret(ret);
         }
 
-        ret = cbor_encode_uint(&map, 0x03);     //  aaguid key
+        ret = cbor_encode_uint(&map, RESP_aaguid);     //  aaguid key
         check_ret(ret);
         {
             ret = cbor_encode_byte_string(&map, CTAP_AAGUID, 16);
             check_ret(ret);
         }
+
+        ret = cbor_encode_uint(&map, RESP_options);     //  aaguid key
+        check_ret(ret);
+        {
+            ret = cbor_encoder_create_map(&map, &options,4);
+            check_ret(ret);
+            {
+                ret = cbor_encode_text_string(&options, "plat", 4);
+                check_ret(ret);
+                {
+                    ret = cbor_encode_boolean(&options, 0);     // Not attached to platform
+                    check_ret(ret);
+                }
+
+                ret = cbor_encode_text_string(&options, "rk", 2);
+                check_ret(ret);
+                {
+                    ret = cbor_encode_boolean(&options, 0);     // State-less device, requires allowList parameter.
+                    check_ret(ret);
+                }
+
+                ret = cbor_encode_text_string(&options, "up", 2);
+                check_ret(ret);
+                {
+                    ret = cbor_encode_boolean(&options, 1);     // Capable of testing user presence
+                    check_ret(ret);
+                }
+
+                ret = cbor_encode_text_string(&options, "uv", 2);
+                check_ret(ret);
+                {
+                    ret = cbor_encode_boolean(&options, 0);     // NOT [yet] capable of verifying user
+                    check_ret(ret);
+                }
+
+            }
+            ret = cbor_encoder_close_container(&map, &options);
+            check_ret(ret);
+        }
+
 
     }
     ret = cbor_encoder_close_container(encoder, &map);

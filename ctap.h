@@ -40,6 +40,13 @@
 #define CP_getKeyAgreement        0x07
 #define CP_getRetries             0x08
 
+#define RESP_versions               0x1
+#define RESP_extensions             0x2
+#define RESP_aaguid                 0x3
+#define RESP_options                0x4
+#define RESP_maxMsgSize             0x5
+#define RESP_pinProtocols           0x6
+
 #define RESP_fmt                    0x01
 #define RESP_authData               0x02
 #define RESP_attStmt                0x03
