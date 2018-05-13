@@ -98,7 +98,7 @@ static int is_init_pkt(CTAPHID_PACKET * pkt)
 
 static int is_cont_pkt(CTAPHID_PACKET * pkt)
 {
-    return !(pkt->pkt.init.cmd & CTAPHID_INIT);
+    return !(pkt->pkt.init.cmd & TYPE_INIT);
 }
 
 static int is_active_cid(CTAPHID_PACKET * pkt)
