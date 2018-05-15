@@ -393,6 +393,7 @@ start_over:
 
                     break;
                 case CTAPHID_PING:
+                    printf("CTAPHID_PING\n");
 
                     ctaphid_write_buffer_init(&wb);
                     wb.cid = active_cid;
@@ -402,10 +403,10 @@ start_over:
                     ctaphid_write(&wb, ctap_buffer, buffer_len());
                     ctaphid_write(&wb, NULL,0);
 
-                    printf("CTAPHID_PING\n");
                     break;
 
                 case CTAPHID_WINK:
+                    printf("CTAPHID_WINK\n");
 
                     if (buffer_len() != 0)
                     {
@@ -422,7 +423,6 @@ start_over:
 
                     ctaphid_write(&wb,NULL,0);
 
-                    printf("CTAPHID_WINK\n");
                     break;
 
                 case CTAPHID_CBOR:
