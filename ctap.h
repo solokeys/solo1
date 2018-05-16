@@ -79,6 +79,7 @@
 #define RP_NAME_LIMIT               32  // application limit, name parameter isn't needed.
 #define USER_ID_MAX_SIZE            64
 #define USER_NAME_LIMIT             65  // Must be minimum of 64 bytes but can be more.
+#define CTAP_MAX_MESSAGE_SIZE       1024
 
 #define CREDENTIAL_TAG_SIZE         16
 #define CREDENTIAL_COUNTER_SIZE     (4)
@@ -91,6 +92,8 @@
 #define CREDENTIAL_NOT_SUPPORTED    0
 
 #define ALLOW_LIST_MAX_SIZE         20
+
+#define NEW_PIN_ENC_MAX_SIZE        256
 
 typedef struct
 {
@@ -167,25 +170,35 @@ typedef struct
 
     CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
     int credLen;
-
-    //uint8_t userId[USER_ID_MAX_SIZE];
-    //uint8_t userIdSize;
-    //uint8_t userName[USER_NAME_LIMIT];
-
-    //uint8_t publicKeyCredentialType;
-    //int32_t COSEAlgorithmIdentifier;
-
-    //uint8_t pinProtocol;
-
 } CTAP_getAssertion;
 
+typedef struct
+{
+    int pinProtocol;
+    int subCommand;
+    struct
+    {
+
+    } keyAgreement;
+    uint8_t pinAuth[16];
+    uint8_t newPinEnc[NEW_PIN_ENC_MAX_SIZE];
+    uint8_t pinHashEnc[16];
+    int getKeyAgreement;
+    int getRetries;
+} CTAP_clientPin;
+
+
 uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp);
+
+// Run ctap related power-up procedures (init pinToken, generate shared secret)
+void ctap_init();
 
 // Test for user presence
 // Return 1 for user is present, 0 user not present
 extern int ctap_user_presence_test();
 
 // Generate @num bytes of random numbers to @dest
+// return 1 if success, error otherwise
 extern int ctap_generate_rng(uint8_t * dst, size_t num);
 
 // Increment atomic counter and return it.  

@@ -16,6 +16,9 @@
 #define check_ret(r)    _check_ret(r,__LINE__, __FILE__);\
                         if ((r) != CborNoError) return CTAP2_ERR_CBOR_PARSING;
 
+#define PIN_TOKEN_SIZE      16
+static uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
+
 static CborEncoder * _ENCODER;
 static void _check_ret(CborError ret, int line, const char * filename)
 {
@@ -73,16 +76,49 @@ static const char * cbor_value_get_type_string(const CborValue *value)
     return "Invalid type";
 }
 
+/*static CborError cbor_value_map_find_value_by_int(const CborValue *map, const int key, CborValue * element)*/
+/*{*/
+    /*size_t sz;*/
+    /*CborValue ckey, it;*/
+    /*int rkey;*/
+    /*int ret = cbor_value_get_map_length(map, &sz);*/
+    /*check_ret(ret);*/
+
+    /*cbor_value_enter_container(map, &it);*/
+
+    /*int i;*/
+    /*for (i = 0; i < sz; i++)*/
+    /*{*/
+        /*if (cbor_value_get_type(&it) == CborIntegerType)*/
+        /*{*/
+            /*ret = cbor_value_advance(&it);*/
+            /*check_ret(ret);*/
+            /*ret = cbor_value_get_int_checked(&it, &rkey);*/
+            /*check_ret(ret);*/
+            /*ret = cbor_value_advance(&it);*/
+            /*check_ret(ret);*/
+        /*}*/
+        /*else*/
+        /*{*/
+            /*cbor_value_advance(&it);*/
+            /*cbor_value_advance(&it);*/
+        /*}*/
+    /*}*/
+
+    /*return CborNoError;*/
+/*}*/
+
 uint8_t ctap_get_info(CborEncoder * encoder)
 {
     int ret;
     CborEncoder array;
     CborEncoder map;
     CborEncoder options;
+    CborEncoder pins;
 
     const int number_of_versions = 2;
 
-    ret = cbor_encoder_create_map(encoder, &map, 3);
+    ret = cbor_encoder_create_map(encoder, &map, 5);
     check_ret(ret);
     {
 
@@ -91,22 +127,46 @@ uint8_t ctap_get_info(CborEncoder * encoder)
         {
             ret = cbor_encoder_create_array(&map, &array, number_of_versions);
             check_ret(ret);
-            ret = cbor_encode_text_stringz(&array, "U2F_V2");
-            check_ret(ret);
-            ret = cbor_encode_text_stringz(&array, "FIDO_2_0");
-            check_ret(ret);
+            {
+                ret = cbor_encode_text_stringz(&array, "U2F_V2");
+                check_ret(ret);
+                ret = cbor_encode_text_stringz(&array, "FIDO_2_0");
+                check_ret(ret);
+            }
             ret = cbor_encoder_close_container(&map, &array);
             check_ret(ret);
         }
 
-        ret = cbor_encode_uint(&map, RESP_aaguid);     //  aaguid key
+        ret = cbor_encode_uint(&map, RESP_aaguid);
         check_ret(ret);
         {
             ret = cbor_encode_byte_string(&map, CTAP_AAGUID, 16);
             check_ret(ret);
         }
 
-        ret = cbor_encode_uint(&map, RESP_options);     //  aaguid key
+        ret = cbor_encode_uint(&map, RESP_maxMsgSize);
+        check_ret(ret);
+        {
+            ret = cbor_encode_int(&map, CTAP_MAX_MESSAGE_SIZE);
+            check_ret(ret);
+        }
+
+        ret = cbor_encode_uint(&map, RESP_pinProtocols);
+        check_ret(ret);
+        {
+            ret = cbor_encoder_create_array(&map, &pins, 1);
+            check_ret(ret);
+            {
+                ret = cbor_encode_int(&pins, 1);
+                check_ret(ret);
+            }
+            ret = cbor_encoder_close_container(&map, &pins);
+            check_ret(ret);
+        }
+
+
+
+        ret = cbor_encode_uint(&map, RESP_options);
         check_ret(ret);
         {
             ret = cbor_encoder_create_map(&map, &options,4);
@@ -1224,8 +1284,104 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     ret = cbor_encoder_close_container(encoder, &map);
     check_ret(ret);
 
+}
 
 
+int ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
+{
+    int ret;
+    int i,j;
+    int key;
+    size_t map_length;
+    size_t sz;
+    CborParser parser;
+    CborValue it,map;
+
+    memset(CP, 0, sizeof(CTAP_clientPin));
+    ret = cbor_parser_init(request, length, CborValidateCanonicalFormat, &parser, &it);
+    check_ret(ret);
+
+    CborType type = cbor_value_get_type(&it);
+    if (type != CborMapType)
+    {
+        printf2("Error, expecting cbor map\n");
+        return CTAP2_ERR_INVALID_CBOR_TYPE;
+    }
+
+    ret = cbor_value_enter_container(&it,&map);
+    check_ret(ret);
+
+    ret = cbor_value_get_map_length(&it, &map_length);
+    check_ret(ret);
+
+    printf1("CP map has %d elements\n",map_length);
+
+    for (i = 0; i < map_length; i++)
+    {
+        type = cbor_value_get_type(&map);
+        if (type != CborIntegerType)
+        {
+            printf2("Error, expecting int for map key\n");
+            return CTAP2_ERR_INVALID_CBOR_TYPE;
+        }
+        ret = cbor_value_get_int_checked(&map, &key);
+        check_ret(ret);
+
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+        ret = 0;
+
+        switch(key)
+        {
+            case CP_pinProtocol:
+                printf("CP_pinProtocol\n");
+                break;
+            case CP_subCommand:
+                printf("CP_subCommand\n");
+                break;
+            case CP_keyAgreement:
+                printf("CP_keyAgreement\n");
+                break;
+            case CP_pinAuth:
+                printf("CP_pinAuth\n");
+                break;
+            case CP_newPinEnc:
+                printf("CP_newPinEnc\n");
+                break;
+            case CP_pinHashEnc:
+                printf("CP_pinHashEnc\n");
+                break;
+            case CP_getKeyAgreement:
+                printf("CP_getKeyAgreement\n");
+                break;
+            case CP_getRetries:
+                printf("CP_getRetries\n");
+                break;
+            default:
+                printf1("Unknown key %d\n", key);
+        }
+
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+
+    }
+
+
+    return 0;
+}
+
+
+uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
+{
+    CTAP_clientPin CP;
+    int ret = ctap_parse_client_pin(&CP,request,length);
+
+    if (ret != 0)
+    {
+        printf2("error, parse_client_pin failed\n");
+        return ret;
+    }
+    return 0;
 }
 
 uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
@@ -1233,6 +1389,7 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     uint8_t status = 0;
     uint8_t cmd = *pkt_raw;
     pkt_raw++;
+    length--;
 
 
     static uint8_t buf[1024];
@@ -1245,14 +1402,14 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     cbor_encoder_init(&encoder, buf, sizeof(buf), 0);
     _ENCODER = &encoder;
 
-    printf1("cbor req: "); dump_hex(pkt_raw, length - 1);
+    printf1("cbor req: "); dump_hex(pkt_raw, length);
 
 
     switch(cmd)
     {
         case CTAP_MAKE_CREDENTIAL:
             printf1("CTAP_MAKE_CREDENTIAL\n");
-            status = ctap_make_credential(&encoder, pkt_raw, length - 1);
+            status = ctap_make_credential(&encoder, pkt_raw, length);
 
             dump_hex(buf, cbor_encoder_get_buffer_size(&encoder, buf));
 
@@ -1260,7 +1417,7 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             break;
         case CTAP_GET_ASSERTION:
             printf1("CTAP_GET_ASSERTION\n");
-            status = ctap_get_assertion(&encoder, pkt_raw, length - 1);
+            status = ctap_get_assertion(&encoder, pkt_raw, length);
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
 
@@ -1274,14 +1431,14 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             printf1("CTAP_GET_INFO\n");
             status = ctap_get_info(&encoder);
 
-            dump_hex(buf, cbor_encoder_get_buffer_size(&encoder, buf));
-
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
 
+            dump_hex(buf, cbor_encoder_get_buffer_size(&encoder, buf));
 
             break;
         case CTAP_CLIENT_PIN:
             printf1("CTAP_CLIENT_PIN\n");
+            status = ctap_client_pin(&encoder, pkt_raw, length);
             break;
         case CTAP_RESET:
             printf1("CTAP_RESET\n");
@@ -1299,9 +1456,17 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
         resp->length = 0;
     }
 
-    printf1("cbor input structure: %d bytes\n", length - 1);
+    printf1("cbor input structure: %d bytes\n", length);
     printf1("cbor output structure: %d bytes\n", resp->length);
     return status;
 }
 
+void ctap_init()
+{
+    if (ctap_generate_rng(PIN_TOKEN, PIN_TOKEN_SIZE) != 1)
+    {
+        printf2("Error, rng failed\n");
+        exit(1);
+    }
 
+}
