@@ -107,6 +107,15 @@ void crypto_ecc256_load_key(uint8_t * data, int len)
     _signing_key = privkey;
 }
 
+void crypto_ecc256_make_key_pair(uint8_t * pubkey, uint8_t * privkey)
+{
+    if (uECC_make_key(pubkey, privkey, _es256_curve) != 1)
+    {
+        printf("Error, uECC_make_key failed\n");
+        exit(1);
+    }
+}
+
 
 const uint8_t attestation_cert_der[] =
 "\x30\x82\x01\xfb\x30\x82\x01\xa1\xa0\x03\x02\x01\x02\x02\x01\x00\x30\x0a\x06\x08"

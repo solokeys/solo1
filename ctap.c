@@ -18,6 +18,9 @@
 
 #define PIN_TOKEN_SIZE      16
 static uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
+static uint8_t KEY_AGREEMENT_PUB[64];
+static uint8_t KEY_AGREEMENT_PRIV[32];
+static uint8_t PIN_CODE[64];
 
 static CborEncoder * _ENCODER;
 static void _check_ret(CborError ret, int line, const char * filename)
@@ -661,32 +664,14 @@ static uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder 
     return 0;
 }
 
-static int ctap_generate_cose_key(CborEncoder * cose_key, uint8_t * hmac_input, int len, uint8_t credtype, int32_t algtype)
+static int ctap_add_cose_key(CborEncoder * cose_key, uint8_t * x, uint8_t * y, uint8_t credtype, int32_t algtype)
 {
-    uint8_t x[32], y[32];
     int ret;
     CborEncoder map;
 
     ret = cbor_encoder_create_map(cose_key, &map, 5);
-    int extra = cbor_encoder_get_extra_bytes_needed(&map);
-    printf1(" extra? %d\n", extra);
     check_ret(ret);
 
-    if (credtype != PUB_KEY_CRED_PUB_KEY)
-    {
-        printf2("Error, pubkey credential type not supported\n");
-        return -1;
-    }
-    switch(algtype)
-    {
-        case COSE_ALG_ES256:
-            crypto_ecc256_init();
-            crypto_ecc256_derive_public_key(hmac_input, len, x, y);
-            break;
-        default:
-            printf2("Error, COSE alg %d not supported\n", algtype);
-            return -1;
-    }
 
     {
         ret = cbor_encode_int(&map, COSE_KEY_LABEL_KTY);
@@ -726,6 +711,27 @@ static int ctap_generate_cose_key(CborEncoder * cose_key, uint8_t * hmac_input, 
 
     ret = cbor_encoder_close_container(cose_key, &map);
     check_ret(ret);
+
+}
+static int ctap_generate_cose_key(CborEncoder * cose_key, uint8_t * hmac_input, int len, uint8_t credtype, int32_t algtype)
+{
+    uint8_t x[32], y[32];
+
+    if (credtype != PUB_KEY_CRED_PUB_KEY)
+    {
+        printf2("Error, pubkey credential type not supported\n");
+        return -1;
+    }
+    switch(algtype)
+    {
+        case COSE_ALG_ES256:
+            crypto_ecc256_derive_public_key(hmac_input, len, x, y);
+            break;
+        default:
+            printf2("Error, COSE alg %d not supported\n", algtype);
+            return -1;
+    }
+    ctap_add_cose_key(cose_key, x, y, credtype, algtype);
 }
 
 void make_auth_tag(struct rpId * rp, CTAP_userEntity * user, uint32_t count, uint8_t * tag)
@@ -1286,6 +1292,126 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
 }
 
+uint8_t parse_cose_key(CborValue * it, uint8_t * x, uint8_t * y, int * kty, int * crv)
+{
+    CborValue map;
+    size_t map_length;
+    size_t ptsz;
+    int i,ret,key;
+    int xkey = 0,ykey = 0;
+    *kty = 0;
+    *crv = 0;
+
+
+    CborType type = cbor_value_get_type(it);
+    if (type != CborMapType)
+    {
+        printf2("Error, expecting cbor map\n");
+        return CTAP2_ERR_INVALID_CBOR_TYPE;
+    }
+
+    ret = cbor_value_enter_container(it,&map);
+    check_ret(ret);
+
+    ret = cbor_value_get_map_length(it, &map_length);
+    check_ret(ret);
+
+    printf1("cose key has %d elements\n",map_length);
+
+    for (i = 0; i < map_length; i++)
+    {
+        if (cbor_value_get_type(&map) != CborIntegerType)
+        {
+            printf2("Error, expecting int for map key\n");
+            return CTAP2_ERR_INVALID_CBOR_TYPE;
+        }
+
+        ret = cbor_value_get_int_checked(&map, &key);
+        check_ret(ret);
+
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+
+        switch(key)
+        {
+            case COSE_KEY_LABEL_KTY:
+                printf1("COSE_KEY_LABEL_KTY\n");
+                if (cbor_value_get_type(&map) == CborIntegerType)
+                {
+                    ret = cbor_value_get_int_checked(&map, kty);
+                    check_ret(ret);
+                }
+                else
+                {
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
+                break;
+            case COSE_KEY_LABEL_ALG:
+                printf1("COSE_KEY_LABEL_ALG\n");
+                break;
+            case COSE_KEY_LABEL_CRV:
+                printf1("COSE_KEY_LABEL_CRV\n");
+                if (cbor_value_get_type(&map) == CborIntegerType)
+                {
+                    ret = cbor_value_get_int_checked(&map, crv);
+                    check_ret(ret);
+                }
+                else
+                {
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
+                break;
+            case COSE_KEY_LABEL_X:
+                printf1("COSE_KEY_LABEL_X\n");
+                if (cbor_value_get_type(&map) == CborByteStringType)
+                {
+                    xkey = 1;
+                    ptsz = 32;
+                    ret = cbor_value_copy_byte_string(&map, x, &ptsz, NULL);
+                    check_ret(ret);
+                    if (ptsz != 32)
+                    {
+                        return CTAP1_ERR_OTHER;
+                    }
+                }
+                else
+                {
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
+
+                break;
+            case COSE_KEY_LABEL_Y:
+                printf1("COSE_KEY_LABEL_Y\n");
+                if (cbor_value_get_type(&map) == CborByteStringType)
+                {
+                    ykey = 1;
+                    ptsz = 32;
+                    ret = cbor_value_copy_byte_string(&map, y, &ptsz, NULL);
+                    check_ret(ret);
+                    if (ptsz != 32)
+                    {
+                        return CTAP1_ERR_OTHER;
+                    }
+                }
+                else
+                {
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
+
+                break;
+            default:
+                printf1("Warning, unrecognized cose key option %d\n", key);
+        }
+
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+    }
+    if (xkey == 0 || ykey == 0 || *kty == 0 || *crv == 0)
+    {
+        return CTAP2_ERR_MISSING_PARAMETER;
+    }
+    return 0;
+}
 
 int ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
 {
@@ -1335,12 +1461,33 @@ int ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
         {
             case CP_pinProtocol:
                 printf("CP_pinProtocol\n");
+                if (cbor_value_get_type(&map) == CborIntegerType)
+                {
+                    cbor_value_get_int_checked(&map, &CP->pinProtocol);
+                    check_ret(ret);
+                }
+                else
+                {
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
                 break;
             case CP_subCommand:
                 printf("CP_subCommand\n");
+                if (cbor_value_get_type(&map) == CborIntegerType)
+                {
+                    cbor_value_get_int_checked(&map, &CP->subCommand);
+                    check_ret(ret);
+                }
+                else
+                {
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
+
                 break;
             case CP_keyAgreement:
                 printf("CP_keyAgreement\n");
+                ret = parse_cose_key(&map, CP->keyAgreement.x, CP->keyAgreement.y, &CP->keyAgreement.kty, &CP->keyAgreement.crv);
+                check_ret(ret);
                 break;
             case CP_pinAuth:
                 printf("CP_pinAuth\n");
@@ -1374,6 +1521,7 @@ int ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
 uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_clientPin CP;
+    CborEncoder map;
     int ret = ctap_parse_client_pin(&CP,request,length);
 
     if (ret != 0)
@@ -1381,6 +1529,62 @@ uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
         printf2("error, parse_client_pin failed\n");
         return ret;
     }
+
+    if (CP.pinProtocol != 1 || CP.subCommand == 0)
+    {
+        return CTAP1_ERR_OTHER;
+    }
+
+    ret = cbor_encoder_create_map(encoder, &map, 1);
+    check_ret(ret);
+
+    switch(CP.subCommand)
+    {
+        case CP_cmdGetRetries:
+            printf("CP_cmdGetRetries\n");
+            ret = cbor_encode_int(&map, 99);
+            check_ret(ret);
+            cbor_encode_int(&map, 99);
+            check_ret(ret);
+            break;
+        case CP_cmdGetKeyAgreement:
+            printf("CP_cmdGetKeyAgreement\n");
+
+            cbor_encode_int(&map, RESP_keyAgreement);
+            ctap_add_cose_key(&map, KEY_AGREEMENT_PUB, KEY_AGREEMENT_PUB+32, PUB_KEY_CRED_PUB_KEY, COSE_ALG_ES256);
+            break;
+        case CP_cmdSetPin:
+            printf("CP_cmdSetPin\n");
+            ret = cbor_encode_int(&map, 99);
+            check_ret(ret);
+            cbor_encode_int(&map, 99);
+            check_ret(ret);
+
+            break;
+        case CP_cmdChangePin:
+            printf("CP_cmdChangePin\n");
+            ret = cbor_encode_int(&map, 99);
+            check_ret(ret);
+            cbor_encode_int(&map, 99);
+            check_ret(ret);
+
+            break;
+        case CP_cmdGetPinToken:
+            printf("CP_cmdGetPinToken\n");
+            ret = cbor_encode_int(&map, 99);
+            check_ret(ret);
+            cbor_encode_int(&map, 99);
+            check_ret(ret);
+
+            break;
+        default:
+            printf2("Error, invalid client pin subcommand\n");
+            return CTAP1_ERR_OTHER;
+    }
+
+    ret = cbor_encoder_close_container(encoder, &map);
+    check_ret(ret);
+
     return 0;
 }
 
@@ -1439,6 +1643,8 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
         case CTAP_CLIENT_PIN:
             printf1("CTAP_CLIENT_PIN\n");
             status = ctap_client_pin(&encoder, pkt_raw, length);
+            resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
+            dump_hex(buf, cbor_encoder_get_buffer_size(&encoder, buf));
             break;
         case CTAP_RESET:
             printf1("CTAP_RESET\n");
@@ -1463,10 +1669,15 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
 
 void ctap_init()
 {
+    crypto_ecc256_init();
+
     if (ctap_generate_rng(PIN_TOKEN, PIN_TOKEN_SIZE) != 1)
     {
         printf2("Error, rng failed\n");
         exit(1);
     }
+
+
+    crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
 
 }

@@ -19,6 +19,7 @@ void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig);
 
 
 void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey);
+void crypto_ecc256_make_key_pair(uint8_t * pubkey, uint8_t * privkey);
 
 extern const uint8_t attestation_cert_der[];
 extern const uint16_t attestation_cert_der_size;

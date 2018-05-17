@@ -33,6 +33,11 @@
 
 #define CP_pinProtocol            0x01
 #define CP_subCommand             0x02
+    #define CP_cmdGetRetries      0x01
+    #define CP_cmdGetKeyAgreement 0x02
+    #define CP_cmdSetPin          0x03
+    #define CP_cmdChangePin       0x04
+    #define CP_cmdGetPinToken     0x05
 #define CP_keyAgreement           0x03
 #define CP_pinAuth                0x04
 #define CP_newPinEnc              0x05
@@ -56,7 +61,9 @@
 #define RESP_publicKeyCredentialUserEntity 0x04
 #define RESP_numberOfCredentials    0x05
 
-
+#define RESP_keyAgreement           0x01
+#define RESP_pinToken               0x02
+#define RESP_retries                0x03
 
 
 #define PARAM_clientDataHash        (1 << 0)
@@ -178,7 +185,10 @@ typedef struct
     int subCommand;
     struct
     {
-
+        uint8_t x[32];
+        uint8_t y[32];
+        int kty;
+        int crv;
     } keyAgreement;
     uint8_t pinAuth[16];
     uint8_t newPinEnc[NEW_PIN_ENC_MAX_SIZE];

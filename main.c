@@ -6,6 +6,7 @@
 #include "usbhid.h"
 #include "ctaphid.h"
 #include "util.h"
+#include "ctap.h"
 
 
 static void check_ret(CborError ret)
@@ -34,6 +35,8 @@ int main(int argc, char * argv[])
     usbhid_init();
     printf("init ctaphid\n");
     ctaphid_init();
+    printf("init ctap\n");
+    ctap_init();
 
     int count = 0;
     uint8_t hidmsg[64];
