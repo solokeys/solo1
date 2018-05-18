@@ -6,6 +6,7 @@
 #include "usbhid.h"
 #include "ctaphid.h"
 #include "util.h"
+#include "log.h"
 #include "ctap.h"
 
 
@@ -30,6 +31,15 @@ int main(int argc, char * argv[])
     /*check_ret(ret);*/
 
     /*dump_hex(buf,sizeof(buf));*/
+
+    set_logging_mask(
+            TAG_MC |
+            TAG_GA |
+            TAG_CP |
+            TAG_CTAP |
+            TAG_PARSE |
+            TAG_ERR
+            );
 
     printf("init usbhid\n");
     usbhid_init();
