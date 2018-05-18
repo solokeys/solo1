@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include "log.h"
 #include "util.h"
@@ -38,8 +39,14 @@ void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...)
         if (tag & tagtable[i].tagn)
         {
             printf("[%s] ", tagtable[i].tag);
+            i = 0;
             break;
         }
+    }
+    if (i != 0)
+    {
+        printf("INVALID LOG TAG\n");
+        exit(1);
     }
 #ifdef ENABLE_FILE_LOGGING
     if (tag & TAG_FILENO)
