@@ -117,6 +117,26 @@ static const char * cbor_value_get_type_string(const CborValue *value)
     /*return CborNoError;*/
 /*}*/
 
+uint8_t verify_pin_auth(uint8_t * pinAuth, uint8_t * clientDataHash)
+{
+    uint8_t hmac[32];
+    crypto_sha256_hmac(PIN_TOKEN, PIN_TOKEN_SIZE, clientDataHash, CLIENT_DATA_HASH_SIZE, hmac);
+
+    if (memcmp(pinAuth, hmac, 16) == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        printf2(TAG_ERR,"Pin auth failed\n");
+        dump_hex1(TAG_ERR,pinAuth,16);
+        dump_hex1(TAG_ERR,hmac,16);
+        return CTAP2_ERR_PIN_AUTH_INVALID;
+    }
+
+}
+
+
 uint8_t ctap_get_info(CborEncoder * encoder)
 {
     int ret;
@@ -1036,6 +1056,12 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
         printf2(TAG_ERR,"pinAuth is required\n");
         return CTAP2_ERR_PIN_REQUIRED;
     }
+    else
+    {
+        ret = verify_pin_auth(MC.pinAuth, MC.clientDataHash);
+        check_retr(ret);
+    }
+
 
 
     CborEncoder map;
@@ -1393,6 +1419,11 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
         printf2(TAG_ERR,"pinAuth is required\n");
         return CTAP2_ERR_PIN_REQUIRED;
     }
+    else
+    {
+        ret = verify_pin_auth(GA.pinAuth, GA.clientDataHash);
+        check_retr(ret);
+    }
 
 
     CborEncoder map;
@@ -1700,6 +1731,7 @@ uint8_t ctap_add_pin_if_verified(CborEncoder * map, uint8_t * platform_pubkey, u
         printf2(TAG_ERR,"Pin does not match!\n");
         printf2(TAG_ERR,"platform-pin-hash: "); dump_hex1(TAG_ERR, pinHashEnc, 16);
         printf2(TAG_ERR,"authentic-pin-hash: "); dump_hex1(TAG_ERR, PIN_CODE_HASH, 16);
+        // Generate new keyAgreement pair
         crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
         return CTAP2_ERR_PIN_INVALID;
     }
@@ -1882,7 +1914,7 @@ void ctap_init()
 
     crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
 
-    // TODO this should be stored in flash memory
+    // TODO this doesn't have to happen at every boot up
     memset(PIN_CODE,0,sizeof(PIN_CODE));
     memmove(PIN_CODE, "1234", 4);
     PIN_CODE_SET = 1;
