@@ -158,7 +158,12 @@ typedef struct
     uint8_t publicKeyCredentialType;
     int32_t COSEAlgorithmIdentifier;
 
-    uint8_t pinProtocol;
+    uint8_t rk;
+    uint8_t uv;
+
+    uint8_t pinAuth[16];
+    uint8_t pinAuthPresent;
+    int pinProtocol;
 
 } CTAP_makeCredential;
 
@@ -175,8 +180,16 @@ typedef struct
 
     struct rpId rp;
 
-    CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
     int credLen;
+
+    uint8_t rk;
+    uint8_t uv;
+
+    uint8_t pinAuth[16];
+    uint8_t pinAuthPresent;
+    int pinProtocol;
+
+    CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
 } CTAP_getAssertion;
 
 typedef struct
