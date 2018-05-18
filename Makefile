@@ -9,11 +9,11 @@
 
 platform=2
 
-src = $(wildcard *.c) $(wildcard crypto/*.c)
+src = $(wildcard *.c) $(wildcard crypto/*.c) crypto/tiny-AES-c/aes.c
 obj = $(src:.c=.o) uECC.o
 
 LDFLAGS = -Wl,--gc-sections ./tinycbor/lib/libtinycbor.a
-CFLAGS = -O2 -fdata-sections -ffunction-sections -I./tinycbor/src -I./crypto -I./crypto/micro-ecc/
+CFLAGS = -O2 -fdata-sections -ffunction-sections -I./tinycbor/src -I./crypto -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/
 
 name = main
 

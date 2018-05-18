@@ -20,6 +20,17 @@ void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig);
 
 void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey);
 void crypto_ecc256_make_key_pair(uint8_t * pubkey, uint8_t * privkey);
+void crypto_ecc256_shared_secret(const uint8_t * pubkey, const uint8_t * privkey, uint8_t * shared_secret);
+
+// Key must be 32 bytes
+void crypto_aes256_init(uint8_t * key);
+void crypto_aes256_reset_iv();
+
+// buf length must be multiple of 16 bytes
+void crypto_aes256_decrypt(uint8_t * buf, int lenth);
+void crypto_aes256_encrypt(uint8_t * buf, int lenth);
+
+
 
 extern const uint8_t attestation_cert_der[];
 extern const uint16_t attestation_cert_der_size;

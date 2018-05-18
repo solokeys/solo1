@@ -13,6 +13,7 @@
 
 #include "sha256.h"
 #include "uECC.h"
+#include "aes.h"
 #include "ctap.h"
 
 
@@ -114,6 +115,38 @@ void crypto_ecc256_make_key_pair(uint8_t * pubkey, uint8_t * privkey)
         printf("Error, uECC_make_key failed\n");
         exit(1);
     }
+}
+
+void crypto_ecc256_shared_secret(const uint8_t * pubkey, const uint8_t * privkey, uint8_t * shared_secret)
+{
+    if (uECC_shared_secret(pubkey, privkey, shared_secret, _es256_curve) != 1)
+    {
+        printf("Error, uECC_shared_secret failed\n");
+        exit(1);
+    }
+
+}
+
+static struct AES_ctx aes_ctx;
+void crypto_aes256_init(uint8_t * key)
+{
+    AES_init_ctx(&aes_ctx, key);
+    memset(aes_ctx.Iv, 0, 16);
+}
+
+void crypto_aes256_reset_iv()
+{
+    memset(aes_ctx.Iv, 0, 16);
+}
+
+void crypto_aes256_decrypt(uint8_t * buf, int length)
+{
+    AES_CBC_decrypt_buffer(&aes_ctx, buf, length);
+}
+
+void crypto_aes256_encrypt(uint8_t * buf, int length)
+{
+    AES_CBC_encrypt_buffer(&aes_ctx, buf, length);
 }
 
 

@@ -21,6 +21,7 @@ static uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
 static uint8_t KEY_AGREEMENT_PUB[64];
 static uint8_t KEY_AGREEMENT_PRIV[32];
 static uint8_t PIN_CODE[64];
+static uint8_t PIN_CODE_HASH[32];
 
 static CborEncoder * _ENCODER;
 static void _check_ret(CborError ret, int line, const char * filename)
@@ -1486,8 +1487,9 @@ int ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
                 break;
             case CP_keyAgreement:
                 printf("CP_keyAgreement\n");
-                ret = parse_cose_key(&map, CP->keyAgreement.x, CP->keyAgreement.y, &CP->keyAgreement.kty, &CP->keyAgreement.crv);
+                ret = parse_cose_key(&map, CP->keyAgreement.pubkey.x, CP->keyAgreement.pubkey.y, &CP->keyAgreement.kty, &CP->keyAgreement.crv);
                 check_ret(ret);
+                CP->keyAgreementPresent = 1;
                 break;
             case CP_pinAuth:
                 printf("CP_pinAuth\n");
@@ -1497,6 +1499,22 @@ int ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
                 break;
             case CP_pinHashEnc:
                 printf("CP_pinHashEnc\n");
+
+                if (cbor_value_get_type(&map) == CborByteStringType)
+                {
+                    CP->pinHashEncPresent = 1;
+                    sz = 16;
+                    ret = cbor_value_copy_byte_string(&map, CP->pinHashEnc, &sz, NULL);
+                    check_ret(ret);
+                    if (sz != 16)
+                    {
+                        return CTAP1_ERR_OTHER;
+                    }
+                }
+                else
+                {
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
                 break;
             case CP_getKeyAgreement:
                 printf("CP_getKeyAgreement\n");
@@ -1517,6 +1535,41 @@ int ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
     return 0;
 }
 
+uint8_t ctap_add_pin_if_verified(CborEncoder * map, uint8_t * platform_pubkey, uint8_t * pinHashEnc)
+{
+    uint8_t shared_secret[32];
+    int ret;
+
+    crypto_ecc256_shared_secret(platform_pubkey, KEY_AGREEMENT_PRIV, shared_secret);
+
+    crypto_sha256_init();
+    crypto_sha256_update(shared_secret, 32);
+    crypto_sha256_final(shared_secret);
+
+    crypto_aes256_init(shared_secret);
+
+    crypto_aes256_decrypt(pinHashEnc, 16);
+
+    printf("platform-pin-hash: "); dump_hex(pinHashEnc, 16);
+    printf("authentic-pin-hash: "); dump_hex(PIN_CODE_HASH, 16);
+
+    if (memcmp(pinHashEnc, PIN_CODE_HASH, 16) != 0)
+    {
+        crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+        return CTAP2_ERR_PIN_INVALID;
+    }
+
+    crypto_aes256_reset_iv();
+
+    // reuse share_secret memory for encrypted pinToken
+    memmove(shared_secret, PIN_TOKEN, PIN_TOKEN_SIZE);
+    crypto_aes256_encrypt(shared_secret, PIN_TOKEN_SIZE);
+
+    ret = cbor_encode_byte_string(map, shared_secret, PIN_TOKEN_SIZE);
+    check_ret(ret);
+
+    return 0;
+}
 
 uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
 {
@@ -1571,9 +1624,14 @@ uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
             break;
         case CP_cmdGetPinToken:
             printf("CP_cmdGetPinToken\n");
-            ret = cbor_encode_int(&map, 99);
+            if (CP.keyAgreementPresent == 0 || CP.pinHashEncPresent == 0)
+            {
+                return CTAP2_ERR_MISSING_PARAMETER;
+            }
+            ret = cbor_encode_int(&map, RESP_pinToken);
             check_ret(ret);
-            cbor_encode_int(&map, 99);
+
+            ret = ctap_add_pin_if_verified(&map, (uint8_t*)&CP.keyAgreement.pubkey, CP.pinHashEnc);
             check_ret(ret);
 
             break;
@@ -1677,7 +1735,13 @@ void ctap_init()
         exit(1);
     }
 
-
     crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
 
+    // TODO this should be stored in flash memory
+    memset(PIN_CODE,0,sizeof(PIN_CODE));
+    memmove(PIN_CODE, "1234", 4);
+
+    crypto_sha256_init();
+    crypto_sha256_update(PIN_CODE, 4);
+    crypto_sha256_final(PIN_CODE_HASH);
 }

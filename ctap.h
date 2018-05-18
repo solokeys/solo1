@@ -185,14 +185,19 @@ typedef struct
     int subCommand;
     struct
     {
-        uint8_t x[32];
-        uint8_t y[32];
+        struct{
+            uint8_t x[32];
+            uint8_t y[32];
+        } pubkey;
+
         int kty;
         int crv;
     } keyAgreement;
+    uint8_t keyAgreementPresent;
     uint8_t pinAuth[16];
     uint8_t newPinEnc[NEW_PIN_ENC_MAX_SIZE];
     uint8_t pinHashEnc[16];
+    uint8_t pinHashEncPresent;
     int getKeyAgreement;
     int getRetries;
 } CTAP_clientPin;

@@ -10,3 +10,6 @@
 [submodule ".\\crypto\\micro-ecc"]
 	path = .\\crypto\\micro-ecc
 	url = https://github.com/kmackay/micro-ecc.git
+[submodule ".\\crypto\\tiny-AES-c"]
+	path = .\\crypto\\tiny-AES-c
+	url = https://github.com/kokke/tiny-AES-c.git
