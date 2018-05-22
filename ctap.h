@@ -100,7 +100,7 @@
 
 #define ALLOW_LIST_MAX_SIZE         20
 
-#define NEW_PIN_ENC_MAX_SIZE        256
+#define NEW_PIN_ENC_MAX_SIZE        256     // includes NULL terminator
 
 typedef struct
 {
@@ -208,7 +208,9 @@ typedef struct
     } keyAgreement;
     uint8_t keyAgreementPresent;
     uint8_t pinAuth[16];
+    uint8_t pinAuthPresent;
     uint8_t newPinEnc[NEW_PIN_ENC_MAX_SIZE];
+    int newPinEncSize;
     uint8_t pinHashEnc[16];
     uint8_t pinHashEncPresent;
     int getKeyAgreement;
@@ -220,6 +222,12 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp);
 
 // Run ctap related power-up procedures (init pinToken, generate shared secret)
 void ctap_init();
+
+void ctap_update_pin(uint8_t * pin, int len);
+uint8_t ctap_decrement_pin_attempts();
+int8_t ctap_leftover_pin_attempts();
+void ctap_reset_pin_attempts();
+
 
 // Test for user presence
 // Return 1 for user is present, 0 user not present

@@ -28,6 +28,7 @@ int main(int argc, char * argv[])
             TAG_CP |
             TAG_CTAP |
             TAG_PARSE |
+            TAG_DUMP|
             TAG_ERR
             );
 

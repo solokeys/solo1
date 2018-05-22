@@ -13,7 +13,6 @@ void usbhid_init()
     serverfd = udp_server();
 }
 
-
 // Receive 64 byte USB HID message
 void usbhid_recv(uint8_t * msg)
 {
