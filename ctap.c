@@ -199,7 +199,7 @@ uint8_t ctap_get_info(CborEncoder * encoder)
         ret = cbor_encode_uint(&map, RESP_options);
         check_ret(ret);
         {
-            ret = cbor_encoder_create_map(&map, &options,4);
+            ret = cbor_encoder_create_map(&map, &options,5);
             check_ret(ret);
             {
                 ret = cbor_encode_text_string(&options, "plat", 4);
@@ -229,6 +229,13 @@ uint8_t ctap_get_info(CborEncoder * encoder)
                     ret = cbor_encode_boolean(&options, 0);     // NOT [yet] capable of verifying user
                     check_ret(ret);
                 }
+                ret = cbor_encode_text_string(&options, "clientPin", 9);
+                check_ret(ret);
+                {
+                    ret = cbor_encode_boolean(&options, ctap_is_pin_set());     // NOT [yet] capable of verifying user
+                    check_ret(ret);
+                }
+
 
             }
             ret = cbor_encoder_close_container(&map, &options);
@@ -1041,15 +1048,18 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
         return CTAP2_ERR_MISSING_PARAMETER;
     }
 
-    if (PIN_CODE_SET == 1 && MC.pinAuthPresent == 0)
+    if (ctap_is_pin_set() == 1 && MC.pinAuthPresent == 0)
     {
         printf2(TAG_ERR,"pinAuth is required\n");
         return CTAP2_ERR_PIN_REQUIRED;
     }
     else
     {
-        ret = verify_pin_auth(MC.pinAuth, MC.clientDataHash);
-        check_retr(ret);
+        if (ctap_is_pin_set())
+        {
+            ret = verify_pin_auth(MC.pinAuth, MC.clientDataHash);
+            check_retr(ret);
+        }
     }
 
 
@@ -1402,8 +1412,11 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     }
     else
     {
-        ret = verify_pin_auth(GA.pinAuth, GA.clientDataHash);
-        check_retr(ret);
+        if (ctap_is_pin_set())
+        {
+            ret = verify_pin_auth(GA.pinAuth, GA.clientDataHash);
+            check_retr(ret);
+        }
     }
 
 
@@ -1693,6 +1706,10 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
         return CTAP1_ERR_OTHER;
     }
 
+    if (ctap_is_pin_set())
+    {
+        return CTAP2_ERR_PIN_REQUIRED;
+    }
 
     crypto_ecc256_shared_secret(platform_pubkey, KEY_AGREEMENT_PRIV, shared_secret);
 
@@ -1831,6 +1848,10 @@ uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
 
             break;
         case CP_cmdGetPinToken:
+            if (!ctap_is_pin_set())
+            {
+                return CTAP2_ERR_PIN_NOT_SET;
+            }
             num_map++;
             ret = cbor_encoder_create_map(encoder, &map, num_map);
             check_ret(ret);
@@ -1964,6 +1985,11 @@ void ctap_init()
     }
 
     crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+}
+
+uint8_t ctap_is_pin_set()
+{
+    return PIN_CODE_SET == 1;
 }
 
 void ctap_update_pin(uint8_t * pin, int len)

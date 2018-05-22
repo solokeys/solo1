@@ -227,6 +227,7 @@ void ctap_update_pin(uint8_t * pin, int len);
 uint8_t ctap_decrement_pin_attempts();
 int8_t ctap_leftover_pin_attempts();
 void ctap_reset_pin_attempts();
+uint8_t ctap_is_pin_set();
 
 
 // Test for user presence
