@@ -1661,9 +1661,13 @@ int ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
                 break;
             case CP_getKeyAgreement:
                 printf1(TAG_CP,"CP_getKeyAgreement\n");
+                ret = cbor_value_get_boolean(&map, &CP->getKeyAgreement);
+                check_ret(ret);
                 break;
             case CP_getRetries:
                 printf1(TAG_CP,"CP_getRetries\n");
+                ret = cbor_value_get_boolean(&map, &CP->getRetries);
+                check_ret(ret);
                 break;
             default:
                 printf1(TAG_CP,"Unknown key %d\n", key);

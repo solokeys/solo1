@@ -213,8 +213,8 @@ typedef struct
     int newPinEncSize;
     uint8_t pinHashEnc[16];
     uint8_t pinHashEncPresent;
-    int getKeyAgreement;
-    int getRetries;
+    _Bool getKeyAgreement;
+    _Bool getRetries;
 } CTAP_clientPin;
 
 
