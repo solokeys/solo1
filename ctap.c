@@ -1954,6 +1954,18 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     printf1(TAG_CTAP,"cbor input structure: %d bytes\n", length);
     printf1(TAG_DUMP,"cbor req: "); dump_hex1(TAG_DUMP, pkt_raw, length);
 
+    switch(cmd)
+    {
+        case CTAP_MAKE_CREDENTIAL:
+        case CTAP_GET_ASSERTION:
+        case CTAP_CLIENT_PIN:
+            if (ctap_device_locked())
+            {
+                status = CTAP2_ERR_NOT_ALLOWED;
+                goto done;
+            }
+            break;
+    }
 
     switch(cmd)
     {
@@ -2010,6 +2022,8 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             status = CTAP1_ERR_INVALID_COMMAND;
             printf2(TAG_ERR,"error, invalid cmd\n");
     }
+
+done:
 
     if (status != CTAP1_ERR_SUCCESS)
     {
@@ -2074,13 +2088,20 @@ uint8_t ctap_decrement_pin_attempts()
     if (_flash_tries > 0)
     {
         _flash_tries--;
+        printf1(TAG_CP, "ATTEMPTS left: %d\n", _flash_tries);
     }
     else
     {
         DEVICE_LOCKOUT = 1;
+        printf1(TAG_CP, "Device locked!\n");
         return -1;
     }
     return 0;
+}
+
+int8_t ctap_device_locked()
+{
+    return DEVICE_LOCKOUT == 1;
 }
 
 int8_t ctap_leftover_pin_attempts()

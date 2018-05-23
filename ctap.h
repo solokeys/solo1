@@ -230,6 +230,7 @@ void ctap_reset_pin_attempts();
 uint8_t ctap_is_pin_set();
 uint8_t ctap_pin_matches(uint8_t * pin, int len);
 void ctap_reset();
+int8_t ctap_device_locked();
 
 
 // Test for user presence
