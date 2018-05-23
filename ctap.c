@@ -121,7 +121,10 @@ static const char * cbor_value_get_type_string(const CborValue *value)
 uint8_t verify_pin_auth(uint8_t * pinAuth, uint8_t * clientDataHash)
 {
     uint8_t hmac[32];
-    crypto_sha256_hmac(PIN_TOKEN, PIN_TOKEN_SIZE, clientDataHash, CLIENT_DATA_HASH_SIZE, hmac);
+
+    crypto_sha256_hmac_init(PIN_TOKEN, PIN_TOKEN_SIZE, hmac);
+    crypto_sha256_update(clientDataHash, CLIENT_DATA_HASH_SIZE);
+    crypto_sha256_hmac_final(PIN_TOKEN, PIN_TOKEN_SIZE, hmac);
 
     if (memcmp(pinAuth, hmac, 16) == 0)
     {
@@ -1695,7 +1698,7 @@ int ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
     return 0;
 }
 
-uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platform_pubkey, uint8_t * pinAuth)
+uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platform_pubkey, uint8_t * pinAuth, uint8_t * pinHashEnc)
 {
     uint8_t shared_secret[32];
     uint8_t hmac[32];
@@ -1706,18 +1709,19 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
         return CTAP1_ERR_OTHER;
     }
 
-    if (ctap_is_pin_set())
-    {
-        return CTAP2_ERR_PIN_REQUIRED;
-    }
-
     crypto_ecc256_shared_secret(platform_pubkey, KEY_AGREEMENT_PRIV, shared_secret);
 
     crypto_sha256_init();
     crypto_sha256_update(shared_secret, 32);
     crypto_sha256_final(shared_secret);
 
-    crypto_sha256_hmac(shared_secret, 32, pinEnc, len, hmac);
+    crypto_sha256_hmac_init(shared_secret, 32, hmac);
+    crypto_sha256_update(pinEnc, len);
+    if (pinHashEnc != NULL)
+    {
+        crypto_sha256_update(pinHashEnc, 16);
+    }
+    crypto_sha256_hmac_final(shared_secret, 32, hmac);
 
     if (memcmp(hmac, pinAuth, 16) != 0)
     {
@@ -1736,6 +1740,8 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
 
     crypto_aes256_decrypt(pinEnc, len);
 
+    printf("new pin: %s\n", pinEnc);
+
     ret = strnlen(pinEnc, NEW_PIN_ENC_MAX_SIZE);
     if (ret == NEW_PIN_ENC_MAX_SIZE)
     {
@@ -1747,10 +1753,24 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
         printf2(TAG_ERR,"new PIN is too short\n");
         return CTAP2_ERR_PIN_POLICY_VIOLATION;
     }
-    else
+
+    if (ctap_is_pin_set())
     {
-        ctap_update_pin(pinEnc, ret);
+        crypto_aes256_reset_iv();
+        crypto_aes256_decrypt(pinHashEnc, 16);
+        if (memcmp(pinHashEnc, PIN_CODE_HASH, 16) != 0)
+        {
+            crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+            ctap_decrement_pin_attempts();
+            return CTAP2_ERR_PIN_INVALID;
+        }
+        else
+        {
+            ctap_reset_pin_attempts();
+        }
     }
+
+    ctap_update_pin(pinEnc, ret);
 
     return 0;
 }
@@ -1782,6 +1802,7 @@ uint8_t ctap_add_pin_if_verified(CborEncoder * map, uint8_t * platform_pubkey, u
         return CTAP2_ERR_PIN_INVALID;
     }
 
+    ctap_reset_pin_attempts();
     crypto_aes256_reset_iv();
 
     // reuse share_secret memory for encrypted pinToken
@@ -1838,14 +1859,34 @@ uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
             break;
         case CP_cmdSetPin:
             printf1(TAG_CP,"CP_cmdSetPin\n");
-            ret = ctap_update_pin_if_verified(CP.newPinEnc, CP.newPinEncSize, (uint8_t*)&CP.keyAgreement.pubkey, CP.pinAuth);
-            check_retr(ret);
 
+            if (ctap_is_pin_set())
+            {
+                return CTAP2_ERR_NOT_ALLOWED;
+            }
+            if (!CP.newPinEncSize || !CP.pinAuthPresent || !CP.keyAgreementPresent)
+            {
+                return CTAP2_ERR_MISSING_PARAMETER;
+            }
+
+            ret = ctap_update_pin_if_verified(CP.newPinEnc, CP.newPinEncSize, (uint8_t*)&CP.keyAgreement.pubkey, CP.pinAuth, NULL);
+            check_retr(ret);
             break;
         case CP_cmdChangePin:
             printf1(TAG_CP,"CP_cmdChangePin\n");
-            return CTAP1_ERR_INVALID_COMMAND;
 
+            if (! ctap_is_pin_set())
+            {
+                return CTAP2_ERR_PIN_NOT_SET;
+            }
+
+            if (!CP.newPinEncSize || !CP.pinAuthPresent || !CP.keyAgreementPresent || !CP.pinHashEncPresent)
+            {
+                return CTAP2_ERR_MISSING_PARAMETER;
+            }
+
+            ret = ctap_update_pin_if_verified(CP.newPinEnc, CP.newPinEncSize, (uint8_t*)&CP.keyAgreement.pubkey, CP.pinAuth, CP.pinHashEnc);
+            check_retr(ret);
             break;
         case CP_cmdGetPinToken:
             if (!ctap_is_pin_set())
@@ -1991,6 +2032,12 @@ uint8_t ctap_is_pin_set()
 {
     return PIN_CODE_SET == 1;
 }
+
+uint8_t ctap_pin_matches(uint8_t * pin, int len)
+{
+    return memcmp(pin, PIN_CODE, len) == 0;
+}
+
 
 void ctap_update_pin(uint8_t * pin, int len)
 {

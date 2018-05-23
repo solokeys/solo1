@@ -54,7 +54,7 @@ void crypto_sha256_final(uint8_t * hash)
     sha256_final(&sha256_ctx, hash);
 }
 
-void crypto_sha256_hmac(uint8_t * key, uint32_t klen, uint8_t * data, uint32_t datalen, uint8_t * hmac)
+void crypto_sha256_hmac_init(uint8_t * key, uint32_t klen, uint8_t * hmac)
 {
     uint8_t buf[64];
     int i;
@@ -75,10 +75,20 @@ void crypto_sha256_hmac(uint8_t * key, uint32_t klen, uint8_t * data, uint32_t d
 
     crypto_sha256_init();
     crypto_sha256_update(buf, 64);
-    crypto_sha256_update(data, datalen);
-    crypto_sha256_final(hmac);
+}
 
+void crypto_sha256_hmac_final(uint8_t * key, uint32_t klen, uint8_t * hmac)
+{
+    uint8_t buf[64];
+    int i;
+    crypto_sha256_final(hmac);
     memset(buf, 0, sizeof(buf));
+
+    if(klen > 64)
+    {
+        printf("Error, key size must be <= 64\n");
+        exit(1);
+    }
     memmove(buf, key, klen);
 
     for (i = 0; i < sizeof(buf); i++)
@@ -91,6 +101,44 @@ void crypto_sha256_hmac(uint8_t * key, uint32_t klen, uint8_t * data, uint32_t d
     crypto_sha256_update(hmac, 32);
     crypto_sha256_final(hmac);
 }
+
+/*void crypto_sha256_hmac(uint8_t * key, uint32_t klen, uint8_t * data, uint32_t datalen, uint8_t * hmac)*/
+/*{*/
+    /*uint8_t buf[64];*/
+    /*int i;*/
+    /*memset(buf, 0, sizeof(buf));*/
+
+    /*if(klen > 64)*/
+    /*{*/
+        /*printf("Error, key size must be <= 64\n");*/
+        /*exit(1);*/
+    /*}*/
+
+    /*memmove(buf, key, klen);*/
+
+    /*for (i = 0; i < sizeof(buf); i++)*/
+    /*{*/
+        /*buf[i] = buf[i] ^ 0x36;*/
+    /*}*/
+
+    /*crypto_sha256_init();*/
+    /*crypto_sha256_update(buf, 64);*/
+    /*crypto_sha256_update(data, datalen);*/
+    /*crypto_sha256_final(hmac);*/
+
+    /*memset(buf, 0, sizeof(buf));*/
+    /*memmove(buf, key, klen);*/
+
+    /*for (i = 0; i < sizeof(buf); i++)*/
+    /*{*/
+        /*buf[i] = buf[i] ^ 0x5c;*/
+    /*}*/
+
+    /*crypto_sha256_init();*/
+    /*crypto_sha256_update(buf, 64);*/
+    /*crypto_sha256_update(hmac, 32);*/
+    /*crypto_sha256_final(hmac);*/
+/*}*/
 
 
 void crypto_ecc256_init()
