@@ -155,7 +155,7 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
 }
 
 
-int parse_pub_key_cred_param(CborValue * val, uint8_t * cred_type, int32_t * alg_type)
+uint8_t parse_pub_key_cred_param(CborValue * val, uint8_t * cred_type, int32_t * alg_type)
 {
     CborValue map;
     CborValue cred;
@@ -290,7 +290,7 @@ uint8_t parse_fixed_byte_string(CborValue * map, uint8_t * dst, int len)
 }
 
 
-int parse_rp_id(struct rpId * rp, CborValue * val)
+uint8_t parse_rp_id(struct rpId * rp, CborValue * val)
 {
     size_t sz = DOMAIN_NAME_MAX_SIZE;
     int ret = cbor_value_copy_text_string(val, rp->id, &sz, NULL);
@@ -604,7 +604,7 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
     return 0;
 }
 
-int parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
+uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
 {
     CborValue arr, val;
     size_t len,buflen;
@@ -686,7 +686,7 @@ int parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
 }
 
 
-int ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int length)
+uint8_t ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int length)
 {
     int ret;
     int i,j;
@@ -753,19 +753,7 @@ int ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int leng
                 ret = parse_allow_list(GA, &map);
                 if (ret == 0)
                 {
-                    /*for (j = 0; j < GA->credLen; j++)*/
-                    /*{*/
-                        /*printf1(TAG_GA,"CRED ID (# %d): ", GA->creds[j].credential.fields.count);*/
-                        /*dump_hex1(TAG_GA, GA->creds[j].credential.id, CREDENTIAL_ID_SIZE);*/
-                        /*if (ctap_authenticate_credential(&GA->rp, &GA->creds[j]))   // warning encryption will break this*/
-                        /*{*/
-                            /*printf1(TAG_GA,"  Authenticated.\n");*/
-                        /*}*/
-                        /*else*/
-                        /*{*/
-                            /*printf1(TAG_GA,"  NOT authentic.\n");*/
-                        /*}*/
-                    /*}*/
+
                 }
                 break;
             case GA_extensions:
@@ -911,7 +899,7 @@ uint8_t parse_cose_key(CborValue * it, uint8_t * x, uint8_t * y, int * kty, int 
     return 0;
 }
 
-int ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
+uint8_t ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
 {
     int ret;
     int i,j;

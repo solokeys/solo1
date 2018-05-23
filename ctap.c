@@ -23,6 +23,11 @@ static uint8_t PIN_CODE[NEW_PIN_ENC_MAX_SIZE];
 static uint8_t PIN_CODE_HASH[32];
 static uint8_t DEVICE_LOCKOUT = 0;
 
+static struct {
+    CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
+    uint8_t lastcmd;
+    uint32_t count;
+} getAssertionState;
 
 uint8_t verify_pin_auth(uint8_t * pinAuth, uint8_t * clientDataHash)
 {
@@ -45,7 +50,6 @@ uint8_t verify_pin_auth(uint8_t * pinAuth, uint8_t * clientDataHash)
     }
 
 }
-
 
 uint8_t ctap_get_info(CborEncoder * encoder)
 {
@@ -591,6 +595,21 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
     ctap_make_auth_data(&GA.rp, &map, auth_data_buf, sizeof(auth_data_buf), NULL, 0,0);
 
+    printf1(TAG_GA, "ALLOW_LIST has %d creds\n", GA.credLen);
+    for (int j = 0; j < GA.credLen; j++)
+    {
+        printf1(TAG_GA,"CRED ID (# %d): ", GA.creds[j].credential.fields.count);
+        dump_hex1(TAG_GA, GA.creds[j].credential.id, CREDENTIAL_ID_SIZE);
+        if (ctap_authenticate_credential(&GA.rp, &GA.creds[j]))   // warning encryption will break this
+        {
+            printf1(TAG_GA,"  Authenticated.\n");
+        }
+        else
+        {
+            printf1(TAG_GA,"  NOT authentic.\n");
+        }
+    }
+
     int pick = pick_first_authentic_credential(&GA);    // TODO let this handle decryption? lazy?
     if (pick == -1)
     {
@@ -862,6 +881,15 @@ uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
     return 0;
 }
 
+
+static void save_credential_list(CTAP_credentialDescriptor * creds, uint32_t count)
+{
+    memmove(getAssertionState.creds, creds, sizeof(CTAP_credentialDescriptor) * count);
+    getAssertionState.count = count;
+}
+
+
+
 uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
 {
     uint8_t status = 0;
@@ -952,6 +980,7 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     }
 
 done:
+    getAssertionState.lastcmd = cmd;
 
     if (status != CTAP1_ERR_SUCCESS)
     {
