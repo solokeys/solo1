@@ -38,6 +38,11 @@ void crypto_sha256_init()
     sha256_init(&sha256_ctx);
 }
 
+void crypto_reset_master_secret()
+{
+    ctap_generate_rng(master_secret, 32);
+}
+
 
 void crypto_sha256_update(uint8_t * data, size_t len)
 {

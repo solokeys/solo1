@@ -33,6 +33,7 @@ void crypto_aes256_reset_iv();
 void crypto_aes256_decrypt(uint8_t * buf, int lenth);
 void crypto_aes256_encrypt(uint8_t * buf, int lenth);
 
+void crypto_reset_master_secret();
 
 
 extern const uint8_t attestation_cert_der[];

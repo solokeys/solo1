@@ -1994,6 +1994,14 @@ uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             break;
         case CTAP_RESET:
             printf1(TAG_CTAP,"CTAP_RESET\n");
+            if (ctap_user_presence_test())
+            {
+                ctap_reset();
+            }
+            else
+            {
+                status = CTAP2_ERR_NOT_ALLOWED;
+            }
             break;
         case GET_NEXT_ASSERTION:
             printf1(TAG_CTAP,"CTAP_NEXT_ASSERTION\n");
@@ -2083,5 +2091,16 @@ int8_t ctap_leftover_pin_attempts()
 void ctap_reset_pin_attempts()
 {
     _flash_tries = 8;
+}
+
+void ctap_reset()
+{
+    _flash_tries = 8;
+    PIN_CODE_SET = 0;
+    DEVICE_LOCKOUT = 0;
+    memset(PIN_CODE,0,sizeof(PIN_CODE));
+    memset(PIN_CODE_HASH,0,sizeof(PIN_CODE_HASH));
+    crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+    crypto_reset_master_secret();
 }
 
