@@ -42,6 +42,7 @@ uint32_t ctap_atomic_count(int sel)
     {
         return counter2++;
     }
+    return 44;
 }
 
 int ctap_generate_rng(uint8_t * dst, size_t num)

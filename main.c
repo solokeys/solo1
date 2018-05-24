@@ -29,6 +29,8 @@ int main(int argc, char * argv[])
             TAG_CTAP |
             TAG_PARSE |
             TAG_DUMP|
+            TAG_GREEN|
+            TAG_RED|
             TAG_ERR
             );
 

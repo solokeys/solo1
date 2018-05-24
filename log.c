@@ -24,6 +24,8 @@ struct logtag tagtable[] = {
     {TAG_PARSE,"PARSE"},
     {TAG_CTAP,"CTAP"},
     {TAG_DUMP,"DUMP"},
+    {TAG_GREEN,"\x1b[32mDEBUG\x1b[0m"},
+    {TAG_RED,"\x1b[31mDEBUG\x1b[0m"},
 };
 
 void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...)

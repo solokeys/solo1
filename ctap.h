@@ -126,12 +126,16 @@ typedef struct
     union _credential credential;
 } __attribute__((packed)) CTAP_attestHeader;
 
-
 typedef struct
 {
     uint8_t rpIdHash[32];
     uint8_t flags;
     uint32_t signCount;
+} __attribute__((packed)) CTAP_authDataHeader;
+
+typedef struct
+{
+    CTAP_authDataHeader head;
     CTAP_attestHeader attest;
 } __attribute__((packed)) CTAP_authData;
 
