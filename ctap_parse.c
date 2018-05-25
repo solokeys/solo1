@@ -473,7 +473,7 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
     size_t map_length;
     size_t sz;
     CborParser parser;
-    CborValue it,map;
+    CborValue it,map,val;
 
     memset(MC, 0, sizeof(CTAP_makeCredential));
     ret = cbor_parser_init(request, length, CborValidateCanonicalFormat, &parser, &it);
@@ -560,14 +560,15 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
                 {
                     ret = cbor_value_enter_container(&map, &MC->excludeList);
                     check_ret(ret);
-                    ret = cbor_value_get_int_checked(&map, &MC->excludeListSize);
+
+                    ret = cbor_value_get_array_length(&map, &MC->excludeListSize);
                     check_ret(ret);
                 }
                 else
                 {
                     return CTAP2_ERR_INVALID_CBOR_TYPE;
                 }
-
+                printf1(TAG_MC,"CTAP_excludeList done\n");
                 break;
             case MC_extensions:
                 printf1(TAG_MC,"CTAP_extensions\n");
@@ -608,7 +609,6 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
         {
             return ret;
         }
-
         cbor_value_advance(&map);
         check_ret(ret);
     }
@@ -624,7 +624,7 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
     CborValue val;
     if (cbor_value_get_type(arr) != CborMapType)
     {
-        printf2(TAG_ERR,"Error, CborMapType expected in allow_list\n");
+        printf2(TAG_ERR,"Error, CborMapType expected in credential\n");
         return CTAP2_ERR_INVALID_CBOR_TYPE;
     }
 
@@ -666,9 +666,6 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
         cred->type = PUB_KEY_CRED_UNKNOWN;
     }
 
-    ret = cbor_value_advance(arr);
-    check_ret(ret);
-
     return 0;
 }
 
@@ -706,6 +703,10 @@ uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
 
         ret = parse_credential_descriptor(&arr,cred);
         check_retr(ret);
+
+        ret = cbor_value_advance(&arr);
+        check_ret(ret);
+
     }
     return 0;
 }

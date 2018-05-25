@@ -482,6 +482,10 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     for (i = 0; i < MC.excludeListSize; i++)
     {
         ret = parse_credential_descriptor(&MC.excludeList, excl_cred);
+        if (ret == CTAP2_ERR_CBOR_UNEXPECTED_TYPE)
+        {
+            continue;
+        }
         check_retr(ret);
 
         if (ctap_authenticate_credential(&MC.rp, excl_cred))

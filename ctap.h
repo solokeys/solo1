@@ -165,7 +165,7 @@ typedef struct
     int32_t COSEAlgorithmIdentifier;
 
     CborValue excludeList;
-    int excludeListSize;
+    size_t excludeListSize;
 
     uint8_t rk;
     uint8_t uv;
