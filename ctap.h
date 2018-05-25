@@ -1,6 +1,8 @@
 #ifndef _CTAP_H
 #define _CTAP_H
 
+#include "cbor.h"
+
 #define CTAP_MAKE_CREDENTIAL        0x01
 #define CTAP_GET_ASSERTION          0x02
 #define CTAP_CANCEL                 0x03
@@ -161,6 +163,9 @@ typedef struct
 
     uint8_t publicKeyCredentialType;
     int32_t COSEAlgorithmIdentifier;
+
+    CborValue excludeList;
+    int excludeListSize;
 
     uint8_t rk;
     uint8_t uv;

@@ -344,6 +344,7 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
 // @return length of der signature
 int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHash, uint8_t * hashbuf, uint8_t * sigbuf, uint8_t * sigder)
 {
+    int i;
     // calculate attestation sig
     crypto_sha256_init();
     crypto_sha256_update(data, datalen);
@@ -351,27 +352,38 @@ int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHa
     crypto_sha256_final(hashbuf);
 
     printf1(TAG_GREEN, "sha256: ");  dump_hex1(TAG_DUMP,hashbuf,32);
-
     crypto_ecc256_sign(hashbuf, 32, sigbuf);
 
+
     // Need to caress into dumb der format ..
-    uint8_t pad_s = (sigbuf[32] & 0x80) == 0x80;
-    uint8_t pad_r = (sigbuf[0] & 0x80) == 0x80;
+    int8_t pad_s = ((sigbuf[32 + lead_s] & 0x80) == 0x80);  // Is MSBit a 1?
+    int8_t pad_r = ((sigbuf[0 + lead_r] & 0x80) == 0x80);
+
+    int8_t lead_s = 0;  // leading zeros
+    int8_t lead_r = 0;
+    for (i=0; i < 32; i++)
+        if (sigbuf[i] == 0) lead_r++;
+        else break;
+
+    for (i=0; i < 32; i++)
+        if (sigbuf[i+32] == 0) lead_s++;
+        else break;
+
     sigder[0] = 0x30;
-    sigder[1] = 0x44 + pad_s + pad_r;
+    sigder[1] = 0x44 + pad_s + pad_r - lead_s - lead_r;
 
     sigder[2] = 0x02;
     sigder[3 + pad_r] = 0;
-    sigder[3] = 0x20 + pad_r;
-    memmove(sigder + 4 + pad_r, sigbuf, 32);
+    sigder[3] = 0x20 + pad_r - lead_r;
+    memmove(sigder + 4 + pad_r, sigbuf + lead_r, 32);
 
-    sigder[4 + 32 + pad_r] = 0x02;
-    sigder[5 + 32 + pad_r + pad_s] = 0;
-    sigder[5 + 32 + pad_r] = 0x20 + pad_s;
-    memmove(sigder + 6 + 32 + pad_r + pad_s, sigbuf + 32, 32);
+    sigder[4 + 32 + pad_r - lead_r] = 0x02;
+    sigder[5 + 32 + pad_r + pad_s - lead_r] = 0;
+    sigder[5 + 32 + pad_r - lead_r] = 0x20 + pad_s - lead_s;
+    memmove(sigder + 6 + 32 + pad_r + pad_s - lead_r, sigbuf + 32 + lead_s, 32);
     //
 
-    return 0x46 + pad_s + pad_r;
+    return 0x46 + pad_s + pad_r - lead_r - lead_s;
 }
 
 uint8_t ctap_add_attest_statement(CborEncoder * map, uint8_t * sigder, int len)
@@ -415,12 +427,29 @@ uint8_t ctap_add_attest_statement(CborEncoder * map, uint8_t * sigder, int len)
     check_ret(ret);
 }
 
+// Return 1 if credential belongs to this token
+int ctap_authenticate_credential(struct rpId * rp, CTAP_credentialDescriptor * desc)
+{
+    uint8_t tag[16];
+    if (desc->type != PUB_KEY_CRED_PUB_KEY)
+    {
+        printf1(TAG_GA,"unsupported credential type: %d\n", desc->type);
+        return 0;
+    }
+
+    make_auth_tag(rp, &desc->credential.fields.user, desc->credential.fields.count, tag);
+
+    return (memcmp(desc->credential.fields.tag, tag, CREDENTIAL_TAG_SIZE) == 0);
+}
+
+
 
 uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_makeCredential MC;
-    int ret;
+    int ret, i;
     uint8_t auth_data_buf[300];
+    CTAP_credentialDescriptor * excl_cred = (CTAP_credentialDescriptor *) auth_data_buf;
     uint8_t * hashbuf = auth_data_buf + 0;
     uint8_t * sigbuf = auth_data_buf + 32;
     uint8_t * sigder = auth_data_buf + 32 + 64;
@@ -451,6 +480,20 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
         }
     }
 
+    for (i = 0; i < MC.excludeListSize; i++)
+    {
+        ret = parse_credential_descriptor(&MC.excludeList, excl_cred);
+        check_retr(ret);
+
+        if (ctap_authenticate_credential(&MC.rp, excl_cred))
+        {
+            return CTAP2_ERR_CREDENTIAL_EXCLUDED;
+        }
+
+        ret = cbor_value_advance(&MC.excludeList);
+        check_ret(ret);
+    }
+
     CborEncoder map;
     ret = cbor_encoder_create_map(encoder, &map, 3);
     check_ret(ret);
@@ -477,22 +520,6 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     check_ret(ret);
     return CTAP1_ERR_SUCCESS;
 }
-
-// Return 1 if credential belongs to this token
-int ctap_authenticate_credential(struct rpId * rp, CTAP_credentialDescriptor * desc)
-{
-    uint8_t tag[16];
-    if (desc->type != PUB_KEY_CRED_PUB_KEY)
-    {
-        printf1(TAG_GA,"unsupported credential type: %d\n", desc->type);
-        return 0;
-    }
-
-    make_auth_tag(rp, &desc->credential.fields.user, desc->credential.fields.count, tag);
-
-    return (memcmp(desc->credential.fields.tag, tag, CREDENTIAL_TAG_SIZE) == 0);
-}
-
 
 static int pick_first_authentic_credential(CTAP_getAssertion * GA)
 {

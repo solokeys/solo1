@@ -556,6 +556,18 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
                 break;
             case MC_excludeList:
                 printf1(TAG_MC,"CTAP_excludeList\n");
+                if( cbor_value_get_type(&map) == CborArrayType )
+                {
+                    ret = cbor_value_enter_container(&map, &MC->excludeList);
+                    check_ret(ret);
+                    ret = cbor_value_get_int_checked(&map, &MC->excludeListSize);
+                    check_ret(ret);
+                }
+                else
+                {
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
+
                 break;
             case MC_extensions:
                 printf1(TAG_MC,"CTAP_extensions\n");
@@ -604,12 +616,68 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
     return 0;
 }
 
+uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor * cred)
+{
+    int ret;
+    size_t buflen;
+    uint8_t type[12];
+    CborValue val;
+    if (cbor_value_get_type(arr) != CborMapType)
+    {
+        printf2(TAG_ERR,"Error, CborMapType expected in allow_list\n");
+        return CTAP2_ERR_INVALID_CBOR_TYPE;
+    }
+
+    ret = cbor_value_map_find_value(arr, "id", &val);
+    check_ret(ret);
+
+    if (cbor_value_get_type(&val) != CborByteStringType)
+    {
+        printf2(TAG_ERR,"Error, No valid ID field (%s)\n", cbor_value_get_type_string(&val));
+        return CTAP2_ERR_MISSING_PARAMETER;
+    }
+
+    buflen = CREDENTIAL_ID_SIZE;
+    cbor_value_copy_byte_string(&val, cred->credential.id, &buflen, NULL);
+    if (buflen != CREDENTIAL_ID_SIZE)
+    {
+        printf2(TAG_ERR,"Error, credential is incorrect length\n");
+        return CTAP2_ERR_CBOR_UNEXPECTED_TYPE; // maybe just skip it instead of fail?
+    }
+
+    ret = cbor_value_map_find_value(arr, "type", &val);
+    check_ret(ret);
+
+    if (cbor_value_get_type(&val) != CborTextStringType)
+    {
+        printf2(TAG_ERR,"Error, No valid type field\n");
+        return CTAP2_ERR_MISSING_PARAMETER;
+    }
+
+    buflen = sizeof(type);
+    cbor_value_copy_text_string(&val, type, &buflen, NULL);
+
+    if (strcmp(type, "public-key") == 0)
+    {
+        cred->type = PUB_KEY_CRED_PUB_KEY;
+    }
+    else
+    {
+        cred->type = PUB_KEY_CRED_UNKNOWN;
+    }
+
+    ret = cbor_value_advance(arr);
+    check_ret(ret);
+
+    return 0;
+}
+
 uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
 {
-    CborValue arr, val;
-    size_t len,buflen;
-    uint8_t type[12];
+    CborValue arr;
+    size_t len;
     int i,ret;
+    CTAP_credentialDescriptor * cred;
 
     if (cbor_value_get_type(it) != CborArrayType)
     {
@@ -634,53 +702,10 @@ uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
         }
 
         GA->credLen += 1;
+        cred = &GA->creds[i];
 
-        if (cbor_value_get_type(&arr) != CborMapType)
-        {
-            printf2(TAG_ERR,"Error, CborMapType expected in allow_list\n");
-            return CTAP2_ERR_INVALID_CBOR_TYPE;
-        }
-
-        ret = cbor_value_map_find_value(&arr, "id", &val);
-        check_ret(ret);
-
-        if (cbor_value_get_type(&val) != CborByteStringType)
-        {
-            printf2(TAG_ERR,"Error, No valid ID field (%s)\n", cbor_value_get_type_string(&val));
-            return CTAP2_ERR_MISSING_PARAMETER;
-        }
-
-        buflen = CREDENTIAL_ID_SIZE;
-        cbor_value_copy_byte_string(&val, GA->creds[i].credential.id, &buflen, NULL);
-        if (buflen != CREDENTIAL_ID_SIZE)
-        {
-            printf2(TAG_ERR,"Error, credential is incorrect length\n");
-            return CTAP2_ERR_CBOR_UNEXPECTED_TYPE; // maybe just skip it instead of fail?
-        }
-
-        ret = cbor_value_map_find_value(&arr, "type", &val);
-        check_ret(ret);
-
-        if (cbor_value_get_type(&val) != CborTextStringType)
-        {
-            printf2(TAG_ERR,"Error, No valid type field\n");
-            return CTAP2_ERR_MISSING_PARAMETER;
-        }
-
-        buflen = sizeof(type);
-        cbor_value_copy_text_string(&val, type, &buflen, NULL);
-
-        if (strcmp(type, "public-key") == 0)
-        {
-            GA->creds[i].type = PUB_KEY_CRED_PUB_KEY;
-        }
-        else
-        {
-            GA->creds[i].type = PUB_KEY_CRED_UNKNOWN;
-        }
-
-        ret = cbor_value_advance(&arr);
-        check_ret(ret);
+        ret = parse_credential_descriptor(&arr,cred);
+        check_retr(ret);
     }
     return 0;
 }

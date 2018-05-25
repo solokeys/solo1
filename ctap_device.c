@@ -10,6 +10,7 @@
 
 #include "util.h"
 #include "usbhid.h"
+#include "log.h"
 
 
 void ctaphid_write_block(uint8_t * data)
@@ -34,15 +35,16 @@ uint32_t ctap_atomic_count(int sel)
 {
     static uint32_t counter1 = 25;
     static uint32_t counter2 = 25;
+    /*return 713;*/
     if (sel == 0)
     {
+        printf1(TAG_RED,"counter1: %d\n", counter1);
         return counter1++;
     }
     else
     {
         return counter2++;
     }
-    return 44;
 }
 
 int ctap_generate_rng(uint8_t * dst, size_t num)
@@ -55,6 +57,9 @@ int ctap_generate_rng(uint8_t * dst, size_t num)
     }
     fread(dst, 1, num, urand);
     fclose(urand);
+
+    /*memset(dst,0xaa,num);*/
+
     return 1;
 }
 
