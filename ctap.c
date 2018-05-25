@@ -354,11 +354,7 @@ int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHa
     printf1(TAG_GREEN, "sha256: ");  dump_hex1(TAG_DUMP,hashbuf,32);
     crypto_ecc256_sign(hashbuf, 32, sigbuf);
 
-
     // Need to caress into dumb der format ..
-    int8_t pad_s = ((sigbuf[32 + lead_s] & 0x80) == 0x80);  // Is MSBit a 1?
-    int8_t pad_r = ((sigbuf[0 + lead_r] & 0x80) == 0x80);
-
     int8_t lead_s = 0;  // leading zeros
     int8_t lead_r = 0;
     for (i=0; i < 32; i++)
@@ -368,6 +364,9 @@ int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHa
     for (i=0; i < 32; i++)
         if (sigbuf[i+32] == 0) lead_s++;
         else break;
+
+    int8_t pad_s = ((sigbuf[32 + lead_s] & 0x80) == 0x80);
+    int8_t pad_r = ((sigbuf[0 + lead_r] & 0x80) == 0x80);
 
     sigder[0] = 0x30;
     sigder[1] = 0x44 + pad_s + pad_r - lead_s - lead_r;
