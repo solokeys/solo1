@@ -336,26 +336,11 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     return auth_data_sz;
 }
 
-// require load_key prior to this
-// @data data to hash before signature
-// @clientDataHash for signature
-// @tmp buffer for hash.  (can be same as data if data >= 32 bytes)
-// @sigbuf location to deposit signature (must be 64 bytes)
-// @sigder location to deposit der signature (must be 72 bytes)
-// @return length of der signature
-int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHash, uint8_t * hashbuf, uint8_t * sigbuf, uint8_t * sigder)
+
+int ctap_encode_der_sig(uint8_t * sigbuf, uint8_t * sigder)
 {
-    int i;
-    // calculate attestation sig
-    crypto_sha256_init();
-    crypto_sha256_update(data, datalen);
-    crypto_sha256_update(clientDataHash, CLIENT_DATA_HASH_SIZE);
-    crypto_sha256_final(hashbuf);
-
-    printf1(TAG_GREEN, "sha256: ");  dump_hex1(TAG_DUMP,hashbuf,32);
-    crypto_ecc256_sign(hashbuf, 32, sigbuf);
-
     // Need to caress into dumb der format ..
+    int i;
     int8_t lead_s = 0;  // leading zeros
     int8_t lead_r = 0;
     for (i=0; i < 32; i++)
@@ -382,8 +367,28 @@ int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHa
     sigder[5 + 32 + pad_r - lead_r] = 0x20 + pad_s - lead_s;
     memmove(sigder + 6 + 32 + pad_r + pad_s - lead_r, sigbuf + 32 + lead_s, 32);
     //
-
     return 0x46 + pad_s + pad_r - lead_r - lead_s;
+}
+
+// require load_key prior to this
+// @data data to hash before signature
+// @clientDataHash for signature
+// @tmp buffer for hash.  (can be same as data if data >= 32 bytes)
+// @sigbuf location to deposit signature (must be 64 bytes)
+// @sigder location to deposit der signature (must be 72 bytes)
+// @return length of der signature
+int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHash, uint8_t * hashbuf, uint8_t * sigbuf, uint8_t * sigder)
+{
+    // calculate attestation sig
+    crypto_sha256_init();
+    crypto_sha256_update(data, datalen);
+    crypto_sha256_update(clientDataHash, CLIENT_DATA_HASH_SIZE);
+    crypto_sha256_final(hashbuf);
+
+    printf1(TAG_GREEN, "sha256: ");  dump_hex1(TAG_DUMP,hashbuf,32);
+    crypto_ecc256_sign(hashbuf, 32, sigbuf);
+
+    return ctap_encode_der_sig(sigbuf,sigder);
 }
 
 uint8_t ctap_add_attest_statement(CborEncoder * map, uint8_t * sigder, int len)

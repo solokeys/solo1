@@ -237,6 +237,9 @@ void ctap_response_init(CTAP_RESPONSE * resp);
 
 uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp);
 
+// Encodes R,S signature to 2 der sequence of two integers.  Sigder must be at least 72 bytes.
+// @return length of der signature
+int ctap_encode_der_sig(uint8_t * sigbuf, uint8_t * sigder);
 
 // Run ctap related power-up procedures (init pinToken, generate shared secret)
 void ctap_init();

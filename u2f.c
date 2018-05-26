@@ -104,33 +104,10 @@ static uint8_t get_signature_length(uint8_t * sig)
 
 static void dump_signature_der(uint8_t * sig)
 {
-    uint8_t pad_s = (sig[32] & 0x80) == 0x80;
-    uint8_t pad_r = (sig[0] & 0x80) == 0x80;
-    uint8_t i[] = {0x30, 0x44};
-    i[1] += (pad_s + pad_r);
-
-
-    // DER encoded signature
-    // write der sequence
-    // has to be minimum distance and padded with 0x00 if MSB is a 1.
-    u2f_response_writeback(i,2);
-    i[1] = 0;
-
-    // length of R value plus 0x00 pad if necessary
-    u2f_response_writeback("\x02",1);
-    i[0] = 0x20 + pad_r;
-    u2f_response_writeback(i,1 + pad_r);
-
-    // R value
-    u2f_response_writeback(sig, 32);
-
-    // length of S value plus 0x00 pad if necessary
-    u2f_response_writeback("\x02",1);
-    i[0] = 0x20 + pad_s;
-    u2f_response_writeback(i,1 + pad_s);
-
-    // S value
-    u2f_response_writeback(sig+32, 32);
+    uint8_t sigder[72];
+    int len;
+    len = ctap_encode_der_sig(sig, sigder);
+    u2f_response_writeback(sigder, len);
 }
 static int8_t u2f_load_key(struct u2f_key_handle * kh, uint8_t * appid)
 {
