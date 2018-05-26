@@ -5,6 +5,7 @@
 
 #include "ctaphid.h"
 #include "ctap.h"
+#include "u2f.h"
 #include "time.h"
 #include "util.h"
 
@@ -438,6 +439,28 @@ start_over:
                     status = ctap_handle_packet(ctap_buffer, buffer_len(), &ctap_resp);
 
                     ctaphid_write_buffer_init(&wb);
+                    wb.cid = active_cid;
+                    wb.cmd = CTAPHID_CBOR;
+                    wb.bcnt = (ctap_resp.length+1);
+
+                    ctaphid_write(&wb, &status, 1);
+                    ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
+                    ctaphid_write(&wb, NULL, 0);
+                    break;
+
+                case CTAPHID_MSG:
+                    printf("CTAPHID_CBOR\n");
+                    if (buffer_len() == 0)
+                    {
+                        printf("Error,invalid 0 length field for MSG/U2F packet\n");
+                        ctaphid_send_error(pkt->cid, ERR_INVALID_LEN);
+                        ctaphid_init();
+                        return;
+                    }
+
+                    ctaphid_write_buffer_init(&wb);
+                    u2f_request(ctap_buffer);
+
                     wb.cid = active_cid;
                     wb.cmd = CTAPHID_CBOR;
                     wb.bcnt = (ctap_resp.length+1);

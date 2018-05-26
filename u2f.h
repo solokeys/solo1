@@ -11,7 +11,7 @@
 #define U2F_CHALLENGE_SIZE                  32
 #define U2F_APPLICATION_SIZE                32
 #define U2F_KEY_HANDLE_TAG_SIZE             16
-#define U2F_KEY_HANDLE_KEY_SIZE             36
+#define U2F_KEY_HANDLE_KEY_SIZE             32
 #define U2F_KEY_HANDLE_SIZE                 (U2F_KEY_HANDLE_KEY_SIZE+U2F_KEY_HANDLE_TAG_SIZE)
 #define U2F_REGISTER_REQUEST_SIZE           (U2F_CHALLENGE_SIZE+U2F_APPLICATION_SIZE)
 #define U2F_MAX_REQUEST_PAYLOAD             (1 + U2F_CHALLENGE_SIZE+U2F_APPLICATION_SIZE + 1 + U2F_KEY_HANDLE_SIZE)
@@ -99,14 +99,14 @@ void u2f_request(struct u2f_request_apdu* req);
 // u2f_response_writeback callback for u2f to send back response data
 //  @buf data to write back
 //  @len length of buf in bytes
-extern void u2f_response_writeback(uint8_t * buf, uint16_t len);
+extern void u2f_response_writeback(const uint8_t * buf, uint16_t len);
+
+// Set total length of U2F response.  Must be done before any writebacks
+extern void u2f_response_set_length(uint16_t len);
 
 // u2f_response_flush callback when u2f finishes and will
 // indicate when all buffer data, if any, should be written
 extern void u2f_response_flush();
 
-// set_response_length method to set the total length of the response for use by underlying layer
-//  @len the length of U2F response in bytes
-extern void set_response_length(uint16_t len);
 
 #endif /* U2F_H_ */

@@ -63,3 +63,7 @@ int ctap_generate_rng(uint8_t * dst, size_t num)
     return 1;
 }
 
+
+
+
+
