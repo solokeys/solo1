@@ -19,7 +19,7 @@ static void check_ret(CborError ret)
     }
 }
 
-
+#ifndef TEST
 int main(int argc, char * argv[])
 {
     set_logging_mask(
@@ -61,3 +61,4 @@ int main(int argc, char * argv[])
     printf("done\n");
     return 0;
 }
+#endif

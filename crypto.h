@@ -1,6 +1,7 @@
 #ifndef _CRYPTO_H
 #define _CRYPTO_H
 
+#include <stddef.h>
 
 #define USE_SOFTWARE_IMPLEMENTATION
 
@@ -16,7 +17,7 @@ void crypto_sha256_hmac_final(uint8_t * key, uint32_t klen, uint8_t * hmac);
 void crypto_ecc256_init();
 void crypto_ecc256_derive_public_key(uint8_t * data, int len, uint8_t * x, uint8_t * y);
 
-void crypto_ecc256_load_key(uint8_t * data, int len);
+void crypto_ecc256_load_key(uint8_t * data, int len, uint8_t * data2, int len2);
 void crypto_ecc256_load_attestation_key();
 void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig);
 
@@ -26,8 +27,11 @@ void crypto_ecc256_make_key_pair(uint8_t * pubkey, uint8_t * privkey);
 void crypto_ecc256_shared_secret(const uint8_t * pubkey, const uint8_t * privkey, uint8_t * shared_secret);
 
 // Key must be 32 bytes
-void crypto_aes256_init(uint8_t * key);
-void crypto_aes256_reset_iv();
+#define CRYPTO_TRANSPORT_KEY            NULL
+#define CRYPTO_MASTER_KEY               NULL
+
+void crypto_aes256_init(uint8_t * key, uint8_t * nonce);
+void crypto_aes256_reset_iv(uint8_t * nonce);
 
 // buf length must be multiple of 16 bytes
 void crypto_aes256_decrypt(uint8_t * buf, int lenth);
