@@ -67,7 +67,6 @@
 #define RESP_pinToken               0x02
 #define RESP_retries                0x03
 
-
 #define PARAM_clientDataHash        (1 << 0)
 #define PARAM_rp                    (1 << 1)
 #define PARAM_user                  (1 << 2)
@@ -106,6 +105,8 @@
 #define ALLOW_LIST_MAX_SIZE         20
 
 #define NEW_PIN_ENC_MAX_SIZE        256     // includes NULL terminator
+
+#define CTAP_RESPONSE_BUFFER_SIZE   1024
 
 typedef struct
 {
@@ -147,7 +148,8 @@ typedef struct
 
 typedef struct
 {
-    uint8_t * data;
+    uint8_t data[CTAP_RESPONSE_BUFFER_SIZE];
+    uint16_t data_size;
     uint16_t length;
 } CTAP_RESPONSE;
 
@@ -231,7 +233,10 @@ typedef struct
 } CTAP_clientPin;
 
 
+void ctap_response_init(CTAP_RESPONSE * resp);
+
 uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp);
+
 
 // Run ctap related power-up procedures (init pinToken, generate shared secret)
 void ctap_init();

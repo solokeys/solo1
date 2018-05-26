@@ -2,6 +2,7 @@
 #define _U2F_H_
 
 #include <stdint.h>
+#include "ctap.h"
 
 #define U2F_EC_FMT_UNCOMPRESSED             0x04
 
@@ -89,24 +90,13 @@ struct u2f_authenticate_request
 
 // u2f_request send a U2F message to U2F protocol
 //  @req U2F message
-void u2f_request(struct u2f_request_apdu* req);
+void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp);
 
 
 //////////////////////////////////////////////////////////////////
 /* Platform specific functions that must be implemented by user */
 //////////////////////////////////////////////////////////////////
 
-// u2f_response_writeback callback for u2f to send back response data
-//  @buf data to write back
-//  @len length of buf in bytes
-extern void u2f_response_writeback(const uint8_t * buf, uint16_t len);
-
-// Set total length of U2F response.  Must be done before any writebacks
-extern void u2f_response_set_length(uint16_t len);
-
-// u2f_response_flush callback when u2f finishes and will
-// indicate when all buffer data, if any, should be written
-extern void u2f_response_flush();
 
 
 #endif /* U2F_H_ */

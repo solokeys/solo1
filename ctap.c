@@ -1056,24 +1056,25 @@ uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
     return 0;
 }
 
+void ctap_response_init(CTAP_RESPONSE * resp)
+{
+    memset(resp, 0, sizeof(CTAP_RESPONSE));
+    resp->data_size = CTAP_RESPONSE_BUFFER_SIZE;
+}
 
 
 uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
 {
+    CborEncoder encoder;
     uint8_t status = 0;
     uint8_t cmd = *pkt_raw;
     pkt_raw++;
     length--;
 
 
-    static uint8_t buf[1024];
-    memset(buf,0,sizeof(buf));
+    uint8_t * buf = resp->data;
 
-    resp->data = buf;
-    resp->length = 0;
-
-    CborEncoder encoder;
-    cbor_encoder_init(&encoder, buf, sizeof(buf), 0);
+    cbor_encoder_init(&encoder, buf, resp->data_size, 0);
 
     printf1(TAG_CTAP,"cbor input structure: %d bytes\n", length);
     printf1(TAG_DUMP,"cbor req: "); dump_hex1(TAG_DUMP, pkt_raw, length);

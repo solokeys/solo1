@@ -27,6 +27,7 @@ int main(int argc, char * argv[])
             TAG_GA |
             TAG_CP |
             TAG_CTAP |
+            TAG_U2F|
             TAG_PARSE |
             TAG_DUMP|
             TAG_GREEN|

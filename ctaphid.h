@@ -35,6 +35,9 @@
 #define CAPABILITY_CBOR             0x04
 #define CAPABILITY_NMSG             0x08
 
+//#define CTAP_CAPABILITIES           (CAPABILITY_WINK | CAPABILITY_CBOR)
+#define CTAP_CAPABILITIES           (CAPABILITY_WINK )
+
 typedef struct
 {
     uint32_t cid;

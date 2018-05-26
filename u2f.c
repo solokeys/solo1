@@ -1,83 +1,98 @@
+#include <stdlib.h>
 #include "u2f.h"
 #include "ctap.h"
 #include "crypto.h"
+#include "log.h"
 
 // void u2f_response_writeback(uint8_t * buf, uint8_t len);
 static int16_t u2f_register(struct u2f_register_request * req);
 static int16_t u2f_version();
 static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control);
+static int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
 
-void u2f_request(struct u2f_request_apdu * req)
+static CTAP_RESPONSE * _u2f_resp = NULL;
+
+void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
 {
-    uint16_t * rcode = (uint16_t *)req;
+    uint16_t rcode;
     uint32_t len = ((req->LC3) | ((uint32_t)req->LC2 << 8) | ((uint32_t)req->LC1 << 16));
+    uint8_t byte;
+
+    _u2f_resp = resp;
 
     if (req->cla != 0)
     {
-        u2f_response_set_length(2);
-        *rcode = U2F_SW_CLASS_NOT_SUPPORTED;
+        printf1(TAG_U2F, "CLA not zero\n");
+        rcode = U2F_SW_CLASS_NOT_SUPPORTED;
         goto end;
     }
 
     switch(req->ins)
     {
         case U2F_REGISTER:
+            printf1(TAG_U2F, "U2F_REGISTER\n");
             if (len != 64)
             {
-                u2f_response_set_length(2);
-                *rcode = U2F_SW_WRONG_LENGTH;
+                rcode = U2F_SW_WRONG_LENGTH;
             }
             else
             {
-                *rcode = u2f_register((struct u2f_register_request*)req->payload);
+                rcode = u2f_register((struct u2f_register_request*)req->payload);
             }
             break;
         case U2F_AUTHENTICATE:
-            *rcode = u2f_authenticate((struct u2f_authenticate_request*)req->payload, req->p1);
+            printf1(TAG_U2F, "U2F_AUTHENTICATE\n");
+            rcode = u2f_authenticate((struct u2f_authenticate_request*)req->payload, req->p1);
             break;
         case U2F_VERSION:
+            printf1(TAG_U2F, "U2F_VERSION\n");
             if (len)
             {
-                u2f_response_set_length(2);
-                *rcode = U2F_SW_WRONG_LENGTH;
+                rcode = U2F_SW_WRONG_LENGTH;
             }
             else
             {
-                *rcode = u2f_version();
+                rcode = u2f_version();
             }
             break;
         case U2F_VENDOR_FIRST:
         case U2F_VENDOR_LAST:
-            *rcode = U2F_SW_NO_ERROR;
+            printf1(TAG_U2F, "U2F_VENDOR\n");
+            rcode = U2F_SW_NO_ERROR;
             break;
         default:
-            u2f_response_set_length(2);
-            *rcode = U2F_SW_INS_NOT_SUPPORTED;
+            printf1(TAG_ERR, "Error, unknown U2F command\n");
+            rcode = U2F_SW_INS_NOT_SUPPORTED;
             break;
     }
 
+
 end:
-    u2f_response_writeback((uint8_t*)rcode,2);
-    u2f_response_flush();
+    if (rcode != U2F_SW_NO_ERROR)
+    {
+        printf1(TAG_U2F,"U2F Error code %04x\n", rcode);
+        ctap_response_init(_u2f_resp);
+    }
+
+    byte = (rcode & 0xff00)>>8;
+    u2f_response_writeback(&byte,1);
+    byte = rcode & 0xff;
+    u2f_response_writeback(&byte,1);
+
+    printf1(TAG_U2F,"u2f resp: "); dump_hex1(TAG_U2F, _u2f_resp->data, _u2f_resp->length);
 }
 
 
-void u2f_response_writeback(const uint8_t * buf, uint16_t len)
+static int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len)
 {
-
-}
-
-// Set total length of U2F response.  Must be done before any writebacks
-extern void u2f_response_set_length(uint16_t len)
-{
-
-}
-
-// u2f_response_flush callback when u2f finishes and will
-// indicate when all buffer data, if any, should be written
-extern void u2f_response_flush()
-{
-
+    if ((_u2f_resp->length + len) > _u2f_resp->data_size)
+    {
+        printf2(TAG_ERR, "Not enough space for U2F response, writeback\n");
+        exit(1);
+    }
+    memmove(_u2f_resp->data + _u2f_resp->length, buf, len);
+    _u2f_resp->length += len;
+    return 0;
 }
 
 
@@ -119,7 +134,7 @@ static void dump_signature_der(uint8_t * sig)
 }
 static int8_t u2f_load_key(struct u2f_key_handle * kh, uint8_t * appid)
 {
-    crypto_ecc256_load_key((uint8_t*)kh, U2F_KEY_HANDLE_SIZE, appid, U2F_APPLICATION_SIZE);
+    crypto_ecc256_load_key((uint8_t*)kh, U2F_KEY_HANDLE_SIZE, NULL, 0);
     return 0;
 }
 
@@ -133,26 +148,34 @@ static void u2f_make_auth_tag(struct u2f_key_handle * kh, uint8_t * appid, uint8
     memmove(tag, hashbuf, CREDENTIAL_TAG_SIZE);
 }
 
-
-static int8_t u2f_appid_eq(struct u2f_key_handle * kh, uint8_t * appid)
-{
-    uint8_t tag[U2F_KEY_HANDLE_TAG_SIZE];
-    u2f_make_auth_tag(kh, appid, kh->tag);
-    if (memcmp(kh->tag, tag, U2F_KEY_HANDLE_TAG_SIZE) == 0)
-        return 0;
-    else
-        return -1;
-}
-
-
-
 static int8_t u2f_new_keypair(struct u2f_key_handle * kh, uint8_t * appid, uint8_t * pubkey)
 {
     ctap_generate_rng(kh->key, U2F_KEY_HANDLE_KEY_SIZE);
     u2f_make_auth_tag(kh, appid, kh->tag);
+
     crypto_ecc256_derive_public_key((uint8_t*)kh, U2F_KEY_HANDLE_SIZE, pubkey, pubkey+32);
     return 0;
 }
+
+
+
+static int8_t u2f_appid_eq(struct u2f_key_handle * kh, uint8_t * appid)
+{
+    uint8_t tag[U2F_KEY_HANDLE_TAG_SIZE];
+    u2f_make_auth_tag(kh, appid, tag);
+    if (memcmp(kh->tag, tag, U2F_KEY_HANDLE_TAG_SIZE) == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        printf1(TAG_U2F, "key handle + appid not authentic\n");
+        printf1(TAG_U2F, "calc tag: \n"); dump_hex1(TAG_U2F,tag, U2F_KEY_HANDLE_TAG_SIZE);
+        printf1(TAG_U2F, "inp  tag: \n"); dump_hex1(TAG_U2F,kh->tag, U2F_KEY_HANDLE_TAG_SIZE);
+        return -1;
+    }
+}
+
 
 
 static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control)
@@ -165,7 +188,6 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 
     if (control == U2F_AUTHENTICATE_CHECK)
     {
-        u2f_response_set_length(2);
         if (u2f_appid_eq(&req->kh, req->app) == 0)
         {
             return U2F_SW_CONDITIONS_NOT_SATISFIED;
@@ -183,15 +205,13 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 
         )
     {
-        u2f_response_set_length(2);
         return U2F_SW_WRONG_PAYLOAD;
     }
 
 
 
-    if (ctap_user_presence_test())
+    if (ctap_user_presence_test() == 0)
     {
-        u2f_response_set_length(2);
         return U2F_SW_CONDITIONS_NOT_SATISFIED;
     }
 
@@ -206,10 +226,8 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 
     crypto_sha256_final(hash);
 
+    printf1(TAG_U2F, "sha256: "); dump_hex1(TAG_U2F,hash,32);
     crypto_ecc256_sign(hash, 32, sig);
-
-
-    u2f_response_set_length(7 + get_signature_length(sig));
 
     u2f_response_writeback(&up,1);
     u2f_response_writeback((uint8_t *)&count,4);
@@ -230,15 +248,13 @@ static int16_t u2f_register(struct u2f_register_request * req)
 
     const uint16_t attest_size = attestation_cert_der_size;
 
-    if (ctap_user_presence_test())
+    if ( ! ctap_user_presence_test())
     {
-        u2f_response_set_length(2);
         return U2F_SW_CONDITIONS_NOT_SATISFIED;
     }
 
     if ( u2f_new_keypair(&key_handle, req->app, pubkey) == -1)
     {
-        u2f_response_set_length(2);
         return U2F_SW_INSUFFICIENT_MEMORY;
     }
 
@@ -254,9 +270,12 @@ static int16_t u2f_register(struct u2f_register_request * req)
     crypto_sha256_final(hash);
 
     crypto_ecc256_load_attestation_key();
+
+    /*printf("check key handle size: %d vs %d\n", U2F_KEY_HANDLE_SIZE, sizeof(struct u2f_key_handle));*/
+
+    printf1(TAG_U2F, "sha256: "); dump_hex1(TAG_U2F,hash,32);
     crypto_ecc256_sign(hash, 32, sig);
 
-    u2f_response_set_length(69 + get_signature_length((uint8_t*)req) + U2F_KEY_HANDLE_SIZE + attest_size);
     i[0] = 0x5;
     u2f_response_writeback(i,2);
     u2f_response_writeback(pubkey,64);
@@ -266,7 +285,9 @@ static int16_t u2f_register(struct u2f_register_request * req)
 
     u2f_response_writeback(attestation_cert_der,attest_size);
 
-    dump_signature_der((uint8_t*)req);
+    dump_signature_der(sig);
+
+    /*printf1(TAG_U2F, "dersig: "); dump_hex1(TAG_U2F,sig,74);*/
 
 
     return U2F_SW_NO_ERROR;
@@ -275,7 +296,6 @@ static int16_t u2f_register(struct u2f_register_request * req)
 static int16_t u2f_version()
 {
     const char version[] = "U2F_V2";
-    u2f_response_set_length(2 + sizeof(version)-1);
     u2f_response_writeback(version, sizeof(version)-1);
     return U2F_SW_NO_ERROR;
 }

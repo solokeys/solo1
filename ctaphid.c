@@ -386,7 +386,7 @@ start_over:
                     init_resp.version_major = 0;//?
                     init_resp.version_minor = 0;//?
                     init_resp.build_version = 0;//?
-                    init_resp.capabilities = CAPABILITY_WINK | CAPABILITY_CBOR;
+                    init_resp.capabilities = CTAP_CAPABILITIES;
 
                     ctaphid_write(&wb,&init_resp,sizeof(CTAPHID_INIT_RESPONSE));
                     ctaphid_write(&wb,NULL,0);
@@ -436,6 +436,7 @@ start_over:
                         return;
                     }
 
+                    ctap_response_init(&ctap_resp);
                     status = ctap_handle_packet(ctap_buffer, buffer_len(), &ctap_resp);
 
                     ctaphid_write_buffer_init(&wb);
@@ -449,7 +450,7 @@ start_over:
                     break;
 
                 case CTAPHID_MSG:
-                    printf("CTAPHID_CBOR\n");
+                    printf("CTAPHID_MSG\n");
                     if (buffer_len() == 0)
                     {
                         printf("Error,invalid 0 length field for MSG/U2F packet\n");
@@ -458,14 +459,14 @@ start_over:
                         return;
                     }
 
+                    ctap_response_init(&ctap_resp);
+                    u2f_request((struct u2f_request_apdu*)ctap_buffer, &ctap_resp);
+
                     ctaphid_write_buffer_init(&wb);
-                    u2f_request(ctap_buffer);
-
                     wb.cid = active_cid;
-                    wb.cmd = CTAPHID_CBOR;
-                    wb.bcnt = (ctap_resp.length+1);
+                    wb.cmd = CTAPHID_MSG;
+                    wb.bcnt = (ctap_resp.length);
 
-                    ctaphid_write(&wb, &status, 1);
                     ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
                     ctaphid_write(&wb, NULL, 0);
                     break;
