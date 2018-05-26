@@ -2,6 +2,7 @@
 #define _CTAPHID_H_H
 
 #include "usbhid.h"
+#include "ctap_errors.h"
 
 #define TYPE_INIT               0x80
 #define TYPE_CONT               0x00
@@ -17,7 +18,6 @@
 
     #define ERR_INVALID_CMD         0x01
     #define ERR_INVALID_PAR         0x02
-    #define ERR_INVALID_LEN         0x03
     #define ERR_INVALID_SEQ         0x04
     #define ERR_MSG_TIMEOUT         0x05
     #define ERR_CHANNEL_BUSY        0x06
@@ -28,15 +28,14 @@
 
 #define CTAPHID_BROADCAST_CID       0xffffffff
 
-#define CTAPHID_BUFFER_SIZE         4096
+#define CTAPHID_BUFFER_SIZE         7609
 
 #define CAPABILITY_WINK             0x01
 #define CAPABILITY_LOCK             0x02
 #define CAPABILITY_CBOR             0x04
 #define CAPABILITY_NMSG             0x08
 
-//#define CTAP_CAPABILITIES           (CAPABILITY_WINK | CAPABILITY_CBOR)
-#define CTAP_CAPABILITIES           (CAPABILITY_WINK )
+#define CTAP_CAPABILITIES           (CAPABILITY_WINK | CAPABILITY_CBOR)
 
 typedef struct
 {

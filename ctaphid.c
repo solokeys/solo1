@@ -310,8 +310,7 @@ start_over:
                     if (ctaphid_packet_len(pkt) > CTAPHID_BUFFER_SIZE)
                     {
                         printf("Error, internal buffer not big enough\n");
-                        ctaphid_send_error(pkt->cid, ERR_INVALID_LEN);
-                        ctaphid_init();
+                        ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
                         return;
                     }
                 }
@@ -322,7 +321,6 @@ start_over:
                 {
                     printf("Sequence error\n");
                     ctaphid_send_error(pkt->cid, ERR_INVALID_SEQ);
-                    ctaphid_init();
                     return;
                 }
             }
@@ -365,8 +363,7 @@ start_over:
                     if (buffer_len() != 8)
                     {
                         printf("Error,invalid length field for init packet\n");
-                        ctaphid_send_error(pkt->cid, ERR_INVALID_LEN);
-                        ctaphid_init();
+                        ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
                         return;
                     }
 
@@ -412,8 +409,7 @@ start_over:
                     if (buffer_len() != 0)
                     {
                         printf("Error,invalid length field for wink packet\n");
-                        ctaphid_send_error(pkt->cid, ERR_INVALID_LEN);
-                        ctaphid_init();
+                        ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
                         return;
                     }
 
@@ -431,8 +427,7 @@ start_over:
                     if (buffer_len() == 0)
                     {
                         printf("Error,invalid 0 length field for cbor packet\n");
-                        ctaphid_send_error(pkt->cid, ERR_INVALID_LEN);
-                        ctaphid_init();
+                        ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
                         return;
                     }
 
@@ -454,8 +449,7 @@ start_over:
                     if (buffer_len() == 0)
                     {
                         printf("Error,invalid 0 length field for MSG/U2F packet\n");
-                        ctaphid_send_error(pkt->cid, ERR_INVALID_LEN);
-                        ctaphid_init();
+                        ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
                         return;
                     }
 
