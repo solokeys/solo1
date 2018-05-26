@@ -91,8 +91,11 @@
 #define CTAP_MAX_MESSAGE_SIZE       1024
 
 #define CREDENTIAL_TAG_SIZE         16
+#define CREDENTIAL_NONCE_SIZE       8
 #define CREDENTIAL_COUNTER_SIZE     (4)
-#define CREDENTIAL_ID_SIZE          (CREDENTIAL_TAG_SIZE + USER_ID_MAX_SIZE + USER_NAME_LIMIT + CREDENTIAL_COUNTER_SIZE + 1)
+#define CREDENTIAL_ENC_SIZE         144  // pad to multiple of 16 bytes
+#define CREDENTIAL_PAD_SIZE         (CREDENTIAL_ENC_SIZE - (USER_ID_MAX_SIZE + USER_NAME_LIMIT + CREDENTIAL_COUNTER_SIZE + 1))
+#define CREDENTIAL_ID_SIZE          (CREDENTIAL_TAG_SIZE + CREDENTIAL_NONCE_SIZE + CREDENTIAL_ENC_SIZE)
 
 #define PUB_KEY_CRED_PUB_KEY        0x01
 #define PUB_KEY_CRED_UNKNOWN        0x3F
@@ -109,15 +112,16 @@ typedef struct
     uint8_t id[USER_ID_MAX_SIZE];
     uint8_t id_size;
     uint8_t name[USER_NAME_LIMIT];
-} CTAP_userEntity;
+}__attribute__((packed)) CTAP_userEntity;
 
-union _credential {
+struct Credential {
+    uint8_t tag[CREDENTIAL_TAG_SIZE];
+    uint8_t nonce[CREDENTIAL_NONCE_SIZE];
     struct {
-        uint8_t tag[CREDENTIAL_TAG_SIZE];
         CTAP_userEntity user;
         uint32_t count;
-    }__attribute__((packed)) fields;
-    uint8_t id[CREDENTIAL_ID_SIZE];
+        uint8_t _pad[CREDENTIAL_PAD_SIZE];
+    } __attribute__((packed)) enc;
 };
 
 typedef struct
@@ -125,7 +129,7 @@ typedef struct
     uint8_t aaguid[16];
     uint8_t credLenH;
     uint8_t credLenL;
-    union _credential credential;
+    struct Credential credential;
 } __attribute__((packed)) CTAP_attestHeader;
 
 typedef struct
@@ -179,7 +183,7 @@ typedef struct
 typedef struct
 {
     uint8_t type;
-    union _credential credential;
+    struct Credential credential;
 } CTAP_credentialDescriptor;
 
 typedef struct

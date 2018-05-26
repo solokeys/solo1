@@ -28,9 +28,13 @@ static SHA256_CTX sha256_ctx;
 static const struct uECC_Curve_t * _es256_curve = NULL;
 static const uint8_t * _signing_key = NULL;
 
-// Secret for testing only
+// Secrets for testing only
 static uint8_t master_secret[32] = "\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff"
                                 "\xff\xee\xdd\xcc\xbb\xaa\x99\x88\x77\x66\x55\x44\x33\x22\x11\x00";
+
+static uint8_t transport_secret[32] = "\x10\x01\x22\x33\x44\x55\x66\x77\x87\x90\x0a\xbb\x3c\xd8\xee\xff"
+                                "\xff\xee\x8d\x1c\x3b\xfa\x99\x88\x77\x86\x55\x44\xd3\xff\x33\x00";
+
 
 
 void crypto_sha256_init()
@@ -65,6 +69,12 @@ void crypto_sha256_hmac_init(uint8_t * key, uint32_t klen, uint8_t * hmac)
     int i;
     memset(buf, 0, sizeof(buf));
 
+    if (key == CRYPTO_MASTER_KEY)
+    {
+        key = master_secret;
+        klen = sizeof(master_secret);
+    }
+
     if(klen > 64)
     {
         printf("Error, key size must be <= 64\n");
@@ -88,6 +98,12 @@ void crypto_sha256_hmac_final(uint8_t * key, uint32_t klen, uint8_t * hmac)
     int i;
     crypto_sha256_final(hmac);
     memset(buf, 0, sizeof(buf));
+    if (key == CRYPTO_MASTER_KEY)
+    {
+        key = master_secret;
+        klen = sizeof(master_secret);
+    }
+
 
     if(klen > 64)
     {
@@ -106,44 +122,6 @@ void crypto_sha256_hmac_final(uint8_t * key, uint32_t klen, uint8_t * hmac)
     crypto_sha256_update(hmac, 32);
     crypto_sha256_final(hmac);
 }
-
-/*void crypto_sha256_hmac(uint8_t * key, uint32_t klen, uint8_t * data, uint32_t datalen, uint8_t * hmac)*/
-/*{*/
-    /*uint8_t buf[64];*/
-    /*int i;*/
-    /*memset(buf, 0, sizeof(buf));*/
-
-    /*if(klen > 64)*/
-    /*{*/
-        /*printf("Error, key size must be <= 64\n");*/
-        /*exit(1);*/
-    /*}*/
-
-    /*memmove(buf, key, klen);*/
-
-    /*for (i = 0; i < sizeof(buf); i++)*/
-    /*{*/
-        /*buf[i] = buf[i] ^ 0x36;*/
-    /*}*/
-
-    /*crypto_sha256_init();*/
-    /*crypto_sha256_update(buf, 64);*/
-    /*crypto_sha256_update(data, datalen);*/
-    /*crypto_sha256_final(hmac);*/
-
-    /*memset(buf, 0, sizeof(buf));*/
-    /*memmove(buf, key, klen);*/
-
-    /*for (i = 0; i < sizeof(buf); i++)*/
-    /*{*/
-        /*buf[i] = buf[i] ^ 0x5c;*/
-    /*}*/
-
-    /*crypto_sha256_init();*/
-    /*crypto_sha256_update(buf, 64);*/
-    /*crypto_sha256_update(hmac, 32);*/
-    /*crypto_sha256_final(hmac);*/
-/*}*/
 
 
 void crypto_ecc256_init()
@@ -169,12 +147,11 @@ void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig)
 
 void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey)
 {
-    // poor man's hmac
-    crypto_sha256_init();
+    crypto_sha256_hmac_init(CRYPTO_MASTER_KEY, 0, privkey);
     crypto_sha256_update(data, len);
     crypto_sha256_update(data2, len2);
     crypto_sha256_update(master_secret, 32);
-    crypto_sha256_final(privkey);
+    crypto_sha256_hmac_final(CRYPTO_MASTER_KEY, 0, privkey);
 }
 
 
@@ -192,10 +169,10 @@ void crypto_ecc256_derive_public_key(uint8_t * data, int len, uint8_t * x, uint8
     memmove(y,pubkey+32,32);
 }
 
-void crypto_ecc256_load_key(uint8_t * data, int len)
+void crypto_ecc256_load_key(uint8_t * data, int len, uint8_t * data2, int len2)
 {
     static uint8_t privkey[32];
-    generate_private_key(data,len,NULL,0,privkey);
+    generate_private_key(data,len,data2,len2,privkey);
     _signing_key = privkey;
 }
 
@@ -218,16 +195,38 @@ void crypto_ecc256_shared_secret(const uint8_t * pubkey, const uint8_t * privkey
 
 }
 
-static struct AES_ctx aes_ctx;
-void crypto_aes256_init(uint8_t * key)
+struct AES_ctx aes_ctx;
+void crypto_aes256_init(uint8_t * key, uint8_t * nonce)
 {
-    AES_init_ctx(&aes_ctx, key);
-    memset(aes_ctx.Iv, 0, 16);
+    if (key == CRYPTO_TRANSPORT_KEY)
+    {
+        AES_init_ctx(&aes_ctx, transport_secret);
+    }
+    else
+    {
+        AES_init_ctx(&aes_ctx, key);
+    }
+    if (nonce == NULL)
+    {
+        memset(aes_ctx.Iv, 0, 16);
+    }
+    else
+    {
+        memmove(aes_ctx.Iv, nonce, 16);
+    }
 }
 
-void crypto_aes256_reset_iv()
+// prevent round key recomputation
+void crypto_aes256_reset_iv(uint8_t * nonce)
 {
-    memset(aes_ctx.Iv, 0, 16);
+    if (nonce == NULL)
+    {
+        memset(aes_ctx.Iv, 0, 16);
+    }
+    else
+    {
+        memmove(aes_ctx.Iv, nonce, 16);
+    }
 }
 
 void crypto_aes256_decrypt(uint8_t * buf, int length)

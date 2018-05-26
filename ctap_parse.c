@@ -637,8 +637,8 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
         return CTAP2_ERR_MISSING_PARAMETER;
     }
 
-    buflen = CREDENTIAL_ID_SIZE;
-    cbor_value_copy_byte_string(&val, cred->credential.id, &buflen, NULL);
+    buflen = sizeof(struct Credential);
+    cbor_value_copy_byte_string(&val, (uint8_t*)&cred->credential, &buflen, NULL);
     if (buflen != CREDENTIAL_ID_SIZE)
     {
         printf2(TAG_ERR,"Error, credential is incorrect length\n");
