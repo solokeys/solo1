@@ -94,7 +94,7 @@ static int is_broadcast(CTAPHID_PACKET * pkt)
 
 static int is_init_pkt(CTAPHID_PACKET * pkt)
 {
-    return (pkt->pkt.init.cmd == CTAPHID_INIT) && ctaphid_packet_len(pkt) == 8;
+    return (pkt->pkt.init.cmd == CTAPHID_INIT);
 }
 
 static int is_cont_pkt(CTAPHID_PACKET * pkt)
@@ -294,10 +294,19 @@ start_over:
                 if (is_init_pkt(pkt))
                 {
                     printf("received abort request from %08x\n", pkt->cid);
+                    ctaphid_write_buffer_init(&wb);
 
-                    set_next_cid(active_cid);   // reuse last CID in current channel
+                    wb.cid = active_cid;
+                    active_cid_timestamp = millis();
+
                     ctaphid_init();
-                    buffer_packet(pkt);
+
+                    active_cid = wb.cid;
+                    wb.cmd = CTAPHID_INIT;
+                    wb.bcnt = 0;
+                    ctaphid_write(&wb, ctap_buffer, buffer_len());
+                    ctaphid_write(&wb, NULL, 0);
+                    return;
                 }
                 else if (!is_cont_pkt(pkt) && buffer_status() == BUFFERING)
                 {

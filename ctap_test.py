@@ -80,7 +80,6 @@ class Tester():
             raise RuntimeError('Cbor is supposed to have payload')
         except CtapError as e:
             assert(e.code == CtapError.ERR.INVALID_LENGTH)
-            pass
         print('PASS: no data cbor')
 
         try:
@@ -88,8 +87,14 @@ class Tester():
             raise RuntimeError('MSG is supposed to have payload')
         except CtapError as e:
             assert(e.code == CtapError.ERR.INVALID_LENGTH)
-            pass
         print('PASS: no data msg')
+
+        try:
+            r = self.send_data(CTAPHID.INIT, '')
+        except CtapError as e:
+            print('resync fail: ', e)
+            return
+        print('PASS: resync')
 
 
 
