@@ -7,11 +7,13 @@
 
 #include <stdio.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 
 int udp_server()
@@ -21,6 +23,16 @@ int udp_server()
         perror( "socket failed" );
         return 1;
     }
+
+    struct timeval read_timeout;
+    read_timeout.tv_sec = 0;
+    read_timeout.tv_usec = 10;
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof(struct timeval)) != 0)
+    {
+        perror( "setsockopt" );
+        exit(1);
+    }
+    /*fcntl(fd, F_SETFL, fcntl(fd,F_GETFL, 0)|O_NONBLOCK);*/
 
     struct sockaddr_in serveraddr;
     memset( &serveraddr, 0, sizeof(serveraddr) );
@@ -35,13 +47,31 @@ int udp_server()
     return fd;
 }
 
-void udp_recv(int fd, uint8_t * buf, int size)
+int udp_recv(int fd, uint8_t * buf, int size)
 {
+
+    fd_set         input;
+    FD_ZERO(&input);
+    FD_SET(fd, &input);
+    struct timeval timeout;
+    timeout.tv_sec  = 0;
+    timeout.tv_usec = 100000;
+    int n = select(fd + 1, &input, NULL, NULL, &timeout);
+    if (n == -1) {
+        perror("select\n");
+        exit(1);
+    } else if (n == 0)
+        return 0;
+    if (!FD_ISSET(fd, &input))
+    {
+
+    }
     int length = recvfrom( fd, buf, size, 0, NULL, 0 );
     if ( length < 0 ) {
         perror( "recvfrom failed" );
         exit(1);
     }
+    return length;
 }
 
 

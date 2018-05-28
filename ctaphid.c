@@ -34,13 +34,22 @@ typedef struct
     uint8_t buf[HID_MESSAGE_SIZE];
 } CTAPHID_WRITE_BUFFER;
 
+struct CID
+{
+    uint32_t cid;
+    uint64_t last_used;
+    uint8_t busy;
+    uint8_t last_cmd;
+};
+
 
 #define SUCESS          0
 #define SEQUENCE_ERROR  1
 
 static int state;
+static struct CID CIDS[10];
+#define CID_MAX (sizeof(CIDS)/sizeof(struct CID))
 
-static int active_cid;
 static uint64_t active_cid_timestamp;
 
 static uint8_t ctap_buffer[CTAPHID_BUFFER_SIZE];
@@ -48,8 +57,6 @@ static int ctap_buffer_cmd;
 static uint16_t ctap_buffer_bcnt;
 static int ctap_buffer_offset;
 static int ctap_packet_seq;
-
-static uint32_t _next_cid = 0;
 
 static void buffer_reset();
 
@@ -63,28 +70,61 @@ static void ctaphid_write(CTAPHID_WRITE_BUFFER * wb, void * _data, int len);
 void ctaphid_init()
 {
     state = IDLE;
-    active_cid = 0;
     buffer_reset();
-    active_cid_timestamp = millis();
-}
-
-static uint32_t set_next_cid(uint32_t cid)
-{
-    _next_cid = cid;
+    ctap_reset_state();
 }
 
 static uint32_t get_new_cid()
 {
     static uint32_t cid = 1;
-
-    if (_next_cid != 0)
+    do
     {
-        int tmp = _next_cid;
-        _next_cid = 0;
-        return tmp;
-    }
+        cid++;
+    }while(cid == 0 || cid == 0xffffffff);
+    return cid;
+}
 
-    return cid++;
+static int8_t add_cid(uint32_t cid)
+{
+    int i;
+    for(i = 0; i < CID_MAX-1; i++)
+    {
+        if (!CIDS[i].busy)
+        {
+            CIDS[i].cid = cid;
+            CIDS[i].busy = 1;
+            CIDS[i].last_used = millis();
+            return 0;
+        }
+    }
+    return -1;
+}
+
+static int8_t cid_exists(uint32_t cid)
+{
+    int i;
+    for(i = 0; i < CID_MAX-1; i++)
+    {
+        if (CIDS[i].cid == cid)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int8_t cid_refresh(uint32_t cid)
+{
+    int i;
+    for(i = 0; i < CID_MAX-1; i++)
+    {
+        if (CIDS[i].cid == cid)
+        {
+            CIDS[i].last_used = millis();
+            return 0;
+        }
+    }
+    return -1;
 }
 
 static int is_broadcast(CTAPHID_PACKET * pkt)
@@ -102,10 +142,6 @@ static int is_cont_pkt(CTAPHID_PACKET * pkt)
     return !(pkt->pkt.init.cmd & TYPE_INIT);
 }
 
-static int is_active_cid(CTAPHID_PACKET * pkt)
-{
-    return (pkt->cid == active_cid);
-}
 
 static int is_timed_out()
 {
@@ -252,106 +288,148 @@ static void ctaphid_send_error(uint32_t cid, uint8_t error)
     ctaphid_write(&wb, NULL, 0);
 }
 
+static void send_init_response(uint32_t oldcid, uint32_t newcid, uint8_t * nonce)
+{
+    CTAPHID_INIT_RESPONSE init_resp;
+    CTAPHID_WRITE_BUFFER wb;
+    ctaphid_write_buffer_init(&wb);
+    wb.cid = oldcid;
+    wb.cmd = CTAPHID_INIT;
+    wb.bcnt = 17;
+
+    memmove(init_resp.nonce, nonce, 8);
+    init_resp.cid = newcid;
+    init_resp.protocol_version = 0;//?
+    init_resp.version_major = 0;//?
+    init_resp.version_minor = 0;//?
+    init_resp.build_version = 0;//?
+    init_resp.capabilities = CTAP_CAPABILITIES;
+
+    ctaphid_write(&wb,&init_resp,sizeof(CTAPHID_INIT_RESPONSE));
+    ctaphid_write(&wb,NULL,0);
+}
+
+
+void u2f_hid_check_timeouts()
+{
+    uint8_t i;
+    for(i = 0; i < CID_MAX; i++)
+    {
+        if (CIDS[i].busy && ((millis() - CIDS[i].last_used) >= 750))
+        {
+            printf("TIMEOUT CID: %08x\n", CIDS[i].cid);
+            ctaphid_send_error(CIDS[i].cid, CTAP1_ERR_TIMEOUT);
+            memset(CIDS + i, 0, sizeof(struct CID));
+        }
+    }
+
+}
+
+
 void ctaphid_handle_packet(uint8_t * pkt_raw)
 {
     CTAPHID_PACKET * pkt = (CTAPHID_PACKET *)(pkt_raw);
 
     printf("Recv packet\n");
-    printf("  CID: %08x active(%08x)\n", pkt->cid, active_cid);
+    printf("  CID: %08x \n", pkt->cid);
     printf("  cmd: %02x\n", pkt->pkt.init.cmd);
     if (!is_cont_pkt(pkt)) printf("  length: %d\n", ctaphid_packet_len(pkt));
 
     int ret;
     uint8_t status;
     uint32_t oldcid;
-    static CTAPHID_INIT_RESPONSE init_resp;
+    uint32_t newcid;
     static CTAPHID_WRITE_BUFFER wb;
+    uint32_t active_cid;
 
     CTAP_RESPONSE ctap_resp;
 
 
-start_over:
-
-    switch (state)
+    if (is_init_pkt(pkt))
     {
-        case IDLE:
-            if (is_broadcast(pkt))
-            {
-                printf("starting a new request\n");
-                state = HANDLING_REQUEST;
-                buffer_packet(pkt);
-            }
+        if (ctaphid_packet_len(pkt) != 8)
+        {
+            printf("Error,invalid length field for init packet\n");
+            ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
+            return;
+        }
+        if (pkt->cid == 0)
+        {
+            printf("Error, invalid cid 0\n");
+            ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_PARAMETER);
+            return;
+        }
+
+        ctaphid_init();
+        if (is_broadcast(pkt))
+        {
+            // Check if any existing cids are busy first ?
+            printf("adding a new cid\n");
+            oldcid = CTAPHID_BROADCAST_CID;
+            newcid = get_new_cid();
+            ret = add_cid(newcid);
+            // handle init here
+        }
+        else
+        {
+            printf("synchronizing to cid\n");
+            oldcid = pkt->cid;
+            newcid = pkt->cid;
+            if (cid_exists(newcid))
+                ret = cid_refresh(newcid);
             else
-            {
-                printf("Error, unknown request\n");
-                ctaphid_send_error(pkt->cid, ERR_INVALID_PAR);
-                return;
-            }
-            break;
-        case HANDLING_REQUEST:
-            if (is_active_cid(pkt))
-            {
-                if (is_init_pkt(pkt))
-                {
-                    printf("received abort request from %08x\n", pkt->cid);
-                    ctaphid_write_buffer_init(&wb);
-
-                    wb.cid = active_cid;
-                    active_cid_timestamp = millis();
-
-                    ctaphid_init();
-
-                    active_cid = wb.cid;
-                    wb.cmd = CTAPHID_INIT;
-                    wb.bcnt = 0;
-                    ctaphid_write(&wb, ctap_buffer, buffer_len());
-                    ctaphid_write(&wb, NULL, 0);
-                    return;
-                }
-                else if (!is_cont_pkt(pkt) && buffer_status() == BUFFERING)
-                {
-                    printf("Error, expecting cont packet\n");
-                    ctaphid_send_error(pkt->cid, ERR_INVALID_PAR);
-                    return;
-                }
-                else if(!is_cont_pkt(pkt))
-                {
-                    if (ctaphid_packet_len(pkt) > CTAPHID_BUFFER_SIZE)
-                    {
-                        printf("Error, internal buffer not big enough\n");
-                        ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
-                        return;
-                    }
-                }
-
-                active_cid_timestamp = millis();
-                ret = buffer_packet(pkt);
-                if (ret == SEQUENCE_ERROR)
-                {
-                    printf("Sequence error\n");
-                    ctaphid_send_error(pkt->cid, ERR_INVALID_SEQ);
-                    return;
-                }
-            }
-            else if (is_timed_out())
-            {
-                printf("dropping last channel -- timeout");
-                oldcid = active_cid;
-                ctaphid_init();
-                ctaphid_send_error(active_cid, ERR_MSG_TIMEOUT);
-                goto start_over;
-            }
-            else
-            {
-                ctaphid_send_error(pkt->cid, ERR_CHANNEL_BUSY);
-                printf("Too busy with current transaction\n");
-                return;
-            }
-            break;
-        default:
-            printf("invalid state; abort\n");
-            exit(1);
+                ret = add_cid(newcid);
+        }
+        if (ret == -1)
+        {
+            printf("Error, not enough memory for new CID.  return BUSY.\n");
+            ctaphid_send_error(pkt->cid, CTAP1_ERR_CHANNEL_BUSY);
+            return;
+        }
+        send_init_response(oldcid, newcid, pkt->pkt.init.payload);
+        return;
     }
+    else
+    {
+        // Check if matches existing CID
+        if (cid_exists(pkt->cid))
+        {
+            if (! is_cont_pkt(pkt))
+            {
+                if (ctaphid_packet_len(pkt) > CTAPHID_BUFFER_SIZE)
+                {
+                    ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
+                    return;
+                }
+            }
+            if (buffer_packet(pkt) == SEQUENCE_ERROR)
+            {
+                printf("Buffering sequence error\n");
+                ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_SEQ);
+                return;
+            }
+            ret = cid_refresh(pkt->cid);
+            if (ret != 0)
+            {
+                printf("Error, refresh cid failed\n");
+                exit(1);
+            }
+            active_cid = pkt->cid;
+        }
+        else if (is_cont_pkt(pkt))
+        {
+            printf("ignoring unwarranted cont packet\n");
+            // Ignore
+            return;
+        }
+        else
+        {
+            printf("ignoring unwarranted init packet\n");
+            // Ignore
+            return;
+        }
+    }
+
 
 
     switch(buffer_status())
@@ -367,37 +445,8 @@ start_over:
             switch(buffer_cmd())
             {
                 case CTAPHID_INIT:
-                    printf("CTAPHID_INIT\n");
-
-                    if (buffer_len() != 8)
-                    {
-                        printf("Error,invalid length field for init packet\n");
-                        ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
-                        return;
-                    }
-
-                    active_cid = get_new_cid();
-
-                    printf("cid: %08x\n",active_cid);
-                    active_cid_timestamp = millis();
-
-                    ctaphid_write_buffer_init(&wb);
-                    wb.cid = CTAPHID_BROADCAST_CID;
-                    wb.cmd = CTAPHID_INIT;
-                    wb.bcnt = 17;
-
-                    memmove(init_resp.nonce, pkt->pkt.init.payload, 8);
-                    init_resp.cid = active_cid;
-                    init_resp.protocol_version = 0;//?
-                    init_resp.version_major = 0;//?
-                    init_resp.version_minor = 0;//?
-                    init_resp.build_version = 0;//?
-                    init_resp.capabilities = CTAP_CAPABILITIES;
-
-                    ctaphid_write(&wb,&init_resp,sizeof(CTAPHID_INIT_RESPONSE));
-                    ctaphid_write(&wb,NULL,0);
-
-
+                    printf("CTAPHID_INIT, error this should already be handled\n");
+                    exit(1);
                     break;
                 case CTAPHID_PING:
                     printf("CTAPHID_PING\n");
@@ -476,6 +525,7 @@ start_over:
 
                 default:
                     printf("error, unimplemented HID cmd: %02x\r\n", buffer_cmd());
+                    ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_COMMAND);
                     break;
             }
 

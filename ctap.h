@@ -244,6 +244,9 @@ int ctap_encode_der_sig(uint8_t * sigbuf, uint8_t * sigder);
 // Run ctap related power-up procedures (init pinToken, generate shared secret)
 void ctap_init();
 
+// Resets state between different accesses of different applications
+void ctap_reset_state();
+
 void ctap_update_pin(uint8_t * pin, int len);
 uint8_t ctap_decrement_pin_attempts();
 int8_t ctap_leftover_pin_attempts();

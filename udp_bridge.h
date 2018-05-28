@@ -4,7 +4,7 @@
 int udp_server();
 
 // Recv from anyone
-void udp_recv(int fd, uint8_t * buf, int size);
+int udp_recv(int fd, uint8_t * buf, int size);
 
 // Send to 127.0.0.1:7112
 void udp_send(int fd, uint8_t * buf, int size);

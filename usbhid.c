@@ -1,5 +1,7 @@
 
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "usbhid.h"
 #include "udp_bridge.h"
@@ -13,10 +15,16 @@ void usbhid_init()
     serverfd = udp_server();
 }
 
-// Receive 64 byte USB HID message
-void usbhid_recv(uint8_t * msg)
+// Receive 64 byte USB HID message, don't block, return size of packet, return 0 if nothing
+int usbhid_recv(uint8_t * msg)
 {
-    udp_recv(serverfd, msg, HID_MESSAGE_SIZE);
+    int l = udp_recv(serverfd, msg, HID_MESSAGE_SIZE);
+    /*if (l && l != HID_MESSAGE_SIZE)*/
+    /*{*/
+        /*printf("Error, recv'd message of wrong size %d", l);*/
+        /*exit(1);*/
+    /*}*/
+    return l;
 }
 
 

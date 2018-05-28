@@ -50,11 +50,14 @@ int main(int argc, char * argv[])
 
     while(1)
     {
-        usbhid_recv(hidmsg);
-        printf("%d>> ",count++); dump_hex(hidmsg,sizeof(hidmsg));
+        if (usbhid_recv(hidmsg) > 0)
+        {
+            printf("%d>> ",count++); dump_hex(hidmsg,sizeof(hidmsg));
 
-        ctaphid_handle_packet(hidmsg);
-        memset(hidmsg, 0, sizeof(hidmsg));
+            ctaphid_handle_packet(hidmsg);
+            memset(hidmsg, 0, sizeof(hidmsg));
+        }
+        u2f_hid_check_timeouts();
     }
 
 

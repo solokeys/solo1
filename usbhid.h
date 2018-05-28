@@ -7,7 +7,7 @@
 
 void usbhid_init();
 
-void usbhid_recv(uint8_t * msg);
+int usbhid_recv(uint8_t * msg);
 
 void usbhid_send(uint8_t * msg);
 

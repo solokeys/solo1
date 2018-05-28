@@ -72,6 +72,7 @@ void ctaphid_init();
 
 void ctaphid_handle_packet(uint8_t * pkt_raw);
 
+void u2f_hid_check_timeouts();
 
 
 #define ctaphid_packet_len(pkt)     ((uint16_t)((pkt)->pkt.init.bcnth << 8) | ((pkt)->pkt.init.bcntl))
