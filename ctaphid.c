@@ -128,6 +128,20 @@ static int8_t cid_refresh(uint32_t cid)
     return -1;
 }
 
+static int8_t cid_del(uint32_t cid)
+{
+    int i;
+    for(i = 0; i < CID_MAX-1; i++)
+    {
+        if (CIDS[i].cid == cid)
+        {
+            CIDS[i].busy = 0;
+            return 0;
+        }
+    }
+    return -1;
+}
+
 static int is_broadcast(CTAPHID_PACKET * pkt)
 {
     return (pkt->cid == CTAPHID_BROADCAST_CID);
@@ -188,6 +202,7 @@ static int buffer_packet(CTAPHID_PACKET * pkt)
 
 static void buffer_reset()
 {
+
     ctap_buffer_bcnt = 0;
     ctap_buffer_offset = 0;
     ctap_packet_seq = 0;
@@ -567,7 +582,7 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
                     ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_COMMAND);
                     break;
             }
-
+            cid_del(buffer_cid());
             buffer_reset();
             break;
 
