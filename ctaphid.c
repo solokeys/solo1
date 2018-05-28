@@ -53,6 +53,7 @@ static struct CID CIDS[10];
 static uint64_t active_cid_timestamp;
 
 static uint8_t ctap_buffer[CTAPHID_BUFFER_SIZE];
+static uint32_t ctap_buffer_cid;
 static int ctap_buffer_cmd;
 static uint16_t ctap_buffer_bcnt;
 static int ctap_buffer_offset;
@@ -155,6 +156,7 @@ static int buffer_packet(CTAPHID_PACKET * pkt)
         ctap_buffer_bcnt = ctaphid_packet_len(pkt);
         int pkt_len = (ctap_buffer_bcnt < CTAPHID_INIT_PAYLOAD_SIZE) ? ctap_buffer_bcnt : CTAPHID_INIT_PAYLOAD_SIZE;
         ctap_buffer_cmd = pkt->pkt.init.cmd;
+        ctap_buffer_cid = pkt->cid;
         ctap_buffer_offset = pkt_len;
         ctap_packet_seq = -1;
         memmove(ctap_buffer, pkt->pkt.init.payload, pkt_len);
@@ -189,6 +191,7 @@ static void buffer_reset()
     ctap_buffer_bcnt = 0;
     ctap_buffer_offset = 0;
     ctap_packet_seq = 0;
+    ctap_buffer_cid = 0;
 }
 
 static int buffer_status()
@@ -211,6 +214,12 @@ static int buffer_cmd()
 {
     return ctap_buffer_cmd;
 }
+
+static uint32_t buffer_cid()
+{
+    return ctap_buffer_cid;
+}
+
 
 static int buffer_len()
 {
@@ -356,7 +365,7 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
         if (pkt->cid == 0)
         {
             printf("Error, invalid cid 0\n");
-            ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_PARAMETER);
+            ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_CHANNEL);
             return;
         }
 
@@ -392,13 +401,43 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
     else
     {
         // Check if matches existing CID
+        if (pkt->cid == CTAPHID_BROADCAST_CID)
+        {
+            ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_CHANNEL);
+            return;
+        }
         if (cid_exists(pkt->cid))
         {
+            if (buffer_status() == BUFFERING)
+            {
+                if (pkt->cid == buffer_cid() && ! is_cont_pkt(pkt))
+                {
+                    printf("INVALID_SEQ\n");
+                    printf("Have %d/%d bytes\n", ctap_buffer_offset, ctap_buffer_bcnt);
+                    ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_SEQ);
+                    return;
+                }
+                else if (pkt->cid != buffer_cid())
+                {
+                    printf("BUSY with %08x\n", buffer_cid());
+                    ctaphid_send_error(pkt->cid, CTAP1_ERR_CHANNEL_BUSY);
+                    return;
+                }
+            }
             if (! is_cont_pkt(pkt))
             {
+
                 if (ctaphid_packet_len(pkt) > CTAPHID_BUFFER_SIZE)
                 {
                     ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
+                    return;
+                }
+            }
+            else
+            {
+                if (buffer_status() == EMPTY || pkt->cid != buffer_cid())
+                {
+                    printf("ignoring random cont packet\n");
                     return;
                 }
             }
@@ -424,8 +463,8 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
         }
         else
         {
-            printf("ignoring unwarranted init packet\n");
-            // Ignore
+            printf("BUSY\n");
+            ctaphid_send_error(pkt->cid, CTAP1_ERR_CHANNEL_BUSY);
             return;
         }
     }
