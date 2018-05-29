@@ -122,6 +122,7 @@ static int8_t cid_refresh(uint32_t cid)
         if (CIDS[i].cid == cid)
         {
             CIDS[i].last_used = millis();
+            CIDS[i].busy = 1;
             return 0;
         }
     }
@@ -517,13 +518,6 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
 
                 case CTAPHID_WINK:
                     printf("CTAPHID_WINK\n");
-
-                    if (buffer_len() != 0)
-                    {
-                        printf("Error,invalid length field for wink packet\n");
-                        ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
-                        return;
-                    }
 
                     ctaphid_write_buffer_init(&wb);
 
