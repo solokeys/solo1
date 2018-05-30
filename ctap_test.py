@@ -47,7 +47,8 @@ class Tester():
         if not dev:
             raise RuntimeError('No FIDO device found')
         self.dev = dev
-        self.ctap = CTAP2(dev)
+        self.client = Fido2Client(dev, self.origin)
+        self.ctap = self.client.ctap
 
         # consume timeout error
         #cmd,resp = self.recv_raw()
@@ -351,13 +352,129 @@ class Tester():
         assert(r[0] == CtapError.ERR.INVALID_CHANNEL)
         print('Pass: cid broadcast')
 
-    def test_fido2(self):
+    def test_u2f(self,):
         pass
+
+    def test_fido2(self):
+        def test(self,pincode=None):
+            creds = []
+            exclude_list = []
+            rp = {'id': 'examplo.org', 'name': 'ExaRP'}
+            user = {'id': b'usee_od', 'name': 'AB User'}
+            challenge = 'Y2hhbGxlbmdl'
+            PIN = pincode
+
+            fake_id1 = array.array('B',[randint(0,255) for i in range(0,150)]).tostring()
+            fake_id2 = array.array('B',[randint(0,255) for i in range(0,73)]).tostring()
+
+            exclude_list.append({'id': fake_id1, 'type': 'public-key'})
+            exclude_list.append({'id': fake_id2, 'type': 'public-key'})
+
+            # test make credential
+            print('make 3 credentials')
+            for i in range(0,3):
+                attest, data = self.client.make_credential(rp, user, challenge, pin = PIN, exclude_list = [])
+                attest.verify(data.hash)
+                cred = attest.auth_data.credential_data
+                creds.append(cred)
+            print('PASS')
+
+            if PIN is not None:
+                print('make credential with wrong pin code')
+                try:
+                    attest, data = self.client.make_credential(rp, user, challenge, pin = PIN + ' ', exclude_list = [])
+                except CtapError as e:
+                    assert(e.code == CtapError.ERR.PIN_INVALID)
+                print('PASS')
+
+            print('make credential with exclude list')
+            attest, data = self.client.make_credential(rp, user, challenge, pin = PIN, exclude_list = exclude_list)
+            attest.verify(data.hash)
+            cred = attest.auth_data.credential_data
+            creds.append(cred)
+            print('PASS')
+
+            print('make credential with exclude list including real credential')
+            real_excl = [{'id': cred.credential_id, 'type': 'public-key'}]
+            try:
+                attest, data = self.client.make_credential(rp, user, challenge, pin = PIN, exclude_list = exclude_list + real_excl)
+            except CtapError as e:
+                assert(e.code == CtapError.ERR.CREDENTIAL_EXCLUDED)
+            print('PASS')
+
+            print('get assertion')
+            allow_list = [{'id':creds[0].credential_id, 'type': 'public-key'}]
+            assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
+            assertions[0].verify(client_data.hash, creds[0].public_key)
+            print('PASS')
+
+            if PIN is not None:
+                print('get assertion with wrong pin code')
+                try:
+                    assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN + ' ')
+                except CtapError as e:
+                    assert(e.code == CtapError.ERR.PIN_INVALID)
+                print('PASS')
+
+            print('get multiple assertions')
+            allow_list = [{'id': x.credential_id, 'type': 'public-key'} for x in creds]
+            assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
+            for ass,cred in zip(assertions, creds):
+                ass.verify(client_data.hash, cred.public_key)
+            print('PASS')
+
+        print('Reset device')
+        try:
+            self.ctap.reset()
+        except CtapError as e:
+            print('Warning, reset failed: ', e)
+            pass
+        print('PASS')
+
+        test(self, None)
+
+        print('Set a pin code')
+        PIN = '1122aabbwfg0h9g !@#=='
+        self.client.pin_protocol.set_pin(PIN)
+        print('PASS')
+
+        print('Illegally set pin code again')
+        try:
+            self.client.pin_protocol.set_pin(PIN)
+        except CtapError as e:
+            assert(e.code == CtapError.ERR.NOT_ALLOWED)
+        print('PASS')
+
+        print('Change pin code')
+        PIN2 = PIN + '_pin2'
+        self.client.pin_protocol.change_pin(PIN,PIN2)
+        PIN = PIN2
+        print('PASS')
+
+        print('Change pin code using wrong pin')
+        try:
+            self.client.pin_protocol.change_pin(PIN.replace('a','b'),'1234')
+        except CtapError as e:
+            assert(e.code == CtapError.ERR.PIN_INVALID)
+        print('PASS')
+
+        print('Re-run make_credential and get_assertion tests with pin code')
+        test(self, PIN)
+
+        print('Reset device')
+        try:
+            self.ctap.reset()
+        except CtapError as e:
+            print('Warning, reset failed: ', e)
+        print('PASS')
+
 
 
 if __name__ == '__main__':
     t = Tester()
     t.find_device()
-    t.test_hid()
+    #t.test_hid()
+    t.test_fido2()
+
 
 
