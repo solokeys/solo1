@@ -22,6 +22,11 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
+  $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_clock.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_rtc.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
+
+
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -44,6 +49,9 @@ INC_FOLDERS += \
   $(SDK_ROOT)/external/segger_rtt \
   $(PROJ_DIR) \
   $(SDK_ROOT)/components/libraries/util \
+  $(SDK_ROOT)/integration/nrfx/legacy \
+  $(SDK_ROOT)/modules/nrfx/drivers/include \
+
 
 # Libraries common to all targets
 LIB_FILES += \
