@@ -55,3 +55,9 @@ dkms.conf
 *.pem
 *.der
 *.csr
+*.stackdump
+
+tools/attest
+
+sdk_15.0.0/
+_build/
