@@ -815,7 +815,6 @@ static void usbd_setup_GetDescriptor(nrf_drv_usbd_setup_t const * const p_setup)
                     sizeof(get_descriptor_string_lang));
                 return;
             case USBD_STRING_MANUFACTURER_IX:
-                printf("string manufacturer: %d bytes\n", sizeof(get_descriptor_string_manuf));
                 respond_setup_data(
                     p_setup,
                     get_descriptor_string_manuf,
@@ -995,7 +994,7 @@ void dump_hex(uint8_t * buf, int size)
 
 static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
 {
-    static uint8_t buf[128];
+    static uint8_t buf[64];
     nrf_drv_usbd_transfer_t transfer;
     memset(&transfer, 0, sizeof(nrf_drv_usbd_transfer_t));
 
@@ -1034,21 +1033,36 @@ static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
     case NRF_DRV_USBD_EVT_EPTRANSFER:
         if (NRF_DRV_USBD_EPOUT1 == p_event->data.eptransfer.ep)
         {
-            printf("EPOUT1\n");
-            transfer.p_data.rx = buf;
-            transfer.size = nrf_drv_usbd_epout_size_get(NRF_DRV_USBD_EPOUT1);;
-            printf("pkt size = %d\n", transfer.size);
-            nrf_drv_usbd_ep_transfer(NRF_DRV_USBD_EPOUT1, &transfer);
-            dump_hex(buf,transfer.size);
+            switch(p_event->data.eptransfer.status)
+            {
+                case NRF_USBD_EP_OK:
+                    /*printf("NRF_USBD_EP_OK\n");*/
+                    printf(">> ");dump_hex(buf,64);
+                    break;
+                case NRF_USBD_EP_WAITING:
+                    /*printf("NRF_USBD_EP_WAITING\n");*/
+                    transfer.p_data.rx = buf;
+                    transfer.size = nrf_drv_usbd_epout_size_get(NRF_DRV_USBD_EPOUT1);;
+                    if (transfer.size > 64)
+                    {
+                        printf("Error, invalid transfer size\n");
+                        return;
+                    }
+                    nrf_drv_usbd_ep_transfer(NRF_DRV_USBD_EPOUT1, &transfer);
+                    break;
+                case NRF_USBD_EP_OVERLOAD:
+                    printf("NRF_USBD_EP_OVERLOAD\n");
+                    break;
+                case NRF_USBD_EP_ABORTED:
+                    printf("NRF_USBD_EP_ABORTED\n");
+                    break;
+                default:
+                    break;
+            }
 
-        }
-        else if (NRF_DRV_USBD_EPIN1 == p_event->data.eptransfer.ep)
-        {
-            printf("EPIN1\n");
         }
         else if (NRF_DRV_USBD_EPIN0 == p_event->data.eptransfer.ep)
         {
-            printf("EPIN0\n");
             if (NRF_USBD_EP_OK == p_event->data.eptransfer.status)
             {
                 if (!nrf_drv_usbd_errata_154())
@@ -1070,7 +1084,6 @@ static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
         }
         else if (NRF_DRV_USBD_EPOUT0 == p_event->data.eptransfer.ep)
         {
-            printf("EPOUT0\n");
             /* NOTE: No EPOUT0 data transfers are used.
              * The code is here as a pattern how to support such a transfer. */
             if (NRF_USBD_EP_OK == p_event->data.eptransfer.status)
