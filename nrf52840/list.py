@@ -7,15 +7,15 @@ import array
 
 
 # Locate a device
-#for d in CtapHidDevice.list_devices():
-    #print(d)
-selector = hidtransport.HidUsageSelector
-for d in hidtransport.hid.Enumerate():
-    print('1',d)
-    if selector(d):
-        try:
-            dev = hidtransport.hid.Open(d['path'])
-            print('2',dev)
-        except OSError:
-            # Insufficient permissions to access device
-            pass
+for d in CtapHidDevice.list_devices():
+    print(d)
+#selector = hidtransport.HidUsageSelector
+#for d in hidtransport.hid.Enumerate():
+    #print('1',d)
+    #if selector(d):
+        #try:
+            #dev = hidtransport.hid.Open(d['path'])
+            #print('2',dev)
+        #except OSError:
+            ## Insufficient permissions to access device
+            #pass
