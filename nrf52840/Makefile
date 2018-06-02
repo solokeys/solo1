@@ -19,6 +19,15 @@ SRC_FILES += \
   $(PROJ_DIR)/../log.c \
   $(PROJ_DIR)/../stubs.c \
   $(PROJ_DIR)/../ctaphid.c \
+  $(PROJ_DIR)/../ctap.c \
+  $(PROJ_DIR)/../ctap_parse.c \
+  $(PROJ_DIR)/../u2f.c \
+  \
+  $(PROJ_DIR)/../crypto.c \
+  $(PROJ_DIR)/../crypto/sha256.c \
+  $(PROJ_DIR)/../crypto/tiny-AES-c/aes.c \
+  $(PROJ_DIR)/../crypto/micro-ecc/uECC.c \
+  \
   $(SDK_ROOT)/components/boards/boards.c \
   $(SDK_ROOT)/components/libraries/util/app_error.c \
   $(SDK_ROOT)/components/libraries/util/app_error_handler_gcc.c \
@@ -90,10 +99,14 @@ INC_FOLDERS += \
   $(PROJ_DIR) \
   $(PROJ_DIR)/.. \
   $(PROJ_DIR)/../tinycbor/src \
+  \
+  $(PROJ_DIR)/../crypto/ \
+  $(PROJ_DIR)/../crypto/micro-ecc \
+  $(PROJ_DIR)/../crypto/tiny-AES-c \
+  \
   $(SDK_ROOT)/components/libraries/util \
   $(SDK_ROOT)/integration/nrfx/legacy \
   $(SDK_ROOT)/modules/nrfx/drivers/include \
-  \
   $(SDK_ROOT)/components/libraries/cli \
   $(SDK_ROOT)/components/libraries/scheduler \
   $(SDK_ROOT)/components/libraries/experimental_log \
@@ -152,7 +165,9 @@ CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DFLOAT_ABI_HARD
 CFLAGS += -DNRF52840_XXAA
 #CFLAGS += -DSTUB_CTAPHID
-CFLAGS += -DSTUB_CTAP
+#CFLAGS += -DSTUB_CTAP
+CFLAGS += -DuECC_PLATFORM=5
+CFLAGS += -std=gnu11
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
 CFLAGS += -Wall -Wno-format
@@ -192,7 +207,7 @@ nrf52840_xxaa: ASMFLAGS += -D__STACK_SIZE=8192
 
 # Add standard libraries at the very end of the linker input, after all objects
 # that may need symbols provided by these libraries.
-LIB_FILES += -lc -lnosys -lm
+LIB_FILES += -lc -lnosys -lm $(PROJ_DIR)/../tinycbor/lib/libtinycbor.a
 
 
 .PHONY: default help
@@ -210,11 +225,21 @@ help:
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
 
 
+
 include $(TEMPLATE_PATH)/Makefile.common
+
+#include $(PROJ_DIR)/../tinycbor/Makefile
+
+#$(shell echo )
+#$(shell )
 
 $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
 .PHONY: flash erase
+
+cbor:
+	cd $(PROJ_DIR)/../tinycbor/ && make clean
+	cd $(PROJ_DIR)/../tinycbor/ && make CC="$(CC)" LDFLAGS="--specs=nosys.specs -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mthumb -mabi=aapcs " CFLAGS="-mfloat-abi=hard -mfpu=fpv4-sp-d16 -mthumb -mabi=aapcs -DFLOAT_ABI_HARD -marm"
 
 # Flash the program
 flash: $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex

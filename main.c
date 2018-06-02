@@ -14,7 +14,7 @@
 
 int main(int argc, char * argv[])
 {
-    int count = 0, beat = 0;
+    int count = 0;
     uint64_t t1 = 0;
     uint8_t hidmsg[64];
 

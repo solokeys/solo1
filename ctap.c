@@ -1,4 +1,3 @@
-#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -217,6 +216,7 @@ static int ctap_add_cose_key(CborEncoder * cose_key, uint8_t * x, uint8_t * y, u
     ret = cbor_encoder_close_container(cose_key, &map);
     check_ret(ret);
 
+    return 0;
 }
 static int ctap_generate_cose_key(CborEncoder * cose_key, uint8_t * hmac_input, int len, uint8_t credtype, int32_t algtype)
 {
@@ -237,6 +237,7 @@ static int ctap_generate_cose_key(CborEncoder * cose_key, uint8_t * hmac_input, 
             return -1;
     }
     ctap_add_cose_key(cose_key, x, y, credtype, algtype);
+    return 0;
 }
 
 void make_auth_tag(struct rpId * rp, CTAP_userEntity * user, uint32_t count, uint8_t * tag)
@@ -245,7 +246,7 @@ void make_auth_tag(struct rpId * rp, CTAP_userEntity * user, uint32_t count, uin
     crypto_sha256_hmac_init(NULL, 0, hashbuf);
     crypto_sha256_update(rp->id, rp->size);
     crypto_sha256_update(user->id, user->id_size);
-    crypto_sha256_update(user->name, strnlen(user->name, USER_NAME_LIMIT));
+    crypto_sha256_update(user->name, strnlen((const char*)user->name, USER_NAME_LIMIT));
     crypto_sha256_update((uint8_t*)&count, 4);
     crypto_sha256_hmac_final(NULL,0,hashbuf);
 
@@ -259,7 +260,16 @@ static uint32_t auth_data_update_count(CTAP_authDataHeader * authData)
     {
         count = ctap_atomic_count( 0 );
     }
-    authData->signCount = ntohl(count);
+    uint8_t * byte = (uint8_t*) &authData->signCount;
+
+    *byte++ = count & 0xff;
+    count = count >> 8;
+    *byte++ = count & 0xff;
+    count = count >> 8;
+    *byte++ = count & 0xff;
+    count = count >> 8;
+    *byte++ = count & 0xff;
+
     return count;
 }
 
@@ -430,6 +440,7 @@ uint8_t ctap_add_attest_statement(CborEncoder * map, uint8_t * sigder, int len)
 
     ret = cbor_encoder_close_container(map, &stmtmap);
     check_ret(ret);
+    return 0;
 }
 
 // Return 1 if credential belongs to this token
@@ -455,7 +466,6 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     int ret, i;
     uint8_t auth_data_buf[300];
     CTAP_credentialDescriptor * excl_cred = (CTAP_credentialDescriptor *) auth_data_buf;
-    uint8_t * hashbuf = auth_data_buf + 0;
     uint8_t * sigbuf = auth_data_buf + 32;
     uint8_t * sigder = auth_data_buf + 32 + 64;
 
@@ -530,18 +540,18 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     return CTAP1_ERR_SUCCESS;
 }
 
-static int pick_first_authentic_credential(CTAP_getAssertion * GA)
-{
-    int i;
-    for (i = 0; i < GA->credLen; i++)
-    {
-        if (GA->creds[i].credential.enc.count != 0)
-        {
-            return i;
-        }
-    }
-    return -1;
-}
+/*static int pick_first_authentic_credential(CTAP_getAssertion * GA)*/
+/*{*/
+    /*int i;*/
+    /*for (i = 0; i < GA->credLen; i++)*/
+    /*{*/
+        /*if (GA->creds[i].credential.enc.count != 0)*/
+        /*{*/
+            /*return i;*/
+        /*}*/
+    /*}*/
+    /*return -1;*/
+/*}*/
 
 static uint8_t ctap_add_credential_descriptor(CborEncoder * map, CTAP_credentialDescriptor * cred)
 {
@@ -595,7 +605,7 @@ uint8_t ctap_add_user_entity(CborEncoder * map, CTAP_userEntity * user)
         ret = cbor_encode_text_string(&entity, "displayName", 11);
         check_ret(ret);
 
-        ret = cbor_encode_text_stringz(&entity, user->name);
+        ret = cbor_encode_text_stringz(&entity, (const char *)user->name);
         check_ret(ret);
     }
 
@@ -824,6 +834,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     ret = cbor_encoder_close_container(encoder, &map);
     check_ret(ret);
 
+    return 0;
 }
 
 uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platform_pubkey, uint8_t * pinAuth, uint8_t * pinHashEnc)
@@ -870,7 +881,7 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
 
     printf("new pin: %s\n", pinEnc);
 
-    ret = strnlen(pinEnc, NEW_PIN_ENC_MAX_SIZE);
+    ret = strnlen((const char *)pinEnc, NEW_PIN_ENC_MAX_SIZE);
     if (ret == NEW_PIN_ENC_MAX_SIZE)
     {
         printf2(TAG_ERR,"No NULL terminator in new pin string\n");

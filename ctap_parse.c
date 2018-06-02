@@ -62,8 +62,9 @@ const char * cbor_value_get_type_string(const CborValue *value)
         case CborDoubleType:
             return "CborDoubleType";
             break;
+        default:
+            return "Invalid type";
     }
-    return "Invalid type";
 }
 
 
@@ -97,7 +98,7 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
         }
 
         sz = sizeof(key);
-        ret = cbor_value_copy_text_string(&map, key, &sz, NULL);
+        ret = cbor_value_copy_text_string(&map, (char *)key, &sz, NULL);
 
         if (ret == CborErrorOutOfMemory)
         {
@@ -110,7 +111,7 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
         ret = cbor_value_advance(&map);
         check_ret(ret);
 
-        if (strcmp(key, "id") == 0)
+        if (strcmp((const char*)key, "id") == 0)
         {
 
             if (cbor_value_get_type(&map) != CborByteStringType)
@@ -129,10 +130,10 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
             MC->user.id_size = sz;
             check_ret(ret);
         }
-        else if (strcmp(key, "name") == 0)
+        else if (strcmp((const char *)key, "name") == 0)
         {
             sz = USER_NAME_LIMIT;
-            ret = cbor_value_copy_text_string(&map, MC->user.name, &sz, NULL);
+            ret = cbor_value_copy_text_string(&map, (char *)MC->user.name, &sz, NULL);
             if (ret != CborErrorOutOfMemory)
             {   // Just truncate the name it's okay
                 check_ret(ret);
@@ -157,7 +158,6 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
 
 uint8_t parse_pub_key_cred_param(CborValue * val, uint8_t * cred_type, int32_t * alg_type)
 {
-    CborValue map;
     CborValue cred;
     CborValue alg;
     int ret;
@@ -186,12 +186,12 @@ uint8_t parse_pub_key_cred_param(CborValue * val, uint8_t * cred_type, int32_t *
         return CTAP2_ERR_MISSING_PARAMETER;
     }
 
-    ret = cbor_value_copy_text_string(&cred, type_str, &sz, NULL);
+    ret = cbor_value_copy_text_string(&cred, (char*)type_str, &sz, NULL);
     check_ret(ret);
 
     type_str[sizeof(type_str) - 1] = 0;
 
-    if (strcmp(type_str, "public-key") == 0)
+    if (strcmp((const char*)type_str, "public-key") == 0)
     {
         *cred_type = PUB_KEY_CRED_PUB_KEY;
     }
@@ -200,7 +200,7 @@ uint8_t parse_pub_key_cred_param(CborValue * val, uint8_t * cred_type, int32_t *
         *cred_type = PUB_KEY_CRED_UNKNOWN;
     }
 
-    ret = cbor_value_get_int_checked(&alg, alg_type);
+    ret = cbor_value_get_int_checked(&alg, (int*)alg_type);
     check_ret(ret);
 
     return 0;
@@ -222,10 +222,9 @@ static int pub_key_cred_param_supported(uint8_t cred, int32_t alg)
 
 uint8_t parse_pub_key_cred_params(CTAP_makeCredential * MC, CborValue * val)
 {
-    size_t sz, arr_length;
+    size_t arr_length;
     uint8_t cred_type;
     int32_t alg_type;
-    uint8_t key[8];
     int ret;
     int i;
     CborValue arr;
@@ -293,7 +292,7 @@ uint8_t parse_fixed_byte_string(CborValue * map, uint8_t * dst, int len)
 uint8_t parse_rp_id(struct rpId * rp, CborValue * val)
 {
     size_t sz = DOMAIN_NAME_MAX_SIZE;
-    int ret = cbor_value_copy_text_string(val, rp->id, &sz, NULL);
+    int ret = cbor_value_copy_text_string(val, (char*)rp->id, &sz, NULL);
     if (ret == CborErrorOutOfMemory)
     {
         printf2(TAG_ERR,"Error, RP_ID is too large\n");
@@ -308,7 +307,7 @@ uint8_t parse_rp_id(struct rpId * rp, CborValue * val)
 uint8_t parse_rp(struct rpId * rp, CborValue * val)
 {
     size_t sz, map_length;
-    uint8_t key[8];
+    char key[8];
     int ret;
     int i;
     CborValue map;
@@ -367,7 +366,7 @@ uint8_t parse_rp(struct rpId * rp, CborValue * val)
         else if (strcmp(key, "name") == 0)
         {
             sz = RP_NAME_LIMIT;
-            ret = cbor_value_copy_text_string(&map, rp->name, &sz, NULL);
+            ret = cbor_value_copy_text_string(&map, (char*)rp->name, &sz, NULL);
             if (ret != CborErrorOutOfMemory)
             {   // Just truncate the name it's okay
                 check_ret(ret);
@@ -396,7 +395,7 @@ uint8_t parse_rp(struct rpId * rp, CborValue * val)
 uint8_t parse_options(CborValue * val, uint8_t * rk, uint8_t * uv)
 {
     size_t sz, map_length;
-    uint8_t key[8];
+    char key[8];
     int ret;
     int i;
     _Bool b;
@@ -463,6 +462,7 @@ uint8_t parse_options(CborValue * val, uint8_t * rk, uint8_t * uv)
 
 
     }
+    return 0;
 }
 
 uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encoder, uint8_t * request, int length)
@@ -471,9 +471,8 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
     int i;
     int key;
     size_t map_length;
-    size_t sz;
     CborParser parser;
-    CborValue it,map,val;
+    CborValue it,map;
 
     memset(MC, 0, sizeof(CTAP_makeCredential));
     ret = cbor_parser_init(request, length, CborValidateCanonicalFormat, &parser, &it);
@@ -620,7 +619,7 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
 {
     int ret;
     size_t buflen;
-    uint8_t type[12];
+    char type[12];
     CborValue val;
     if (cbor_value_get_type(arr) != CborMapType)
     {
@@ -715,10 +714,9 @@ uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
 uint8_t ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int length)
 {
     int ret;
-    int i,j;
+    int i;
     int key;
     size_t map_length;
-    size_t sz;
     CborParser parser;
     CborValue it,map;
 
@@ -832,7 +830,6 @@ uint8_t parse_cose_key(CborValue * it, uint8_t * x, uint8_t * y, int * kty, int 
 {
     CborValue map;
     size_t map_length;
-    size_t ptsz;
     int i,ret,key;
     int xkey = 0,ykey = 0;
     *kty = 0;
@@ -928,7 +925,7 @@ uint8_t parse_cose_key(CborValue * it, uint8_t * x, uint8_t * y, int * kty, int 
 uint8_t ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
 {
     int ret;
-    int i,j;
+    int i;
     int key;
     size_t map_length;
     size_t sz;

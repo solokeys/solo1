@@ -97,11 +97,6 @@ static int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len)
 
 
 
-static uint8_t get_signature_length(uint8_t * sig)
-{
-    return 0x46 + ((sig[32] & 0x80) == 0x80) + ((sig[0] & 0x80) == 0x80);
-}
-
 static void dump_signature_der(uint8_t * sig)
 {
     uint8_t sigder[72];
@@ -273,6 +268,6 @@ static int16_t u2f_register(struct u2f_register_request * req)
 static int16_t u2f_version()
 {
     const char version[] = "U2F_V2";
-    u2f_response_writeback(version, sizeof(version)-1);
+    u2f_response_writeback((uint8_t*)version, sizeof(version)-1);
     return U2F_SW_NO_ERROR;
 }
