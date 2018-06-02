@@ -239,7 +239,9 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 
 cbor:
 	cd $(PROJ_DIR)/../tinycbor/ && make clean
-	cd $(PROJ_DIR)/../tinycbor/ && make CC="$(CC)" LDFLAGS="--specs=nosys.specs -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mthumb -mabi=aapcs " CFLAGS="-mfloat-abi=hard -mfpu=fpv4-sp-d16 -mthumb -mabi=aapcs -DFLOAT_ABI_HARD -marm"
+	cd $(PROJ_DIR)/../tinycbor/ && make CC="$(CC)" \
+LDFLAGS="-lc -lnosys --specs=nosys.specs -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mthumb -mabi=aapcs " \
+CFLAGS=" -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mthumb -mabi=aapcs -DFLOAT_ABI_HARD -std=gnu11"
 
 # Flash the program
 flash: $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex
