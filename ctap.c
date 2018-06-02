@@ -11,6 +11,7 @@
 #include "crypto.h"
 #include "util.h"
 #include "log.h"
+#include "device.h"
 
 
 #define PIN_TOKEN_SIZE      16
@@ -1084,9 +1085,10 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     CborEncoder encoder;
     uint8_t status = 0;
     uint8_t cmd = *pkt_raw;
+    uint64_t t1;
+    uint64_t t2;
     pkt_raw++;
     length--;
-
 
     uint8_t * buf = resp->data;
 
@@ -1112,7 +1114,10 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     {
         case CTAP_MAKE_CREDENTIAL:
             printf1(TAG_CTAP,"CTAP_MAKE_CREDENTIAL\n");
+            t1 = millis();
             status = ctap_make_credential(&encoder, pkt_raw, length);
+            t2 = millis();
+            printf1(TAG_TIME,"make_credential time: %d ms\n", t2-t1);
 
             dump_hex1(TAG_DUMP, buf, cbor_encoder_get_buffer_size(&encoder, buf));
 
@@ -1120,7 +1125,10 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             break;
         case CTAP_GET_ASSERTION:
             printf1(TAG_CTAP,"CTAP_GET_ASSERTION\n");
+            t1 = millis();
             status = ctap_get_assertion(&encoder, pkt_raw, length);
+            t2 = millis();
+            printf1(TAG_TIME,"get_assertion time: %d ms\n", t2-t1);
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
 

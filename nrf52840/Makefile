@@ -23,7 +23,7 @@ SRC_FILES += \
   $(PROJ_DIR)/../ctap_parse.c \
   $(PROJ_DIR)/../u2f.c \
   \
-  $(PROJ_DIR)/../crypto.c \
+  $(PROJ_DIR)/crypto.c \
   $(PROJ_DIR)/../crypto/sha256.c \
   $(PROJ_DIR)/../crypto/tiny-AES-c/aes.c \
   $(PROJ_DIR)/../crypto/micro-ecc/uECC.c \
@@ -147,9 +147,12 @@ INC_FOLDERS += \
   $(SDK_ROOT)/modules/nrfx/drivers/include \
   $(SDK_ROOT)/modules/nrfx/hal \
   $(SDK_ROOT)/external/fprintf \
+  $(SDK_ROOT)/external/nrf_cc310/include \
+  $(SDK_ROOT)/external/nrf_cc310/common \
 
 # Libraries common to all targets
-LIB_FILES += \
+LIB_FILES += $(SDK_ROOT)/external/nrf_cc310/lib/libnrf_cc310_0.9.9.a \
+  $(PROJ_DIR)/../tinycbor/lib/libtinycbor.a
 
 # Optimization flags
 OPT = -O3 -g3
@@ -207,7 +210,7 @@ nrf52840_xxaa: ASMFLAGS += -D__STACK_SIZE=8192
 
 # Add standard libraries at the very end of the linker input, after all objects
 # that may need symbols provided by these libraries.
-LIB_FILES += -lc -lnosys -lm $(PROJ_DIR)/../tinycbor/lib/libtinycbor.a
+LIB_FILES += -lc -lnosys -lm
 
 
 .PHONY: default help
