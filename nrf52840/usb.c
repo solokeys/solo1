@@ -933,7 +933,7 @@ static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
         }
         else
         {
-            printf("EP other: %d\n", p_event->data.eptransfer.ep);
+            /*printf("EP other: %d\n", p_event->data.eptransfer.ep);*/
             /* Nothing to do */
         }
         break;

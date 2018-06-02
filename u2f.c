@@ -3,6 +3,7 @@
 #include "ctap.h"
 #include "crypto.h"
 #include "log.h"
+#include "device.h"
 
 // void u2f_response_writeback(uint8_t * buf, uint8_t len);
 static int16_t u2f_register(struct u2f_register_request * req);
@@ -15,6 +16,7 @@ static CTAP_RESPONSE * _u2f_resp = NULL;
 void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
 {
     uint16_t rcode;
+    uint64_t t1,t2;
     uint32_t len = ((req->LC3) | ((uint32_t)req->LC2 << 8) | ((uint32_t)req->LC1 << 16));
     uint8_t byte;
 
@@ -37,12 +39,18 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
             }
             else
             {
+                t1 = millis();
                 rcode = u2f_register((struct u2f_register_request*)req->payload);
+                t2 = millis();
+                printf1(TAG_TIME,"u2f_register time: %d ms\n", t2-t1);
             }
             break;
         case U2F_AUTHENTICATE:
             printf1(TAG_U2F, "U2F_AUTHENTICATE\n");
+            t1 = millis();
             rcode = u2f_authenticate((struct u2f_authenticate_request*)req->payload, req->p1);
+            t2 = millis();
+            printf1(TAG_TIME,"u2f_authenticate time: %d ms\n", t2-t1);
             break;
         case U2F_VERSION:
             printf1(TAG_U2F, "U2F_VERSION\n");

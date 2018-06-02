@@ -19,16 +19,17 @@ int main(int argc, char * argv[])
     uint8_t hidmsg[64];
 
     set_logging_mask(
-            TAG_MC |
-            TAG_GA |
-            TAG_CP |
-            TAG_CTAP |
-            TAG_U2F|
-            TAG_PARSE |
-            TAG_DUMP|
-            TAG_GREEN|
-            TAG_RED|
-            TAG_ERR
+            /*TAG_MC |*/
+            /*TAG_GA |*/
+            /*TAG_CP |*/
+            TAG_CTAP|
+            /*TAG_U2F|*/
+            /*TAG_PARSE |*/
+            TAG_TIME
+            /*TAG_DUMP|*/
+            /*TAG_GREEN|*/
+            /*TAG_RED|*/
+            /*TAG_ERR*/
             );
 
     printf("init device\n");
@@ -55,7 +56,7 @@ int main(int argc, char * argv[])
 
         if (usbhid_recv(hidmsg) > 0)
         {
-            printf("%d>> ",count++); dump_hex(hidmsg,sizeof(hidmsg));
+            printf1(TAG_DUMP,"%d>> ",count++); dump_hex1(TAG_DUMP, hidmsg,sizeof(hidmsg));
 
             ctaphid_handle_packet(hidmsg);
             memset(hidmsg, 0, sizeof(hidmsg));

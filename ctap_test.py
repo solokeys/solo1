@@ -3,7 +3,7 @@
 from __future__ import print_function, absolute_import, unicode_literals
 
 from fido2.hid import CtapHidDevice, CTAPHID
-from fido2.client import Fido2Client
+from fido2.client import Fido2Client, ClientError
 from fido2.ctap import CtapError
 from fido2.ctap1 import CTAP1
 from fido2.ctap2 import *
@@ -355,6 +355,33 @@ class Tester():
     def test_u2f(self,):
         pass
 
+    def test_fido2_simple(self):
+        creds = []
+        exclude_list = []
+        rp = {'id': 'examplo.org', 'name': 'ExaRP'}
+        user = {'id': b'usee_od', 'name': 'AB User'}
+        challenge = 'Y2hhbGxlbmdl'
+        PIN = None
+
+        fake_id1 = array.array('B',[randint(0,255) for i in range(0,150)]).tostring()
+        fake_id2 = array.array('B',[randint(0,255) for i in range(0,73)]).tostring()
+
+        exclude_list.append({'id': fake_id1, 'type': 'public-key'})
+        exclude_list.append({'id': fake_id2, 'type': 'public-key'})
+
+        attest, data = self.client.make_credential(rp, user, challenge, pin = PIN, exclude_list = [])
+        attest.verify(data.hash)
+
+        cred = attest.auth_data.credential_data
+        creds.append(cred)
+
+        allow_list = [{'id':creds[0].credential_id, 'type': 'public-key'}]
+        assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
+        assertions[0].verify(client_data.hash, creds[0].public_key)
+
+        print('PASS')
+
+
     def test_fido2(self):
         def test(self,pincode=None):
             creds = []
@@ -414,6 +441,8 @@ class Tester():
                     assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN + ' ')
                 except CtapError as e:
                     assert(e.code == CtapError.ERR.PIN_INVALID)
+                except ClientError as e:
+                    assert(e.cause.code == CtapError.ERR.PIN_INVALID)
                 print('PASS')
 
             print('get multiple assertions')
@@ -474,7 +503,8 @@ if __name__ == '__main__':
     t = Tester()
     t.find_device()
     #t.test_hid()
-    t.test_fido2()
+    #t.test_fido2()
+    t.test_fido2_simple()
 
 
 

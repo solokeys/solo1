@@ -21,6 +21,7 @@ typedef enum
     TAG_DUMP = (1 << 7),
     TAG_GREEN = (1 << 8),
     TAG_RED= (1 << 9),
+    TAG_TIME= (1 << 10),
 
     TAG_FILENO = (1<<31)
 } LOG_TAG;

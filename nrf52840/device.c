@@ -187,7 +187,8 @@ void usbhid_send(uint8_t * msg)
     static nrf_drv_usbd_transfer_t transfer;
     transfer.p_data.tx = msg;
     transfer.size = 64;
-
+    while (nrf_drv_usbd_ep_is_busy(NRF_DRV_USBD_EPIN1))
+        ;
     nrf_drv_usbd_ep_transfer(
             NRF_DRV_USBD_EPIN1,
             &transfer);
@@ -214,7 +215,7 @@ void heartbeat()
 
 void ctaphid_write_block(uint8_t * data)
 {
-    printf("<< "); dump_hex(data, 64);
+    printf1(TAG_DUMP,"<< "); dump_hex1(TAG_DUMP,data, 64);
     usbhid_send(data);
 }
 
