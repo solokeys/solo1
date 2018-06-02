@@ -1,8 +1,8 @@
-#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "device.h"
 #include "ctaphid.h"
 #include "ctap.h"
 #include "u2f.h"
@@ -159,11 +159,6 @@ static int is_cont_pkt(CTAPHID_PACKET * pkt)
 }
 
 
-static int is_timed_out()
-{
-    return (millis() - active_cid_timestamp > 500);
-}
-
 static int buffer_packet(CTAPHID_PACKET * pkt)
 {
     if (pkt->pkt.init.cmd & TYPE_INIT)
@@ -301,7 +296,6 @@ static void ctaphid_write(CTAPHID_WRITE_BUFFER * wb, void * _data, int len)
 
 static void ctaphid_send_error(uint32_t cid, uint8_t error)
 {
-    uint8_t buf[HID_MESSAGE_SIZE];
     CTAPHID_WRITE_BUFFER wb;
     ctaphid_write_buffer_init(&wb);
 
@@ -335,7 +329,7 @@ static void send_init_response(uint32_t oldcid, uint32_t newcid, uint8_t * nonce
 }
 
 
-void u2f_hid_check_timeouts()
+void ctaphid_check_timeouts()
 {
     uint8_t i;
     for(i = 0; i < CID_MAX; i++)
@@ -412,6 +406,8 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
             return;
         }
         send_init_response(oldcid, newcid, pkt->pkt.init.payload);
+        cid_del(newcid);
+
         return;
     }
     else
@@ -538,7 +534,7 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
                     }
 
                     ctap_response_init(&ctap_resp);
-                    status = ctap_handle_packet(ctap_buffer, buffer_len(), &ctap_resp);
+                    status = ctap_request(ctap_buffer, buffer_len(), &ctap_resp);
 
                     ctaphid_write_buffer_init(&wb);
                     wb.cid = active_cid;

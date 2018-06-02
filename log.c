@@ -29,6 +29,12 @@ struct logtag tagtable[] = {
     {TAG_RED,"\x1b[31mDEBUG\x1b[0m"},
 };
 
+
+__attribute__((weak)) void set_logging_tag(uint32_t tag)
+{
+    // nothing
+}
+
 void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...)
 {
     int i;
@@ -51,6 +57,7 @@ void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...)
         printf("INVALID LOG TAG\n");
         exit(1);
     }
+    set_logging_tag(tag);
 #ifdef ENABLE_FILE_LOGGING
     if (tag & TAG_FILENO)
     {

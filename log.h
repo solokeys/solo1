@@ -7,6 +7,7 @@
 void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...);
 void LOG_HEX(uint32_t tag, uint8_t * data, int length);
 void set_logging_mask(uint32_t mask);
+void set_logging_tag(uint32_t tag);
 
 typedef enum
 {

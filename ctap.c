@@ -1068,7 +1068,7 @@ void ctap_response_init(CTAP_RESPONSE * resp)
 }
 
 
-uint8_t ctap_handle_packet(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
+uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
 {
     CborEncoder encoder;
     uint8_t status = 0;

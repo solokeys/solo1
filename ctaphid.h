@@ -1,7 +1,7 @@
 #ifndef _CTAPHID_H_H
 #define _CTAPHID_H_H
 
-#include "usbhid.h"
+#include "device.h"
 #include "ctap_errors.h"
 
 #define TYPE_INIT               0x80
@@ -72,7 +72,7 @@ void ctaphid_init();
 
 void ctaphid_handle_packet(uint8_t * pkt_raw);
 
-void u2f_hid_check_timeouts();
+void ctaphid_check_timeouts();
 
 
 #define ctaphid_packet_len(pkt)     ((uint16_t)((pkt)->pkt.init.bcnth << 8) | ((pkt)->pkt.init.bcntl))

@@ -52,12 +52,13 @@
 #include "nrf_log_default_backends.h"
 #include "app_timer.h"
 #include "app_error.h"
+#include "app_fifo.h"
 #include "bsp.h"
 #include "bsp_cli.h"
 #include "nrf_cli.h"
 
-#include "SEGGER_RTT.h"
-#define printf(fmt,...)  SEGGER_RTT_printf(0, fmt, ##__VA_ARGS__);
+#include "util.h"
+#include "usb.h"
 
 #define BTN_DATA_SEND               0
 #define BTN_DATA_KEY_RELEASE        (bsp_event_t)(BSP_EVENT_KEY_LAST + 1)
@@ -805,20 +806,12 @@ static void usbd_setup_SetProtocol(
 
 /** @} */ /* End of processing setup requests functions */
 
-void dump_hex(uint8_t * buf, int size)
-{
-    while(size--)
-    {
-        printf("%02x ", *buf++);
-    }
-    printf("\n");
-}
-
 
 
 static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
 {
     static uint8_t buf[64];
+    uint32_t size;
     nrf_drv_usbd_transfer_t transfer;
     memset(&transfer, 0, sizeof(nrf_drv_usbd_transfer_t));
 
@@ -861,7 +854,14 @@ static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
             {
                 case NRF_USBD_EP_OK:
                     /*printf("NRF_USBD_EP_OK\n");*/
-                    printf(">> ");dump_hex(buf,64);
+                    /*printf(">> "); dump_hex(buf,64);*/
+                    size = 64;
+                    app_fifo_write(&USBHID_RECV_FIFO, buf, &size);
+                    if (size != 64)
+                    {
+                        printf("Error, USB FIFO is full\n");
+                        APP_ERROR_CHECK(NRF_ERROR_NO_MEM);
+                    }
                     break;
                 case NRF_USBD_EP_WAITING:
                     /*printf("NRF_USBD_EP_WAITING\n");*/
@@ -1035,54 +1035,6 @@ static void power_usb_event_handler(nrf_drv_power_usb_evt_t event)
         break;
     default:
         ASSERT(false);
-    }
-}
-
-
-void log_resetreason(void)
-{
-    /* Reset reason */
-    uint32_t rr = nrf_power_resetreas_get();
-    printf("Reset reasons:\n");
-    if (0 == rr)
-    {
-        printf("- NONE\n");
-    }
-    if (0 != (rr & NRF_POWER_RESETREAS_RESETPIN_MASK))
-    {
-        printf("- RESETPIN\n");
-    }
-    if (0 != (rr & NRF_POWER_RESETREAS_DOG_MASK     ))
-    {
-        printf("- DOG\n");
-    }
-    if (0 != (rr & NRF_POWER_RESETREAS_SREQ_MASK    ))
-    {
-        printf("- SREQ\n");
-    }
-    if (0 != (rr & NRF_POWER_RESETREAS_LOCKUP_MASK  ))
-    {
-        printf("- LOCKUP\n");
-    }
-    if (0 != (rr & NRF_POWER_RESETREAS_OFF_MASK     ))
-    {
-        printf("- OFF\n");
-    }
-    if (0 != (rr & NRF_POWER_RESETREAS_LPCOMP_MASK  ))
-    {
-        printf("- LPCOMP\n");
-    }
-    if (0 != (rr & NRF_POWER_RESETREAS_DIF_MASK     ))
-    {
-        printf("- DIF\n");
-    }
-    if (0 != (rr & NRF_POWER_RESETREAS_NFC_MASK     ))
-    {
-        printf("- NFC\n");
-    }
-    if (0 != (rr & NRF_POWER_RESETREAS_VBUS_MASK    ))
-    {
-        printf("- VBUS\n");
     }
 }
 

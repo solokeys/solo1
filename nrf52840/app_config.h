@@ -37,6 +37,9 @@
 
 #ifndef SEGGER_RTT_CONFIG_DEFAULT_MODE
 #define SEGGER_RTT_CONFIG_DEFAULT_MODE 2
+
+#define APP_FIFO_ENABLED            1
+
 #endif
 
 

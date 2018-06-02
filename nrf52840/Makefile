@@ -11,8 +11,14 @@ $(OUTPUT_DIRECTORY)/nrf52840_xxaa.out: \
 # Source files common to all targets
 SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
-  $(PROJ_DIR)/main.c \
+  $(PROJ_DIR)/../main.c \
   $(PROJ_DIR)/usb.c \
+  $(PROJ_DIR)/retarget.c \
+  $(PROJ_DIR)/device.c \
+  $(PROJ_DIR)/../util.c \
+  $(PROJ_DIR)/../log.c \
+  $(PROJ_DIR)/../stubs.c \
+  $(PROJ_DIR)/../ctaphid.c \
   $(SDK_ROOT)/components/boards/boards.c \
   $(SDK_ROOT)/components/libraries/util/app_error.c \
   $(SDK_ROOT)/components/libraries/util/app_error_handler_gcc.c \
@@ -82,6 +88,8 @@ INC_FOLDERS += \
   $(SDK_ROOT)/modules/nrfx \
   $(SDK_ROOT)/external/segger_rtt \
   $(PROJ_DIR) \
+  $(PROJ_DIR)/.. \
+  $(PROJ_DIR)/../tinycbor/src \
   $(SDK_ROOT)/components/libraries/util \
   $(SDK_ROOT)/integration/nrfx/legacy \
   $(SDK_ROOT)/modules/nrfx/drivers/include \
@@ -138,13 +146,16 @@ OPT = -O3 -g3
 # C flags common to all targets
 CFLAGS += $(OPT)
 CFLAGS += -DBOARD_PCA10056
+CFLAGS += -DNRF52
 #CFLAGS += -DBSP_DEFINES_ONLY
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DFLOAT_ABI_HARD
 CFLAGS += -DNRF52840_XXAA
+#CFLAGS += -DSTUB_CTAPHID
+CFLAGS += -DSTUB_CTAP
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall
+CFLAGS += -Wall -Wno-format
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # keep every function in a separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing

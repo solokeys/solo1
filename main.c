@@ -3,25 +3,21 @@
 #include <stdint.h>
 
 #include "cbor.h"
-#include "usbhid.h"
+#include "device.h"
 #include "ctaphid.h"
 #include "util.h"
 #include "log.h"
 #include "ctap.h"
 
 
-static void check_ret(CborError ret)
-{
-    if (ret != CborNoError)
-    {
-        printf("CborError: %d\n", ret);
-        exit(1);
-    }
-}
-
 #ifndef TEST
+
 int main(int argc, char * argv[])
 {
+    int count = 0, beat = 0;
+    uint64_t t1 = 0;
+    uint8_t hidmsg[64];
+
     set_logging_mask(
             TAG_MC |
             TAG_GA |
@@ -35,21 +31,28 @@ int main(int argc, char * argv[])
             TAG_ERR
             );
 
-    printf("init usbhid\n");
-    usbhid_init();
+    printf("init device\n");
+    device_init();
+
     printf("init ctaphid\n");
     ctaphid_init();
+
     printf("init ctap\n");
     ctap_init();
 
-    int count = 0;
-    uint8_t hidmsg[64];
     memset(hidmsg,0,sizeof(hidmsg));
 
     printf("recv'ing hid msg \n");
 
     while(1)
     {
+        if (millis() - t1 > 100)
+        {
+            /*printf("heartbeat %ld\n", beat++);*/
+            heartbeat();
+            t1 = millis();
+        }
+
         if (usbhid_recv(hidmsg) > 0)
         {
             printf("%d>> ",count++); dump_hex(hidmsg,sizeof(hidmsg));
@@ -57,12 +60,17 @@ int main(int argc, char * argv[])
             ctaphid_handle_packet(hidmsg);
             memset(hidmsg, 0, sizeof(hidmsg));
         }
-        u2f_hid_check_timeouts();
+        else
+        {
+            main_loop_delay();
+        }
+        ctaphid_check_timeouts();
     }
 
-
+    // Should never get here
     usbhid_close();
     printf("done\n");
     return 0;
 }
+
 #endif
