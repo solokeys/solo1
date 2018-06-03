@@ -1,7 +1,7 @@
 /*
  * Device specific functionality here
  * */
-
+#define DEBUG
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>

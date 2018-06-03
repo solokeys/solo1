@@ -16,20 +16,22 @@ int main(int argc, char * argv[])
 {
     int count = 0;
     uint64_t t1 = 0;
+    uint64_t t2 = 0;
+    uint64_t accum = 0;
     uint8_t hidmsg[64];
 
     set_logging_mask(
             /*TAG_MC |*/
             /*TAG_GA |*/
             /*TAG_CP |*/
-            TAG_CTAP|
+            /*TAG_CTAP|*/
             /*TAG_U2F|*/
             /*TAG_PARSE |*/
-            TAG_TIME
+            /*TAG_TIME|*/
             /*TAG_DUMP|*/
             /*TAG_GREEN|*/
             /*TAG_RED|*/
-            /*TAG_ERR*/
+            TAG_ERR
             );
 
     printf("init device\n");
@@ -57,13 +59,15 @@ int main(int argc, char * argv[])
         if (usbhid_recv(hidmsg) > 0)
         {
             printf1(TAG_DUMP,"%d>> ",count++); dump_hex1(TAG_DUMP, hidmsg,sizeof(hidmsg));
-
+            t2 = millis();
             ctaphid_handle_packet(hidmsg);
+            accum += millis() - t2;
+            printf1(TAG_TIME,"accum: %lu\n", (uint32_t)accum);
             memset(hidmsg, 0, sizeof(hidmsg));
         }
         else
         {
-            main_loop_delay();
+            /*main_loop_delay();*/
         }
         ctaphid_check_timeouts();
     }

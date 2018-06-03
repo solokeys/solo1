@@ -25,6 +25,7 @@ struct logtag tagtable[] = {
     {TAG_CTAP,"CTAP"},
     {TAG_U2F,"U2F"},
     {TAG_DUMP,"DUMP"},
+    {TAG_HID,"HID"},
     {TAG_GREEN,"\x1b[32mDEBUG\x1b[0m"},
     {TAG_RED,"\x1b[31mDEBUG\x1b[0m"},
     {TAG_TIME,"\x1b[33mTIME\x1b[0m"},

@@ -33,7 +33,10 @@ const uint16_t attestation_key_size;
 
 
 
-static SHA256_CTX sha256_ctx;
+/*static SHA256_CTX sha256_ctx;*/
+
+struct CRYS_HASHUserContext_t sha256_ctx;
+
 const CRYS_ECPKI_Domain_t* _es256_curve;
 CRYS_RND_State_t     rndState_ptr;
 CRYS_RND_WorkBuff_t  rndWorkBuff_ptr;
@@ -54,7 +57,13 @@ static uint8_t transport_secret[32] = "\x10\x01\x22\x33\x44\x55\x66\x77\x87\x90\
 
 void crypto_sha256_init()
 {
-    sha256_init(&sha256_ctx);
+    /*sha256_init(&sha256_ctx);*/
+    int ret = CRYS_HASH_Init(&sha256_ctx, CRYS_HASH_SHA256_mode);
+    if (ret != CRYS_OK )
+    {
+        printf("sha init fail\n");
+        exit(1);
+    }
 }
 
 void crypto_reset_master_secret()
@@ -65,18 +74,40 @@ void crypto_reset_master_secret()
 
 void crypto_sha256_update(uint8_t * data, size_t len)
 {
-    sha256_update(&sha256_ctx, data, len);
+    /*sha256_update(&sha256_ctx, data, len);*/
+    int ret = CRYS_HASH_Update(&sha256_ctx, data, len);
+    if (ret != CRYS_OK )
+    {
+        printf("sha update fail\n");
+        exit(1);
+    }
+
 }
 
 void crypto_sha256_update_secret()
 {
-    sha256_update(&sha256_ctx, master_secret, 32);
+    /*sha256_update(&sha256_ctx, master_secret, 32);*/
+    int ret = CRYS_HASH_Update(&sha256_ctx, master_secret, 32);
+    if (ret != CRYS_OK )
+    {
+        printf("sha update secret fail\n");
+        exit(1);
+    }
 }
 
 void crypto_sha256_final(uint8_t * hash)
 {
-    sha256_final(&sha256_ctx, hash);
+    /*sha256_final(&sha256_ctx, hash);*/
+    int ret = CRYS_HASH_Finish(&sha256_ctx, (uint32_t*)hash);
+    if (ret != CRYS_OK )
+    {
+        printf("sha finish fail\n");
+        exit(1);
+    }
+
+
 }
+
 
 void crypto_sha256_hmac_init(uint8_t * key, uint32_t klen, uint8_t * hmac)
 {
@@ -148,40 +179,40 @@ void crypto_ecc256_init()
     ret = SaSi_LibInit();
     if (ret != SA_SILIB_RET_OK) {
         printf("Failed SaSi_LibInit - ret = 0x%x\n", ret);
-        switch(ret)
-        {
-            case SA_SILIB_RET_OK:
-                printf("SA_SILIB_RET_OK\n");
-                break;
+        /*switch(ret)*/
+        /*{*/
+            /*case SA_SILIB_RET_OK:*/
+                /*printf("SA_SILIB_RET_OK\n");*/
+                /*break;*/
 
-            case SA_SILIB_RET_EINVAL_CTX_PTR:
-                printf("SA_SILIB_RET_EINVAL_CTX_PTR\n");
-                break;
+            /*case SA_SILIB_RET_EINVAL_CTX_PTR:*/
+                /*printf("SA_SILIB_RET_EINVAL_CTX_PTR\n");*/
+                /*break;*/
 
-            case SA_SILIB_RET_EINVAL_WORK_BUF_PTR:
-                printf("SA_SILIB_RET_EINVAL_WORK_BUF_PTR\n");
-                break;
+            /*case SA_SILIB_RET_EINVAL_WORK_BUF_PTR:*/
+                /*printf("SA_SILIB_RET_EINVAL_WORK_BUF_PTR\n");*/
+                /*break;*/
 
-            case SA_SILIB_RET_HAL:
-                printf("SA_SILIB_RET_HAL\n");
-                break;
+            /*case SA_SILIB_RET_HAL:*/
+                /*printf("SA_SILIB_RET_HAL\n");*/
+                /*break;*/
 
-            case SA_SILIB_RET_PAL:
-                printf("SA_SILIB_RET_PAL\n");
-                break;
+            /*case SA_SILIB_RET_PAL:*/
+                /*printf("SA_SILIB_RET_PAL\n");*/
+                /*break;*/
 
-            case SA_SILIB_RET_EINVAL_HW_VERSION :
-                printf("SA_SILIB_RET_EINVAL_HW_VERSION \n");
-                break;
+            /*case SA_SILIB_RET_EINVAL_HW_VERSION :*/
+                /*printf("SA_SILIB_RET_EINVAL_HW_VERSION \n");*/
+                /*break;*/
 
-            case SA_SILIB_RET_EINVAL_HW_SIGNATURE:
-                printf("SA_SILIB_RET_EINVAL_HW_SIGNATURE\n");
-                break;
+            /*case SA_SILIB_RET_EINVAL_HW_SIGNATURE:*/
+                /*printf("SA_SILIB_RET_EINVAL_HW_SIGNATURE\n");*/
+                /*break;*/
 
-            case SA_SILIB_RESERVE32B:
-                printf("SA_SILIB_RESERVE32B\n");
-                break;
-        }
+            /*case SA_SILIB_RESERVE32B:*/
+                /*printf("SA_SILIB_RESERVE32B\n");*/
+                /*break;*/
+        /*}*/
         exit(1);
     }
 
@@ -242,18 +273,20 @@ void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig)
 
 
 /*int uECC_compute_public_key(const uint8_t *private_key, uint8_t *public_key, uECC_Curve curve);*/
+void derive_private_key_pair(uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey, uint8_t * pubkey);
 void crypto_ecc256_derive_public_key(uint8_t * data, int len, uint8_t * x, uint8_t * y)
 {
     uint8_t privkey[32];
     uint8_t pubkey[64];
 
-    generate_private_key(data,len,NULL,0,privkey);
+    derive_private_key_pair(data,len,NULL,0,privkey,pubkey);
 
-    memset(pubkey,0,sizeof(pubkey));
-    uECC_compute_public_key(privkey, pubkey, uECC_secp256r1());
+    /*memset(pubkey,0,sizeof(pubkey));*/
+    /*uECC_compute_public_key(privkey, pubkey, uECC_secp256r1());*/
     memmove(x,pubkey,32);
     memmove(y,pubkey+32,32);
 }
+
 
 void crypto_ecc256_load_key(uint8_t * data, int len, uint8_t * data2, int len2)
 {
@@ -264,11 +297,29 @@ void crypto_ecc256_load_key(uint8_t * data, int len, uint8_t * data2, int len2)
 
 void crypto_ecc256_make_key_pair(uint8_t * pubkey, uint8_t * privkey)
 {
-    if (uECC_make_key(pubkey, privkey, uECC_secp256r1()) != 1)
-    {
-        printf("Error, uECC_make_key failed\n");
+    CRYS_ECPKI_UserPrivKey_t nrfpriv;
+    CRYS_ECPKI_UserPublKey_t nrfpub;
+    CRYS_ECPKI_KG_TempData_t tmp;
+    uint8_t pubkey1[65];
+    int ret;
+    uint32_t sz;
+
+    ret = CRYS_ECPKI_GenKeyPair(&rndState_ptr,
+            CRYS_RND_GenerateVector,
+            _es256_curve,
+            &nrfpriv, &nrfpub, &tmp, NULL);
+
+    if (ret != SA_SILIB_RET_OK){
+        printf(" gen key failed with 0x%x \n",ret);
         exit(1);
     }
+
+    sz = 32;
+    CRYS_ECPKI_ExportPrivKey(&nrfpriv, privkey, &sz);
+    sz = 65;
+    CRYS_ECPKI_ExportPublKey(&nrfpub,CRYS_EC_PointUncompressed, pubkey1, &sz);
+    memmove(pubkey, pubkey1+1, 64);
+
 }
 
 void crypto_ecc256_shared_secret(const uint8_t * pubkey, const uint8_t * privkey, uint8_t * shared_secret)
@@ -281,13 +332,92 @@ void crypto_ecc256_shared_secret(const uint8_t * pubkey, const uint8_t * privkey
 
 }
 
-void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey)
+uint8_t fixed_vector_hmac[32];
+int fixed_vector_iter = 31;
+uint32_t fixed_vector(void * rng, uint16_t sz, uint8_t * out)
 {
+    while(sz--)
+    {
+        *out++ = fixed_vector_hmac[fixed_vector_iter--];
+        if (fixed_vector_iter == -1)
+        {
+            fixed_vector_iter = 31;
+        }
+    }
+    return 0;
+}
+
+void derive_private_key_pair(uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey, uint8_t * pubkey)
+{
+    CRYS_ECPKI_UserPrivKey_t nrfpriv;
+    CRYS_ECPKI_UserPublKey_t nrfpub;
+    CRYS_ECPKI_KG_TempData_t tmp;
+    uint32_t ret;
+    uint32_t sz;
+    int i;
+    uint8_t pubkey1[65];
+
     crypto_sha256_hmac_init(CRYPTO_MASTER_KEY, 0, privkey);
     crypto_sha256_update(data, len);
     crypto_sha256_update(data2, len2);
     crypto_sha256_update(master_secret, 32);
     crypto_sha256_hmac_final(CRYPTO_MASTER_KEY, 0, privkey);
+
+    memmove(fixed_vector_hmac, privkey, 32);
+    fixed_vector_iter=31;
+
+    /*privkey[31] += 1;*/
+    for (i = 31; i > -1; i++)
+    {
+        privkey[i] += 1;
+        if (privkey[i] != 0)
+            break;
+    }
+
+    // There isn't a CC310 function for calculating a public key from a private
+    // so to get around it, we can "fix" the RNG input to GenKeyPair
+
+    if(pubkey != NULL)
+    {
+        ret = CRYS_ECPKI_GenKeyPair(&rndState_ptr,
+                fixed_vector,
+                /*CRYS_RND_GenerateVector,*/
+                _es256_curve,
+                &nrfpriv, &nrfpub, &tmp, NULL);
+
+        if (ret != SA_SILIB_RET_OK){
+            printf(" gen key failed with 0x%x \n",ret);
+            exit(1);
+        }
+
+    /*sz = 32;*/
+    /*ret = CRYS_ECPKI_ExportPrivKey(&nrfpriv, privkey, &sz);*/
+    /*if (ret != 0)*/
+    /*{*/
+        /*printf("privkey export fail\n");*/
+        /*exit(1);*/
+    /*}*/
+
+
+        sz = 65;
+        ret = CRYS_ECPKI_ExportPublKey(&nrfpub,CRYS_EC_PointUncompressed , pubkey1, &sz);
+        if (ret != 0 || sz != 65)
+        {
+            printf("pubkey export fail 0x%04x\n",ret);
+            exit(1);
+        }
+        if (pubkey1[0] != 0x04)
+        {
+            printf("pubkey uncompressed export fail 0x%02x\n",(int)pubkey1[0]);
+            exit(1);
+        }
+        memmove(pubkey, pubkey1+1 , 64);
+    }
+}
+
+void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey)
+{
+    derive_private_key_pair(data,len,data2,len2,privkey,NULL);
 }
 
 struct AES_ctx aes_ctx;

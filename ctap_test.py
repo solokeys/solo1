@@ -369,17 +369,65 @@ class Tester():
         exclude_list.append({'id': fake_id1, 'type': 'public-key'})
         exclude_list.append({'id': fake_id2, 'type': 'public-key'})
 
+        t1 = time.time() * 1000
         attest, data = self.client.make_credential(rp, user, challenge, pin = PIN, exclude_list = [])
+        t2 = time.time() * 1000
         attest.verify(data.hash)
+        print('Register valid (%d ms)' % (t2-t1))
 
         cred = attest.auth_data.credential_data
         creds.append(cred)
 
         allow_list = [{'id':creds[0].credential_id, 'type': 'public-key'}]
+        t1 = time.time() * 1000
         assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
+        t2 = time.time() * 1000
         assertions[0].verify(client_data.hash, creds[0].public_key)
 
-        print('PASS')
+        print('Assertion valid (%d ms)' % (t2-t1))
+
+    def test_fido2_brute_force(self):
+        creds = []
+        exclude_list = []
+        rp = {'id': 'examplo.org', 'name': 'ExaRP'}
+        user = {'id': b'usee_od', 'name': 'AB User'}
+        PIN = None
+        abc = 'abcdefghijklnmopqrstuvwxyz'
+        abc += abc.upper()
+
+        self.ctap.reset()
+
+        for i in range(0,2048):
+            creds = []
+
+            print(i)
+            challenge = ''.join([abc[randint(0,len(abc)-1)] for x in range(0,32)])
+
+            fake_id1 = array.array('B',[randint(0,255) for i in range(0,150)]).tostring()
+            fake_id2 = array.array('B',[randint(0,255) for i in range(0,73)]).tostring()
+
+            exclude_list.append({'id': fake_id1, 'type': 'public-key'})
+            exclude_list.append({'id': fake_id2, 'type': 'public-key'})
+
+            t1 = time.time() * 1000
+            attest, data = self.client.make_credential(rp, user, challenge, pin = PIN, exclude_list = [])
+            t2 = time.time() * 1000
+            attest.verify(data.hash)
+            print('Register valid (%d ms)' % (t2-t1))
+            sys.stdout.flush()
+
+            cred = attest.auth_data.credential_data
+            creds.append(cred)
+
+            allow_list = [{'id':creds[0].credential_id, 'type': 'public-key'}]
+            t1 = time.time() * 1000
+            assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
+            t2 = time.time() * 1000
+            assertions[0].verify(client_data.hash, creds[0].public_key)
+
+            print('Assertion valid (%d ms)' % (t2-t1))
+            sys.stdout.flush()
+
 
 
     def test_fido2(self):
@@ -504,7 +552,8 @@ if __name__ == '__main__':
     t.find_device()
     #t.test_hid()
     #t.test_fido2()
-    t.test_fido2_simple()
+    #t.test_fido2_simple()
+    t.test_fido2_brute_force()
 
 
 
