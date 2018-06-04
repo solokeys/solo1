@@ -22,6 +22,7 @@ SRC_FILES += \
   $(PROJ_DIR)/../ctap.c \
   $(PROJ_DIR)/../ctap_parse.c \
   $(PROJ_DIR)/../u2f.c \
+  $(PROJ_DIR)/../test_power.c \
   \
   $(PROJ_DIR)/crypto.c \
   $(PROJ_DIR)/../crypto/sha256.c \
@@ -214,7 +215,7 @@ CFLAGS += -DNRF52840_XXAA
 #CFLAGS += -DSTUB_CTAPHID
 #CFLAGS += -DSTUB_CTAP
 CFLAGS += -DuECC_PLATFORM=5
-CFLAGS += -DTEST_POWER
+#CFLAGS += -DTEST_POWER -DTEST
 CFLAGS += -std=gnu11
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
