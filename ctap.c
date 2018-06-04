@@ -1196,6 +1196,7 @@ done:
     }
 
     printf1(TAG_CTAP,"cbor output structure: %d bytes\n", resp->length);
+
     return status;
 }
 

@@ -58,6 +58,7 @@
 #include "nrf_cli.h"
 
 #include "util.h"
+#include "log.h"
 #include "usb.h"
 
 #define BTN_DATA_SEND               0
@@ -448,7 +449,7 @@ static void respond_setup_data(
     ret = nrf_drv_usbd_ep_transfer(NRF_DRV_USBD_EPIN0, &transfer);
     if (ret != NRF_SUCCESS)
     {
-        printf("Transfer starting failed: %lu", (uint32_t)ret);
+        printf1(TAG_USB,"Transfer starting failed: %lu", (uint32_t)ret);
     }
     ASSERT(ret == NRF_SUCCESS);
     UNUSED_VARIABLE(ret);
@@ -538,7 +539,7 @@ static void usbd_setup_GetStatus(nrf_drv_usbd_setup_t const * const p_setup)
     default:
         break; // Just go to stall
     }
-    printf("Unknown status: 0x%2x", p_setup->bmRequestType);
+    printf1(TAG_USB,"Unknown status: 0x%2x", p_setup->bmRequestType);
     nrf_drv_usbd_setup_stall();
 }
 
@@ -568,7 +569,7 @@ static void usbd_setup_ClearFeature(nrf_drv_usbd_setup_t const * const p_setup)
             }
         }
     }
-    printf("Unknown feature to clear");
+    printf1(TAG_USB,"Unknown feature to clear");
     nrf_drv_usbd_setup_stall();
 }
 
@@ -598,7 +599,7 @@ static void usbd_setup_SetFeature(nrf_drv_usbd_setup_t const * const p_setup)
             }
         }
     }
-    printf("Unknown feature to set");
+    printf1(TAG_USB, "Unknown feature to set");
     nrf_drv_usbd_setup_stall();
 }
 
@@ -673,7 +674,7 @@ static void usbd_setup_GetDescriptor(nrf_drv_usbd_setup_t const * const p_setup)
         if ((p_setup->bmRequestType) == 0x80)
         {
             // Which endpoint?
-            printf("endpoint descriptor: %d\n", ((p_setup->wValue) & 0xFF));
+            printf1(TAG_USB,"endpoint descriptor: %d\n", ((p_setup->wValue) & 0xFF));
             if (((p_setup->wValue) & 0xFF) == 1)
             {
                 respond_setup_data(
@@ -725,7 +726,7 @@ static void usbd_setup_GetDescriptor(nrf_drv_usbd_setup_t const * const p_setup)
         break; // Not supported - go to stall
     }
 
-    printf("Unknown : 0x%02x, type: 0x%02x or value: 0x%02x\n",
+    printf1(TAG_USB,"Unknown : 0x%02x, type: 0x%02x or value: 0x%02x\n",
         p_setup->wValue >> 8,
         p_setup->bmRequestType,
         p_setup->wValue & 0xFF);
@@ -765,7 +766,7 @@ static void usbd_setup_SetConfig(nrf_drv_usbd_setup_t const * const p_setup)
             }
         }
     }
-    printf("Wrong configuration: Index: 0x%2x, Value: 0x%2x.",
+    printf1(TAG_USB,"Wrong configuration: Index: 0x%2x, Value: 0x%2x.",
         p_setup->wIndex,
         p_setup->wValue);
     nrf_drv_usbd_setup_stall();
@@ -779,7 +780,7 @@ static void usbd_setup_SetIdle(nrf_drv_usbd_setup_t const * const p_setup)
         nrf_drv_usbd_setup_clear();
         return;
     }
-    printf("Set Idle wrong type: 0x%2x.", p_setup->bmRequestType);
+    printf1(TAG_USB,"Set Idle wrong type: 0x%2x.", p_setup->bmRequestType);
     nrf_drv_usbd_setup_stall();
 }
 
@@ -787,7 +788,7 @@ static void usbd_setup_SetInterface(
     nrf_drv_usbd_setup_t const * const p_setup)
 {
     //no alternate setting is supported - STALL always
-    printf("No alternate interfaces supported.");
+    printf1(TAG_USB,"No alternate interfaces supported.");
     nrf_drv_usbd_setup_stall();
 }
 
@@ -800,7 +801,7 @@ static void usbd_setup_SetProtocol(
         nrf_drv_usbd_setup_clear();
         return;
     }
-    printf("Set Protocol wrong type: 0x%2x.", p_setup->bmRequestType);
+    printf1(TAG_USB,"Set Protocol wrong type: 0x%2x.", p_setup->bmRequestType);
     nrf_drv_usbd_setup_stall();
 }
 
@@ -818,15 +819,15 @@ static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
     switch (p_event->type)
     {
     case NRF_DRV_USBD_EVT_SUSPEND:
-        printf("SUSPEND state detected\n");
+        printf1(TAG_USB,"SUSPEND state detected\n");
         m_usbd_suspend_state_req = true;
         break;
     case NRF_DRV_USBD_EVT_RESUME:
-        printf("RESUMING from suspend\n");
+        printf1(TAG_USB,"RESUMING from suspend\n");
         m_usbd_suspend_state_req = false;
         break;
     case NRF_DRV_USBD_EVT_WUREQ:
-        printf("RemoteWU initiated\n");
+        printf1(TAG_USB,"RemoteWU initiated\n");
         m_usbd_suspend_state_req = false;
         break;
     case NRF_DRV_USBD_EVT_RESET:
@@ -859,7 +860,7 @@ static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
                     app_fifo_write(&USBHID_RECV_FIFO, buf, &size);
                     if (size != 64)
                     {
-                        printf("Error, USB FIFO is full\n");
+                        printf2(TAG_ERR,"Error, USB FIFO is full\n");
                         APP_ERROR_CHECK(NRF_ERROR_NO_MEM);
                     }
                     break;
@@ -869,16 +870,16 @@ static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
                     transfer.size = nrf_drv_usbd_epout_size_get(NRF_DRV_USBD_EPOUT1);;
                     if (transfer.size > 64)
                     {
-                        printf("Error, invalid transfer size\n");
+                        printf2(TAG_ERR,"Error, invalid transfer size\n");
                         return;
                     }
                     nrf_drv_usbd_ep_transfer(NRF_DRV_USBD_EPOUT1, &transfer);
                     break;
                 case NRF_USBD_EP_OVERLOAD:
-                    printf("NRF_USBD_EP_OVERLOAD\n");
+                    printf1(TAG_ERR,"NRF_USBD_EP_OVERLOAD\n");
                     break;
                 case NRF_USBD_EP_ABORTED:
-                    printf("NRF_USBD_EP_ABORTED\n");
+                    printf1(TAG_ERR,"NRF_USBD_EP_ABORTED\n");
                     break;
                 default:
                     break;
@@ -898,11 +899,11 @@ static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
             else if (NRF_USBD_EP_ABORTED == p_event->data.eptransfer.status)
             {
                 /* Just ignore */
-                printf("Transfer aborted event on EPIN0\n");
+                printf1(TAG_USB,"Transfer aborted event on EPIN0\n");
             }
             else
             {
-                printf("Transfer failed on EPIN0: %d", p_event->data.eptransfer.status);
+                printf1(TAG_USB,"Transfer failed on EPIN0: %d", p_event->data.eptransfer.status);
                 nrf_drv_usbd_setup_stall();
             }
         }
@@ -923,11 +924,11 @@ static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
             else if (NRF_USBD_EP_ABORTED == p_event->data.eptransfer.status)
             {
                 /* Just ignore */
-                printf("Transfer aborted event on EPOUT0\n");
+                printf1(TAG_USB,"Transfer aborted event on EPOUT0\n");
             }
             else
             {
-                printf("Transfer failed on EPOUT0: %d", p_event->data.eptransfer.status);
+                printf1(TAG_USB,"Transfer failed on EPOUT0: %d", p_event->data.eptransfer.status);
                 nrf_drv_usbd_setup_stall();
             }
         }
@@ -979,19 +980,19 @@ static void usbd_event_handler(nrf_drv_usbd_evt_t const * const p_event)
                 }
                 else
                 {
-                    printf("Command 0xB. Unknown request: 0x%2x", setup.bmRequestType);
+                    printf1(TAG_USB,"Command 0xB. Unknown request: 0x%2x", setup.bmRequestType);
                     nrf_drv_usbd_setup_stall();
                 }
                 break;
             default:
-                printf("Unknown request: 0x%2x", setup.bmRequest);
+                printf1(TAG_USB,"Unknown request: 0x%2x", setup.bmRequest);
                 nrf_drv_usbd_setup_stall();
                 return;
             }
             break;
         }
     default:
-        printf("unknown usb event\n");
+        printf1(TAG_USB,"unknown usb event\n");
         break;
     }
 }
@@ -1003,14 +1004,14 @@ static void power_usb_event_handler(nrf_drv_power_usb_evt_t event)
     switch (event)
     {
     case NRF_DRV_POWER_USB_EVT_DETECTED:
-        printf("USB power detected\n");
+        printf1(TAG_USB,"USB power detected\n");
         if (!nrf_drv_usbd_is_enabled())
         {
             nrf_drv_usbd_enable();
         }
         break;
     case NRF_DRV_POWER_USB_EVT_REMOVED:
-        printf("USB power removed\n");
+        printf1(TAG_USB,"USB power removed\n");
         m_usbd_configured = false;
         m_send_mouse_position = false;
         if (nrf_drv_usbd_is_started())
@@ -1026,7 +1027,7 @@ static void power_usb_event_handler(nrf_drv_power_usb_evt_t event)
         bsp_board_led_off(LED_USB_POWER);
         break;
     case NRF_DRV_POWER_USB_EVT_READY:
-        printf("USB ready\n");
+        printf1(TAG_USB,"USB ready\n");
         bsp_board_led_on(LED_USB_POWER);
         if (!nrf_drv_usbd_is_started())
         {

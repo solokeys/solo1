@@ -13,6 +13,8 @@ void set_logging_tag(uint32_t tag)
         term++;
         tag = tag >> 1;
     }
+
+    _SEGGER_TERM = term;
 }
 
 #if defined(__CC_ARM)
@@ -44,12 +46,23 @@ int __putchar(int ch, FILE * p_file)
 int _write(int file, const char * p_char, int len)
 {
     int i;
+    static int lastterm = -1;
+    /*char buf[2];*/
+    /*buf[1] = 0;*/
 
     UNUSED_PARAMETER(file);
 
+    if (_SEGGER_TERM != lastterm)
+    {
+        SEGGER_RTT_SetTerminal(_SEGGER_TERM);
+        lastterm = _SEGGER_TERM;
+    }
+
     for (i = 0; i < len; i++)
     {
-        SEGGER_RTT_PutChar(_SEGGER_TERM, *p_char++);
+        /*buf[0] = *p_char++;*/
+        SEGGER_RTT_PutChar(0, *p_char++);
+        /*SEGGER_RTT_TerminalOut(_SEGGER_TERM, buf);*/
     }
 
     return len;
@@ -58,11 +71,6 @@ int _write(int file, const char * p_char, int len)
 int _read(int file, char * p_char, int len)
 {
     *p_char = '0';
-    /*UNUSED_PARAMETER(file);*/
-    /*while (app_uart_get((uint8_t *)p_char) == NRF_ERROR_NOT_FOUND)*/
-    /*{*/
-        /*// No implementation needed.*/
-    /*}*/
     return 1;
 }
 

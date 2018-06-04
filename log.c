@@ -17,6 +17,7 @@ struct logtag
 };
 
 struct logtag tagtable[] = {
+    {TAG_GEN,""},
     {TAG_MC,"MC"},
     {TAG_GA,"GA"},
     {TAG_CP,"CP"},
@@ -26,9 +27,10 @@ struct logtag tagtable[] = {
     {TAG_U2F,"U2F"},
     {TAG_DUMP,"DUMP"},
     {TAG_HID,"HID"},
-    {TAG_GREEN,"\x1b[32mDEBUG\x1b[0m"},
-    {TAG_RED,"\x1b[31mDEBUG\x1b[0m"},
-    {TAG_TIME,"\x1b[33mTIME\x1b[0m"},
+    {TAG_USB,"USB"},
+    {TAG_GREEN,"[1;32mDEBUG[0m"},
+    {TAG_RED,"[1;31mDEBUG[0m"},
+    {TAG_TIME,"[1;33mTIME[0m"},
 };
 
 
@@ -49,14 +51,14 @@ void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...)
     {
         if (tag & tagtable[i].tagn)
         {
-            printf("[%s] ", tagtable[i].tag);
+            if (tagtable[i].tag[0]) printf("[%s] ", tagtable[i].tag);
             i = 0;
             break;
         }
     }
     if (i != 0)
     {
-        printf("INVALID LOG TAG\n");
+        printf2(TAG_ERR,"INVALID LOG TAG\n");
         exit(1);
     }
     set_logging_tag(tag);
@@ -78,5 +80,6 @@ void LOG_HEX(uint32_t tag, uint8_t * data, int length)
     {
         return;
     }
+    set_logging_tag(tag);
     dump_hex(data,length);
 }

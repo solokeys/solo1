@@ -179,40 +179,6 @@ void crypto_ecc256_init()
     ret = SaSi_LibInit();
     if (ret != SA_SILIB_RET_OK) {
         printf("Failed SaSi_LibInit - ret = 0x%x\n", ret);
-        /*switch(ret)*/
-        /*{*/
-            /*case SA_SILIB_RET_OK:*/
-                /*printf("SA_SILIB_RET_OK\n");*/
-                /*break;*/
-
-            /*case SA_SILIB_RET_EINVAL_CTX_PTR:*/
-                /*printf("SA_SILIB_RET_EINVAL_CTX_PTR\n");*/
-                /*break;*/
-
-            /*case SA_SILIB_RET_EINVAL_WORK_BUF_PTR:*/
-                /*printf("SA_SILIB_RET_EINVAL_WORK_BUF_PTR\n");*/
-                /*break;*/
-
-            /*case SA_SILIB_RET_HAL:*/
-                /*printf("SA_SILIB_RET_HAL\n");*/
-                /*break;*/
-
-            /*case SA_SILIB_RET_PAL:*/
-                /*printf("SA_SILIB_RET_PAL\n");*/
-                /*break;*/
-
-            /*case SA_SILIB_RET_EINVAL_HW_VERSION :*/
-                /*printf("SA_SILIB_RET_EINVAL_HW_VERSION \n");*/
-                /*break;*/
-
-            /*case SA_SILIB_RET_EINVAL_HW_SIGNATURE:*/
-                /*printf("SA_SILIB_RET_EINVAL_HW_SIGNATURE\n");*/
-                /*break;*/
-
-            /*case SA_SILIB_RESERVE32B:*/
-                /*printf("SA_SILIB_RESERVE32B\n");*/
-                /*break;*/
-        /*}*/
         exit(1);
     }
 
@@ -223,8 +189,7 @@ void crypto_ecc256_init()
     ret = CRYS_RndInit(&rndState_ptr, &rndWorkBuff_ptr);
     if (ret != SA_SILIB_RET_OK) {
         printf("Failed CRYS_RndInit - ret = 0x%x\n", ret);
-        while(1)
-            ;
+        exit(1);
     }
 
     _es256_curve = CRYS_ECPKI_GetEcDomain(CRYS_ECPKI_DomainID_secp256r1);
@@ -374,7 +339,7 @@ void derive_private_key_pair(uint8_t * data, int len, uint8_t * data2, int len2,
             break;
     }
 
-    // There isn't a CC310 function for calculating a public key from a private
+    // There isn't a CC310 function for calculating a public key from a private,
     // so to get around it, we can "fix" the RNG input to GenKeyPair
 
     if(pubkey != NULL)

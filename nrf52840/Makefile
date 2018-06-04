@@ -76,9 +76,6 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/bsp/bsp.c \
   $(SDK_ROOT)/components/libraries/bsp/bsp_cli.c \
   \
-  $(SDK_ROOT)/components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_init.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_rng.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_rng_mbedtls.c \
   $(SDK_ROOT)/external/cifra_AES128-EAX/blockwise.c \
   $(SDK_ROOT)/external/cifra_AES128-EAX/cifra_cmac.c \
   $(SDK_ROOT)/external/cifra_AES128-EAX/cifra_eax_aes.c \
@@ -88,38 +85,9 @@ SRC_FILES += \
   $(SDK_ROOT)/external/cifra_AES128-EAX/modes.c \
   $(SDK_ROOT)/external/fprintf/nrf_fprintf.c \
   $(SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecc.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecdh.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecdsa.c \
   $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_rng.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_rng.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cifra/cifra_backend_aes_aead.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_aead.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_aes.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_aes_shared.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_ecc.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_ecdh.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_ecdsa.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_error.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_hash.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_hkdf.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_hmac.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_init.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_rng.c \
-  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_shared.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_aes.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_aes_aead.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_chacha_poly_aead.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_ecc.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_ecdh.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_ecdsa.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_hash.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_hmac.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_init.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_mutex.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_rng.c \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310/cc310_backend_shared.c \
 
 
 
@@ -193,8 +161,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/modules/nrfx/hal \
   $(SDK_ROOT)/external/fprintf \
   \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310 \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cifra \
   $(SDK_ROOT)/external/fprintf \
   $(PROJ_DIR) \
   $(SDK_ROOT)/components/libraries/experimental_section_vars \
@@ -209,7 +175,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/mem_manager \
   $(SDK_ROOT)/external/nrf_oberon \
   $(SDK_ROOT)/components/libraries/atomic \
-  $(SDK_ROOT)/components/libraries/crypto/backend/nrf_sw \
   $(SDK_ROOT)/components/libraries/strerror \
   $(SDK_ROOT)/integration/nrfx \
   $(SDK_ROOT)/modules/nrfx/drivers/include \
@@ -218,22 +183,15 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/util \
   $(SDK_ROOT)/modules/nrfx \
   $(SDK_ROOT)/components/drivers_nrf/nrf_soc_nosd \
-  $(SDK_ROOT)/external/micro-ecc/micro-ecc \
   $(SDK_ROOT)/external/segger_rtt \
   $(SDK_ROOT)/modules/nrfx/mdk \
   $(SDK_ROOT)/modules/nrfx/hal \
   $(SDK_ROOT)/components/libraries/mutex \
-  $(SDK_ROOT)/components/libraries/crypto/backend/micro_ecc \
-  $(SDK_ROOT)/components/libraries/crypto/backend/mbedtls \
   $(SDK_ROOT)/components/libraries/queue \
-  $(SDK_ROOT)/components/libraries/crypto/backend/nrf_hw \
   $(SDK_ROOT)/integration/nrfx/legacy \
   $(SDK_ROOT)/external/cifra_AES128-EAX \
-  $(SDK_ROOT)/external/nrf_tls/mbedtls/nrf_crypto/config \
   $(SDK_ROOT)/components/boards \
   $(SDK_ROOT)/external/nrf_cc310/include \
-  $(SDK_ROOT)/components/libraries/crypto/backend/cc310_bl \
-  $(SDK_ROOT)/components/libraries/crypto/backend/oberon \
 
 
 # Libraries common to all targets
@@ -256,6 +214,7 @@ CFLAGS += -DNRF52840_XXAA
 #CFLAGS += -DSTUB_CTAPHID
 #CFLAGS += -DSTUB_CTAP
 CFLAGS += -DuECC_PLATFORM=5
+CFLAGS += -DTEST_POWER
 CFLAGS += -std=gnu11
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs

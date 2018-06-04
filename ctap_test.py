@@ -270,12 +270,12 @@ class Tester():
         print('PASS: Test not cont')
 
         print('Check random cont ignored')
-        self.send_data(CTAPHID.INIT, '\x11\x22\x33\x44\x55\x66\x77\x88')
-        self.send_raw('\x01\x10\x00')
-        try:
-            cmd,r = self.recv_raw()  # timeout response
-        except socket.timeout:
-            pass
+        #self.send_data(CTAPHID.INIT, '\x11\x22\x33\x44\x55\x66\x77\x88')
+        #self.send_raw('\x01\x10\x00')
+        #try:
+            #cmd,r = self.recv_raw()  # timeout response
+        #except socket.timeout:
+            #pass
         print('PASS: random cont')
 
         print('Check busy')
@@ -330,11 +330,12 @@ class Tester():
         print('PASS: busy interleaved')
 
 
-        #print('Test idle')
-        #try:
-            #cmd,resp = self.recv_raw()
-        #except socket.timeout:
-            #print('Pass: Idle')
+        print('Test idle, wait for timeout')
+        sys.stdout.flush()
+        try:
+            cmd,resp = self.recv_raw()
+        except socket.timeout:
+            print('Pass: Idle')
 
         print('Test cid 0 is invalid')
         self.set_cid('\x00\x00\x00\x00')
@@ -397,7 +398,7 @@ class Tester():
 
         self.ctap.reset()
 
-        for i in range(0,2048):
+        for i in range(0,2048**2):
             creds = []
 
             print(i)
@@ -552,8 +553,8 @@ if __name__ == '__main__':
     t.find_device()
     #t.test_hid()
     #t.test_fido2()
-    #t.test_fido2_simple()
-    t.test_fido2_brute_force()
+    t.test_fido2_simple()
+    #t.test_fido2_brute_force()
 
 
 

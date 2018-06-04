@@ -11,18 +11,20 @@ void set_logging_tag(uint32_t tag);
 
 typedef enum
 {
-    TAG_MC = (1 << 0),
-    TAG_GA = (1 << 1),
-    TAG_CP = (1 << 2),
-    TAG_ERR = (1 << 3),
-    TAG_PARSE= (1 << 4),
-    TAG_CTAP = (1 << 5),
-    TAG_U2F = (1 << 6),
-    TAG_DUMP = (1 << 7),
-    TAG_GREEN = (1 << 8),
-    TAG_RED= (1 << 9),
-    TAG_TIME= (1 << 10),
-    TAG_HID = (1 << 11),
+    TAG_GEN = (1 << 0),
+    TAG_MC = (1 << 1),
+    TAG_GA = (1 << 2),
+    TAG_CP = (1 << 3),
+    TAG_ERR = (1 << 4),
+    TAG_PARSE= (1 << 5),
+    TAG_CTAP = (1 << 6),
+    TAG_U2F = (1 << 7),
+    TAG_DUMP = (1 << 8),
+    TAG_GREEN = (1 << 9),
+    TAG_RED= (1 << 10),
+    TAG_TIME= (1 << 11),
+    TAG_HID = (1 << 12),
+    TAG_USB = (1 << 13),
 
     TAG_FILENO = (1<<31)
 } LOG_TAG;

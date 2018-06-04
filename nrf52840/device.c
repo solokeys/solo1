@@ -168,17 +168,21 @@ app_fifo_t USBHID_RECV_FIFO;
 
 void usbhid_init()
 {
+#ifndef TEST_POWER
     app_fifo_init(&USBHID_RECV_FIFO, fifo_buf, sizeof(fifo_buf));
     usb_init();
+#endif
 }
 
 // Receive 64 byte USB HID message, don't block, return size of packet, return 0 if nothing
+#ifndef TEST_POWER
 int usbhid_recv(uint8_t * msg)
 {
     uint32_t size = 64;
     app_fifo_read(&USBHID_RECV_FIFO, msg, &size);
     return size;
 }
+#endif
 
 
 // Send 64 byte USB HID message
@@ -212,12 +216,13 @@ void heartbeat()
     nrf_gpio_pin_toggle(LED_4);
 }
 
-
+#ifndef TEST_POWER
 void ctaphid_write_block(uint8_t * data)
 {
     printf1(TAG_DUMP,"<< "); dump_hex1(TAG_DUMP,data, 64);
     usbhid_send(data);
 }
+#endif
 
 
 int ctap_user_presence_test()
