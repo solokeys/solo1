@@ -64,3 +64,5 @@ _build/
 
 GNU\ *
 Keil\ *
+docs/
+efm32/hw
