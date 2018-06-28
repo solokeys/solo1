@@ -38,8 +38,8 @@ int main(int argc, char * argv[])
             TAG_ERR
             );
 
-    printf1(TAG_GEN,"init device\n");
     device_init();
+    printf1(TAG_GEN,"init device\n");
 
     printf1(TAG_GEN,"init ctaphid\n");
     ctaphid_init();

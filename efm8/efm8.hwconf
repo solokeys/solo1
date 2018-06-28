@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="ASCII"?>
+<device:XMLDevice xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:device="http://www.silabs.com/ss/hwconfig/document/device.ecore" name="EFM8UB10F16G-B-QFN28" partId="mcu.8051.efm8.ub1.efm8ub10f16g-b-qfn28" version="4.0.1" contextId="%DEFAULT%">
+  <mode name="DefaultMode">
+    <property object="CIP51_0" propertyId="ABPeripheral.included" value="true"/>
+    <property object="CIP51_0" propertyId="cip51.prefetchenginecontrol.enableprefetch" value="Enabled"/>
+    <property object="CIP51_0" propertyId="cip51.prefetchenginecontrol.flashreadtiming" value="SYSCLK is below 50 MHz"/>
+    <property object="CLOCK_0" propertyId="ABPeripheral.included" value="true"/>
+    <property object="CLOCK_0" propertyId="clock.clockselect.clocksourcedivider" value="SYSCLK / 1"/>
+    <property object="CLOCK_0" propertyId="clock.clockselect.selectclocksource" value="Internal High Frequency Oscillator 1"/>
+    <property object="CROSSBAR0" propertyId="xbar0.uart1.data" value="Enabled"/>
+    <property object="DefaultMode" propertyId="mode.diagramLocation" value="100, 100"/>
+    <property object="INTERRUPT_0" propertyId="ABPeripheral.included" value="true"/>
+    <property object="INTERRUPT_0" propertyId="interrupt.interruptenable.enableallinterrupts" value="Enabled"/>
+    <property object="P0.0" propertyId="ports.settings.iomode" value="Digital Push-Pull Output"/>
+    <property object="P0.0" propertyId="ports.settings.outputmode" value="Push-pull"/>
+    <property object="PBCFG_0" propertyId="pbcfg.settings.enablecrossbar" value="Enabled"/>
+    <property object="TIMER01_0" propertyId="ABPeripheral.included" value="true"/>
+    <property object="TIMER16_2" propertyId="ABPeripheral.included" value="true"/>
+    <property object="TIMER16_2" propertyId="timer16.control.clocksource" value="SYSCLK"/>
+    <property object="TIMER16_2" propertyId="timer16.control.runcontrol" value="Start"/>
+    <property object="TIMER16_2" propertyId="timer16.control.timerrunningstate" value="Timer is Running"/>
+    <property object="TIMER16_2" propertyId="timer16.initandreloadvalue.targetoverflowfrequency" value="1000"/>
+    <property object="TIMER16_2" propertyId="timer16.initandreloadvalue.timerreloadvalue" value="17536"/>
+    <property object="TIMER16_2" propertyId="timer16.reloadhighbyte.reloadhighbyte" value="68"/>
+    <property object="TIMER16_2" propertyId="timer16.reloadlowbyte.reloadlowbyte" value="128"/>
+    <property object="TIMER16_3" propertyId="ABPeripheral.included" value="true"/>
+    <property object="TIMER16_3" propertyId="timer16.control.clocksource" value="SYSCLK"/>
+    <property object="TIMER16_4" propertyId="ABPeripheral.included" value="true"/>
+    <property object="TIMER_SETUP_0" propertyId="ABPeripheral.included" value="true"/>
+    <property object="TIMER_SETUP_0" propertyId="timer_setup.clockcontrol.timer2lowbyteclockselect" value="Use SYSCLK"/>
+    <property object="TIMER_SETUP_0" propertyId="timer_setup.clockcontrol.timer3lowbyteclockselect" value="Use SYSCLK"/>
+    <property object="UARTE_1" propertyId="ABPeripheral.included" value="true"/>
+    <property object="UARTE_1" propertyId="uarte.baudrategeneratorcontrol.actualbaudrate" value="115384"/>
+    <property object="UARTE_1" propertyId="uarte.baudrategeneratorcontrol.baudrateprescaler" value="Divide by 1"/>
+    <property object="UARTE_1" propertyId="uarte.baudrategeneratorcontrol.baudratereloadhigh" value="255"/>
+    <property object="UARTE_1" propertyId="uarte.baudrategeneratorcontrol.baudratereloadlow" value="48"/>
+    <property object="UARTE_1" propertyId="uarte.baudrategeneratorcontrol.enablebaudrategenerator" value="Enabled"/>
+    <property object="UARTE_1" propertyId="uarte.baudrategeneratorcontrol.expectedbaudrate" value="115200"/>
+    <property object="UARTE_1" propertyId="uarte.serialportcontrol.enablereceive" value="Enabled"/>
+    <property object="UART_0" propertyId="uart.serialportcontrol.actualbaudrate" value="93750 Baud"/>
+    <property object="UART_0" propertyId="uart.serialportcontrol.timer1overflowfrequency" value="187.500 kHz"/>
+    <property object="USBLIB_0" propertyId="ABPeripheral.included" value="true"/>
+    <property object="USBLIB_0" propertyId="configuration.configurationparameters.configurationstring" value="conf"/>
+    <property object="USBLIB_0" propertyId="configuration.configurationparameters.devicepower" value="Bus-Powered"/>
+    <property object="USBLIB_0" propertyId="device.deviceproperties.bmaxpacketsize" value="64"/>
+    <property object="USBLIB_0" propertyId="device.deviceproperties.productidpid" value="35535"/>
+    <property object="USBLIB_0" propertyId="device.deviceproperties.productstring" value="EOS Wallet"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint1in.bulkmaxpacketsizebytes" value="64"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint1in.endpoint1in" value="Enabled"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint1in.maxpacketsizebytes" value="64"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint1in.pollingintervalms" value="5"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint1in.transfertype" value="Interrupt"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint1out.endpoint1out" value="Enabled"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint1out.maxpacketsizebytes" value="64"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint1out.pollingintervalms" value="5"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint1out.transfertype" value="Interrupt"/>
+    <property object="USBLIB_0" propertyId="interfaces.interface0.interfaceclass" value="HID (Human Interface Device)"/>
+    <property object="USBLIB_0" propertyId="library.callbackfunctions.resetcallback" value="Enabled"/>
+    <property object="USBLIB_0" propertyId="library.callbackfunctions.selfpoweredcallback" value="Enabled"/>
+    <property object="USBLIB_0" propertyId="library.callbackfunctions.setupcommandcallback" value="Enabled"/>
+    <property object="USBLIB_0" propertyId="library.callbackfunctions.statechangecallback" value="Enabled"/>
+    <property object="USBLIB_0" propertyId="library.libraryconfiguration.clockrecovery" value="Enabled"/>
+    <property object="VREG_0" propertyId="ABPeripheral.included" value="true"/>
+    <property object="WDT_0" propertyId="ABPeripheral.included" value="true"/>
+    <property object="WDT_0" propertyId="wdt.watchdogcontrol.wdtenable" value="Disable"/>
+  </mode>
+  <modeTransition>
+    <property object="RESET &#x2192; DefaultMode" propertyId="modeTransition.source" value="RESET"/>
+    <property object="RESET &#x2192; DefaultMode" propertyId="modeTransition.target" value="DefaultMode"/>
+  </modeTransition>
+</device:XMLDevice>
