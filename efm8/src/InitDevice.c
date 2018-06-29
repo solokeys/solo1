@@ -28,6 +28,8 @@ extern void enter_DefaultMode_from_RESET(void) {
 	uint8_t SFRPAGE_save = SFRPAGE;
 	WDT_0_enter_DefaultMode_from_RESET();
 	PORTS_0_enter_DefaultMode_from_RESET();
+	PORTS_1_enter_DefaultMode_from_RESET();
+	PORTS_2_enter_DefaultMode_from_RESET();
 	PBCFG_0_enter_DefaultMode_from_RESET();
 	CIP51_0_enter_DefaultMode_from_RESET();
 	CLOCK_0_enter_DefaultMode_from_RESET();
@@ -327,18 +329,18 @@ extern void PORTS_0_enter_DefaultMode_from_RESET(void) {
 
 	// $[P0MDOUT - Port 0 Output Mode]
 	/***********************************************************************
-	 - P0.0 output is push-pull
+	 - P0.0 output is open-drain
 	 - P0.1 output is open-drain
 	 - P0.2 output is open-drain
 	 - P0.3 output is open-drain
-	 - P0.4 output is open-drain
+	 - P0.4 output is push-pull
 	 - P0.5 output is open-drain
 	 - P0.6 output is open-drain
 	 - P0.7 output is open-drain
 	 ***********************************************************************/
-	P0MDOUT = P0MDOUT_B0__PUSH_PULL | P0MDOUT_B1__OPEN_DRAIN
+	P0MDOUT = P0MDOUT_B0__OPEN_DRAIN | P0MDOUT_B1__OPEN_DRAIN
 			| P0MDOUT_B2__OPEN_DRAIN | P0MDOUT_B3__OPEN_DRAIN
-			| P0MDOUT_B4__OPEN_DRAIN | P0MDOUT_B5__OPEN_DRAIN
+			| P0MDOUT_B4__PUSH_PULL | P0MDOUT_B5__OPEN_DRAIN
 			| P0MDOUT_B6__OPEN_DRAIN | P0MDOUT_B7__OPEN_DRAIN;
 	// [P0MDOUT - Port 0 Output Mode]$
 
@@ -346,6 +348,20 @@ extern void PORTS_0_enter_DefaultMode_from_RESET(void) {
 	// [P0MDIN - Port 0 Input Mode]$
 
 	// $[P0SKIP - Port 0 Skip]
+	/***********************************************************************
+	 - P0.0 pin is skipped by the crossbar
+	 - P0.1 pin is skipped by the crossbar
+	 - P0.2 pin is skipped by the crossbar
+	 - P0.3 pin is skipped by the crossbar
+	 - P0.4 pin is not skipped by the crossbar
+	 - P0.5 pin is not skipped by the crossbar
+	 - P0.6 pin is not skipped by the crossbar
+	 - P0.7 pin is not skipped by the crossbar
+	 ***********************************************************************/
+	P0SKIP = P0SKIP_B0__SKIPPED | P0SKIP_B1__SKIPPED | P0SKIP_B2__SKIPPED
+			| P0SKIP_B3__SKIPPED | P0SKIP_B4__NOT_SKIPPED
+			| P0SKIP_B5__NOT_SKIPPED | P0SKIP_B6__NOT_SKIPPED
+			| P0SKIP_B7__NOT_SKIPPED;
 	// [P0SKIP - Port 0 Skip]$
 
 	// $[P0MASK - Port 0 Mask]
@@ -358,9 +374,67 @@ extern void PORTS_0_enter_DefaultMode_from_RESET(void) {
 
 extern void PORTS_1_enter_DefaultMode_from_RESET(void) {
 
+	// $[P1 - Port 1 Pin Latch]
+	// [P1 - Port 1 Pin Latch]$
+
+	// $[P1MDOUT - Port 1 Output Mode]
+	/***********************************************************************
+	 - P1.0 output is open-drain
+	 - P1.1 output is open-drain
+	 - P1.2 output is open-drain
+	 - P1.3 output is open-drain
+	 - P1.4 output is push-pull
+	 - P1.5 output is push-pull
+	 - P1.6 output is push-pull
+	 - P1.7 output is open-drain
+	 ***********************************************************************/
+	P1MDOUT = P1MDOUT_B0__OPEN_DRAIN | P1MDOUT_B1__OPEN_DRAIN
+			| P1MDOUT_B2__OPEN_DRAIN | P1MDOUT_B3__OPEN_DRAIN
+			| P1MDOUT_B4__PUSH_PULL | P1MDOUT_B5__PUSH_PULL
+			| P1MDOUT_B6__PUSH_PULL | P1MDOUT_B7__OPEN_DRAIN;
+	// [P1MDOUT - Port 1 Output Mode]$
+
+	// $[P1MDIN - Port 1 Input Mode]
+	// [P1MDIN - Port 1 Input Mode]$
+
+	// $[P1SKIP - Port 1 Skip]
+	// [P1SKIP - Port 1 Skip]$
+
+	// $[P1MASK - Port 1 Mask]
+	// [P1MASK - Port 1 Mask]$
+
+	// $[P1MAT - Port 1 Match]
+	// [P1MAT - Port 1 Match]$
+
 }
 
 extern void PORTS_2_enter_DefaultMode_from_RESET(void) {
+
+	// $[P2 - Port 2 Pin Latch]
+	// [P2 - Port 2 Pin Latch]$
+
+	// $[P2MDOUT - Port 2 Output Mode]
+	/***********************************************************************
+	 - P2.0 output is push-pull
+	 - P2.1 output is open-drain
+	 - P2.2 output is open-drain
+	 - P2.3 output is open-drain
+	 ***********************************************************************/
+	P2MDOUT = P2MDOUT_B0__PUSH_PULL | P2MDOUT_B1__OPEN_DRAIN
+			| P2MDOUT_B2__OPEN_DRAIN | P2MDOUT_B3__OPEN_DRAIN;
+	// [P2MDOUT - Port 2 Output Mode]$
+
+	// $[P2MDIN - Port 2 Input Mode]
+	// [P2MDIN - Port 2 Input Mode]$
+
+	// $[P2SKIP - Port 2 Skip]
+	// [P2SKIP - Port 2 Skip]$
+
+	// $[P2MASK - Port 2 Mask]
+	// [P2MASK - Port 2 Mask]$
+
+	// $[P2MAT - Port 2 Match]
+	// [P2MAT - Port 2 Match]$
 
 }
 

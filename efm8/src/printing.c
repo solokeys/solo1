@@ -14,7 +14,7 @@
 void putf(char c)
 {
 	uint8_t i;
-	SBUF0 = c;
+	SBUF1 = c;
 	// Blocking delay that works for 115200 baud on this device (<1ms)
 	for (i=0; i<200; i++){}
 	for (i=0; i<200; i++){}

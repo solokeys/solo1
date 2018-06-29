@@ -58,3 +58,7 @@ extern SI_SEGMENT_VARIABLE(initstruct, const USBD_Init_TypeDef, SI_SEG_CODE);
 
 #endif // __SILICON_LABS_DESCRIPTORS_H
 
+// $[HID Report Descriptors]
+extern SI_SEGMENT_VARIABLE(ReportDescriptor0[34], const uint8_t, SI_SEG_CODE);
+// [HID Report Descriptors]$
+

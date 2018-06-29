@@ -29,7 +29,7 @@
 							<option id="com.silabs.ide.si8051.keil.toolchain.category.general.debug.1285835962" name="Generate debug information" superClass="com.silabs.ide.si8051.keil.toolchain.category.general.debug" value="true" valueType="boolean"/>
 							<option id="com.silabs.ide.si8051.keil.toolchain.category.general.extended_assembler.1124669083" name="Use Extended Assembler (AX51) instead of A51" superClass="com.silabs.ide.si8051.keil.toolchain.category.general.extended_assembler" value="true" valueType="boolean"/>
 							<option id="com.silabs.ide.si8051.keil.toolchain.category.general.extended_linker.1220060828" name="Use Extended Linker (LX51) instead of BL51" superClass="com.silabs.ide.si8051.keil.toolchain.category.general.extended_linker" value="true" valueType="boolean"/>
-							<option id="com.silabs.ide.si8051.keil.toolchain.category.general.memory_model.923432818" name="Memory model" superClass="com.silabs.ide.si8051.keil.toolchain.category.general.memory_model" value="com.silabs.ide.si8051.keil.toolchain.category.general.memory_model.large" valueType="enumerated"/>
+							<option id="com.silabs.ide.si8051.keil.toolchain.category.general.memory_model.923432818" name="Memory model" superClass="com.silabs.ide.si8051.keil.toolchain.category.general.memory_model" value="com.silabs.ide.si8051.keil.toolchain.category.general.memory_model.small" valueType="enumerated"/>
 							<targetPlatform binaryParser="com.silabs.ss.tool.ide.c8051.debug.OMF;com.silabs.ss.tool.ide.c8051.debug.OMF2;com.silabs.ss.framework.debugger.core.BIN;com.silabs.ss.framework.debugger.core.HEX;com.silabs.ss.framework.debugger.core.S37;com.silabs.ss.framework.debugger.core.EBL;com.silabs.ss.framework.debugger.core.GBL" id="com.silabs.ide.si8051.keil.targetplatform.1736873507" isAbstract="false" superClass="com.silabs.ide.si8051.keil.targetplatform"/>
 							<builder buildPath="${workspace_loc:/efm8}/Keil 8051 v9.53 - Debug" id="com.silabs.ide.si8051.keil.builder.699981897" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Keil Builder" parallelBuildOn="false" superClass="com.silabs.ide.si8051.keil.builder"/>
 							<tool id="com.silabs.ide.si8051.keil.toolchain.compiler.161237451" name="Keil 8051 Compiler" superClass="com.silabs.ide.si8051.keil.toolchain.compiler">
@@ -50,7 +50,7 @@
 									<listOptionValue builtIn="false" value="&quot;${StudioSdkPath}/Lib/efm8_usbc/lib_usbc_pd/inc&quot;"/>
 								</option>
 								<option id="com.silabs.ide.si8051.keil.compiler.category.misc.extraflags.1584403236" name="Additional Flags" superClass="com.silabs.ide.si8051.keil.compiler.category.misc.extraflags" value="OA" valueType="string"/>
-								<option id="com.silabs.ide.si8051.keil.compiler.category.general.code.1474638890" name="Code size" superClass="com.silabs.ide.si8051.keil.compiler.category.general.code" value="com.silabs.ide.si8051.keil.compiler.category.general.code.small" valueType="enumerated"/>
+								<option id="com.silabs.ide.si8051.keil.compiler.category.general.code.1474638890" name="Code size" superClass="com.silabs.ide.si8051.keil.compiler.category.general.code" value="com.silabs.ide.si8051.keil.compiler.category.general.code.large" valueType="enumerated"/>
 								<inputType id="com.silabs.ide.si8051.keil.compiler.inputType.1048026013" superClass="com.silabs.ide.si8051.keil.compiler.inputType"/>
 							</tool>
 							<tool command="AX51" id="com.silabs.ide.si8051.keil.toolchain.assembler.683449334" name="Keil 8051 Assembler" superClass="com.silabs.ide.si8051.keil.toolchain.assembler">
@@ -77,7 +77,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding=".git/objects/info|.git/objects/pack|.git/refs/tags|lib/c8051f320|lib/c8051f326|lib/c8051f340|lib/c8051f380|lib/efm8ub2|lib/efm8ub3|lib/efm8ub4|src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="docs|lib/c8051f320|lib/c8051f326|lib/c8051f340|lib/c8051f380|lib/efm8ub2|lib/efm8ub3|lib/efm8ub4|.git/objects/info|.git/objects/pack|.git/refs/tags|src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>
@@ -162,7 +162,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding=".git/objects/info|.git/objects/pack|.git/refs/tags|lib/c8051f320|lib/c8051f326|lib/c8051f340|lib/c8051f380|lib/efm8ub2|lib/efm8ub3|lib/efm8ub4|src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="docs|lib/c8051f320|lib/c8051f326|lib/c8051f340|lib/c8051f380|lib/efm8ub2|lib/efm8ub3|lib/efm8ub4|.git/objects/info|.git/objects/pack|.git/refs/tags|src" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>
@@ -170,7 +170,7 @@
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
 	</storageModule>
-	<storageModule moduleId="com.silabs.ss.framework.ide.project.core.cpp" project.generation="41" projectCommon.boardIds="brd5000a:0.0.0.A02" projectCommon.buildArtifactType="EXE" projectCommon.importModeId="COPY" projectCommon.partId="mcu.8051.efm8.ub1.efm8ub10f16g-b-qfn28" projectCommon.sdkId="com.silabs.sdk.8051:4.1.1._-963069327"/>
+	<storageModule moduleId="com.silabs.ss.framework.ide.project.core.cpp" project.generation="25" projectCommon.boardIds="brd5000a:0.0.0.A02" projectCommon.buildArtifactType="EXE" projectCommon.importModeId="COPY" projectCommon.partId="mcu.8051.efm8.ub1.efm8ub10f16g-b-qfn28" projectCommon.sdkId="com.silabs.sdk.8051:4.1.1._-963069327"/>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="efm8.com.silabs.ss.framework.ide.project.core.cdt.cdtMbsProjectType.972220390" name="SLS CDT Project" projectType="com.silabs.ss.framework.ide.project.core.cdt.cdtMbsProjectType"/>
 	</storageModule>
@@ -184,5 +184,12 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.silabs.ide.si8051.keil.KeilScannerInfoCollector"/>
 		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="refreshScope"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Keil 8051 v9.53 - Debug">
+			<resource resourceType="PROJECT" workspacePath="/efm8"/>
+		</configuration>
+		<configuration configurationName="Keil 8051 v9.53 - Release">
+			<resource resourceType="PROJECT" workspacePath="/efm8"/>
+		</configuration>
+	</storageModule>
 </cproject>

@@ -11,8 +11,20 @@
     <property object="DefaultMode" propertyId="mode.diagramLocation" value="100, 100"/>
     <property object="INTERRUPT_0" propertyId="ABPeripheral.included" value="true"/>
     <property object="INTERRUPT_0" propertyId="interrupt.interruptenable.enableallinterrupts" value="Enabled"/>
-    <property object="P0.0" propertyId="ports.settings.iomode" value="Digital Push-Pull Output"/>
-    <property object="P0.0" propertyId="ports.settings.outputmode" value="Push-pull"/>
+    <property object="P0.0" propertyId="ports.settings.skip" value="Skipped"/>
+    <property object="P0.1" propertyId="ports.settings.skip" value="Skipped"/>
+    <property object="P0.2" propertyId="ports.settings.skip" value="Skipped"/>
+    <property object="P0.3" propertyId="ports.settings.skip" value="Skipped"/>
+    <property object="P0.4" propertyId="ports.settings.iomode" value="Digital Push-Pull Output"/>
+    <property object="P0.4" propertyId="ports.settings.outputmode" value="Push-pull"/>
+    <property object="P1.4" propertyId="ports.settings.iomode" value="Digital Push-Pull Output"/>
+    <property object="P1.4" propertyId="ports.settings.outputmode" value="Push-pull"/>
+    <property object="P1.5" propertyId="ports.settings.iomode" value="Digital Push-Pull Output"/>
+    <property object="P1.5" propertyId="ports.settings.outputmode" value="Push-pull"/>
+    <property object="P1.6" propertyId="ports.settings.iomode" value="Digital Push-Pull Output"/>
+    <property object="P1.6" propertyId="ports.settings.outputmode" value="Push-pull"/>
+    <property object="P2.0" propertyId="ports.settings.iomode" value="Digital Push-Pull Output"/>
+    <property object="P2.0" propertyId="ports.settings.outputmode" value="Push-pull"/>
     <property object="PBCFG_0" propertyId="pbcfg.settings.enablecrossbar" value="Enabled"/>
     <property object="TIMER01_0" propertyId="ABPeripheral.included" value="true"/>
     <property object="TIMER16_2" propertyId="ABPeripheral.included" value="true"/>
