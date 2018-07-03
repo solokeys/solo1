@@ -26,6 +26,7 @@
 #include <SI_EFM8UB1_Register_Enums.h>
 #include <efm8_usb.h>
 #include <stdio.h>
+#include "printing.h"
 #include "descriptors.h"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
@@ -126,7 +127,6 @@ USB_Status_TypeDef USBD_SetupCmdCb(
 
 
 
-uint8_t hidmsgbuf[64];
 uint16_t USBD_XferCompleteCb(uint8_t epAddr, USB_Status_TypeDef status,
 		uint16_t xferred, uint16_t remaining ) {
 
@@ -134,10 +134,9 @@ uint16_t USBD_XferCompleteCb(uint8_t epAddr, USB_Status_TypeDef status,
 	UNUSED(xferred);
 	UNUSED(remaining);
 
-
 	if (epAddr == EP1OUT)
 	{
-//		set_app_u2f_hid_msg((struct u2f_hid_msg *) hidmsgbuf );
+		usb_transfer_complete();
 	}
 	return 0;
 }

@@ -553,7 +553,7 @@ if __name__ == '__main__':
     t.find_device()
     #t.test_hid()
     #t.test_fido2()
-    t.test_fido2_simple()
+    #t.test_fido2_simple()
     #t.test_fido2_brute_force()
 
 

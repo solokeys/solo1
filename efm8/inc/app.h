@@ -10,4 +10,7 @@
 
 #define USE_PRINTING
 
+void usb_transfer_complete();
+void spi_transfer_complete();
+
 #endif /* INC_APP_H_ */

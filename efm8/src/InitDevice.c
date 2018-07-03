@@ -33,10 +33,12 @@ extern void enter_DefaultMode_from_RESET(void) {
 	PBCFG_0_enter_DefaultMode_from_RESET();
 	CIP51_0_enter_DefaultMode_from_RESET();
 	CLOCK_0_enter_DefaultMode_from_RESET();
+	TIMER01_0_enter_DefaultMode_from_RESET();
 	TIMER16_2_enter_DefaultMode_from_RESET();
 	TIMER16_3_enter_DefaultMode_from_RESET();
 	TIMER_SETUP_0_enter_DefaultMode_from_RESET();
-	UARTE_1_enter_DefaultMode_from_RESET();
+	SPI_0_enter_DefaultMode_from_RESET();
+	UART_0_enter_DefaultMode_from_RESET();
 	INTERRUPT_0_enter_DefaultMode_from_RESET();
 	USBLIB_0_enter_DefaultMode_from_RESET();
 	// Restore the SFRPAGE
@@ -75,7 +77,6 @@ extern void INTERRUPT_0_enter_DefaultMode_from_RESET(void) {
 	 - Disable Timer 2 interrupt
 	 - Disable UART0 interrupt
 	 ***********************************************************************/
-	SFRPAGE = 0x00;
 	IE = IE_EA__ENABLED | IE_EX0__DISABLED | IE_EX1__DISABLED
 			| IE_ESPI0__DISABLED | IE_ET0__DISABLED | IE_ET1__DISABLED
 			| IE_ET2__DISABLED | IE_ES0__DISABLED;
@@ -144,12 +145,12 @@ extern void PBCFG_0_enter_DefaultMode_from_RESET(void) {
 	/***********************************************************************
 	 - Weak Pullups enabled 
 	 - Crossbar enabled
-	 - UART1 TX1 RX1 routed to Port pins
+	 - UART1 I/O unavailable at Port pin
 	 - UART1 RTS1 unavailable at Port pin
 	 - UART1 CTS1 unavailable at Port pin
 	 ***********************************************************************/
 	XBR2 = XBR2_WEAKPUD__PULL_UPS_ENABLED | XBR2_XBARE__ENABLED
-			| XBR2_URT1E__ENABLED | XBR2_URT1RTSE__DISABLED
+			| XBR2_URT1E__DISABLED | XBR2_URT1RTSE__DISABLED
 			| XBR2_URT1CTSE__DISABLED;
 	// [XBR2 - Port I/O Crossbar 2]$
 
@@ -157,6 +158,19 @@ extern void PBCFG_0_enter_DefaultMode_from_RESET(void) {
 	// [PRTDRV - Port Drive Strength]$
 
 	// $[XBR0 - Port I/O Crossbar 0]
+	/***********************************************************************
+	 - UART0 TX0, RX0 routed to Port pins P0.4 and P0.5
+	 - SPI I/O routed to Port pins
+	 - SMBus 0 I/O unavailable at Port pins
+	 - CP0 unavailable at Port pin
+	 - Asynchronous CP0 unavailable at Port pin
+	 - CP1 unavailable at Port pin
+	 - Asynchronous CP1 unavailable at Port pin
+	 - SYSCLK unavailable at Port pin
+	 ***********************************************************************/
+	XBR0 = XBR0_URT0E__ENABLED | XBR0_SPI0E__ENABLED | XBR0_SMB0E__DISABLED
+			| XBR0_CP0E__DISABLED | XBR0_CP0AE__DISABLED | XBR0_CP1E__DISABLED
+			| XBR0_CP1AE__DISABLED | XBR0_SYSCKE__DISABLED;
 	// [XBR0 - Port I/O Crossbar 0]$
 
 	// $[XBR1 - Port I/O Crossbar 1]
@@ -167,27 +181,41 @@ extern void PBCFG_0_enter_DefaultMode_from_RESET(void) {
 extern void TIMER_SETUP_0_enter_DefaultMode_from_RESET(void) {
 	// $[CKCON0 - Clock Control 0]
 	/***********************************************************************
-	 - System clock divided by 12
+	 - System clock divided by 4
 	 - Counter/Timer 0 uses the clock defined by the prescale field, SCA
 	 - Timer 2 high byte uses the clock defined by T2XCLK in TMR2CN0
 	 - Timer 2 low byte uses the system clock
 	 - Timer 3 high byte uses the clock defined by T3XCLK in TMR3CN0
 	 - Timer 3 low byte uses the system clock
-	 - Timer 1 uses the clock defined by the prescale field, SCA
+	 - Timer 1 uses the system clock
 	 ***********************************************************************/
-	CKCON0 = CKCON0_SCA__SYSCLK_DIV_12 | CKCON0_T0M__PRESCALE
+	CKCON0 = CKCON0_SCA__SYSCLK_DIV_4 | CKCON0_T0M__PRESCALE
 			| CKCON0_T2MH__EXTERNAL_CLOCK | CKCON0_T2ML__SYSCLK
 			| CKCON0_T3MH__EXTERNAL_CLOCK | CKCON0_T3ML__SYSCLK
-			| CKCON0_T1M__PRESCALE;
+			| CKCON0_T1M__SYSCLK;
 	// [CKCON0 - Clock Control 0]$
 
 	// $[CKCON1 - Clock Control 1]
 	// [CKCON1 - Clock Control 1]$
 
 	// $[TMOD - Timer 0/1 Mode]
+	/***********************************************************************
+	 - Mode 0, 13-bit Counter/Timer
+	 - Mode 2, 8-bit Counter/Timer with Auto-Reload
+	 - Timer Mode
+	 - Timer 0 enabled when TR0 = 1 irrespective of INT0 logic level
+	 - Timer Mode
+	 - Timer 1 enabled when TR1 = 1 irrespective of INT1 logic level
+	 ***********************************************************************/
+	TMOD = TMOD_T0M__MODE0 | TMOD_T1M__MODE2 | TMOD_CT0__TIMER
+			| TMOD_GATE0__DISABLED | TMOD_CT1__TIMER | TMOD_GATE1__DISABLED;
 	// [TMOD - Timer 0/1 Mode]$
 
 	// $[TCON - Timer 0/1 Control]
+	/***********************************************************************
+	 - Start Timer 1 running
+	 ***********************************************************************/
+	TCON |= TCON_TR1__RUN;
 	// [TCON - Timer 0/1 Control]$
 
 }
@@ -196,10 +224,10 @@ extern void UARTE_1_enter_DefaultMode_from_RESET(void) {
 	// $[SBCON1 - UART1 Baud Rate Generator Control]
 	/***********************************************************************
 	 - Enable the baud rate generator
-	 - Prescaler = 1
+	 - Prescaler = 8
 	 ***********************************************************************/
 	SFRPAGE = 0x20;
-	SBCON1 = SBCON1_BREN__ENABLED | SBCON1_BPS__DIV_BY_1;
+	SBCON1 = SBCON1_BREN__ENABLED | SBCON1_BPS__DIV_BY_8;
 	// [SBCON1 - UART1 Baud Rate Generator Control]$
 
 	// $[SMOD1 - UART1 Mode]
@@ -217,9 +245,9 @@ extern void UARTE_1_enter_DefaultMode_from_RESET(void) {
 
 	// $[SBRLL1 - UART1 Baud Rate Generator Low Byte]
 	/***********************************************************************
-	 - UART1 Baud Rate Reload Low = 0x30
+	 - UART1 Baud Rate Reload Low = 0xE6
 	 ***********************************************************************/
-	SBRLL1 = (0x30 << SBRLL1_BRL__SHIFT);
+	SBRLL1 = (0xE6 << SBRLL1_BRL__SHIFT);
 	// [SBRLL1 - UART1 Baud Rate Generator Low Byte]$
 
 	// $[UART1LIN - UART1 LIN Configuration]
@@ -336,12 +364,12 @@ extern void PORTS_0_enter_DefaultMode_from_RESET(void) {
 	 - P0.4 output is push-pull
 	 - P0.5 output is open-drain
 	 - P0.6 output is open-drain
-	 - P0.7 output is open-drain
+	 - P0.7 output is push-pull
 	 ***********************************************************************/
 	P0MDOUT = P0MDOUT_B0__OPEN_DRAIN | P0MDOUT_B1__OPEN_DRAIN
 			| P0MDOUT_B2__OPEN_DRAIN | P0MDOUT_B3__OPEN_DRAIN
 			| P0MDOUT_B4__PUSH_PULL | P0MDOUT_B5__OPEN_DRAIN
-			| P0MDOUT_B6__OPEN_DRAIN | P0MDOUT_B7__OPEN_DRAIN;
+			| P0MDOUT_B6__OPEN_DRAIN | P0MDOUT_B7__PUSH_PULL;
 	// [P0MDOUT - Port 0 Output Mode]$
 
 	// $[P0MDIN - Port 0 Input Mode]
@@ -411,6 +439,13 @@ extern void PORTS_1_enter_DefaultMode_from_RESET(void) {
 extern void PORTS_2_enter_DefaultMode_from_RESET(void) {
 
 	// $[P2 - Port 2 Pin Latch]
+	/***********************************************************************
+	 - P2.0 is low. Set P2.0 to drive low
+	 - P2.1 is high. Set P2.1 to drive or float high
+	 - P2.2 is high. Set P2.2 to drive or float high
+	 - P2.3 is high. Set P2.3 to drive or float high
+	 ***********************************************************************/
+	P2 = P2_B0__LOW | P2_B1__HIGH | P2_B2__HIGH | P2_B3__HIGH;
 	// [P2 - Port 2 Pin Latch]$
 
 	// $[P2MDOUT - Port 2 Output Mode]
@@ -435,6 +470,78 @@ extern void PORTS_2_enter_DefaultMode_from_RESET(void) {
 
 	// $[P2MAT - Port 2 Match]
 	// [P2MAT - Port 2 Match]$
+
+}
+
+extern void TIMER01_0_enter_DefaultMode_from_RESET(void) {
+	// $[Timer Initialization]
+	//Save Timer Configuration
+	uint8_t TCON_save;
+	TCON_save = TCON;
+	//Stop Timers
+	TCON &= ~TCON_TR0__BMASK & ~TCON_TR1__BMASK;
+
+	// [Timer Initialization]$
+
+	// $[TH0 - Timer 0 High Byte]
+	// [TH0 - Timer 0 High Byte]$
+
+	// $[TL0 - Timer 0 Low Byte]
+	// [TL0 - Timer 0 Low Byte]$
+
+	// $[TH1 - Timer 1 High Byte]
+	/***********************************************************************
+	 - Timer 1 High Byte = 0x30
+	 ***********************************************************************/
+	TH1 = (0x30 << TH1_TH1__SHIFT);
+	// [TH1 - Timer 1 High Byte]$
+
+	// $[TL1 - Timer 1 Low Byte]
+	// [TL1 - Timer 1 Low Byte]$
+
+	// $[Timer Restoration]
+	//Restore Timer Configuration
+	TCON |= (TCON_save & TCON_TR0__BMASK) | (TCON_save & TCON_TR1__BMASK);
+
+	// [Timer Restoration]$
+
+}
+
+extern void UART_0_enter_DefaultMode_from_RESET(void) {
+	// $[SCON0 - UART0 Serial Port Control]
+	/***********************************************************************
+	 - UART0 reception enabled
+	 ***********************************************************************/
+	SCON0 |= SCON0_REN__RECEIVE_ENABLED;
+	// [SCON0 - UART0 Serial Port Control]$
+
+}
+
+extern void SPI_0_enter_DefaultMode_from_RESET(void) {
+	// $[SPI0CKR - SPI0 Clock Rate]
+	/***********************************************************************
+	 - SPI0 Clock Rate = 0x17
+	 ***********************************************************************/
+	SPI0CKR = (0x17 << SPI0CKR_SPI0CKR__SHIFT);
+	// [SPI0CKR - SPI0 Clock Rate]$
+
+	// $[SPI0FCN0 - SPI0 FIFO Control 0]
+	// [SPI0FCN0 - SPI0 FIFO Control 0]$
+
+	// $[SPI0FCN1 - SPI0 FIFO Control 1]
+	// [SPI0FCN1 - SPI0 FIFO Control 1]$
+
+	// $[SPI0CFG - SPI0 Configuration]
+	// [SPI0CFG - SPI0 Configuration]$
+
+	// $[SPI0CN0 - SPI0 Control]
+	/***********************************************************************
+	 - Enable the SPI module
+	 - 3-Wire Slave or 3-Wire Master Mode
+	 ***********************************************************************/
+	SPI0CN0 &= ~SPI0CN0_NSSMD__FMASK;
+	SPI0CN0 |= SPI0CN0_SPIEN__ENABLED;
+	// [SPI0CN0 - SPI0 Control]$
 
 }
 
