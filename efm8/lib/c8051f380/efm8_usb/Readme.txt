@@ -20,7 +20,7 @@ Known Issues and Limitations:
 Target and Tool Chain Information:
 ---------------------------------
 
-Target:         EFM8UB1, EFM8UB2, C8051F320/1, C8051F326/7, C8051F34x, C8051F38x
+Target:         EFM8UB1, EFM8UB2, EFM8UB3, EFM8UB4, C8051F320/1, C8051F326/7, C8051F34x, C8051F38x
 Tool chain:     Keil
 
 File List:
@@ -50,6 +50,13 @@ Version 1.0.1
     - Removed code that generated a compiler warning when
       USB_PWRSAVE_MODE_FASTWAKE was enabled.
     - Improved documentation of USB_PWRSAVE_MODE_FASTWAKE feature.
+
+Version 1.0.2
+    - Added ability to detect short OUT packet in Isochronous mode and
+      stuff the buffer with zeroes to keep isochronous stream in sync.
+
+Version 1.0.3
+    - Added support for EFM8UB3 and EFM8UB4 devices.
 
 -------------------------------------------------------------------------------
  End Of File

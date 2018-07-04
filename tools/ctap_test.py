@@ -547,13 +547,24 @@ class Tester():
         print('PASS')
 
 
+def test_find_brute_force():
+    i = 0
+    while 1:
+        t1 = time.time() * 1000
+        t = Tester()
+        t.find_device()
+        t2 = time.time() * 1000
+        print('connected %d (%d ms)' % (i, t2-t1))
+        i += 1
+        time.sleep(0.01)
+
 
 if __name__ == '__main__':
     t = Tester()
     t.find_device()
     #t.test_hid()
     #t.test_fido2()
-    #t.test_fido2_simple()
+    t.test_fido2_simple()
     #t.test_fido2_brute_force()
 
 

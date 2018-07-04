@@ -10,7 +10,6 @@
 #include "SI_EFM8UB1_Register_Enums.h"
 #include <stdint.h>
 #include <stdbool.h>
-#include "efm8_config.h"
 
 /******************************************************************************/
 
@@ -168,7 +167,7 @@ extern void USB_DisableInts(void);
  * @brief       Returns state of USB interrupt enabler
  * @return      TRUE if USB interrupts are enabled, FALSE otherwise.
  ******************************************************************************/
-bool USB_GetIntsEnabled(void);
+extern bool USB_GetIntsEnabled(void);
 
 /***************************************************************************//**
  * @brief       Enables VBUS detection
@@ -325,9 +324,7 @@ extern void USB_SuspendTransceiver(void);
   do \
   { \
     SFRPAGE = PG3_PAGE; \
-    USB0XCN &= ~(USB0XCN_PHYEN__ENABLED \
-                 | USB0XCN_Dp__HIGH \
-                 | USB0XCN_Dn__HIGH); \
+    USB0XCN &= ~(USB0XCN_PHYEN__ENABLED | USB0XCN_Dp__HIGH | USB0XCN_Dn__HIGH);\
   } while (0)
 #endif
 
@@ -506,14 +503,14 @@ extern void USB_UnsuspendRegulator(void);
  * @brief       Determine if the internal regulator is enabled
  * @return      TRUE if the internal regulator is enabled, FALSE otherwise
  ******************************************************************************/
-bool USB_IsRegulatorEnabled(void);
+extern bool USB_IsRegulatorEnabled(void);
 
 /***************************************************************************//**
  * @brief       Disable the prefetch engine
  * @note        This function is implemented as a macro.
  ******************************************************************************/
 #ifdef IS_DOXYGEN
-void USB_DisablePrefetch(void);
+extern void USB_DisablePrefetch(void);
 #else
 #define USB_DisablePrefetch() \
   do \
@@ -528,7 +525,7 @@ void USB_DisablePrefetch(void);
  * @note        This function is implemented as a macro.
  ******************************************************************************/
 #ifdef IS_DOXYGEN
-void USB_EnablePrefetch(void);
+extern void USB_EnablePrefetch(void);
 #else
 #define USB_EnablePrefetch() \
   do \
@@ -542,12 +539,12 @@ void USB_EnablePrefetch(void);
  * @brief       Determine if the prefetch engine is enabled
  * @return      TRUE if prefetch engine is enabled, FALSE otherwise.
  ******************************************************************************/
-bool USB_IsPrefetchEnabled(void);
+extern bool USB_IsPrefetchEnabled(void);
 
 /***************************************************************************//**
  * @brief       Suspends internal oscillator
  ******************************************************************************/
-void USB_SuspendOscillator(void);
+extern void USB_SuspendOscillator(void);
 
 /***************************************************************************//**
  * @brief       Enables clock recovery in full speed mode
@@ -734,7 +731,8 @@ extern void USB_Ep0SetLastOutPacketReady(void);
 #ifdef IS_DOXYGEN
 extern void USB_Ep0SendStall(void);
 #else
-#define USB_Ep0SendStall() USB_WRITE_BYTE(E0CSR, E0CSR_SDSTL__SET)
+#define USB_Ep0SendStall() \
+  USB_WRITE_BYTE(E0CSR, (E0CSR_SOPRDY__SET | E0CSR_SDSTL__SET))
 #endif
 
 /***************************************************************************//**
@@ -966,7 +964,7 @@ extern bool USB_IsOut3IntActive(uint8_t OUT1INT_snapshot);
 extern void USB_SetSuspendIntActive(uint8_t CMINT_snapshot);
 #else
 #define USB_SetSuspendIntActive(CMINT_snapshot) \
-  (CMINT_snapshot |= CMINT_SUSINT__SET)
+  ((CMINT_snapshot) |= CMINT_SUSINT__SET)
 #endif
 
 /***************************************************************************//**
@@ -980,7 +978,7 @@ extern void USB_SetSuspendIntActive(uint8_t CMINT_snapshot);
 extern void USB_SetEp0IntActive(uint8_t IN1INT_snapshot);
 #else
 #define USB_SetEp0IntActive(IN1INT_snapshot) \
-  (IN1INT_snapshot |= IN1INT_EP0__SET)
+  ((IN1INT_snapshot) |= IN1INT_EP0__SET)
 #endif
 
 /***************************************************************************//**
@@ -994,7 +992,7 @@ extern void USB_SetEp0IntActive(uint8_t IN1INT_snapshot);
 extern void USB_SetIn1IntActive(uint8_t IN1INT_snapshot);
 #else
 #define USB_SetIn1IntActive(IN1INT_snapshot) \
-  (IN1INT_snapshot |= IN1INT_IN1__SET)
+  ((IN1INT_snapshot) |= IN1INT_IN1__SET)
 #endif
 
 /***************************************************************************//**
@@ -1008,7 +1006,7 @@ extern void USB_SetIn1IntActive(uint8_t IN1INT_snapshot);
 extern void USB_SetIn2IntActive(uint8_t IN1INT_snapshot);
 #else
 #define USB_SetIn2IntActive(IN1INT_snapshot) \
-  (IN1INT_snapshot |= IN1INT_IN2__SET)
+  ((IN1INT_snapshot) |= IN1INT_IN2__SET)
 #endif
 
 /***************************************************************************//**
@@ -1022,7 +1020,7 @@ extern void USB_SetIn2IntActive(uint8_t IN1INT_snapshot);
 extern void USB_SetIn3IntActive(uint8_t IN1INT_snapshot);
 #else
 #define USB_SetIn3IntActive(IN1INT_snapshot) \
-  (IN1INT_snapshot |= IN1INT_IN3__SET)
+  ((IN1INT_snapshot) |= IN1INT_IN3__SET)
 #endif
 
 /***************************************************************************//**
@@ -1036,7 +1034,7 @@ extern void USB_SetIn3IntActive(uint8_t IN1INT_snapshot);
 extern void USB_SetOut1IntActive(uint8_t OUT1INT_snapshot);
 #else
 #define USB_SetOut1IntActive(OUT1INT_snapshot) \
-  (OUT1INT_snapshot |= OUT1INT_OUT1__SET)
+  ((OUT1INT_snapshot) |= OUT1INT_OUT1__SET)
 #endif
 
 /***************************************************************************//**
@@ -1050,7 +1048,7 @@ extern void USB_SetOut1IntActive(uint8_t OUT1INT_snapshot);
 extern void USB_SetOut2IntActive(uint8_t OUT1INT_snapshot);
 #else
 #define USB_SetOut2IntActive(OUT1INT_snapshot) \
-  (OUT1INT_snapshot |= OUT1INT_OUT2__SET)
+  ((OUT1INT_snapshot) |= OUT1INT_OUT2__SET)
 #endif
 
 /***************************************************************************//**
@@ -1064,7 +1062,7 @@ extern void USB_SetOut2IntActive(uint8_t OUT1INT_snapshot);
 extern void USB_SetOut3IntActive(uint8_t OUT1INT_snapshot);
 #else
 #define USB_SetOut3IntActive(OUT1INT_snapshot) \
-  (OUT1INT_snapshot |= OUT1INT_OUT3__SET)
+  ((OUT1INT_snapshot) |= OUT1INT_OUT3__SET)
 #endif
 
 /***************************************************************************//**
@@ -1080,7 +1078,7 @@ extern void USB_EnableDeviceInts(void);
                   (CMIE_SOFE__ENABLED \
                    | CMIE_RSTINTE__ENABLED \
                    | CMIE_RSUINTE__ENABLED \
-                   | CMIE_SUSINTE__ENABLED));
+                   | CMIE_SUSINTE__ENABLED))
 #endif
 
 /***************************************************************************//**
@@ -1090,7 +1088,7 @@ extern void USB_EnableDeviceInts(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableSofInt(void);
 #else
-#define USB_EnableSofInt() USB_SET_BITS(CMIE, CMIE_SOFE__ENABLED);
+#define USB_EnableSofInt() USB_SET_BITS(CMIE, CMIE_SOFE__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1100,7 +1098,7 @@ extern void USB_EnableSofInt(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableSofInt(void);
 #else
-#define USB_DisableSofInt() USB_CLEAR_BITS(CMIE, CMIE_SOFE__ENABLED);
+#define USB_DisableSofInt() USB_CLEAR_BITS(CMIE, CMIE_SOFE__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1110,7 +1108,7 @@ extern void USB_DisableSofInt(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableResetInt(void);
 #else
-#define USB_EnableResetInt() USB_SET_BITS(CMIE, CMIE_RSTINTE__ENABLED);
+#define USB_EnableResetInt() USB_SET_BITS(CMIE, CMIE_RSTINTE__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1120,7 +1118,7 @@ extern void USB_EnableResetInt(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableResetInt(void);
 #else
-#define USB_DisableResetInt() USB_CLEAR_BITS(CMIE, CMIE_RSTINTE__ENABLED);
+#define USB_DisableResetInt() USB_CLEAR_BITS(CMIE, CMIE_RSTINTE__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1130,7 +1128,7 @@ extern void USB_DisableResetInt(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableResumeInt(void);
 #else
-#define USB_EnableResumeInt() USB_SET_BITS(CMIE, CMIE_RSUINTE__ENABLED);
+#define USB_EnableResumeInt() USB_SET_BITS(CMIE, CMIE_RSUINTE__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1140,7 +1138,7 @@ extern void USB_EnableResumeInt(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableResumeInt(void);
 #else
-#define USB_DisableResumeInt() USB_CLEAR_BITS(CMIE, CMIE_RSUINTE__ENABLED);
+#define USB_DisableResumeInt() USB_CLEAR_BITS(CMIE, CMIE_RSUINTE__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1150,7 +1148,7 @@ extern void USB_DisableResumeInt(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableSuspendInt(void);
 #else
-#define USB_EnableSuspendInt() USB_SET_BITS(CMIE, CMIE_SUSINTE__ENABLED);
+#define USB_EnableSuspendInt() USB_SET_BITS(CMIE, CMIE_SUSINTE__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1160,7 +1158,7 @@ extern void USB_EnableSuspendInt(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableSuspendInt(void);
 #else
-#define USB_DisableSuspendInt() USB_CLEAR_BITS(CMIE, CMIE_SUSINTE__ENABLED);
+#define USB_DisableSuspendInt() USB_CLEAR_BITS(CMIE, CMIE_SUSINTE__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1170,7 +1168,7 @@ extern void USB_DisableSuspendInt(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableEp0Int(void);
 #else
-#define USB_EnableEp0Int() USB_SET_BITS(IN1IE, IN1IE_EP0E__ENABLED);
+#define USB_EnableEp0Int() USB_SET_BITS(IN1IE, IN1IE_EP0E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1180,7 +1178,7 @@ extern void USB_EnableEp0Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableEp0Int(void);
 #else
-#define USB_DisableEp0Int() USB_CLEAR_BITS(IN1IE, IN1IE_EP0E__ENABLED);
+#define USB_DisableEp0Int() USB_CLEAR_BITS(IN1IE, IN1IE_EP0E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1190,7 +1188,7 @@ extern void USB_DisableEp0Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableIn1Int(void);
 #else
-#define USB_EnableIn1Int() USB_SET_BITS(IN1IE, IN1IE_IN1E__ENABLED);
+#define USB_EnableIn1Int() USB_SET_BITS(IN1IE, IN1IE_IN1E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1200,7 +1198,7 @@ extern void USB_EnableIn1Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableIn1Int(void);
 #else
-#define USB_DisableIn1Int() USB_CLEAR_BITS(IN1IE, IN1IE_IN1E__ENABLED);
+#define USB_DisableIn1Int() USB_CLEAR_BITS(IN1IE, IN1IE_IN1E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1210,7 +1208,7 @@ extern void USB_DisableIn1Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableIn2Int(void);
 #else
-#define USB_EnableIn2Int() USB_SET_BITS(IN1IE, IN1IE_IN2E__ENABLED);
+#define USB_EnableIn2Int() USB_SET_BITS(IN1IE, IN1IE_IN2E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1220,7 +1218,7 @@ extern void USB_EnableIn2Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableIn2Int(void);
 #else
-#define USB_DisableIn2Int() USB_CLEAR_BITS(IN1IE, IN1IE_IN2E__ENABLED);
+#define USB_DisableIn2Int() USB_CLEAR_BITS(IN1IE, IN1IE_IN2E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1230,7 +1228,7 @@ extern void USB_DisableIn2Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableIn3Int(void);
 #else
-#define USB_EnableIn3Int() USB_SET_BITS(IN1IE, IN1IE_IN3E__ENABLED);
+#define USB_EnableIn3Int() USB_SET_BITS(IN1IE, IN1IE_IN3E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1240,7 +1238,7 @@ extern void USB_EnableIn3Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableIn3Int(void);
 #else
-#define USB_DisableIn3Int() USB_CLEAR_BITS(IN1IE, IN1IE_IN3E__ENABLED);
+#define USB_DisableIn3Int() USB_CLEAR_BITS(IN1IE, IN1IE_IN3E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1250,7 +1248,7 @@ extern void USB_DisableIn3Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableOut1Int(void);
 #else
-#define USB_EnableOut1Int() USB_SET_BITS(OUT1IE, OUT1IE_OUT1E__ENABLED);
+#define USB_EnableOut1Int() USB_SET_BITS(OUT1IE, OUT1IE_OUT1E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1260,7 +1258,7 @@ extern void USB_EnableOut1Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableOut1Int(void);
 #else
-#define USB_DisableOut1Int() USB_CLEAR_BITS(OUT1IE, OUT1IE_OUT1E__ENABLED);
+#define USB_DisableOut1Int() USB_CLEAR_BITS(OUT1IE, OUT1IE_OUT1E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1270,7 +1268,7 @@ extern void USB_DisableOut1Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableOut2Int(void);
 #else
-#define USB_EnableOut2Int() USB_SET_BITS(OUT1IE, OUT1IE_OUT2E__ENABLED);
+#define USB_EnableOut2Int() USB_SET_BITS(OUT1IE, OUT1IE_OUT2E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1280,7 +1278,7 @@ extern void USB_EnableOut2Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableOut2Int(void);
 #else
-#define USB_DisableOut2Int() USB_CLEAR_BITS(OUT1IE, OUT1IE_OUT2E__ENABLED);
+#define USB_DisableOut2Int() USB_CLEAR_BITS(OUT1IE, OUT1IE_OUT2E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1290,7 +1288,7 @@ extern void USB_DisableOut2Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableOut3Int(void);
 #else
-#define USB_EnableOut3Int() USB_SET_BITS(OUT1IE, OUT1IE_OUT3E__ENABLED);
+#define USB_EnableOut3Int() USB_SET_BITS(OUT1IE, OUT1IE_OUT3E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1300,7 +1298,7 @@ extern void USB_EnableOut3Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableOut3Int(void);
 #else
-#define USB_DisableOut3Int() USB_CLEAR_BITS(OUT1IE, OUT1IE_OUT3E__ENABLED);
+#define USB_DisableOut3Int() USB_CLEAR_BITS(OUT1IE, OUT1IE_OUT3E__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1310,7 +1308,7 @@ extern void USB_DisableOut3Int(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableEp1(void);
 #else
-#define USB_EnableEp1() USB_SET_BITS(EENABLE, EENABLE_EEN1__ENABLED);
+#define USB_EnableEp1() USB_SET_BITS(EENABLE, EENABLE_EEN1__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1320,7 +1318,7 @@ extern void USB_EnableEp1(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableEp1(void);
 #else
-#define USB_DisableEp1() USB_CLEAR_BITS(EENABLE, EENABLE_EEN1__ENABLED);
+#define USB_DisableEp1() USB_CLEAR_BITS(EENABLE, EENABLE_EEN1__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1330,7 +1328,7 @@ extern void USB_DisableEp1(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableEp2(void);
 #else
-#define USB_EnableEp2() USB_SET_BITS(EENABLE, EENABLE_EEN2__ENABLED);
+#define USB_EnableEp2() USB_SET_BITS(EENABLE, EENABLE_EEN2__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1340,7 +1338,7 @@ extern void USB_EnableEp2(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableEp2(void);
 #else
-#define USB_DisableEp2() USB_CLEAR_BITS(EENABLE, EENABLE_EEN2__ENABLED);
+#define USB_DisableEp2() USB_CLEAR_BITS(EENABLE, EENABLE_EEN2__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1350,7 +1348,7 @@ extern void USB_DisableEp2(void);
 #ifdef IS_DOXYGEN
 extern void USB_EnableEp3(void);
 #else
-#define USB_EnableEp3() USB_SET_BITS(EENABLE, EENABLE_EEN3__ENABLED);
+#define USB_EnableEp3() USB_SET_BITS(EENABLE, EENABLE_EEN3__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1360,7 +1358,7 @@ extern void USB_EnableEp3(void);
 #ifdef IS_DOXYGEN
 extern void USB_DisableEp3(void);
 #else
-#define USB_DisableEp3() USB_CLEAR_BITS(EENABLE, EENABLE_EEN3__ENABLED);
+#define USB_DisableEp3() USB_CLEAR_BITS(EENABLE, EENABLE_EEN3__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1370,7 +1368,7 @@ extern void USB_DisableEp3(void);
 #ifdef IS_DOXYGEN
 extern void USB_EpnDirectionOut(void);
 #else
-#define USB_EpnDirectionOut() USB_CLEAR_BITS(EINCSRH, EINCSRH_DIRSEL__IN);
+#define USB_EpnDirectionOut() USB_CLEAR_BITS(EINCSRH, EINCSRH_DIRSEL__IN)
 #endif
 
 /***************************************************************************//**
@@ -1380,7 +1378,7 @@ extern void USB_EpnDirectionOut(void);
 #ifdef IS_DOXYGEN
 extern void USB_EpnDirectionIn(void);
 #else
-#define USB_EpnDirectionIn() USB_SET_BITS(EINCSRH, EINCSRH_DIRSEL__IN);
+#define USB_EpnDirectionIn() USB_SET_BITS(EINCSRH, EINCSRH_DIRSEL__IN)
 #endif
 
 /***************************************************************************//**
@@ -1391,7 +1389,7 @@ extern void USB_EpnDirectionIn(void);
 extern void USB_EpnEnableSplitMode(void);
 #else
 #define USB_EpnEnableSplitMode() \
-    USB_SET_BITS(EINCSRH, EINCSRH_SPLIT__ENABLED);
+    USB_SET_BITS(EINCSRH, EINCSRH_SPLIT__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1402,7 +1400,7 @@ extern void USB_EpnEnableSplitMode(void);
 extern void USB_EpnDisableSplitMode(void);
 #else
 #define USB_EpnDisableSplitMode() \
-    USB_CLEAR_BITS(EINCSRH, EINCSRH_SPLIT__ENABLED);
+    USB_CLEAR_BITS(EINCSRH, EINCSRH_SPLIT__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1412,7 +1410,7 @@ extern void USB_EpnDisableSplitMode(void);
 #ifdef IS_DOXYGEN
 extern void USB_EpnInClearDataToggle(void);
 #else
-#define USB_EpnInClearDataToggle() USB_SET_BITS(EINCSRL, EINCSRL_CLRDT__BMASK);
+#define USB_EpnInClearDataToggle() USB_SET_BITS(EINCSRL, EINCSRL_CLRDT__BMASK)
 #endif
 
 /***************************************************************************//**
@@ -1422,7 +1420,7 @@ extern void USB_EpnInClearDataToggle(void);
 #ifdef IS_DOXYGEN
 extern void USB_EpnInClearSentStall(void);
 #else
-#define USB_EpnInClearSentStall() USB_WRITE_BYTE(EINCSRL, 0);
+#define USB_EpnInClearSentStall() USB_WRITE_BYTE(EINCSRL, 0)
 #endif
 
 /***************************************************************************//**
@@ -1432,7 +1430,7 @@ extern void USB_EpnInClearSentStall(void);
 #ifdef IS_DOXYGEN
 extern void USB_EpnInStall(void);
 #else
-#define USB_EpnInStall() USB_WRITE_BYTE(EINCSRL, EINCSRL_SDSTL__SET);
+#define USB_EpnInStall() USB_WRITE_BYTE(EINCSRL, EINCSRL_SDSTL__SET)
 #endif
 
 /***************************************************************************//**
@@ -1442,7 +1440,7 @@ extern void USB_EpnInStall(void);
 #ifdef IS_DOXYGEN
 extern void USB_EpnInEndStall(void);
 #else
-#define USB_EpnInEndStall() USB_WRITE_BYTE(EINCSRL, 0);
+#define USB_EpnInEndStall() USB_WRITE_BYTE(EINCSRL, 0)
 #endif
 
 /***************************************************************************//**
@@ -1454,7 +1452,7 @@ extern void USB_EpnInEndStall(void);
 extern void USB_EpnInEndStallAndClearDataToggle(void);
 #else
 #define USB_EpnInEndStallAndClearDataToggle() \
-    USB_WRITE_BYTE(EINCSRL, EINCSRL_CLRDT__BMASK);
+    USB_WRITE_BYTE(EINCSRL, EINCSRL_CLRDT__BMASK)
 #endif
 
 /***************************************************************************//**
@@ -1472,7 +1470,7 @@ extern void USB_EpnInFlush(void);
     { \
       USB_READ_BYTE(EINCSRL); \
     } while (USB0DAT & EINCSRL_FLUSH__SET); \
-  } while (0);
+  } while (0)
 #endif
 
 /***************************************************************************//**
@@ -1482,7 +1480,7 @@ extern void USB_EpnInFlush(void);
 #ifdef IS_DOXYGEN
 extern void USB_EpnInClearUnderrun(void);
 #else
-#define USB_EpnInClearUnderrun() USB_CLEAR_BITS(EINCSRL, EINCSRL_UNDRUN__SET);
+#define USB_EpnInClearUnderrun() USB_CLEAR_BITS(EINCSRL, EINCSRL_UNDRUN__SET)
 #endif
 
 /***************************************************************************//**
@@ -1492,7 +1490,7 @@ extern void USB_EpnInClearUnderrun(void);
 #ifdef IS_DOXYGEN
 extern void USB_EpnSetInPacketReady(void);
 #else
-#define USB_EpnSetInPacketReady() USB_SET_BITS(EINCSRL, EINCSRL_INPRDY__SET);
+#define USB_EpnSetInPacketReady() USB_SET_BITS(EINCSRL, EINCSRL_INPRDY__SET)
 #endif
 
 /***************************************************************************//**
@@ -1503,7 +1501,7 @@ extern void USB_EpnSetInPacketReady(void);
 extern void USB_EpnInEnableDoubleBuffer(void);
 #else
 #define USB_EpnInEnableDoubleBuffer() \
-    USB_SET_BITS(EINCSRH, EINCSRH_DBIEN__ENABLED);
+    USB_SET_BITS(EINCSRH, EINCSRH_DBIEN__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1514,7 +1512,7 @@ extern void USB_EpnInEnableDoubleBuffer(void);
 extern void USB_EpnInDisableDoubleBuffer(void);
 #else
 #define USB_EpnInDisableDoubleBuffer() \
-    USB_CLEAR_BITS(EINCSRH, EINCSRH_DBIEN__ENABLED);
+    USB_CLEAR_BITS(EINCSRH, EINCSRH_DBIEN__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1525,7 +1523,7 @@ extern void USB_EpnInDisableDoubleBuffer(void);
 extern void USB_EpnInEnableInterruptBulkMode(void);
 #else
 #define USB_EpnInEnableInterruptBulkMode() \
-    USB_CLEAR_BITS(EINCSRH, EINCSRH_ISO__ENABLED);
+    USB_CLEAR_BITS(EINCSRH, EINCSRH_ISO__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1536,7 +1534,7 @@ extern void USB_EpnInEnableInterruptBulkMode(void);
 extern void USB_EpnInEnableIsochronousMode(void);
 #else
 #define USB_EpnInEnableIsochronousMode() \
-    USB_SET_BITS(EINCSRH, EINCSRH_ISO__ENABLED);
+    USB_SET_BITS(EINCSRH, EINCSRH_ISO__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1547,7 +1545,7 @@ extern void USB_EpnInEnableIsochronousMode(void);
 extern void USB_EpnInEnableForcedDataToggle(void);
 #else
 #define USB_EpnInEnableForcedDataToggle() \
-    USB_SET_BITS(EINCSRH, EINCSRH_FCDT__ALWAYS_TOGGLE);
+    USB_SET_BITS(EINCSRH, EINCSRH_FCDT__ALWAYS_TOGGLE)
 #endif
 
 /***************************************************************************//**
@@ -1558,7 +1556,7 @@ extern void USB_EpnInEnableForcedDataToggle(void);
 extern void USB_EpnInDisableForcedDataToggle(void);
 #else
 #define USB_EpnInDisableForcedDataToggle() \
-    USB_CLEAR_BITS(EINCSRH, EINCSRH_FCDT__ALWAYS_TOGGLE);
+    USB_CLEAR_BITS(EINCSRH, EINCSRH_FCDT__ALWAYS_TOGGLE)
 #endif
 
 /***************************************************************************//**
@@ -1569,7 +1567,7 @@ extern void USB_EpnInDisableForcedDataToggle(void);
 extern void USB_EpnOutClearDataToggle(void);
 #else
 #define USB_EpnOutClearDataToggle() \
-    USB_SET_BITS(EOUTCSRL, EOUTCSRL_CLRDT__BMASK);
+    USB_SET_BITS(EOUTCSRL, EOUTCSRL_CLRDT__BMASK)
 #endif
 
 /***************************************************************************//**
@@ -1580,7 +1578,7 @@ extern void USB_EpnOutClearDataToggle(void);
 extern void USB_EpnOutClearSentStall(void);
 #else
 #define USB_EpnOutClearSentStall() \
-    USB_CLEAR_BITS(EOUTCSRL, EOUTCSRL_STSTL__BMASK);
+    USB_CLEAR_BITS(EOUTCSRL, EOUTCSRL_STSTL__BMASK)
 #endif
 
 /***************************************************************************//**
@@ -1591,7 +1589,7 @@ extern void USB_EpnOutClearSentStall(void);
 extern void USB_EpnOutStall(void);
 #else
 #define USB_EpnOutStall() \
-    USB_SET_BITS(EOUTCSRL, EOUTCSRL_SDSTL__SET);
+    USB_SET_BITS(EOUTCSRL, EOUTCSRL_SDSTL__SET)
 #endif
 
 /***************************************************************************//**
@@ -1601,7 +1599,7 @@ extern void USB_EpnOutStall(void);
 #ifdef IS_DOXYGEN
 extern void USB_EpnOutEndStall(void);
 #else
-#define USB_EpnOutEndStall() USB_CLEAR_BITS(EOUTCSRL, EOUTCSRL_SDSTL__SET);
+#define USB_EpnOutEndStall() USB_CLEAR_BITS(EOUTCSRL, EOUTCSRL_SDSTL__SET)
 #endif
 
 /***************************************************************************//**
@@ -1620,7 +1618,7 @@ extern void USB_EpnOutEndStallAndClearDataToggle(void);
     while (USB0ADR & USB0ADR_BUSY__SET) {} \
     USB0DAT |= EOUTCSRL_CLRDT__BMASK; \
     while (USB0ADR & USB0ADR_BUSY__SET) {} \
-  } while (0);
+  } while (0)
 #endif
 
 /***************************************************************************//**
@@ -1638,7 +1636,7 @@ extern void USB_EpnOutFlush(void);
     { \
       USB_READ_BYTE(EOUTCSRL); \
     } while (USB0DAT & EOUTCSRL_FLUSH__SET); \
-  } while (0);
+  } while (0)
 #endif
 
 /***************************************************************************//**
@@ -1648,7 +1646,7 @@ extern void USB_EpnOutFlush(void);
 #ifdef IS_DOXYGEN
 extern void USB_EpnOutClearOverrun(void);
 #else
-#define USB_EpnOutClearOverrun() USB_CLEAR_BITS(EOUTCSRL, EOUTCSRL_OVRUN__SET);
+#define USB_EpnOutClearOverrun() USB_CLEAR_BITS(EOUTCSRL, EOUTCSRL_OVRUN__SET)
 #endif
 
 /***************************************************************************//**
@@ -1659,7 +1657,7 @@ extern void USB_EpnOutClearOverrun(void);
 extern void USB_EpnClearOutPacketReady(void);
 #else
 #define USB_EpnClearOutPacketReady() \
-    USB_CLEAR_BITS(EOUTCSRL, EOUTCSRL_OPRDY__SET);
+    USB_CLEAR_BITS(EOUTCSRL, EOUTCSRL_OPRDY__SET)
 #endif
 
 /***************************************************************************//**
@@ -1670,7 +1668,7 @@ extern void USB_EpnClearOutPacketReady(void);
 extern void USB_EpnOutEnableDoubleBuffer(void);
 #else
 #define USB_EpnOutEnableDoubleBuffer() \
-    USB_SET_BITS(EOUTCSRH, EOUTCSRH_DBIEN__ENABLED);
+    USB_SET_BITS(EOUTCSRH, EOUTCSRH_DBIEN__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1681,7 +1679,7 @@ extern void USB_EpnOutEnableDoubleBuffer(void);
 extern void USB_EpnOutDisableDoubleBuffer(void);
 #else
 #define USB_EpnOutDisableDoubleBuffer() \
-    USB_CLEAR_BITS(EOUTCSRH, EOUTCSRH_DBIEN__ENABLED);
+    USB_CLEAR_BITS(EOUTCSRH, EOUTCSRH_DBIEN__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1692,7 +1690,7 @@ extern void USB_EpnOutDisableDoubleBuffer(void);
 extern void USB_EpnOutEnableInterruptBulkMode(void);
 #else
 #define USB_EpnOutEnableInterruptBulkMode() \
-    USB_CLEAR_BITS(EOUTCSRH, EOUTCSRH_ISO__ENABLED);
+    USB_CLEAR_BITS(EOUTCSRH, EOUTCSRH_ISO__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1703,7 +1701,7 @@ extern void USB_EpnOutEnableInterruptBulkMode(void);
 extern void USB_EpnOutEnableIsochronousMode(void);
 #else
 #define USB_EpnOutEnableIsochronousMode() \
-    USB_SET_BITS(EOUTCSRH, EOUTCSRH_ISO__ENABLED);
+    USB_SET_BITS(EOUTCSRH, EOUTCSRH_ISO__ENABLED)
 #endif
 
 /***************************************************************************//**
@@ -1721,7 +1719,7 @@ extern void USB_EnableReadFIFO(uint8_t fifoNum);
     while (USB0ADR & USB0ADR_BUSY__SET) {} \
     USB0ADR = (USB0ADR_BUSY__SET \
                | USB0ADR_AUTORD__ENABLED \
-               | (FIFO0 | fifoNum)); \
+               | (FIFO0 | (fifoNum))); \
   } while (0)
 #endif
 
@@ -1744,13 +1742,13 @@ extern void USB_DisableReadFIFO(uint8_t fifoNum);
  * @note        This function is implemented as a macro.
  ******************************************************************************/
 #ifdef IS_DOXYGEN
-extern void USB_GetFIFOByte(uint8_t * readDat);
+extern void USB_GetFIFOByte(uint8_t *readDat);
 #else
 #define USB_GetFIFOByte(readDat) \
   do \
   { \
     while (USB0ADR & USB0ADR_BUSY__SET) {} \
-    readDat = USB0DAT; \
+    *(readDat) = USB0DAT; \
   } while (0)
 #endif
 
@@ -1766,14 +1764,14 @@ extern void USB_GetFIFOByte(uint8_t * readDat);
  * @note        This function is implemented as a macro.
  ******************************************************************************/
 #ifdef IS_DOXYGEN
-extern void USB_GetLastFIFOByte(uint8_t * readDat, uint8_t fifoNum);
+extern void USB_GetLastFIFOByte(uint8_t *readDat, uint8_t fifoNum);
 #else
 #define USB_GetLastFIFOByte(readDat, fifoNum) \
   do \
   { \
     while (USB0ADR & USB0ADR_BUSY__SET) {} \
-    USB0ADR = (FIFO0 | fifoNum);\
-    readDat = USB0DAT; \
+    USB0ADR = (FIFO0 | (fifoNum));\
+    *(readDat) = USB0DAT; \
   } while (0)
 #endif
 
@@ -1790,7 +1788,7 @@ extern void USB_EnableWriteFIFO(uint8_t fifoNum);
   do \
   { \
     while (USB0ADR & USB0ADR_BUSY__SET) {} \
-    USB0ADR = (FIFO0 | fifoNum); \
+    USB0ADR = (FIFO0 | (fifoNum)); \
   } while (0)
 #endif
 
@@ -1819,7 +1817,7 @@ extern void USB_SetFIFOByte(uint8_t writeDat);
   do \
   { \
     while (USB0ADR & USB0ADR_BUSY__SET) {} \
-    USB0DAT = writeDat; \
+    USB0DAT = (writeDat); \
   } while (0)
 #endif
 
@@ -1852,92 +1850,98 @@ extern void USB_RestoreSfrPage();
  * @param       epsel
  *              Endpoint index to target
  ******************************************************************************/
-void USB_SetIndex(uint8_t epsel);
+extern void USB_SetIndex(uint8_t epsel);
 
 /***************************************************************************//**
  * @brief       Reads the USB common interrupt register
  * @return      Value of CMINT
  ******************************************************************************/
-uint8_t USB_GetCommonInts(void);
+extern uint8_t USB_GetCommonInts(void);
 
 /***************************************************************************//**
  * @brief       Reads the USB in interrupt register
  * @return      Value of IN1INT
  ******************************************************************************/
-uint8_t USB_GetInInts(void);
+extern uint8_t USB_GetInInts(void);
 
 /***************************************************************************//**
  * @brief       Reads the out interrupt register
  * @return      Value of OUT1INT
  ******************************************************************************/
-uint8_t USB_GetOutInts(void);
+extern uint8_t USB_GetOutInts(void);
 
 /***************************************************************************//**
  * @brief       Reads the value in INDEX
  * @return      Value of INDEX
  ******************************************************************************/
-uint8_t USB_GetIndex(void);
+extern uint8_t USB_GetIndex(void);
 
 /***************************************************************************//**
  * @brief       Determines if the USB is currently suspended
  * @return      TRUE if USB is in suspend mode
  ******************************************************************************/
-bool USB_IsSuspended(void);
+extern bool USB_IsSuspended(void);
 
 /***************************************************************************//**
  * @brief       Gets Setup End state
  * @return      TRUE when a control transaction end before software has
  *              set the DATAEND bit.
  ******************************************************************************/
-bool USB_GetSetupEnd(void);
+extern bool USB_GetSetupEnd(void);
 
 /***************************************************************************//**
  * @brief       Determines if STALL was send on Endpoint 0
  * @return      TRUE after a STALL was sent on Endpoint 0
  ******************************************************************************/
-bool USB_Ep0SentStall(void);
+extern bool USB_Ep0SentStall(void);
 
 /***************************************************************************//**
  * @brief       Determines if Out Packet Ready is set on Endpoint 0
  * @return      TRUE if Out Packet Ready is set on Endpoint 0
  ******************************************************************************/
-bool USB_Ep0InPacketReady(void);
+extern bool USB_Ep0InPacketReady(void);
 
 /***************************************************************************//**
  * @brief       Determines if In Packet Ready is set on Endpoint 0
  * @return      TRUE if In Packet Ready is set on Endpoint 0
  ******************************************************************************/
-bool USB_Ep0OutPacketReady(void);
+extern bool USB_Ep0OutPacketReady(void);
 
 /***************************************************************************//**
  * @brief       Gets Endpoint 0 data count
  * @return      Number of received data bytes in the Endpoint 0 FIFO
  ******************************************************************************/
-uint8_t USB_Ep0GetCount(void);
+extern uint8_t USB_Ep0GetCount(void);
 
 /***************************************************************************//**
  * @brief       Checks if stall was sent on IN Endpoint N
  * @return      TRUE if stall was sent on IN Endpoint N, FALSE otherwise
  ******************************************************************************/
-bool USB_EpnInGetSentStall(void);
+extern bool USB_EpnInGetSentStall(void);
 
 /***************************************************************************//**
  * @brief       Checks if stall was sent on OUT Endpoint N
  * @return      TRUE if stall was sent on OUT Endpoint N, FALSE otherwise
  ******************************************************************************/
-bool USB_EpnGetInPacketReady(void);
+extern bool USB_EpnGetInPacketReady(void);
 
 /***************************************************************************//**
  * @brief       Checks if stall was sent on OUT Endpoint N
  * @return      TRUE if stall was sent on OUT Endpoint N, FALSE otherwise
  ******************************************************************************/
-bool USB_EpnOutGetSentStall(void);
+extern bool USB_EpnOutGetSentStall(void);
 
 /***************************************************************************//**
  * @brief       Gets OutPacketReady on OUT Endpoint N
  * @return      TRUE if OUTPacketReady is set, FALSE otherwise
  ******************************************************************************/
-bool USB_EpnGetOutPacketReady(void);
+extern bool USB_EpnGetOutPacketReady(void);
+
+/***************************************************************************//**
+ * @brief       Gets DataError on OUT Endpoint N
+ * @return      TRUE if Data Error bit is set, FALSE otherwise
+ ******************************************************************************/
+extern bool USB_EpnGetDataError(void);
 
 /***************************************************************************//**
  * @brief       Gets number of bytes in the OUT FIFO
@@ -1945,27 +1949,27 @@ bool USB_EpnGetOutPacketReady(void);
  * @return      Number of bytes in the FIFO from the last received
  *              packet
  ******************************************************************************/
-uint16_t USB_EpOutGetCount(void);
+extern uint16_t USB_EpOutGetCount(void);
 
 /***************************************************************************//**
  * @brief       Reads the USB frame number
  * @return      The frame number on the most recent SOF packet
  ******************************************************************************/
-uint16_t USB_GetSofNumber(void);
+extern uint16_t USB_GetSofNumber(void);
 
 /***************************************************************************//**
  * @brief       Aborts pending IN transactions on the selected endpoint
  * @param       fifoNum
  *              Endpoint to abort
  ******************************************************************************/
-void USB_AbortInEp(uint8_t fifoNum);
+extern void USB_AbortInEp(uint8_t fifoNum);
 
 /***************************************************************************//**
  * @brief       Aborts pending OUT transactions on the selected endpoint
  * @param       fifoNum
  *              Endpoint to abort
  ******************************************************************************/
-void USB_AbortOutEp(uint8_t fifoNum);
+extern void USB_AbortOutEp(uint8_t fifoNum);
 
 /***************************************************************************//**
  * @brief       Activates the selected endpoint
@@ -1980,11 +1984,11 @@ void USB_AbortOutEp(uint8_t fifoNum);
  * @param       isoMode
  *              Set to 1 if endpoint is in isochronous mode, 0 if it is not
  ******************************************************************************/
-void USB_ActivateEp(uint8_t ep,
-                    uint16_t packetSize,
-                    bool inDir,
-                    bool splitMode,
-                    bool isoMode);
+extern void USB_ActivateEp(uint8_t ep,
+                           uint16_t packetSize,
+                           bool inDir,
+                           bool splitMode,
+                           bool isoMode);
 
 /**  @} (end addtogroup usb_0_runtime USB0 Runtime API) */
 /**  @} (end addtogroup usb_0_group USB0 Driver) */

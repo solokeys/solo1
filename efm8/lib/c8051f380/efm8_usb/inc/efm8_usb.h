@@ -21,12 +21,16 @@
  *
  *   @section usb_device_contents Contents
  *
+ *   @li @ref usb_device_library_revision
  *   @li @ref usb_device_intro
  *   @li @ref usb_device_api
  *   @li @ref usb_device_conf
  *   @li @ref usb_device_powersave
  *   @li @ref usb_device_transfers
  *   @li @ref usb_device_pitfalls
+ *
+ *   @n @section usb_device_library_revision EFM8 USB Library Revision
+ *   Library Revision: 1.0.3
  *
  *   @n @section usb_device_intro Introduction
  *
@@ -108,11 +112,10 @@
  *
  *   @ref USBD_RemoteWakeup() @n
  *    Used in SUSPENDED state (see @ref USB_Status_TypeDef) to signal resume to
- *    host. It's the applications responsibility to adhere to the USB standard
- *    which states that a device can not signal resume before it has been
- *    SUSPENDED for at least 5 ms. The function will also check that the host
- *    has sent a SET_FEATURE request to enable Remote Wakeup before issuing the
- *    resume.
+ *    host. The function will be called automatically by the library if the
+ *    @ref USBD_RemoteWakeupCb() function returns true. The function will
+ *    also check that the host has sent a SET_FEATURE request to enable Remote
+ *    Wakeup before issuing the resume.
  *
  *   @ref USBD_GetUsbState() @n
  *    Returns the device USB state (see @ref USBD_State_TypeDef). Refer to
@@ -260,6 +263,16 @@
  * #define SLAB_USB_LANGUAGE                 USB_LANGID_ENUS
  *
  * // -----------------------------------------------------------------------------
+ * // Enable use of UTF-8 strings for string descriptors.
+ * // If this option is enabled then packed string descriptors that are created
+ * // with UTF8_PACKED_STATIC_CONST_STRING_DESC() can be UTF-8 encoded and they
+ * // will be decoded into UCS-2 16-bit wide character format used for USB string
+ * // descriptors.  If this feature is not needed then it can be disabled to save
+ * // some code memory space. 
+ * // -----------------------------------------------------------------------------
+ * #define SLAB_USB_UTF8_STRINGS             1
+ *
+ * // -----------------------------------------------------------------------------
  * // Set the power saving mode
  * //
  * // SLAB_USB_PWRSAVE_MODE configures when the device will automatically enter
@@ -269,9 +282,17 @@
  * //   USB_PWRSAVE_MODE_ONSUSPEND - Enter USB power-save mode on USB suspend
  * //   USB_PWRSAVE_MODE_ONVBUSOFF - Enter USB power-save mode when not attached
  * //                                to the USB host.
- * //   USB_PWRSAVE_MODE_FASTWAKE  - Exit USB power-save mode more quickly.
- * //                                This is useful for some applications that
- * //                                support remote wakeup.
+ * //   USB_PWRSAVE_MODE_FASTWAKE  - Exit USB power-save mode more quickly, but
+ * //                                consume more power while in USB power-save
+ * //                                mode.
+ * //                                While the device is in USB power-save mode
+ * //                                (typically during USB suspend), the
+ * //                                internal voltage regulator stays in normal
+ * //                                power mode instead of entering suspend
+ * //                                power mode.
+ * //                                This is an advanced feature that may be
+ * //                                useful in certain applications that support
+ * //                                remote wakeup.
  * // -----------------------------------------------------------------------------
  * #define SLAB_USB_PWRSAVE_MODE             (USB_PWRSAVE_MODE_ONVBUSOFF \
  *                                            | USB_PWRSAVE_MODE_ONSUSPEND)
@@ -686,14 +707,19 @@
 #endif
 
 #ifndef UNREFERENCED_ARGUMENT
+#if defined __C51__
 /// Macro for removing unreferenced arguments from compiler warnings
 #define UNREFERENCED_ARGUMENT(arg) (0, arg)
+#elif defined __ICC8051__
+/// Macro for removing unreferenced arguments from compiler warnings
+#define UNREFERENCED_ARGUMENT(arg) ((void)arg)
+#endif
 #endif
 
 /***************************************************************************//**
  * @brief       Macro for creating USB-compliant UTF-16LE UNICODE string
  *              descriptor from a C string.
- * @details     This macro should be used for UTF-8 strings in which all
+ * @details     This macro should be used for ASCII strings in which all
  *              characters are represented by a single ASCII byte (i.e.
  *              U.S. English strings).
  *              The USB Library will expand variables created with this macro
@@ -710,9 +736,71 @@
  * @param       __val
  *              The value of the string descriptor
  ******************************************************************************/
-#define UTF16LE_PACKED_STATIC_CONST_STRING_DESC(__name, __val) \
+#define UTF16LE_PACKED_STATIC_CONST_STRING_DESC(__name, __val, __size) \
   SI_SEGMENT_VARIABLE(__name,  static const USB_StringDescriptor_TypeDef, SI_SEG_CODE) = \
-    { USB_STRING_DESCRIPTOR_UTF16LE_PACKED, sizeof(__val) * 2, USB_STRING_DESCRIPTOR, __val }
+    { USB_STRING_DESCRIPTOR_UTF16LE_PACKED, __size * 2, USB_STRING_DESCRIPTOR, __val }
+
+/***************************************************************************//**
+ * @brief       Macro for creating USB-compliant UTF-16LE UNICODE string
+ *              descriptor from a UTF-8 string.
+ * @details     This macro should be used for UTF-8 strings in which all
+ *              characters are represented by a valid UTF-8 byte sequence
+ *              of 1-3 bytes per character.  The USB library will expand
+ *              variables created with this macro by decoding the UTF-8
+ *              sequence into 16-bit wide UCS-2 characters required for USB
+ *              string descriptors.
+ * @n@n         This example set an array named _manufacturer[]_ to a
+ *              series of symbols: an anchor, a lightning bolt, and a
+ *              fußball as the Manufacturer String:
+ *
+ *              #define MFR_STRING    "⚓⚡⚽"
+ *
+ *              // This string has 3 Unicode characters so the __len
+ *              // parameter is 3, even though it will take 3 bytes to
+ *              // represent each character
+ *              UTF8_PACKED_STATIC_CONST_STRING_DESC(manufacturer[], 3, \
+ *                                                   MFR_STRING);
+ * @param       __name
+ *              The name of the variable that holds the string descriptor
+ * @param       __len
+ *              Number of Unicode characters (or codepoints) in the string
+ * @param       __val
+ *              The value of the string descriptor
+ ******************************************************************************/
+#define UTF8_PACKED_STATIC_CONST_STRING_DESC(__name, __len, __val) \
+  SI_SEGMENT_VARIABLE(__name,  static const USB_StringDescriptor_TypeDef, SI_SEG_CODE) = \
+    { USB_STRING_DESCRIPTOR_UTF8, (__len) * 2, USB_STRING_DESCRIPTOR, __val }
+
+/***************************************************************************//**
+ * @brief       Macro for creating USB-compliant UTF-16LE UNICODE string
+ *              descriptor from a UTF-8 string.
+ * @details     This macro should be used for UTF-8 strings in which all
+ *              characters are represented by a valid UTF-8 byte sequence
+ *              of 1-3 bytes per character.  The USB library will expand
+ *              variables created with this macro by decoding the UTF-8
+ *              sequence into 16-bit wide UCS-2 characters required for USB
+ *              string descriptors.
+ * @n@n         This example set an array named _manufacturer[]_ to a
+ *              series of symbols: an anchor, a lightning bolt, and a
+ *              fußball as the Manufacturer String:
+ *
+ *              #define MFR_STRING    "⚓⚡⚽"
+ *
+ *              // This string has 3 Unicode characters so the __len
+ *              // parameter is 3, even though it will take 3 bytes to
+ *              // represent each character
+ *              UTF8_PACKED_STATIC_CONST_STRING_DESC(manufacturer[], 3, \
+ *                                                   MFR_STRING);
+ * @param       __name
+ *              The name of the variable that holds the string descriptor
+ * @param       __len
+ *              Number of Unicode characters (or codepoints) in the string
+ * @param       __val
+ *              The value of the string descriptor
+ ******************************************************************************/
+#define UTF8_PACKED_STATIC_CONST_STRING_DESC(__name, __len, __val) \
+  SI_SEGMENT_VARIABLE(__name,  static const USB_StringDescriptor_TypeDef, SI_SEG_CODE) = \
+    { USB_STRING_DESCRIPTOR_UTF8, (__len) * 2, USB_STRING_DESCRIPTOR, __val }
 
 /***************************************************************************//**
  * @brief       Macro for creating USB-compliant UTF-16LE UNICODE string
@@ -779,8 +867,8 @@
  *              The value of the string descriptor
  ******************************************************************************/
 #define LANGID_STATIC_CONST_STRING_DESC(__name, __val) \
-  SI_SEGMENT_VARIABLE(__name,  static const USB_LangId_StringDescriptor_Typedef, __code) = \
-    { (((SLAB_USB_NUM_LANGUAGES * 2) + 2) << 8) + USB_STRING_DESCRIPTOR, __val }
+  SI_SEGMENT_VARIABLE(__name,  static const USB_LangId_StringDescriptor_Typedef, SI_SEG_CODE) = \
+    { htole16(((SLAB_USB_NUM_LANGUAGES * 2) + 2) + (USB_STRING_DESCRIPTOR << 8)), __val }
 
 /**  @} (end addtogroup efm8_usb_macros Macros) */
 
@@ -809,7 +897,8 @@ typedef enum
   USB_STATUS_DEVICE_RESET = -11,                ///< Device is/was reset.
   USB_STATUS_TIMEOUT = -12,                     ///< Transfer timeout.
   USB_STATUS_DEVICE_REMOVED = -13,              ///< Device was removed.
-  USB_STATUS_EP_RX_BUFFER_OVERRUN = -14         ///< Not enough data in the Rx buffer to hold the
+  USB_STATUS_EP_RX_BUFFER_OVERRUN = -14,        ///< Not enough data in the Rx buffer to hold the
+  USB_STATUS_DATA_ERROR = -15,                  ///< OUT packet had CRC or bit-stuffing error
                                                 ///< last received packet
 } USB_Status_TypeDef;
 
@@ -863,7 +952,7 @@ typedef enum
 #if (SLAB_USB_EP3OUT_USED)
   EP3OUT,
 #endif
-}USB_EP_Index_TypeDef;
+} USB_EP_Index_TypeDef;
 
 /// @brief USB Setup type.
 typedef struct
@@ -994,7 +1083,7 @@ typedef uint16_t USB_LangId_StringDescriptor_Typedef; ///< The language ID strin
 
 #if (SLAB_USB_NUM_LANGUAGES == 1)
 /// @brief USB String Table Structure.
-typedef USB_StringDescriptor_TypeDef * *USB_StringTable_TypeDef;
+typedef SI_VARIABLE_SEGMENT_POINTER(, USB_StringDescriptor_TypeDef, SI_SEG_GENERIC) USB_StringTable_TypeDef;
 #elif (SLAB_USB_NUM_LANGUAGES > 1)
 typedef struct
 {
@@ -1008,17 +1097,17 @@ typedef struct
 ///  the device.
 typedef struct
 {
-  USB_DeviceDescriptor_TypeDef *deviceDescriptor; ///< Pointer to the device descriptor
-  uint8_t *configDescriptor;                      ///< Pointer to the configuration descriptor
-  USB_StringTable_TypeDef *stringDescriptors;     ///< Pointer to an array of string descriptor pointers
-  uint8_t numberOfStrings;                        ///< Number of strings in string descriptor array
+  SI_VARIABLE_SEGMENT_POINTER(deviceDescriptor, USB_DeviceDescriptor_TypeDef, SI_SEG_GENERIC);          ///< Pointer to the device descriptor
+  SI_VARIABLE_SEGMENT_POINTER(configDescriptor, USB_ConfigurationDescriptor_TypeDef, SI_SEG_GENERIC);   ///< Pointer to the configuration descriptor
+  SI_VARIABLE_SEGMENT_POINTER(stringDescriptors, USB_StringTable_TypeDef, SI_SEG_GENERIC);              ///< Pointer to an array of string descriptor pointers
+  uint8_t numberOfStrings;                                                                              ///< Number of strings in string descriptor array
 } USBD_Init_TypeDef;
 
 /// @cond DO_NOT_INCLUDE_WITH_DOXYGEN
 // Endpoint structure
 typedef struct
 {
-  uint8_t *buf;
+  SI_VARIABLE_SEGMENT_POINTER(buf, uint8_t, SI_SEG_GENERIC);
   uint16_t remaining;
   USBD_EpState_TypeDef state;
   union
@@ -1082,9 +1171,9 @@ typedef struct
 #if SLAB_USB_SUPPORT_ALT_INTERFACES
   uint8_t interfaceAltSetting[SLAB_USB_NUM_INTERFACES];
 #endif
-  USB_DeviceDescriptor_TypeDef *deviceDescriptor;
-  USB_ConfigurationDescriptor_TypeDef *configDescriptor;
-  USB_StringTable_TypeDef *stringDescriptors;
+  SI_VARIABLE_SEGMENT_POINTER(deviceDescriptor, USB_DeviceDescriptor_TypeDef, SI_SEG_GENERIC);
+  SI_VARIABLE_SEGMENT_POINTER(configDescriptor, USB_ConfigurationDescriptor_TypeDef, SI_SEG_GENERIC);
+  SI_VARIABLE_SEGMENT_POINTER(stringDescriptors, USB_StringTable_TypeDef, SI_SEG_GENERIC);
 } USBD_Device_TypeDef;
 /// @endcond DO_NOT_INCLUDE_WITH_DOXYGEN
 
@@ -1218,6 +1307,10 @@ USB_Status_TypeDef USBDCH9_SetupCmd(void);
  *
  * Default setting is '1' and may be overridden by defining in 'usbconfig.h'.
  *
+ * @note The EFM8UB1, EFM8UB3, and EFM8UB4 devices can be configured to ignore
+ *       the voltage on the VBUS pin and to instead use that pin as GPIO. If
+ *       this feature is used, SLAB_USB_BUS_POWERED should be set to '1' even if
+ *       the device is not drawing its power from the VBUS line.
  *****************************************************************************/
 
 /**************************************************************************//**
@@ -1250,9 +1343,9 @@ USB_Status_TypeDef USBDCH9_SetupCmd(void);
  * @brief Enables/disables remote wakeup capability
  * @details Remote wakeup allow the USB device to wake the host from suspend.
  *   When enabled, the library will call @ref USBD_RemoteWakeupCb() to determine
- *   if the remote wakeup source caused the device to wake up. If it was, the
- *   library will exit suspend mode and the application should call
- *   @ref USBD_RemoteWakeup() to wake up the host.
+ *   if the remote wakeup source caused the device to wake up. If it did, the
+ *   library will exit suspend mode and call @ref USBD_RemoteWakeup() to wake
+ *   up the host.
  *
  * When '1' remote wakeup is enabled
  * When '0' remote wakeup is disabled
@@ -1581,6 +1674,25 @@ USB_Status_TypeDef USBDCH9_SetupCmd(void);
  *****************************************************************************/
 
 /**************************************************************************//**
+ * @def SLAB_USB_UTF8_STRINGS
+ * @brief
+ *  Enables UTF-8 string decoding for USB string descriptors that are created
+ *  using @ref UTF8_PACKED_STATIC_CONST_STRING_DESC.
+ *
+ * @details
+ * If this option is enabled, USB descriptor strings that are created using
+ * @ref UTF8_PACKED_STATIC_CONST_STRING_DESC can be encoded as UTF-8 which
+ * allows for Unicode characters (up to 16-bits wide) to be used for USB
+ * string descriptors.  The UTF-8 strings will be decoded into UCS-2 16-bit
+ * wide character format required by USB.  If this feature is not needed then
+ * this option can be disabled to save code memory space.  If this option is
+ * disabled, then @ref UTF8_PACKED_STATIC_CONST_STRING_DESC should not be used.
+ *
+ * Default setting is '0' and may be overridden by defining in 'usbconfig.h'.
+ *
+ *****************************************************************************/
+
+/**************************************************************************//**
  * @def SLAB_USB_PWRSAVE_MODE
  * @brief Configures the power-saving options supported by the device
  *
@@ -1744,6 +1856,10 @@ USB_Status_TypeDef USBDCH9_SetupCmd(void);
 #define SLAB_USB_LANGUAGE                 USB_LANGID_ENUS
 #endif
 
+#ifndef SLAB_USB_UTF8_STRINGS
+#define SLAB_USB_UTF8_STRINGS             0
+#endif
+
 #ifndef SLAB_USB_PWRSAVE_MODE
 #define SLAB_USB_PWRSAVE_MODE             USB_PWRSAVE_MODE_ONSUSPEND
 #endif
@@ -1840,7 +1956,7 @@ USBD_State_TypeDef USBD_GetUsbState(void);
  * @return
  *   @ref USB_STATUS_OK on success, else an appropriate error code.
  ******************************************************************************/
-int8_t USBD_Init(const USBD_Init_TypeDef *p);
+int8_t USBD_Init(SI_VARIABLE_SEGMENT_POINTER(p, const USBD_Init_TypeDef, SI_SEG_GENERIC));
 
 /***************************************************************************//**
  * @brief
@@ -1866,8 +1982,8 @@ int8_t USBD_Init(const USBD_Init_TypeDef *p);
  * @return
  *   @ref USB_STATUS_OK on success, else an appropriate error code.
  ******************************************************************************/
-int8_t USBD_Read(uint8_t epAddr,
-                 uint8_t *dat,
+int8_t USBD_Read(uint8_t epAddr, 
+                 SI_VARIABLE_SEGMENT_POINTER(dat, uint8_t, SI_SEG_GENERIC),
                  uint16_t byteCount,
                  bool callback);
 
@@ -1876,10 +1992,9 @@ int8_t USBD_Read(uint8_t epAddr,
  *   Perform a remote wakeup signaling sequence.
  *
  * @note
- *   It is the responsibility of the application to ensure that remote wakeup
- *   is not attempted before the device has been suspended for at least 5
- *   miliseconds. This function should not be called from within an interrupt
- *   handler.
+ *   This function is typically called by the library if @ref
+ *   USBD_RemoteWakeupCb() returns true, so it does not need to be called by
+ *   application code.
  *
  * @return
  *   @ref USB_STATUS_OK on success, else an appropriate error code.
@@ -1915,7 +2030,7 @@ void USBD_Run(void);
  * @return
  *   @ref USB_STATUS_OK on success, else an appropriate error code.
  ******************************************************************************/
-int8_t USBD_StallEp(int8_t epAddr);
+int8_t USBD_StallEp(uint8_t epAddr);
 
 /***************************************************************************//**
  * @brief
@@ -1974,7 +2089,7 @@ int8_t USBD_UnStallEp(uint8_t epAddr);
  *   @ref USB_STATUS_OK on success, else an appropriate error code.
  ******************************************************************************/
 int8_t USBD_Write(uint8_t epAddr,
-                  uint8_t *dat,
+                  SI_VARIABLE_SEGMENT_POINTER(dat, uint8_t, SI_SEG_GENERIC),
                   uint16_t byteCount,
                   bool callback);
 
@@ -2113,8 +2228,8 @@ USB_Status_TypeDef USBD_SetInterfaceCb(uint8_t interface, uint8_t altSetting);
  *  If remote wakeup is enabled via @ref SLAB_USB_REMOTE_WAKEUP_ENABLED, the
  *  USB library will query the application after waking from suspend to see if
  *  the remote wakeup source was the reason for the wakeup. If this function
- *  returns True, the library will exit suspend mode and the application should
- *  call @ref USBD_RemoteWakeup() to wake up the host.
+ *  returns True, the library will call @ref USBD_RemoteWakeup() to wake up the
+ *  host and exit suspend mode.
  * @return
  *  True if the remote wakeup source was the reason the device woke from
  *  suspend, false otherwise.
@@ -2196,8 +2311,8 @@ uint16_t USBD_XferCompleteCb(uint8_t epAddr, \
 
 /// @cond DO_NOT_INCLUDE_WITH_DOXYGEN
 // -------------------- FIFO Access Functions  ---------------------------------
-void USB_ReadFIFO(uint8_t fifoNum, uint8_t numBytes, uint8_t *dat);
-void USB_WriteFIFO(uint8_t fifoNum, uint8_t numBytes, uint8_t *dat, bool txPacket);
+void USB_ReadFIFO(uint8_t fifoNum, uint8_t numBytes, SI_VARIABLE_SEGMENT_POINTER(dat, uint8_t, SI_SEG_GENERIC));
+void USB_WriteFIFO(uint8_t fifoNum, uint8_t numBytes, SI_VARIABLE_SEGMENT_POINTER(dat, uint8_t, SI_SEG_GENERIC), bool txPacket);
 /// @endcond DO_NOT_INCLUDE_WITH_DOXYGEN
 
 // -------------------- Include Files ------------------------------------------

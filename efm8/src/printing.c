@@ -11,6 +11,13 @@
 #include <stdio.h>
 #include "printing.h"
 
+void delay(uint16_t ms)
+{
+	uint16_t m1 = millis();
+	while (millis() - m1 < ms)
+		;
+}
+#ifdef USE_PRINTING
 void putf(char c)
 {
 	uint8_t i;
@@ -19,20 +26,23 @@ void putf(char c)
 	for (i=0; i<200; i++){}
 	for (i=0; i<200; i++){}
 	for (i=0; i<190; i++){}
-//	watchdog();
 }
+
+
 
 
 void dump_hex(uint8_t* hex, uint8_t len)
 {
 	uint8_t i;
+	uint8_t b;
+	const char lut[] = "0123456789abcdef";
 	for (i=0 ; i < len ; i++)
 	{
-		if (hex[i]<0x10)
-		{
-			putf('0');
-		}
-		cputb(hex[i]);
+		b = ((*hex) & 0xf0)>>4;
+		putf(lut[b]);
+		b = ((*hex) & 0x0f);
+		putf(lut[b]);
+		hex++;
 	}
 	cprints("\r\n");
 }
@@ -169,3 +179,4 @@ void cprintlx(const char * tag, uint8_t c, ...)
     put_line();
     va_end(args);
 }
+#endif

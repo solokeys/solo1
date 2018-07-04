@@ -10,6 +10,7 @@
 
 #include "em_chip.h"
 #include "em_gpio.h"
+#include "em_usart.h"
 
 #include "cbor.h"
 #include "log.h"
@@ -61,7 +62,8 @@ int ctap_user_presence_test()
 // data is HID_MESSAGE_SIZE long in bytes
 void ctaphid_write_block(uint8_t * data)
 {
-	dump_hex(data, HID_MESSAGE_SIZE);
+	printf1(TAG_DUMP,"<< "); dump_hex1(TAG_DUMP, data, HID_MESSAGE_SIZE);
+	usbhid_send(data);
 }
 
 void heartbeat()
@@ -83,13 +85,37 @@ void usbhid_init()
 
 }
 
+static int msgs_to_recv = 0;
+
 int usbhid_recv(uint8_t * msg)
 {
+	int i;
+	if (msgs_to_recv)
+	{
+		GPIO_PinOutClear(gpioPortC,10);
+		for (i = 0; i < 64; i++)
+		{
+			msg[i] = USART_SpiTransfer(USART1, 0);
+			delay(1);
+		}
+		msgs_to_recv--;
+//		printf(">> ");
+//		dump_hex(msg,64);
+		return 64;
+	}
+
 	return 0;
 }
 
 void usbhid_send(uint8_t * msg)
 {
+	int i;
+	GPIO_PinOutSet(gpioPortC,10);
+	for (i = 0; i < HID_MESSAGE_SIZE; i++)
+	{
+		USART_SpiTransfer(USART1, *msg++);
+	}
+	GPIO_PinOutClear(gpioPortC,10);
 }
 
 void usbhid_close()
@@ -100,6 +126,29 @@ void main_loop_delay()
 {
 }
 
+void delay(int ms)
+{
+	int t1 = millis();
+	while(millis() - t1 < ms)
+		;
+}
+
+void GPIO_ODD_IRQHandler()
+{
+	uint32_t flag = GPIO->IF;
+	GPIO->IFC = flag;
+	if (flag & (1<<9))
+	{
+//		printf("pin 9 interrupt\r\n");
+		msgs_to_recv++;
+	}
+	else
+	{
+		printf1(TAG_ERR,"wrong pin int %x\r\n",flag);
+	}
+
+
+}
 
 void device_init(void)
 {
@@ -107,6 +156,7 @@ void device_init(void)
   CHIP_Init();
   enter_DefaultMode_from_RESET();
 
+  // status LEDS
   GPIO_PinModeSet(gpioPortF,
                        4,
 					   gpioModePushPull,
@@ -117,7 +167,15 @@ void device_init(void)
 					   gpioModePushPull,
                        1);
 
+  // SPI R/W indicator
+  GPIO_PinModeSet(gpioPortC,
+                       10,
+					   gpioModePushPull,
+                       0);
 
+  // USB message rdy ext int
+  GPIO_ExtIntConfig(gpioPortC, 9, 9, 1, 0,1);
+  NVIC_EnableIRQ(GPIO_ODD_IRQn);
 
 
   printing_init();
@@ -127,5 +185,7 @@ void device_init(void)
   cbor_encoder_init(&test, buf, 20, 0);
 
   printf("Device init\r\n");
+  int i=0;
+
 
 }

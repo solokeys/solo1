@@ -18,7 +18,7 @@
 
 /**************************************************************************//**
  * @brief       Reads a 16-bit indirect USB register value
- * @param       regAddr
+ * @param [in]  regAddr
  *   Address of high byte of 16-bit USB indirect register to read
  * @return      16-bit register value
  *****************************************************************************/
@@ -125,6 +125,12 @@ bool USB_EpnGetOutPacketReady(void)
 {
   USB_READ_BYTE(EOUTCSRL);
   return (bool)(USB0DAT & EOUTCSRL_OPRDY__SET);
+}
+
+bool USB_EpnGetDataError(void)
+{
+  USB_READ_BYTE(EOUTCSRL);
+  return (bool)(USB0DAT & EOUTCSRL_DATERR__SET);
 }
 
 uint16_t USB_EpOutGetCount(void)

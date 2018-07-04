@@ -36,9 +36,11 @@
 
 #define reboot()	(RSTSRC = 1 << 4)
 
+#define millis() ((uint16_t)(TMR3L | (TMR3H << 8)))
+
 void u2f_delay(uint32_t ms);
 
-void usb_write(uint8_t* buf, uint8_t len);
+void usb_write();
 
 
 

@@ -22,6 +22,7 @@ all: main
 test: testgcm
 
 efm8prog:
+	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -erase
 	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -upload '.\efm8\Keil 8051 v9.53 - Debug\efm8.hex'
 
 efm32prog:

@@ -22,14 +22,13 @@ static USB_Status_TypeDef SetConfiguration(void);
 static USB_Status_TypeDef SetFeature(void);
 static USB_Status_TypeDef SetInterface(void);
 static void USBD_ActivateAllEps(bool forceIdle);
-static void EP0_Write(uint8_t *dat, uint16_t numBytes);
-void SendEp0Stall(void);
+static void EP0_Write(SI_VARIABLE_SEGMENT_POINTER(dat, uint8_t, SI_SEG_GENERIC), uint16_t numBytes);
 
 // -----------------------------------------------------------------------------
 // Global Variables
 
 extern SI_SEGMENT_VARIABLE(myUsbDevice, USBD_Device_TypeDef, MEM_MODEL_SEG);
-SI_SEGMENT_VARIABLE(txZero[2], uint8_t, SI_SEG_CODE);
+const SI_SEGMENT_VARIABLE(txZero[2], uint8_t, SI_SEG_CODE);
 
 // -----------------------------------------------------------------------------
 // Static Global Variables
@@ -90,15 +89,6 @@ USB_Status_TypeDef USBDCH9_SetupCmd(void)
     default:
       status = USB_STATUS_REQ_ERR;
       break;
-  }
-
-  // Reset index to 0 in case one of the above commands modified it
-  USB_SetIndex(0);
-
-  // If the command resulted in an error, send a procedural stall
-  if (status == USB_STATUS_REQ_ERR)
-  {
-    SendEp0Stall();
   }
 
   return status;
@@ -238,7 +228,7 @@ static USB_Status_TypeDef GetConfiguration(void)
   {
     if (myUsbDevice.state == USBD_STATE_ADDRESSED)
     {
-      EP0_Write(txZero, 1);
+      EP0_Write((SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))txZero, 1);
       retVal = USB_STATUS_OK;
     }
     else if (myUsbDevice.state == USBD_STATE_CONFIGURED)
@@ -267,7 +257,7 @@ static USB_Status_TypeDef GetDescriptor(void)
 
   uint8_t index;
   uint16_t length = 0;
-  uint8_t *dat;
+  SI_VARIABLE_SEGMENT_POINTER(dat, uint8_t, SI_SEG_GENERIC);
   USB_Status_TypeDef retVal = USB_STATUS_REQ_ERR;
 
   if (*((uint8_t *)&myUsbDevice.setup.bmRequestType) ==
@@ -282,7 +272,7 @@ static USB_Status_TypeDef GetDescriptor(void)
         {
           break;
         }
-        dat = (uint8_t *)myUsbDevice.deviceDescriptor;
+        dat = (SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))myUsbDevice.deviceDescriptor;
         length = myUsbDevice.deviceDescriptor->bLength;
         break;
 
@@ -291,14 +281,14 @@ static USB_Status_TypeDef GetDescriptor(void)
         {
           break;
         }
-        dat = (uint8_t *)myUsbDevice.configDescriptor;
+        dat = (SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))myUsbDevice.configDescriptor;
         length = le16toh(myUsbDevice.configDescriptor->wTotalLength);
         break;
 
       case USB_STRING_DESCRIPTOR:
   #if (SLAB_USB_NUM_LANGUAGES == 1)
 
-        dat = (uint8_t *)myUsbDevice.stringDescriptors[index];
+        dat = (SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))myUsbDevice.stringDescriptors[index];
 
         // Index 0 is the language string. If SLAB_USB_NUM_LANGUAGES == 1, we
         // know the length will be 4 and the format will be UTF16LE.
@@ -327,7 +317,7 @@ static USB_Status_TypeDef GetDescriptor(void)
         // Index 0 is the language.
         if (index == 0)
         {
-          dat = ((uint8_t *)myUsbDevice.stringDescriptors->languageArray[0][index]);
+          dat = ((SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))myUsbDevice.stringDescriptors->languageArray[0][index]);
           length = *((uint8_t *)dat);
           myUsbDevice.ep0String.encoding.type = USB_STRING_DESCRIPTOR_UTF16LE;
         }
@@ -345,7 +335,7 @@ static USB_Status_TypeDef GetDescriptor(void)
           }
           if ((langSupported == true) && (index < myUsbDevice.numberOfStrings))
           {
-            dat = ((uint8_t *)myUsbDevice.stringDescriptors->languageArray[lang][index]);
+            dat = ((SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))myUsbDevice.stringDescriptors->languageArray[lang][index]);
             length = *(dat + USB_STRING_DESCRIPTOR_LENGTH);
             myUsbDevice.ep0String.encoding.type = *(dat + USB_STRING_DESCRIPTOR_ENCODING);
             dat += USB_STRING_DESCRIPTOR_LENGTH;
@@ -403,10 +393,10 @@ static USB_Status_TypeDef GetInterface(void)
     {
 #if (SLAB_USB_SUPPORT_ALT_INTERFACES)
       // Return the alternate setting for the specified interface
-      EP0_Write(&myUsbDevice.interfaceAltSetting[interface], 1);
+      EP0_Write((SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))&myUsbDevice.interfaceAltSetting[interface], 1);
 #else
       // Alternate interfaces are not supported, so return 0x0000.
-      EP0_Write(&txZero, 1);
+      EP0_Write((SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))&txZero, 1);
 #endif
       retVal = USB_STATUS_OK;
     }
@@ -541,7 +531,7 @@ static USB_Status_TypeDef GetStatus(void)
     // If the command was valid, send the requested status.
     if (retVal == USB_STATUS_OK)
     {
-      EP0_Write((uint8_t *)&pStatus, 2);
+      EP0_Write((SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))&pStatus, 2);
     }
   }
 
@@ -868,11 +858,11 @@ static void USBD_ActivateAllEps(bool forceIdle)
  * @param       numBytes
  *              Number of bytes to transmit on Endpoint 0
  ******************************************************************************/
-static void EP0_Write(uint8_t *dat, uint16_t numBytes)
+static void EP0_Write(SI_VARIABLE_SEGMENT_POINTER(dat, uint8_t, SI_SEG_GENERIC), uint16_t numBytes)
 {
   if (myUsbDevice.ep0.state == D_EP_IDLE)
   {
-    myUsbDevice.ep0.buf = (uint8_t *)dat;
+    myUsbDevice.ep0.buf = dat;
     myUsbDevice.ep0.remaining = numBytes;
     myUsbDevice.ep0.state = D_EP_TRANSMITTING;
     myUsbDevice.ep0.misc.c = 0;

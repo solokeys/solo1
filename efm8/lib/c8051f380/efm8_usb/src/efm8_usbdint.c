@@ -13,7 +13,7 @@
 // Global variables
 
 extern SI_SEGMENT_VARIABLE(myUsbDevice, USBD_Device_TypeDef, MEM_MODEL_SEG);
-extern SI_SEGMENT_VARIABLE(txZero[2], uint8_t, SI_SEG_CODE);
+extern SI_SEGMENT_VARIABLE(txZero[2], const uint8_t, SI_SEG_CODE);
 
 // -----------------------------------------------------------------------------
 // Function prototypes
@@ -47,6 +47,12 @@ void handleUsbOut3Int(void);
 #endif // SLAB_USB_EP3OUT_USED
 
 void SendEp0Stall(void);
+
+#if SLAB_USB_UTF8_STRINGS == 1
+static uint8_t decodeUtf8toUcs2(
+                const uint8_t *pUtf8in,
+                SI_VARIABLE_SEGMENT_POINTER(pUcs2out, uint16_t, MEM_MODEL_SEG));
+#endif
 
 // -----------------------------------------------------------------------------
 // Functions
@@ -212,6 +218,8 @@ void usbIrqHandler(void)
  ******************************************************************************/
 static void handleUsbEp0Int(void)
 {
+  USB_Status_TypeDef retVal = USB_STATUS_REQ_UNHANDLED;
+
   USB_SetIndex(0);
 
   if (USB_Ep0SentStall() || USB_GetSetupEnd())
@@ -234,32 +242,55 @@ static void handleUsbEp0Int(void)
 
       // Vendor unique, Class or Standard setup commands override?
 #if SLAB_USB_SETUP_CMD_CB
-      if (USBD_SetupCmdCb(&myUsbDevice.setup) == USB_STATUS_REQ_UNHANDLED)
+      retVal = USBD_SetupCmdCb(&myUsbDevice.setup);
+
+      if (retVal == USB_STATUS_REQ_UNHANDLED)
       {
 #endif
-      if (myUsbDevice.setup.bmRequestType.Type == USB_SETUP_TYPE_STANDARD)
-      {
-        USBDCH9_SetupCmd();
+        if (myUsbDevice.setup.bmRequestType.Type == USB_SETUP_TYPE_STANDARD)
+        {
+          retVal = USBDCH9_SetupCmd();
+        }
+#if SLAB_USB_SETUP_CMD_CB
       }
+#endif
+
+      // Reset index to 0 in case the call to USBD_SetupCmdCb() or
+      // USBDCH9_SetupCmd() changed it.
+      USB_SetIndex(0);
+
+      // Put the Enpoint 0 hardware into the correct state here.
+      if (retVal == USB_STATUS_OK)
+      {
+        // If wLength is 0, there is no Data Phase
+        // Set both the Serviced Out Packet Ready and Data End bits
+        if (myUsbDevice.setup.wLength == 0)
+        {
+          USB_Ep0SetLastOutPacketReady();
+        }
+        // If wLength is non-zero, there is a Data Phase.
+        // Set only the Serviced Out Packet Ready bit.
+        else
+        {
+          USB_Ep0ServicedOutPacketReady();
+          
+#if SLAB_USB_SETUP_CMD_CB
+          // If OUT packet but callback didn't set up a USBD_Read and we are expecting a 
+          // data byte then we need to wait for the read to be setup and NACK packets until
+          // USBD_Read is called.
+          if ((myUsbDevice.setup.bmRequestType.Direction == USB_SETUP_DIR_OUT)
+              && (myUsbDevice.ep0.state != D_EP_RECEIVING))
+          {
+            myUsbDevice.ep0.misc.bits.waitForRead = true;
+          }
+#endif
+        }
+      }
+      // If the setup transaction detected an error, send a stall
       else
       {
         SendEp0Stall();
       }
-#if SLAB_USB_SETUP_CMD_CB
-    }
-    else
-    {
-      // If in-packet but callback didn't setup a USBD_Read and we are expecting a data byte then
-      // we need to wait for the read to be setup and nack packets till USBD_Read is called.
-      if ((myUsbDevice.setup.bmRequestType.Direction == USB_SETUP_DIR_OUT)
-          && (myUsbDevice.ep0.state != D_EP_RECEIVING)
-          && (myUsbDevice.setup.wLength)
-          )
-      {
-        myUsbDevice.ep0.misc.bits.waitForRead = true;
-      }
-    }
-#endif
     }
     else if (myUsbDevice.ep0.state == D_EP_RECEIVING)
     {
@@ -281,11 +312,9 @@ static void handleUsbEp0Int(void)
  ******************************************************************************/
 static void USB_ReadFIFOSetup(void)
 {
-  uint16_t MEM_MODEL_SEG *ptr = &myUsbDevice.setup;
+  SI_VARIABLE_SEGMENT_POINTER(ptr, uint16_t, MEM_MODEL_SEG) = (SI_VARIABLE_SEGMENT_POINTER(, uint16_t, MEM_MODEL_SEG))&myUsbDevice.setup;
 
-  USB_ReadFIFO(0, 8, (uint8_t *)ptr);
-
-  USB_Ep0ServicedOutPacketReady();
+  USB_ReadFIFO(0, 8, (SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))ptr);
 
   // Modify for Endian-ness of the compiler
   ptr[1] = le16toh(ptr[1]);
@@ -339,9 +368,11 @@ static void handleUsbResetInt(void)
   USB_EnableSuspendDetection();
   USB_EnableDeviceInts();
 
-  // If VBUS is preset, put the device in the Default state.
-  // Otherwise, put it in the Attached state.
-#if (!(SLAB_USB_PWRSAVE_MODE & USB_PWRSAVE_MODE_ONVBUSOFF))
+  // If the device is bus-powered, always put it in the Default state.
+  // If the device is self-powered and VBUS is present, put the device in the
+  // Default state. Otherwise, put it in the Attached state.
+#if (!SLAB_USB_BUS_POWERED) && \
+    (!(SLAB_USB_PWRSAVE_MODE & USB_PWRSAVE_MODE_ONVBUSOFF))
   if (USB_IsVbusOn())
   {
     USBD_SetUsbState(USBD_STATE_DEFAULT);
@@ -406,12 +437,16 @@ static void handleUsbEp0Tx(void)
   // Strings can use the USB_STRING_DESCRIPTOR_UTF16LE_PACKED type to pack
   // UTF16LE data without the zero's between each character.
   // If the current string is of type USB_STRING_DESCRIPTOR_UTF16LE_PACKED,
-  // unpacket it by inserting a zero between each character in the string.
-  if (myUsbDevice.ep0String.encoding.type == USB_STRING_DESCRIPTOR_UTF16LE_PACKED)
+  // unpack it by inserting a zero between each character in the string.
+  if ((myUsbDevice.ep0String.encoding.type == USB_STRING_DESCRIPTOR_UTF16LE_PACKED)
+#if SLAB_USB_UTF8_STRINGS == 1
+   || (myUsbDevice.ep0String.encoding.type == USB_STRING_DESCRIPTOR_UTF8)
+#endif
+     )
   {
     // If ep0String.encoding.init is true, this is the beginning of the string.
     // The first two bytes of the string are the bLength and bDescriptorType
-    // fields. These are no packed like the reset of the string, so write them
+    // fields. These are not packed like the reset of the string, so write them
     // to the FIFO and set ep0String.encoding.init to false.
     if (myUsbDevice.ep0String.encoding.init == true)
     {
@@ -424,9 +459,36 @@ static void handleUsbEp0Tx(void)
     // Insert a 0x00 between each character of the string.
     for (i = 0; i < count / 2; i++)
     {
-      USB_WriteFIFO(0, 1, myUsbDevice.ep0.buf, false);
-      myUsbDevice.ep0.buf++;
-      USB_WriteFIFO(0, 1, &txZero, false);
+#if SLAB_USB_UTF8_STRINGS == 1
+      if (myUsbDevice.ep0String.encoding.type == USB_STRING_DESCRIPTOR_UTF8)
+      {
+        SI_SEGMENT_VARIABLE(ucs2, uint16_t, MEM_MODEL_SEG);
+        uint8_t utf8count;
+
+        // decode the utf8 into ucs2 for usb string
+        utf8count = decodeUtf8toUcs2(myUsbDevice.ep0.buf, &ucs2);
+
+        // if consumed utf8 bytes is 0, it means either null byte was
+        // input or bad utf8 byte sequence.  Either way its an error and
+        // there's not much we can do.  So just advance the input string
+        // by one character and keep going until count is expired.
+        if (utf8count == 0)
+        {
+          utf8count = 1;
+        }
+
+        // adjust to next char in utf8 byte sequence
+        myUsbDevice.ep0.buf += utf8count;
+        ucs2 = htole16(ucs2); // usb 16-bit chars are little endian
+        USB_WriteFIFO(0, 2, (SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))&ucs2, false);
+      }
+      else
+#endif
+      {
+        USB_WriteFIFO(0, 1, (SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))myUsbDevice.ep0.buf, false);
+        myUsbDevice.ep0.buf++;
+        USB_WriteFIFO(0, 1, (SI_VARIABLE_SEGMENT_POINTER(, uint8_t, SI_SEG_GENERIC))&txZero, false);
+      }
     }
   }
   // For any data other than USB_STRING_DESCRIPTOR_UTF16LE_PACKED, just send the
@@ -525,6 +587,98 @@ void SendEp0Stall(void)
   myUsbDevice.ep0.state = D_EP_STALL;
   USB_Ep0SendStall();
 }
+
+#if SLAB_USB_UTF8_STRINGS == 1
+/***************************************************************************//**
+ *  Decodes UTF-8 to UCS-2 (16-bit) character encoding that is used
+ *  for USB string descriptors.
+ * 
+ *  @param pUtf8in pointer to next character in UTF-8 string
+ *  @param pUcs2out pointer to location for 16-bit character output
+ * 
+ *  Decodes a UTF-8 byte sequence into a single UCS-2 character.  This
+ *  will only decode up to 16-bit code point and will not handle the
+ *  21-bit case (4 bytes input).
+ * 
+ *  For valid cases, the UTF8 character sequence decoded into a 16-bit
+ *  character and stored at the location pointed at by _pUcs2out_.
+ *  The function will then return the number of input bytes that were
+ *  consumed (1, 2, or 3).  The caller can use the return value to find
+ *  the start of the next character sequence in a utf-8 string.
+ * 
+ *  If either of the input pointers are NULL, then 0 is returned.
+ * 
+ *  If the first input character is NULL, then the output 16-bit value
+ *  will be set to NULL and the function will return 0.
+ * 
+ *  If any other invalid sequence is detected, then the 16-bit output
+ *  will be set to the equivalent of the question mark character (0x003F)
+ *  and the return code will be 0.
+ * 
+ *  @return count of UTF8 bytes consumed
+ ******************************************************************************/
+static uint8_t decodeUtf8toUcs2(
+                const uint8_t *pUtf8in,
+                SI_VARIABLE_SEGMENT_POINTER(pUcs2out, uint16_t, MEM_MODEL_SEG))
+{
+  uint8_t ret = 0;
+
+  // check the input pointers
+  if (!pUtf8in || !pUcs2out)
+  {
+    return 0;
+  }
+
+  // set default decode to error '?';
+  *pUcs2out = '?';
+
+  // valid cases:
+  // 0xxxxxxx (7 bits)
+  // 110xxxxx 10xxxxxx (11 bits)
+  // 1110xxxx 10xxxxxx 10xxxxxx (16 bits)
+
+  // null input
+  if (pUtf8in[0] == 0)
+  {
+    *pUcs2out = 0;
+    ret = 0;
+  }
+
+  // 7-bit char
+  else if (pUtf8in[0] < 128)
+  {
+    *pUcs2out = pUtf8in[0];
+    ret = 1;
+  }
+
+  // 11-bit char
+  else if ((pUtf8in[0] & 0xE0) == 0xC0)
+  {
+    if ((pUtf8in[1] & 0xC0) == 0x80)
+    {
+      *pUcs2out = ((pUtf8in[0] & 0x1F) << 6) | (pUtf8in[1] & 0x3F);
+      ret = 2;
+    }
+  }
+
+  // 16-bit char
+  else if ((pUtf8in[0] & 0xF0) == 0xE0)
+  {
+    if ((pUtf8in[1] & 0xC0) == 0x80)
+    {
+      if ((pUtf8in[2] & 0xC0) == 0x80)
+      {
+        *pUcs2out = ((pUtf8in[0] & 0x0F) << 12)
+                  | ((pUtf8in[1] & 0x3F) << 6)
+                  | (pUtf8in[2] & 0x3F);
+        ret = 3;
+      }
+    }
+  }
+
+  return ret;
+}
+#endif // SLAB_USB_UTF8_STRINGS
 
 // This function is called from USBD_Init(). It forces the user project to pull
 // this module from the library so that the declared ISR can be seen and

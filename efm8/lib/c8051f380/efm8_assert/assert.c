@@ -3,13 +3,10 @@
  *
  * http://developer.silabs.com/legal/version/v11/Silicon_Labs_Software_License_Agreement.txt
  *****************************************************************************/
-
+   
 #ifndef NDEBUG
-void slab_Assert( const char * file, int line )
+void slab_Assert()
 {
-  file = file;
-  line = line;
-
   while ( 1 );
 }
 #endif

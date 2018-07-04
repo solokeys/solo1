@@ -29,8 +29,8 @@ extern void enter_DefaultMode_from_RESET(void) {
 	WDT_0_enter_DefaultMode_from_RESET();
 	PORTS_0_enter_DefaultMode_from_RESET();
 	PORTS_1_enter_DefaultMode_from_RESET();
-	PORTS_2_enter_DefaultMode_from_RESET();
 	PBCFG_0_enter_DefaultMode_from_RESET();
+	LFOSC_0_enter_DefaultMode_from_RESET();
 	CIP51_0_enter_DefaultMode_from_RESET();
 	CLOCK_0_enter_DefaultMode_from_RESET();
 	TIMER01_0_enter_DefaultMode_from_RESET();
@@ -184,14 +184,14 @@ extern void TIMER_SETUP_0_enter_DefaultMode_from_RESET(void) {
 	 - System clock divided by 4
 	 - Counter/Timer 0 uses the clock defined by the prescale field, SCA
 	 - Timer 2 high byte uses the clock defined by T2XCLK in TMR2CN0
-	 - Timer 2 low byte uses the system clock
+	 - Timer 2 low byte uses the clock defined by T2XCLK in TMR2CN0
 	 - Timer 3 high byte uses the clock defined by T3XCLK in TMR3CN0
-	 - Timer 3 low byte uses the system clock
+	 - Timer 3 low byte uses the clock defined by T3XCLK in TMR3CN0
 	 - Timer 1 uses the system clock
 	 ***********************************************************************/
 	CKCON0 = CKCON0_SCA__SYSCLK_DIV_4 | CKCON0_T0M__PRESCALE
-			| CKCON0_T2MH__EXTERNAL_CLOCK | CKCON0_T2ML__SYSCLK
-			| CKCON0_T3MH__EXTERNAL_CLOCK | CKCON0_T3ML__SYSCLK
+			| CKCON0_T2MH__EXTERNAL_CLOCK | CKCON0_T2ML__EXTERNAL_CLOCK
+			| CKCON0_T3MH__EXTERNAL_CLOCK | CKCON0_T3ML__EXTERNAL_CLOCK
 			| CKCON0_T1M__SYSCLK;
 	// [CKCON0 - Clock Control 0]$
 
@@ -288,23 +288,19 @@ extern void TIMER16_2_enter_DefaultMode_from_RESET(void) {
 
 	// $[TMR2RLH - Timer 2 Reload High Byte]
 	/***********************************************************************
-	 - Timer 2 Reload High Byte = 0x44
+	 - Timer 2 Reload High Byte = 0x63
 	 ***********************************************************************/
-	TMR2RLH = (0x44 << TMR2RLH_TMR2RLH__SHIFT);
+	TMR2RLH = (0x63 << TMR2RLH_TMR2RLH__SHIFT);
 	// [TMR2RLH - Timer 2 Reload High Byte]$
 
 	// $[TMR2RLL - Timer 2 Reload Low Byte]
 	/***********************************************************************
-	 - Timer 2 Reload Low Byte = 0x80
+	 - Timer 2 Reload Low Byte = 0xC0
 	 ***********************************************************************/
-	TMR2RLL = (0x80 << TMR2RLL_TMR2RLL__SHIFT);
+	TMR2RLL = (0xC0 << TMR2RLL_TMR2RLL__SHIFT);
 	// [TMR2RLL - Timer 2 Reload Low Byte]$
 
 	// $[TMR2CN0]
-	/***********************************************************************
-	 - Start Timer 2 running
-	 ***********************************************************************/
-	TMR2CN0 |= TMR2CN0_TR2__RUN;
 	// [TMR2CN0]$
 
 	// $[Timer Restoration]
@@ -327,6 +323,10 @@ extern void TIMER16_3_enter_DefaultMode_from_RESET(void) {
 	// [TMR3CN1 - Timer 3 Control 1]$
 
 	// $[TMR3CN0 - Timer 3 Control]
+	/***********************************************************************
+	 - Timer 3 clock is the low-frequency oscillator divided by 8 
+	 ***********************************************************************/
+	TMR3CN0 |= TMR3CN0_T3XCLK__LFOSC_DIV_8;
 	// [TMR3CN0 - Timer 3 Control]$
 
 	// $[TMR3H - Timer 3 High Byte]
@@ -342,6 +342,10 @@ extern void TIMER16_3_enter_DefaultMode_from_RESET(void) {
 	// [TMR3RLL - Timer 3 Reload Low Byte]$
 
 	// $[TMR3CN0]
+	/***********************************************************************
+	 - Start Timer 3 running
+	 ***********************************************************************/
+	TMR3CN0 |= TMR3CN0_TR3__RUN;
 	// [TMR3CN0]$
 
 	// $[Timer Restoration]
@@ -408,7 +412,7 @@ extern void PORTS_1_enter_DefaultMode_from_RESET(void) {
 	// $[P1MDOUT - Port 1 Output Mode]
 	/***********************************************************************
 	 - P1.0 output is open-drain
-	 - P1.1 output is open-drain
+	 - P1.1 output is push-pull
 	 - P1.2 output is open-drain
 	 - P1.3 output is open-drain
 	 - P1.4 output is push-pull
@@ -416,7 +420,7 @@ extern void PORTS_1_enter_DefaultMode_from_RESET(void) {
 	 - P1.6 output is push-pull
 	 - P1.7 output is open-drain
 	 ***********************************************************************/
-	P1MDOUT = P1MDOUT_B0__OPEN_DRAIN | P1MDOUT_B1__OPEN_DRAIN
+	P1MDOUT = P1MDOUT_B0__OPEN_DRAIN | P1MDOUT_B1__PUSH_PULL
 			| P1MDOUT_B2__OPEN_DRAIN | P1MDOUT_B3__OPEN_DRAIN
 			| P1MDOUT_B4__PUSH_PULL | P1MDOUT_B5__PUSH_PULL
 			| P1MDOUT_B6__PUSH_PULL | P1MDOUT_B7__OPEN_DRAIN;
@@ -520,9 +524,9 @@ extern void UART_0_enter_DefaultMode_from_RESET(void) {
 extern void SPI_0_enter_DefaultMode_from_RESET(void) {
 	// $[SPI0CKR - SPI0 Clock Rate]
 	/***********************************************************************
-	 - SPI0 Clock Rate = 0x17
+	 - SPI0 Clock Rate = 0x0B
 	 ***********************************************************************/
-	SPI0CKR = (0x17 << SPI0CKR_SPI0CKR__SHIFT);
+	SPI0CKR = (0x0B << SPI0CKR_SPI0CKR__SHIFT);
 	// [SPI0CKR - SPI0 Clock Rate]$
 
 	// $[SPI0FCN0 - SPI0 FIFO Control 0]
@@ -542,6 +546,23 @@ extern void SPI_0_enter_DefaultMode_from_RESET(void) {
 	SPI0CN0 &= ~SPI0CN0_NSSMD__FMASK;
 	SPI0CN0 |= SPI0CN0_SPIEN__ENABLED;
 	// [SPI0CN0 - SPI0 Control]$
+
+}
+
+extern void LFOSC_0_enter_DefaultMode_from_RESET(void) {
+	// $[LFO0CN - Low Frequency Oscillator Control]
+	/***********************************************************************
+	 - Internal L-F Oscillator Enabled
+	 - Divide by 8 selected
+	 ***********************************************************************/
+	LFO0CN &= ~LFO0CN_OSCLD__FMASK;
+	LFO0CN |= LFO0CN_OSCLEN__ENABLED;
+	// [LFO0CN - Low Frequency Oscillator Control]$
+
+	// $[Wait for LFOSC Ready]
+	while ((LFO0CN & LFO0CN_OSCLRDY__BMASK) != LFO0CN_OSCLRDY__SET)
+		;
+	// [Wait for LFOSC Ready]$
 
 }
 
