@@ -25,6 +25,7 @@
     <property object="P0.7" propertyId="ports.settings.outputmode" value="Push-pull"/>
     <property object="P1.1" propertyId="ports.settings.iomode" value="Digital Push-Pull Output"/>
     <property object="P1.1" propertyId="ports.settings.outputmode" value="Push-pull"/>
+    <property object="P1.2" propertyId="ports.settings.latch" value="Low"/>
     <property object="P1.4" propertyId="ports.settings.iomode" value="Digital Push-Pull Output"/>
     <property object="P1.4" propertyId="ports.settings.outputmode" value="Push-pull"/>
     <property object="P1.5" propertyId="ports.settings.iomode" value="Digital Push-Pull Output"/>
@@ -77,16 +78,27 @@
     <property object="USBLIB_0" propertyId="configuration.configurationparameters.devicepower" value="Bus-Powered"/>
     <property object="USBLIB_0" propertyId="device.deviceproperties.bmaxpacketsize" value="64"/>
     <property object="USBLIB_0" propertyId="device.deviceproperties.productidpid" value="35535"/>
-    <property object="USBLIB_0" propertyId="device.deviceproperties.productstring" value="EOS Wallet"/>
+    <property object="USBLIB_0" propertyId="device.deviceproperties.productstring" value="EOS Bridge"/>
     <property object="USBLIB_0" propertyId="endpoints.endpoint1in.bulkmaxpacketsizebytes" value="64"/>
-    <property object="USBLIB_0" propertyId="endpoints.endpoint1in.endpoint1in" value="Enabled"/>
     <property object="USBLIB_0" propertyId="endpoints.endpoint1in.maxpacketsizebytes" value="64"/>
     <property object="USBLIB_0" propertyId="endpoints.endpoint1in.pollingintervalms" value="5"/>
     <property object="USBLIB_0" propertyId="endpoints.endpoint1in.transfertype" value="Interrupt"/>
-    <property object="USBLIB_0" propertyId="endpoints.endpoint1out.endpoint1out" value="Enabled"/>
     <property object="USBLIB_0" propertyId="endpoints.endpoint1out.maxpacketsizebytes" value="64"/>
     <property object="USBLIB_0" propertyId="endpoints.endpoint1out.pollingintervalms" value="5"/>
     <property object="USBLIB_0" propertyId="endpoints.endpoint1out.transfertype" value="Interrupt"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint2in.bulkmaxpacketsizebytes" value="64"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint2in.maxpacketsizebytes" value="64"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint2in.pollingintervalms" value="5"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint2in.transfertype" value="Interrupt"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint2out.bulkmaxpacketsizebytes" value="64"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint2out.endpoint2out" value="Enabled"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint2out.maxpacketsizebytes" value="64"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint2out.pollingintervalms" value="5"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint2out.transfertype" value="Interrupt"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint3in.endpoint3in" value="Enabled"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint3in.maxpacketsizebytes" value="64"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint3in.pollingintervalms" value="5"/>
+    <property object="USBLIB_0" propertyId="endpoints.endpoint3in.transfertype" value="Interrupt"/>
     <property object="USBLIB_0" propertyId="interfaces.interface0.interfaceclass" value="HID (Human Interface Device)"/>
     <property object="USBLIB_0" propertyId="library.callbackfunctions.resetcallback" value="Enabled"/>
     <property object="USBLIB_0" propertyId="library.callbackfunctions.selfpoweredcallback" value="Enabled"/>

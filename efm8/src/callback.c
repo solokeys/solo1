@@ -147,9 +147,13 @@ uint16_t USBD_XferCompleteCb(uint8_t epAddr, USB_Status_TypeDef status,
 	UNUSED(xferred);
 	UNUSED(remaining);
 
-	if (epAddr == EP1OUT)
+	if (epAddr == EP2OUT)
 	{
 		usb_transfer_complete();
+	}
+	else if (epAddr == EP3IN)
+	{
+		usb_writeback_complete();
 	}
 	return 0;
 }

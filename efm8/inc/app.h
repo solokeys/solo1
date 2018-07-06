@@ -8,7 +8,7 @@
 #ifndef INC_APP_H_
 #define INC_APP_H_
 
-//#define USE_PRINTING
+#define USE_PRINTING
 
 void usb_transfer_complete();
 void spi_transfer_complete();

@@ -20,7 +20,9 @@
 #include "em_chip.h"
 #include "em_assert.h"
 #include "em_cryotimer.h"
+#include "em_crypto.h"
 #include "em_gpio.h"
+#include "em_ldma.h"
 #include "em_usart.h"
 // [Library includes]$
 
@@ -35,6 +37,7 @@ extern void enter_DefaultMode_from_RESET(void) {
 	CMU_enter_DefaultMode_from_RESET();
 	USART0_enter_DefaultMode_from_RESET();
 	USART1_enter_DefaultMode_from_RESET();
+	LDMA_enter_DefaultMode_from_RESET();
 	CRYOTIMER_enter_DefaultMode_from_RESET();
 	PORTIO_enter_DefaultMode_from_RESET();
 	// [Config Calls]$
@@ -126,6 +129,9 @@ extern void CMU_enter_DefaultMode_from_RESET(void) {
 
 	/* Enable clock for CRYOTIMER */
 	CMU_ClockEnable(cmuClock_CRYOTIMER, true);
+
+	/* Enable clock for LDMA */
+	CMU_ClockEnable(cmuClock_LDMA, true);
 
 	/* Enable clock for USART0 */
 	CMU_ClockEnable(cmuClock_USART0, true);

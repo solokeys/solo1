@@ -104,19 +104,19 @@ SI_SEGMENT_VARIABLE(configDesc[],
 	sizeof( ReportDescriptor0 ),// wDescriptorLength(LSB)
 	sizeof( ReportDescriptor0 )>>8,// wDescriptorLength(MSB)
 
-	//Endpoint 1 IN Descriptor
+	//Endpoint 2 IN Descriptor
 	USB_ENDPOINT_DESCSIZE,// bLength
 	USB_ENDPOINT_DESCRIPTOR,// bDescriptorType
-	0x81,// bEndpointAddress
+	0x83,// bEndpointAddress
 	USB_EPTYPE_INTR,// bAttrib
 	HID_PACKET_SIZE,// wMaxPacketSize (LSB)
 	0x00,// wMaxPacketSize (MSB)
 	5,// bInterval
 
-	//Endpoint 1 OUT Descriptor
+	//Endpoint 3 OUT Descriptor
 	USB_ENDPOINT_DESCSIZE,// bLength
 	USB_ENDPOINT_DESCRIPTOR,// bDescriptorType
-	0x01,// bEndpointAddress
+	0x02,// bEndpointAddress
 	USB_EPTYPE_INTR,// bAttrib
 	HID_PACKET_SIZE,// wMaxPacketSize (LSB)
 	0x00,// wMaxPacketSize (MSB)

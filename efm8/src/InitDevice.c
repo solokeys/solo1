@@ -407,6 +407,18 @@ extern void PORTS_0_enter_DefaultMode_from_RESET(void) {
 extern void PORTS_1_enter_DefaultMode_from_RESET(void) {
 
 	// $[P1 - Port 1 Pin Latch]
+	/***********************************************************************
+	 - P1.0 is high. Set P1.0 to drive or float high
+	 - P1.1 is high. Set P1.1 to drive or float high
+	 - P1.2 is low. Set P1.2 to drive low
+	 - P1.3 is high. Set P1.3 to drive or float high
+	 - P1.4 is high. Set P1.4 to drive or float high
+	 - P1.5 is high. Set P1.5 to drive or float high
+	 - P1.6 is high. Set P1.6 to drive or float high
+	 - P1.7 is high. Set P1.7 to drive or float high
+	 ***********************************************************************/
+	P1 = P1_B0__HIGH | P1_B1__HIGH | P1_B2__LOW | P1_B3__HIGH | P1_B4__HIGH
+			| P1_B5__HIGH | P1_B6__HIGH | P1_B7__HIGH;
 	// [P1 - Port 1 Pin Latch]$
 
 	// $[P1MDOUT - Port 1 Output Mode]

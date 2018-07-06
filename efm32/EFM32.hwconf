@@ -7,9 +7,11 @@
     <property object="CRYOTIMER" propertyId="ABPeripheral.included" value="true"/>
     <property object="CRYOTIMER" propertyId="cryotimer.clocking.eventafterevery" value="1 cycle"/>
     <property object="CRYOTIMER" propertyId="cryotimer.clocking.prescalerforcryotimer" value="Divide by 32"/>
+    <property object="CRYPTO" propertyId="ABPeripheral.included" value="true"/>
     <property object="DefaultMode" propertyId="mode.diagramLocation" value="100, 100"/>
     <property object="EMU" propertyId="ABPeripheral.included" value="true"/>
     <property object="GPIO" propertyId="ABPeripheral.included" value="true"/>
+    <property object="LDMA" propertyId="ABPeripheral.included" value="true"/>
     <property object="PA0" propertyId="ports.settings.pinmode" value="Push-pull"/>
     <property object="PA1" propertyId="ports.settings.dout" value="1"/>
     <property object="PA1" propertyId="ports.settings.filter" value="Enabled"/>

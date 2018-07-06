@@ -3,7 +3,7 @@
 
 void device_init();
 
-uint64_t millis();
+uint32_t millis();
 
 // HID message size in bytes
 #define HID_MESSAGE_SIZE        64

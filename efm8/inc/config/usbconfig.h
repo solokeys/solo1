@@ -53,11 +53,11 @@
 // Enable or disable each endpoint
 // -----------------------------------------------------------------------------
 // $[Endpoints Used]
-#define SLAB_USB_EP1IN_USED                    1
-#define SLAB_USB_EP1OUT_USED                   1
+#define SLAB_USB_EP1IN_USED                    0
+#define SLAB_USB_EP1OUT_USED                   0
 #define SLAB_USB_EP2IN_USED                    0
-#define SLAB_USB_EP2OUT_USED                   0
-#define SLAB_USB_EP3IN_USED                    0
+#define SLAB_USB_EP2OUT_USED                   1
+#define SLAB_USB_EP3IN_USED                    1
 #define SLAB_USB_EP3OUT_USED                   0
 // [Endpoints Used]$
 
@@ -67,9 +67,9 @@
 // $[Endpoint Max Packet Size]
 #define SLAB_USB_EP1IN_MAX_PACKET_SIZE         64
 #define SLAB_USB_EP1OUT_MAX_PACKET_SIZE        64
-#define SLAB_USB_EP2IN_MAX_PACKET_SIZE         1
-#define SLAB_USB_EP2OUT_MAX_PACKET_SIZE        1
-#define SLAB_USB_EP3IN_MAX_PACKET_SIZE         1
+#define SLAB_USB_EP2IN_MAX_PACKET_SIZE         64
+#define SLAB_USB_EP2OUT_MAX_PACKET_SIZE        64
+#define SLAB_USB_EP3IN_MAX_PACKET_SIZE         64
 #define SLAB_USB_EP3OUT_MAX_PACKET_SIZE        1
 // [Endpoint Max Packet Size]$
 
@@ -79,9 +79,9 @@
 // $[Endpoint Transfer Type]
 #define SLAB_USB_EP1IN_TRANSFER_TYPE           USB_EPTYPE_INTR
 #define SLAB_USB_EP1OUT_TRANSFER_TYPE          USB_EPTYPE_INTR
-#define SLAB_USB_EP2IN_TRANSFER_TYPE           USB_EPTYPE_BULK
-#define SLAB_USB_EP2OUT_TRANSFER_TYPE          USB_EPTYPE_BULK
-#define SLAB_USB_EP3IN_TRANSFER_TYPE           USB_EPTYPE_ISOC
+#define SLAB_USB_EP2IN_TRANSFER_TYPE           USB_EPTYPE_INTR
+#define SLAB_USB_EP2OUT_TRANSFER_TYPE          USB_EPTYPE_INTR
+#define SLAB_USB_EP3IN_TRANSFER_TYPE           USB_EPTYPE_INTR
 #define SLAB_USB_EP3OUT_TRANSFER_TYPE          USB_EPTYPE_ISOC
 // [Endpoint Transfer Type]$
 

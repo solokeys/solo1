@@ -71,10 +71,11 @@ void heartbeat()
 	static int beat = 0;
 	GPIO_PinOutToggle(gpioPortF,4);
 	GPIO_PinOutToggle(gpioPortF,5);
-//	printf("heartbeat %d\r\n", CRYOTIMER->CNT);
+
+//	printf("heartbeat %d %d\r\n", beat++,CRYOTIMER->CNT);
 }
 
-uint64_t millis()
+uint32_t millis()
 {
 	return CRYOTIMER->CNT;
 }
@@ -96,11 +97,11 @@ int usbhid_recv(uint8_t * msg)
 		for (i = 0; i < 64; i++)
 		{
 			msg[i] = USART_SpiTransfer(USART1, 0);
-			delay(1);
+//			delay(1);
 		}
 		msgs_to_recv--;
-//		printf(">> ");
-//		dump_hex(msg,64);
+		printf(">> ");
+		dump_hex(msg,64);
 		return 64;
 	}
 
@@ -110,12 +111,25 @@ int usbhid_recv(uint8_t * msg)
 void usbhid_send(uint8_t * msg)
 {
 	int i;
+	uint64_t t1 = millis();
+
+	GPIO_PinModeSet(gpioPortC, 10, gpioModeInput, 0);
+
+	// Wait for efm8 to be ready
+	while (GPIO_PinInGet(gpioPortC, 10) == 0)
+		;
+
+	GPIO_PinModeSet(gpioPortC, 10, gpioModePushPull, 0);
+	uint64_t t2 = millis();
+//		printf("wait time: %ul\n", (uint32_t)(t2-t1));
 	GPIO_PinOutSet(gpioPortC,10);
 	for (i = 0; i < HID_MESSAGE_SIZE; i++)
 	{
 		USART_SpiTransfer(USART1, *msg++);
 	}
 	GPIO_PinOutClear(gpioPortC,10);
+
+
 }
 
 void usbhid_close()
@@ -168,10 +182,7 @@ void device_init(void)
                        1);
 
   // SPI R/W indicator
-  GPIO_PinModeSet(gpioPortC,
-                       10,
-					   gpioModePushPull,
-                       0);
+  GPIO_PinModeSet(gpioPortC, 10, gpioModePushPull, 0);
 
   // USB message rdy ext int
   GPIO_ExtIntConfig(gpioPortC, 9, 9, 1, 0,1);

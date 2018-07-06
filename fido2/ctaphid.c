@@ -361,6 +361,7 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
     uint32_t newcid;
     static CTAPHID_WRITE_BUFFER wb;
     uint32_t active_cid;
+    uint32_t t1,t2;
 
     CTAP_RESPONSE ctap_resp;
 
@@ -542,9 +543,13 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
                     wb.cmd = CTAPHID_CBOR;
                     wb.bcnt = (ctap_resp.length+1);
 
+
+                    t1 = millis();
                     ctaphid_write(&wb, &status, 1);
                     ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
                     ctaphid_write(&wb, NULL, 0);
+                    t2 = millis();
+                    printf1(TAG_TIME,"CBOR writeback: %d ms\n",(uint32_t)(t2-t1));
                     break;
 
                 case CTAPHID_MSG:

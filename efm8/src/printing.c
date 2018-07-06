@@ -42,6 +42,7 @@ void dump_hex(uint8_t* hex, uint8_t len)
 		putf(lut[b]);
 		b = ((*hex) & 0x0f);
 		putf(lut[b]);
+		putf(' ');
 		hex++;
 	}
 	cprints("\r\n");
