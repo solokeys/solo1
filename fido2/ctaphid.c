@@ -508,10 +508,11 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
                     wb.cid = active_cid;
                     wb.cmd = CTAPHID_PING;
                     wb.bcnt = buffer_len();
-
+                    t1 = millis();
                     ctaphid_write(&wb, ctap_buffer, buffer_len());
                     ctaphid_write(&wb, NULL,0);
-
+                    t2 = millis();
+                    printf1(TAG_TIME,"PING writeback: %d ms\n",(uint32_t)(t2-t1));
                     break;
 
                 case CTAPHID_WINK:

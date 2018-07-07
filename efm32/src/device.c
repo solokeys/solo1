@@ -17,6 +17,10 @@
 #include "ctaphid.h"
 #include "util.h"
 
+#define MSG_AVAIL_PIN	gpioPortC,9
+#define RDY_PIN			gpioPortC,10
+#define RW_PIN			gpioPortD,11
+
 // Generate @num bytes of random numbers to @dest
 // return 1 if success, error otherwise
 int ctap_generate_rng(uint8_t * dst, size_t num)
@@ -88,20 +92,44 @@ void usbhid_init()
 
 static int msgs_to_recv = 0;
 
+static void wait_for_efm8_ready()
+{
+	// Wait for efm8 to be ready
+	while (GPIO_PinInGet(RDY_PIN) == 0)
+		;
+}
+
+static void wait_for_efm8_busy()
+{
+	// Wait for efm8 to be ready
+	while (GPIO_PinInGet(RDY_PIN) != 0)
+		;
+}
+
 int usbhid_recv(uint8_t * msg)
 {
 	int i;
-	if (msgs_to_recv)
+
+	if (GPIO_PinInGet(MSG_AVAIL_PIN) == 0)
 	{
-		GPIO_PinOutClear(gpioPortC,10);
+		GPIO_PinOutClear(RW_PIN);	// Drive low to indicate READ
+		wait_for_efm8_ready();
+
+
 		for (i = 0; i < 64; i++)
 		{
-			msg[i] = USART_SpiTransfer(USART1, 0);
+			msg[i] = USART_SpiTransfer(USART1, 'A');
 //			delay(1);
 		}
-		msgs_to_recv--;
-		printf(">> ");
-		dump_hex(msg,64);
+
+		GPIO_PinOutSet(RW_PIN);
+
+		wait_for_efm8_busy();
+
+
+//		msgs_to_recv--;
+//		printf(">> ");
+//		dump_hex(msg,64);
 		return 64;
 	}
 
@@ -111,24 +139,17 @@ int usbhid_recv(uint8_t * msg)
 void usbhid_send(uint8_t * msg)
 {
 	int i;
-	uint64_t t1 = millis();
+//	uint32_t t1 = millis();
+	USART_SpiTransfer(USART1, *msg++); // Send 1 byte
+	wait_for_efm8_ready();
 
-	GPIO_PinModeSet(gpioPortC, 10, gpioModeInput, 0);
-
-	// Wait for efm8 to be ready
-	while (GPIO_PinInGet(gpioPortC, 10) == 0)
-		;
-
-	GPIO_PinModeSet(gpioPortC, 10, gpioModePushPull, 0);
-	uint64_t t2 = millis();
-//		printf("wait time: %ul\n", (uint32_t)(t2-t1));
-	GPIO_PinOutSet(gpioPortC,10);
-	for (i = 0; i < HID_MESSAGE_SIZE; i++)
+	for (i = 1; i < HID_MESSAGE_SIZE; i++)
 	{
 		USART_SpiTransfer(USART1, *msg++);
 	}
-	GPIO_PinOutClear(gpioPortC,10);
-
+	wait_for_efm8_busy();
+//	uint32_t t2 = millis();
+//	printf("wait time: %u\n", (uint32_t)(t2-t1));
 
 }
 
@@ -181,12 +202,18 @@ void device_init(void)
 					   gpioModePushPull,
                        1);
 
-  // SPI R/W indicator
-  GPIO_PinModeSet(gpioPortC, 10, gpioModePushPull, 0);
+  // EFM8 RDY/BUSY
+  GPIO_PinModeSet(RDY_PIN, gpioModeInput, 0);
+
+  // EFM8 MSG Available
+  GPIO_PinModeSet(MSG_AVAIL_PIN, gpioModeInput, 0);
+
+  // SPI R/w Indicator
+  GPIO_PinModeSet(RW_PIN, gpioModePushPull, 1);
 
   // USB message rdy ext int
-  GPIO_ExtIntConfig(gpioPortC, 9, 9, 1, 0,1);
-  NVIC_EnableIRQ(GPIO_ODD_IRQn);
+//  GPIO_ExtIntConfig(gpioPortC, 9, 9, 1, 0,1);
+//  NVIC_EnableIRQ(GPIO_ODD_IRQn);
 
 
   printing_init();

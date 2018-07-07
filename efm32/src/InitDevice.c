@@ -334,7 +334,7 @@ extern void USART1_enter_DefaultMode_from_RESET(void) {
 	USART_InitSync_TypeDef initsync = USART_INITSYNC_DEFAULT;
 
 	initsync.enable = usartDisable;
-	initsync.baudrate = 100000;
+	initsync.baudrate = 140000;
 	initsync.databits = usartDatabits8;
 	initsync.master = 1;
 	initsync.msbf = 1;
@@ -621,6 +621,9 @@ extern void PORTIO_enter_DefaultMode_from_RESET(void) {
 	// [Port C Configuration]$
 
 	// $[Port D Configuration]
+
+	/* Pin PD10 is configured to Push-pull */
+	GPIO_PinModeSet(gpioPortD, 10, gpioModePushPull, 1);
 	// [Port D Configuration]$
 
 	// $[Port E Configuration]

@@ -98,6 +98,26 @@ class Tester():
         elif data[0] != err:
             raise ValueError('Unexpected error: %02x' % data[0])
 
+    def test_long_ping(self):
+        while 1 :
+            pingdata = os.urandom(1000)
+            try:
+                t1 = time.time() * 1000
+                r = self.send_data(CTAPHID.PING, pingdata)
+                t2 = time.time() * 1000
+                delt = t2 - t1
+                #if (delt < 140 ):
+                    #raise RuntimeError('Fob is too fast (%d ms)' % delt)
+                if (delt > 555):
+                    raise RuntimeError('Fob is too slow (%d ms)' % delt)
+                if (r != pingdata):
+                    raise ValueError('Ping data not echo\'d')
+                print('1000 byte ping time: %s ms' % delt)
+            except CtapError as e:
+                print('7609 byte Ping failed:', e)
+                raise RuntimeError('ping failed')
+            print('PASS: 7609 byte ping')
+
 
     def test_hid(self,):
         #print('Test idle')
@@ -120,23 +140,7 @@ class Tester():
             raise RuntimeError('ping failed')
         print('PASS: 100 byte ping')
 
-        pingdata = os.urandom(1000)
-        try:
-            t1 = time.time() * 1000
-            r = self.send_data(CTAPHID.PING, pingdata)
-            t2 = time.time() * 1000
-            delt = t2 - t1
-            #if (delt < 140 ):
-                #raise RuntimeError('Fob is too fast (%d ms)' % delt)
-            if (delt > 555):
-                raise RuntimeError('Fob is too slow (%d ms)' % delt)
-            if (r != pingdata):
-                raise ValueError('Ping data not echo\'d')
-        except CtapError as e:
-            print('7609 byte Ping failed:', e)
-            raise RuntimeError('ping failed')
-        print('PASS: 7609 byte ping')
-
+        self.test_long_ping()
 
         try:
             r = self.send_data(CTAPHID.WINK, '')
@@ -410,24 +414,28 @@ class Tester():
             exclude_list.append({'id': fake_id1, 'type': 'public-key'})
             exclude_list.append({'id': fake_id2, 'type': 'public-key'})
 
-            t1 = time.time() * 1000
-            attest, data = self.client.make_credential(rp, user, challenge, pin = PIN, exclude_list = [])
-            t2 = time.time() * 1000
-            attest.verify(data.hash)
-            print('Register valid (%d ms)' % (t2-t1))
+            #for i in range(0,2048**2):
+            for i in range(0,1):
+                t1 = time.time() * 1000
+                attest, data = self.client.make_credential(rp, user, challenge, pin = PIN, exclude_list = [])
+                t2 = time.time() * 1000
+                attest.verify(data.hash)
+                print('Register valid (%d ms)' % (t2-t1))
             sys.stdout.flush()
 
             cred = attest.auth_data.credential_data
             creds.append(cred)
 
-            allow_list = [{'id':creds[0].credential_id, 'type': 'public-key'}]
-            t1 = time.time() * 1000
-            assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
-            t2 = time.time() * 1000
-            assertions[0].verify(client_data.hash, creds[0].public_key)
+            #for i in range(0,2048**2):
+            for i in range(0,1):
+                allow_list = [{'id':creds[0].credential_id, 'type': 'public-key'}]
+                t1 = time.time() * 1000
+                assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
+                t2 = time.time() * 1000
+                assertions[0].verify(client_data.hash, creds[0].public_key)
 
-            print('Assertion valid (%d ms)' % (t2-t1))
-            sys.stdout.flush()
+                print('Assertion valid (%d ms)' % (t2-t1))
+                sys.stdout.flush()
 
 
 
@@ -563,9 +571,11 @@ if __name__ == '__main__':
     t = Tester()
     t.find_device()
     #t.test_hid()
+    #t.test_long_ping()
     #t.test_fido2()
-    t.test_fido2_simple()
-    #t.test_fido2_brute_force()
+    #test_find_brute_force()
+    #t.test_fido2_simple()
+    t.test_fido2_brute_force()
 
 
 

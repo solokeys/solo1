@@ -49,6 +49,11 @@
     <property object="PC9" propertyId="ports.settings.pinmode" value="Input pull"/>
     <property object="PC9" propertyId="ports.settings.pulldirection" value="Pullup"/>
     <property object="PC9" propertyId="ports.settings.pullup" value="Enabled"/>
+    <property object="PD10" propertyId="ports.settings.dout" value="1"/>
+    <property object="PD10" propertyId="ports.settings.filter" value="Enabled"/>
+    <property object="PD10" propertyId="ports.settings.pinmode" value="Push-pull"/>
+    <property object="PD10" propertyId="ports.settings.pulldirection" value="Pullup"/>
+    <property object="PD10" propertyId="ports.settings.pullup" value="Enabled"/>
     <property object="PF4" propertyId="ports.settings.pinmode" value="Push-pull"/>
     <property object="PF5" propertyId="ports.settings.pinmode" value="Push-pull"/>
     <property object="PORTIO" propertyId="portio.usart0.enable.cts" value="Enabled"/>
@@ -69,7 +74,7 @@
     <property object="USART1" propertyId="ABPeripheral.included" value="true"/>
     <property object="USART1" propertyId="usart.mode.usartmode" value="Synchronous Mode (SPI / I2S)"/>
     <property object="USART1" propertyId="usart.outputsettings.clockselect" value="Disabled"/>
-    <property object="USART1" propertyId="usart.synchronoussettings.baudrate" value="100000"/>
+    <property object="USART1" propertyId="usart.synchronoussettings.baudrate" value="140000"/>
   </mode>
   <modeTransition>
     <property object="RESET &#x2192; DefaultMode" propertyId="modeTransition.source" value="RESET"/>

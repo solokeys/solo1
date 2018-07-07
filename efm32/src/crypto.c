@@ -26,7 +26,6 @@ const uint8_t attestation_key[];
 const uint16_t attestation_key_size;
 
 
-
 static SHA256_CTX sha256_ctx;
 mbedtls_sha256_context embed_sha256_ctx;
 
@@ -204,29 +203,29 @@ void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig)
 //  CMU->HFBUSCLKEN0 &= ~CMU_HFBUSCLKEN0_CRYPTO;
 //  CRYPTO_DISABLE;
 //	CRYPTO_ENABLE;
-    mbedtls_ecp_group_init( &grp );
-    mbedtls_mpi_init( &d );
-	mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_DP_SECP256R1);
-	mbedtls_mpi_read_binary(&d, _signing_key, 32);
+//    mbedtls_ecp_group_init( &grp );
+//    mbedtls_mpi_init( &d );
+//	mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_DP_SECP256R1);
+//	mbedtls_mpi_read_binary(&d, _signing_key, 32);
+//
+//	mbedtls_mpi r,s;
+//	mbedtls_mpi_init(&r);
+//	mbedtls_mpi_init(&s);
+//
+//	printf("signing..\n");
+//	dump_hex(data,len);
+//	mbedtls_ecdsa_sign_det( &grp, &r, &s, &d,
+//	                             data, 32, MBEDTLS_MD_SHA256 );// Issue: this will freeze on 13th iteration..
+//	printf("signed\n");
+//
+//	mbedtls_mpi_write_binary(&r,sig,32);
+//	mbedtls_mpi_write_binary(&s,sig+32,32);
 
-	mbedtls_mpi r,s;
-	mbedtls_mpi_init(&r);
-	mbedtls_mpi_init(&s);
-
-	printf("signing..\n");
-	dump_hex(data,len);
-	mbedtls_ecdsa_sign_det( &grp, &r, &s, &d,
-	                             data, 32, MBEDTLS_MD_SHA256 );// Issue: this will freeze on 13th iteration..
-	printf("signed\n");
-
-	mbedtls_mpi_write_binary(&r,sig,32);
-	mbedtls_mpi_write_binary(&s,sig+32,32);
-
-//    if ( uECC_sign(_signing_key, data, len, sig, _es256_curve) == 0)
-//    {
-//        printf("error, uECC failed\n");
-//        exit(1);
-//    }
+    if ( uECC_sign(_signing_key, data, len, sig, _es256_curve) == 0)
+    {
+        printf("error, uECC failed\n");
+        exit(1);
+    }
 
 }
 
@@ -368,20 +367,20 @@ void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, ui
     crypto_sha256_update(master_secret, 32);
     crypto_sha256_hmac_final(CRYPTO_MASTER_KEY, 0, privkey);
 
-    mbedtls_ecp_group grp;      /*!<  Elliptic curve and base point     */
-    mbedtls_mpi d;              /*!<  our secret value                  */
-    mbedtls_ecp_point Q;
-
-    mbedtls_ecp_group_init( &grp );
-    mbedtls_mpi_init( &d );
-    mbedtls_ecp_point_init(&Q);
-
-	mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_DP_SECP256R1);
-
-//	mbedtls_mpi_read_binary(&d, _signing_key, 32);
-	hmac_vector_func(NULL, NULL, 0);
-	mbedtls_ecp_gen_privkey(&grp, &grp.G, &d, &Q, hmac_vector_func, privkey);
-    mbedtls_mpi_write_binary(&d,privkey,32);
+//    mbedtls_ecp_group grp;      /*!<  Elliptic curve and base point     */
+//    mbedtls_mpi d;              /*!<  our secret value                  */
+//    mbedtls_ecp_point Q;
+//
+//    mbedtls_ecp_group_init( &grp );
+//    mbedtls_mpi_init( &d );
+//    mbedtls_ecp_point_init(&Q);
+//
+//	mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_DP_SECP256R1);
+//
+////	mbedtls_mpi_read_binary(&d, _signing_key, 32);
+//	hmac_vector_func(NULL, NULL, 0);
+//	mbedtls_ecp_gen_privkey(&grp, &grp.G, &d, &Q, hmac_vector_func, privkey);
+//    mbedtls_mpi_write_binary(&d,privkey,32);
 }
 
 
@@ -400,41 +399,41 @@ void crypto_ecc256_derive_public_key(uint8_t * data, int len, uint8_t * x, uint8
     crypto_sha256_update(master_secret, 32);
     crypto_sha256_hmac_final(CRYPTO_MASTER_KEY, 0, privkey);
 
-    mbedtls_ecp_group grp;      /*!<  Elliptic curve and base point     */
-    mbedtls_mpi d;              /*!<  our secret value                  */
-    mbedtls_ecp_point Q;
+//    mbedtls_ecp_group grp;      /*!<  Elliptic curve and base point     */
+//    mbedtls_mpi d;              /*!<  our secret value                  */
+//    mbedtls_ecp_point Q;
+//
+//    mbedtls_ecp_group_init( &grp );
+//    mbedtls_mpi_init( &d );
+//    mbedtls_ecp_point_init(&Q);
+//
+//	mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_DP_SECP256R1);
+//
+////	mbedtls_mpi_read_binary(&d, _signing_key, 32);
+//	hmac_vector_func(NULL, NULL, 0);
+//	ret= mbedtls_ecp_gen_privkey(&grp, &grp.G, &d, &Q, hmac_vector_func, privkey);
+//    if (ret != 0)
+//    {
+//    	printf("error with priv key -0x04%x\n", -ret);
+//    }
+////    mbedtls_mpi_write_binary(&d,privkey,32);
+//
+//    memset(pubkey,0,sizeof(pubkey));
+//
+//    ret = mbedtls_ecp_derive_pubkey( &grp, &grp.G,
+//    		&d, &Q, hmac_vector_func, privkey);
+//
+//    if (ret != 0)
+//    {
+//    	printf("error with public key\n");
+//    }
+//
+//    mbedtls_mpi_write_binary(&Q.X,x,32);
+//    mbedtls_mpi_write_binary(&Q.Y,y,32);
 
-    mbedtls_ecp_group_init( &grp );
-    mbedtls_mpi_init( &d );
-    mbedtls_ecp_point_init(&Q);
-
-	mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_DP_SECP256R1);
-
-//	mbedtls_mpi_read_binary(&d, _signing_key, 32);
-	hmac_vector_func(NULL, NULL, 0);
-	ret= mbedtls_ecp_gen_privkey(&grp, &grp.G, &d, &Q, hmac_vector_func, privkey);
-    if (ret != 0)
-    {
-    	printf("error with priv key -0x04%x\n", -ret);
-    }
-//    mbedtls_mpi_write_binary(&d,privkey,32);
-
-    memset(pubkey,0,sizeof(pubkey));
-
-    ret = mbedtls_ecp_derive_pubkey( &grp, &grp.G,
-    		&d, &Q, hmac_vector_func, privkey);
-
-    if (ret != 0)
-    {
-    	printf("error with public key\n");
-    }
-
-    mbedtls_mpi_write_binary(&Q.X,x,32);
-    mbedtls_mpi_write_binary(&Q.Y,y,32);
-
-//    uECC_compute_public_key(privkey, pubkey, _es256_curve);
-//    memmove(x,pubkey,32);
-//    memmove(y,pubkey+32,32);
+    uECC_compute_public_key(privkey, pubkey, _es256_curve);
+    memmove(x,pubkey,32);
+    memmove(y,pubkey+32,32);
 }
 
 void crypto_ecc256_load_key(uint8_t * data, int len, uint8_t * data2, int len2)

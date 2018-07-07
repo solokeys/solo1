@@ -3,11 +3,12 @@
 #include "efm8_usb.h"
 #include "uart_1.h"
 #include "printing.h"
+#include "eeprom.h"
 
 #define BUFFER_SIZE	12
 
-#define SIGNAL_WRITE_BSY()		P1 = P1 & (~(1<<2)) // Set P1 low
-#define SIGNAL_WRITE_RDY()		P1 = P1 | (1<<2) 	 // Set P1 high
+#define SIGNAL_WRITE_BSY()		P1_B2 = 0 	 // Set P1 low
+#define SIGNAL_WRITE_RDY()		P1_B2 = 1 	 // Set P1 high
 
 data uint8_t write_ptr = 0;
 data uint8_t read_ptr = 0;
@@ -34,10 +35,6 @@ void usb_transfer_complete()
 	{
 		write_ptr = 0;
 	}
-	if (count == 1 && i_ptr == 0)
-	{
-		SPI0DAT = (hidmsgbuf+read_ptr*64)[i_ptr++];
-	}
 
 
 //	MSG_RDY_INT_PIN = 0;
@@ -49,93 +46,33 @@ uint16_t USB_TX_COUNT = 0;
 
 void usb_writeback_complete()
 {
-	if (USB_TX_COUNT >= 511/2)
-	{
-		USB_TX_COUNT -= 64;
-		if (USB_TX_COUNT < 511)
-		{
-			SIGNAL_WRITE_RDY();
-		}
-	}
-	else
-	{
-		USB_TX_COUNT -= 64;
-	}
+//	if (USB_TX_COUNT >= 511/2)
+//	{
+//		USB_TX_COUNT -= 64;
+//		if (USB_TX_COUNT < 511)
+//		{
+//			SIGNAL_WRITE_RDY();
+//		}
+//	}
+//	else
+//	{
+//		USB_TX_COUNT -= 64;
+//	}
+	USB_TX_COUNT -= 64;
 }
 
 void spi_transfer_complete()
 {
-	count--;
+	if (count > 0) count--;
 	i_ptr = 0;
-	SPI0FCN0 |= (1<<2); // Flush rx fifo buffer
-
-//	debugWi = read_ptr;
-
 	read_ptr++;
-
 	if (read_ptr == BUFFER_SIZE)
 	{
 		read_ptr = 0;
 	}
-	if (count)
-	{
-		SPI0DAT = (hidmsgbuf+read_ptr*64)[i_ptr++];
-	}
-//	cprints("sent hid msg\r\n");
+
 }
-data int overrun = 0;
-SI_INTERRUPT (SPI0_ISR, SPI0_IRQn)
-{
-	data uint8_t byt;
-   if (SPI0CN0_WCOL == 1)
-   {
-		// Write collision occurred
-		SPI0CN0_WCOL = 0;
-//		cprints("SPI0CN0_WCOL\r\n");
-   }
-   else if(SPI0CN0_RXOVRN == 1)
-   {
-		// Receive overrun occurred
-		SPI0CN0_RXOVRN = 0;
-		overrun = 1;
-//		cprints("SPI0CN0_RXOVRN\r\n");
-   }
-   else
-   {
-	   if (EFM32_RW_PIN)
-	   {
-		   if (writebackbuf_count < 64)
-		   {
-			   writebackbuf[writebackbuf_count++] = SPI0DAT;
-			   SIGNAL_WRITE_BSY();
-		   }
-		   else
-		   {
-			   cprints("overflow\r\n");
-		   }
-	   }
-	   else
-	   {
-		   if (count)
-		   {
-			   if (i_ptr < 64)
-			   {
-//				   debugW[i_ptr] = (hidmsgbuf+read_ptr*64)[i_ptr];
-//				   debugW2[i_ptr] = read_ptr;
-//				   if (i_ptr == 63)
-//					   debugW2[i_ptr] = 0xaa;
-				   SPI0DAT = (hidmsgbuf+read_ptr*64)[i_ptr++];
-				   byt = SPI0DAT;
-			   }
-			   else
-			   {
-				   spi_transfer_complete();
-			   }
-		   }
-	   }
-	   SPI0CN0_SPIF = 0;
-   }
-}
+
 
 
 void usb_write()
@@ -155,7 +92,8 @@ void usb_write()
 
 
 int main(void) {
-	uint8_t k;
+	data uint8_t k;
+	data uint16_t last_efm32_pin = 0;
 	uint16_t t1 = 0;
 	uint8_t lastcount = count;
 
@@ -172,31 +110,104 @@ int main(void) {
 	MSG_RDY_INT_PIN = 1;
 
 	// enable SPI interrupts
-	SPI0FCN1 = SPI0FCN1 | (1<<4);
+//	SPI0FCN1 = SPI0FCN1 | (1<<4);
 	IE_EA = 1;
-	IE_ESPI0 = 1;
+//	IE_ESPI0 = 1;
 
-	SIGNAL_WRITE_RDY();
+	SPI0FCN0 = SPI0FCN0 | (1<<2); // flush RX fifo
+	SPI0FCN0 = SPI0FCN0 | (1<<6); // flush TX fifo
+//	SPI0FCN0 &= ~3; // FIFO threshold 0x0
+	SPI0FCN1 |= (1); // Enable RX fifo
 
 	cprints("hello,world\r\n");
 
 	reset = RSTSRC;
 	cprintx("reset source: ", 1, reset);
+	if (reset != 0x10)
+	{
+		RSTSRC = (1<<4);
+	}
+
+//	last_efm32_pin = SPI0FCN0;
+//	cprintx("spi fifo0 cntrl: ", 1, last_efm32_pin);
+//
+//	last_efm32_pin = SPI0FCN1;
+//	cprintx("spi fifo1 cntrl: ", 1, last_efm32_pin);
+
+	MSG_RDY_INT_PIN = 1;
+	SIGNAL_WRITE_BSY();
 
 	while (1) {
-//		delay(1500);
-		if (overrun)
+
+
+		if (P2_B3 == 0)
 		{
-			cprints("O\r\n");
-			overrun = 0;
+			i_ptr = 0;
+			SPI0FCN0 |= (1<<6); // Flush TX fifo buffer
+
+			while (SPI0CN0 & (1 << 1)) 	// While TX FIFO has room
+				SPI0DAT = (hidmsgbuf+read_ptr*64)[i_ptr++];
+
+			SIGNAL_WRITE_RDY();
+			while (i_ptr<64)
+			{
+				while(! (SPI0CN0 & (1 << 1)))
+					;
+				SPI0DAT = (hidmsgbuf+read_ptr*64)[i_ptr++];
+			}
+
+			while(P2_B3 == 0)
+			{
+			}
+
+//			cprints(">> ");
+//			dump_hex(hidmsgbuf+read_ptr*64,64);
+			spi_transfer_complete();
+			if (count == 0)
+			{
+				MSG_RDY_INT_PIN = 1;
+			}
+
+			SPI0FCN0 = SPI0FCN0 | (1<<2); // flush RX fifo
+
+			while ((SPI0CFG & (0x1)) == 0)
+			{
+				k = SPI0DAT;
+			}
+
+			SIGNAL_WRITE_BSY();
+
+
 		}
+		else
+		{
+			// Did we RX data and have room?
+			if ((SPI0CFG & (0x1)) == 0 && USB_TX_COUNT < 511/2)
+			{
+				writebackbuf[writebackbuf_count++] = SPI0DAT;	// void the first byte
+				SIGNAL_WRITE_RDY();
+
+				while(writebackbuf_count < 64)
+				{
+					while((SPI0CFG & (0x1)) == 1)
+						;
+					writebackbuf[writebackbuf_count++] = SPI0DAT;
+				}
+
+//				cprints("<< ");
+//				dump_hex(writebackbuf,64);
+
+				usb_write();
+				writebackbuf_count = 0;
+				SPI0FCN0 = SPI0FCN0 | (1<<2); // flush RX fifo
+
+				SIGNAL_WRITE_BSY();
+			}
+		}
+
 		if (millis() - t1 > 1500)
 		{
 			P1_B5 = k++&1;
-//			if (k&1)
-//				SIGNAL_WRITE_RDY();
-//			else
-//				SIGNAL_WRITE_BSY();
 			t1 = millis();
 		}
 		if (!USBD_EpIsBusy(EP2OUT) && !USBD_EpIsBusy(EP3IN) && lastcount==count)
@@ -212,19 +223,7 @@ int main(void) {
 			}
 		}
 
-		if (writebackbuf_count == 64)
-		{
-//			cprints("<< ");
-//			dump_hex(writebackbuf,64);
-//			while (USBD_EpIsBusy(EP1IN))
-//				;
-			usb_write();
-			writebackbuf_count = 0;
-			if (USB_TX_COUNT < 511/2)
-			{
-				SIGNAL_WRITE_RDY();
-			}
-		}
+
 
 		if (lastcount != count)
 		{
@@ -232,9 +231,7 @@ int main(void) {
 			{
 //				cputd(debugRi); cprints(">> ");
 //				dump_hex(debugR,64);
-
 				MSG_RDY_INT_PIN = 0;
-				MSG_RDY_INT_PIN = 1;
 			}
 			else
 			{
