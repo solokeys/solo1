@@ -74,7 +74,7 @@
     <property object="USART1" propertyId="ABPeripheral.included" value="true"/>
     <property object="USART1" propertyId="usart.mode.usartmode" value="Synchronous Mode (SPI / I2S)"/>
     <property object="USART1" propertyId="usart.outputsettings.clockselect" value="Disabled"/>
-    <property object="USART1" propertyId="usart.synchronoussettings.baudrate" value="140000"/>
+    <property object="USART1" propertyId="usart.synchronoussettings.baudrate" value="130000"/>
   </mode>
   <modeTransition>
     <property object="RESET &#x2192; DefaultMode" propertyId="modeTransition.source" value="RESET"/>

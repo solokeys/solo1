@@ -27,6 +27,7 @@ int main(int argc, char * argv[])
 //            TAG_GEN|
             /*TAG_MC |*/
             /*TAG_GA |*/
+            TAG_WALLET |
             /*TAG_CP |*/
 //            TAG_CTAP|
 //            TAG_HID|

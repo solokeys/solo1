@@ -12,6 +12,8 @@
 
 #define USING_DEV_BOARD
 
+#define BRIDGE_TO_WALLET
+
 void printing_init();
 
 

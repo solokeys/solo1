@@ -4,12 +4,13 @@
 #include "crypto.h"
 #include "log.h"
 #include "device.h"
+#include "app.h"
 
 // void u2f_response_writeback(uint8_t * buf, uint8_t len);
 static int16_t u2f_register(struct u2f_register_request * req);
 static int16_t u2f_version();
 static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control);
-static int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
+int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
 
 static CTAP_RESPONSE * _u2f_resp = NULL;
 
@@ -28,7 +29,43 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
         rcode = U2F_SW_CLASS_NOT_SUPPORTED;
         goto end;
     }
-
+#ifdef BRIDGE_TO_WALLET
+    struct u2f_authenticate_request * auth = (struct u2f_register_request *) req->payload;
+    if (req->ins == U2F_AUTHENTICATE)
+    {
+        if (req->p1 == U2F_AUTHENTICATE_CHECK)
+        {
+//            if (u2f_appid_eq(&req->kh, req->app) == 0)
+//            {
+//            	rcode =  U2F_SW_CONDITIONS_NOT_SATISFIED;
+//            }
+//            else
+//            {
+            	rcode =  U2F_SW_WRONG_DATA;
+//            }
+        }
+        else
+        {
+        	rcode = bridge_u2f_to_wallet(auth->chal, auth->app, auth->khl, &auth->kh);
+        }
+    }
+    else if (req->ins == U2F_VERSION)
+    {
+        printf1(TAG_U2F, "U2F_VERSION\n");
+        if (len)
+        {
+            rcode = U2F_SW_WRONG_LENGTH;
+        }
+        else
+        {
+            rcode = u2f_version();
+        }
+    }
+    else
+    {
+    	rcode = U2F_SW_INS_NOT_SUPPORTED;
+    }
+#else
     switch(req->ins)
     {
         case U2F_REGISTER:
@@ -73,7 +110,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
             rcode = U2F_SW_INS_NOT_SUPPORTED;
             break;
     }
-
+#endif
 
 end:
     if (rcode != U2F_SW_NO_ERROR)
@@ -91,7 +128,7 @@ end:
 }
 
 
-static int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len)
+int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len)
 {
     if ((_u2f_resp->length + len) > _u2f_resp->data_size)
     {

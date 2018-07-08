@@ -1,0 +1,87 @@
+<html>
+<head>
+</head>
+    <body>
+        <h1>U2F Bridge Demo</h1>
+    </body>
+    <script src="u2f-api.js"></script>
+<script>
+// Convert from normal to web-safe, strip trailing "="s
+function webSafe64(base64) {
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Convert from web-safe to normal, add trailing "="s
+function normal64(base64) {
+    return base64.replace(/\-/g, '+').replace(/_/g, '/') + '=='.substring(0, (3*base64.length)%4);
+}
+
+function bin2string(array){
+    var result = "";
+    for(var i = 0; i < array.length; ++i){
+        result+= (String.fromCharCode(array[i]));
+    }
+    return result;
+}
+
+var chal = webSafe64(btoa('A'));
+
+var req = new Uint8Array(255);
+for(var i =0; i<255; i += 1)
+{
+    req[i] = 0x00;
+}
+req[0] = 0x10;
+
+var keyHandle = webSafe64(btoa(bin2string(req)));
+
+var port = ':4443'
+var appid = 'https://localhost'+port;
+
+var key = {
+    version: 'U2F_V2',
+    keyHandle: keyHandle,
+    transports: [],
+    appId: appid
+};
+/**
+ * Dispatches an array of sign requests to available U2F tokens.
+ * @param {string=} appId
+ * @param {string=} challenge
+ * @param {Array<u2f.RegisteredKey>} registeredKeys
+ * @param {function((u2f.Error|u2f.SignResponse))} callback
+ * @param {number=} opt_timeoutSeconds
+u2f.sendSignRequest = function(appId, challenge, registeredKeys, callback, opt_timeoutSeconds) {
+  u2f.getPortSingleton_(function(port) {
+    var reqId = ++u2f.reqCounter_;
+    u2f.callbackMap_[reqId] = callback;
+    var timeoutSeconds = (typeof opt_timeoutSeconds !== 'undefined' ?
+        opt_timeoutSeconds : u2f.EXTENSION_TIMEOUT_SEC);
+    var req = u2f.formatSignRequest_(appId, challenge, registeredKeys, timeoutSeconds, reqId);
+    port.postMessage(req);
+  });
+};
+ */
+i = 0;
+function test_channel()
+{
+    var d = new Date();
+    t1 = d.getTime();
+    window.u2f.sign(appid,chal,[key], function(res){
+
+        var d2 = new Date();
+        t2 = d2.getTime();
+        console.log('response:', res);
+        console.log('time:', t2-t1);
+        i += 1;
+        if (i<10)
+            test_channel();
+
+
+    },5);
+}
+
+test_channel();
+
+</script>
+</html>
