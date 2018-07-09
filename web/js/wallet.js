@@ -381,22 +381,25 @@ function run_tests()
             var aesCbc = new aesjs.ModeOfOperation.cbc(shared, iv);
             var pinTokenEnc = resp.data;
             var pinToken = aesCbc.decrypt(pinTokenEnc);
+            //var pinToken = string2array('123456789abcdfe0');
 
             console.log('pintoken:', hex(pinToken));
+
+            var sigAlg = 3;
+            var challenge = string2array('1234567890 1234567890 1234567890');
+            var keyid = string2array('');
+
+            var req = signRequestFormat(sigAlg,pinToken,challenge,keyid);
+
+            //console.log('req:',req)
+
+            send_msg(req, function(resp){
+                console.assert(resp.status == 'CTAP1_SUCCESS');
+                console.log('Walletsign',resp);
+            });
+
         });
 
-        //var sigAlg = 3;
-        //var challenge = string2array('1234567890 1234567890 1234567890');
-        //var keyid = string2array('');
-
-        //var req = signRequestFormat(sigAlg,pinToken,challenge,keyid);
-
-        //console.log('req:',req)
-
-        //send_msg(req, function(resp){
-            //console.assert(resp.status == 'CTAP1_SUCCESS');
-            //console.log(resp);
-        //});
     });
 }
 
