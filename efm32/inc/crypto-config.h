@@ -253,7 +253,7 @@
 #define MBEDTLS_ECP_RANDOMIZE_JAC_ALT
 #define MBEDTLS_ECP_DEVICE_ADD_MIXED_ALT
 
-
+//#define MBEDTLS_ENTROPY_ALT
 
 //#define MBEDTLS_MPI_MUL_MPI_ALT	// doesnt seem to be implemented
 //#define MBEDTLS_MPI_MUL_INT_ALT	// makes no difference or slightly slower

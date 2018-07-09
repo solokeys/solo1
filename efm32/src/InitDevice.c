@@ -19,6 +19,7 @@
 #include "em_device.h"
 #include "em_chip.h"
 #include "em_assert.h"
+#include "em_adc.h"
 #include "em_cryotimer.h"
 #include "em_crypto.h"
 #include "em_gpio.h"
@@ -35,6 +36,7 @@ extern void enter_DefaultMode_from_RESET(void) {
 
 	EMU_enter_DefaultMode_from_RESET();
 	CMU_enter_DefaultMode_from_RESET();
+	ADC0_enter_DefaultMode_from_RESET();
 	USART0_enter_DefaultMode_from_RESET();
 	USART1_enter_DefaultMode_from_RESET();
 	LDMA_enter_DefaultMode_from_RESET();
@@ -127,6 +129,9 @@ extern void CMU_enter_DefaultMode_from_RESET(void) {
 	/* Enable clock for HF peripherals */
 	CMU_ClockEnable(cmuClock_HFPER, true);
 
+	/* Enable clock for ADC0 */
+	CMU_ClockEnable(cmuClock_ADC0, true);
+
 	/* Enable clock for CRYOTIMER */
 	CMU_ClockEnable(cmuClock_CRYOTIMER, true);
 
@@ -171,6 +176,16 @@ extern void CMU_enter_DefaultMode_from_RESET(void) {
 extern void ADC0_enter_DefaultMode_from_RESET(void) {
 
 	// $[ADC0_Init]
+	ADC_Init_TypeDef ADC0_init = ADC_INIT_DEFAULT;
+
+	ADC0_init.ovsRateSel = adcOvsRateSel2;
+	ADC0_init.warmUpMode = adcWarmupNormal;
+	ADC0_init.timebase = ADC_TimebaseCalc(0);
+	ADC0_init.prescale = ADC_PrescaleCalc(7000000, 0);
+	ADC0_init.tailgate = 0;
+	ADC0_init.em2ClockConfig = adcEm2Disabled;
+
+	ADC_Init(ADC0, &ADC0_init);
 	// [ADC0_Init]$
 
 	// $[ADC0_InputConfiguration]

@@ -8,12 +8,14 @@
 
 #include "util.h"
 #include "crypto.h"
+#include "em_adc.h"
 
 
 #include "sha256.h"
 #include "uECC.h"
 #include "aes.h"
 #include "ctap.h"
+#include "log.h"
 
 #include MBEDTLS_CONFIG_FILE
 #include "sha256_alt.h"
@@ -26,8 +28,8 @@ const uint8_t attestation_key[];
 const uint16_t attestation_key_size;
 
 
-static SHA256_CTX sha256_ctx;
-mbedtls_sha256_context embed_sha256_ctx;
+static mbedtls_sha256_context embed_sha256_ctx;
+static mbedtls_ctr_drbg_context ctr_drbg;
 
 static const struct uECC_Curve_t * _es256_curve = NULL;
 static const uint8_t * _signing_key = NULL;
@@ -132,13 +134,51 @@ void crypto_sha256_hmac_final(uint8_t * key, uint32_t klen, uint8_t * hmac)
     crypto_sha256_final(hmac);
 }
 
-mbedtls_ctr_drbg_context ctr_drbg;
+
+
+
+uint8_t adc_rng(void)
+{
+	int i;
+	uint8_t random = 0;
+
+   /* Random number generation */
+   for (i=0; i<3; i++)
+   {
+      ADC_Start(ADC0, adcStartSingle);
+      while ((ADC0->IF & ADC_IF_SINGLE) == 0);
+      random |= ((ADC_DataSingleGet(ADC0) & 0x07) << (i * 3));
+   }
+
+   return random;
+}
+
+// Generate @num bytes of random numbers to @dest
+// return 1 if success, error otherwise
+int ctap_generate_rng(uint8_t * dst, size_t num)
+{
+	return mbedtls_ctr_drbg_random(&ctr_drbg,dst,num) == 0;
+}
+
+int adc_entropy_func( void *data, unsigned char *output, size_t len )
+{
+	while(len--)
+		*output++ = adc_rng();
+	return 0;
+}
 
 void crypto_ecc256_init()
 {
     uECC_set_rng((uECC_RNG_Function)ctap_generate_rng);
     _es256_curve = uECC_secp256r1();
     mbedtls_ctr_drbg_init(&ctr_drbg);
+
+    if ( mbedtls_ctr_drbg_seed(&ctr_drbg, adc_entropy_func, NULL,
+    		master_secret,32 ) != 0 ) {
+      printf2(TAG_ERR, "mbedtls_ctr_drbg_seed failed\n");
+      exit(1);
+    }
+
 }
 
 
@@ -505,6 +545,7 @@ void crypto_aes256_encrypt(uint8_t * buf, int length)
 {
     AES_CBC_encrypt_buffer(&aes_ctx, buf, length);
 }
+
 
 
 const uint8_t attestation_cert_der[] =

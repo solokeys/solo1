@@ -11,6 +11,8 @@
 #include "em_chip.h"
 #include "em_gpio.h"
 #include "em_usart.h"
+#include "em_adc.h"
+#include "em_cmu.h"
 
 #include "cbor.h"
 #include "log.h"
@@ -21,17 +23,6 @@
 #define RDY_PIN			gpioPortC,10
 #define RW_PIN			gpioPortD,11
 
-// Generate @num bytes of random numbers to @dest
-// return 1 if success, error otherwise
-int ctap_generate_rng(uint8_t * dst, size_t num)
-{
-    int i;
-    for (i = 0; i < num; i++)
-    {
-        *dst++ = rand();
-    }
-    return 1;
-}
 
 uint32_t _c1 = 0, _c2 = 0;
 uint32_t ctap_atomic_count(int sel)
@@ -185,6 +176,29 @@ void GPIO_ODD_IRQHandler()
 
 }
 
+void init_adc()
+{
+   /* Enable ADC Clock */
+   CMU_ClockEnable(cmuClock_ADC0, true);
+   ADC_Init_TypeDef init = ADC_INIT_DEFAULT;
+   ADC_InitSingle_TypeDef singleInit = ADC_INITSINGLE_DEFAULT;
+
+   /* Initialize the ADC with the required values */
+   init.timebase = ADC_TimebaseCalc(0);
+   init.prescale = ADC_PrescaleCalc(7000000, 0);
+   ADC_Init(ADC0, &init);
+
+   /* Initialize for single conversion specific to RNG */
+   singleInit.reference = adcRefVEntropy;
+   singleInit.diff = true;
+   singleInit.posSel = adcPosSelVSS;
+   singleInit.negSel = adcNegSelVSS;
+   ADC_InitSingle(ADC0, &singleInit);
+
+   /* Set VINATT to maximum value and clear FIFO */
+   ADC0->SINGLECTRLX |= _ADC_SINGLECTRLX_VINATT_MASK;
+   ADC0->SINGLEFIFOCLEAR = ADC_SINGLEFIFOCLEAR_SINGLEFIFOCLEAR;
+}
 void device_init(void)
 {
     /* Chip errata */
@@ -218,12 +232,18 @@ void device_init(void)
 
     printing_init();
 
+    init_adc();
+
     CborEncoder test;
-    uint8_t buf[20];
+    uint8_t buf[64];
     cbor_encoder_init(&test, buf, 20, 0);
 
     printf("Device init\r\n");
     int i=0;
 
-
+    for (i = 0; i < sizeof(buf); i++)
+    {
+    	buf[i] = adc_rng();
+    }
+    dump_hex(buf,sizeof(buf));
 }
