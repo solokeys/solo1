@@ -248,6 +248,8 @@ void ctap_init();
 // Resets state between different accesses of different applications
 void ctap_reset_state();
 
+uint8_t ctap_add_pin_if_verified(uint8_t * pinTokenEnc, uint8_t * platform_pubkey, uint8_t * pinHashEnc);
+
 void ctap_update_pin(uint8_t * pin, int len);
 uint8_t ctap_decrement_pin_attempts();
 int8_t ctap_leftover_pin_attempts();
@@ -257,8 +259,9 @@ uint8_t ctap_pin_matches(uint8_t * pin, int len);
 void ctap_reset();
 int8_t ctap_device_locked();
 
-
-
+#define PIN_TOKEN_SIZE      16
+extern uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
+extern uint8_t KEY_AGREEMENT_PUB[64];
 
 
 #endif

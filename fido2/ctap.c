@@ -12,11 +12,13 @@
 #include "util.h"
 #include "log.h"
 #include "device.h"
+#include "app.h"
+#include "wallet.h"
 
 
 #define PIN_TOKEN_SIZE      16
-static uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
-static uint8_t KEY_AGREEMENT_PUB[64];
+uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
+uint8_t KEY_AGREEMENT_PUB[64];
 static uint8_t KEY_AGREEMENT_PRIV[32];
 static uint8_t PIN_CODE_SET = 0;
 static uint8_t PIN_CODE[NEW_PIN_ENC_MAX_SIZE];
@@ -915,10 +917,9 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
     return 0;
 }
 
-uint8_t ctap_add_pin_if_verified(CborEncoder * map, uint8_t * platform_pubkey, uint8_t * pinHashEnc)
+uint8_t ctap_add_pin_if_verified(uint8_t * pinTokenEnc, uint8_t * platform_pubkey, uint8_t * pinHashEnc)
 {
     uint8_t shared_secret[32];
-    int ret;
 
     crypto_ecc256_shared_secret(platform_pubkey, KEY_AGREEMENT_PRIV, shared_secret);
 
@@ -936,6 +937,9 @@ uint8_t ctap_add_pin_if_verified(CborEncoder * map, uint8_t * platform_pubkey, u
         printf2(TAG_ERR,"Pin does not match!\n");
         printf2(TAG_ERR,"platform-pin-hash: "); dump_hex1(TAG_ERR, pinHashEnc, 16);
         printf2(TAG_ERR,"authentic-pin-hash: "); dump_hex1(TAG_ERR, PIN_CODE_HASH, 16);
+        printf2(TAG_ERR,"shared-secret: "); dump_hex1(TAG_ERR, shared_secret, 32);
+        printf2(TAG_ERR,"platform-pubkey: "); dump_hex1(TAG_ERR, platform_pubkey, 64);
+        printf2(TAG_ERR,"device-pubkey: "); dump_hex1(TAG_ERR, KEY_AGREEMENT_PUB, 64);
         // Generate new keyAgreement pair
         crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
         ctap_decrement_pin_attempts();
@@ -945,12 +949,8 @@ uint8_t ctap_add_pin_if_verified(CborEncoder * map, uint8_t * platform_pubkey, u
     ctap_reset_pin_attempts();
     crypto_aes256_reset_iv(NULL);
 
-    // reuse share_secret memory for encrypted pinToken
-    memmove(shared_secret, PIN_TOKEN, PIN_TOKEN_SIZE);
-    crypto_aes256_encrypt(shared_secret, PIN_TOKEN_SIZE);
-
-    ret = cbor_encode_byte_string(map, shared_secret, PIN_TOKEN_SIZE);
-    check_ret(ret);
+    memmove(pinTokenEnc, PIN_TOKEN, PIN_TOKEN_SIZE);
+    crypto_aes256_encrypt(pinTokenEnc, PIN_TOKEN_SIZE);
 
     return 0;
 }
@@ -959,6 +959,7 @@ uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_clientPin CP;
     CborEncoder map;
+    uint8_t pinTokenEnc[PIN_TOKEN_SIZE];
     int ret = ctap_parse_client_pin(&CP,request,length);
 
 
@@ -1046,8 +1047,14 @@ uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
             ret = cbor_encode_int(&map, RESP_pinToken);
             check_ret(ret);
 
-            ret = ctap_add_pin_if_verified(&map, (uint8_t*)&CP.keyAgreement.pubkey, CP.pinHashEnc);
+            /*ret = ctap_add_pin_if_verified(&map, (uint8_t*)&CP.keyAgreement.pubkey, CP.pinHashEnc);*/
+            ret = ctap_add_pin_if_verified(pinTokenEnc, (uint8_t*)&CP.keyAgreement.pubkey, CP.pinHashEnc);
             check_retr(ret);
+
+            ret = cbor_encode_byte_string(&map, pinTokenEnc, PIN_TOKEN_SIZE);
+            check_ret(ret);
+
+
 
             break;
 
@@ -1214,6 +1221,11 @@ void ctap_init()
     }
 
     crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+
+#ifdef BRIDGE_TO_WALLET
+    wallet_init();
+#endif
+
 }
 
 uint8_t ctap_is_pin_set()

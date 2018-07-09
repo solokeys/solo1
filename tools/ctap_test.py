@@ -99,8 +99,9 @@ class Tester():
             raise ValueError('Unexpected error: %02x' % data[0])
 
     def test_long_ping(self):
+        amt = 1000
         while 1 :
-            pingdata = os.urandom(1000)
+            pingdata = os.urandom(amt)
             try:
                 t1 = time.time() * 1000
                 r = self.send_data(CTAPHID.PING, pingdata)
@@ -108,7 +109,7 @@ class Tester():
                 delt = t2 - t1
                 #if (delt < 140 ):
                     #raise RuntimeError('Fob is too fast (%d ms)' % delt)
-                if (delt > 555):
+                if (delt > 555 * (amt/1000)):
                     raise RuntimeError('Fob is too slow (%d ms)' % delt)
                 if (r != pingdata):
                     raise ValueError('Ping data not echo\'d')
@@ -117,6 +118,8 @@ class Tester():
                 print('7609 byte Ping failed:', e)
                 raise RuntimeError('ping failed')
             print('PASS: 7609 byte ping')
+            #sys.flush(sys.sto)
+            sys.stdout.flush()
 
 
     def test_hid(self,):
@@ -571,7 +574,7 @@ if __name__ == '__main__':
     t = Tester()
     t.find_device()
     #t.test_hid()
-    #t.test_long_ping()
+    t.test_long_ping()
     #t.test_fido2()
     #test_find_brute_force()
     #t.test_fido2_simple()

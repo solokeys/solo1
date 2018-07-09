@@ -184,7 +184,7 @@ int main(void) {
 			// Did we RX data and have room?
 			if ((SPI0CFG & (0x1)) == 0 && USB_TX_COUNT < 511/2)
 			{
-				writebackbuf[writebackbuf_count++] = SPI0DAT;	// void the first byte
+				writebackbuf[writebackbuf_count++] = SPI0DAT;
 				SIGNAL_WRITE_RDY();
 
 				while(writebackbuf_count < 64)
@@ -210,7 +210,8 @@ int main(void) {
 			P1_B5 = k++&1;
 			t1 = millis();
 		}
-		if (!USBD_EpIsBusy(EP2OUT) && !USBD_EpIsBusy(EP3IN) && lastcount==count)
+//		if (!USBD_EpIsBusy(EP2OUT) && !USBD_EpIsBusy(EP3IN) && lastcount==count)
+		if (!USBD_EpIsBusy(EP2OUT)  && lastcount==count)
 		{
 //			cprintd("sched read to ",1,(int)(hidmsgbuf + write_ptr*64));
 			if (count == BUFFER_SIZE)

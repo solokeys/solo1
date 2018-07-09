@@ -22,10 +22,12 @@ all: main
 test: testgcm
 
 efm8prog:
+	cd '.\efm8\Keil 8051 v9.53 - Debug' && $(MAKE) all
 	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -erase
 	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -upload '.\efm8\Keil 8051 v9.53 - Debug\efm8.hex'
 
 efm32prog:
+	cd '.\efm32\GNU ARM v7.2.1 - Debug' && $(MAKE) all
 	commander flash '.\efm32\GNU ARM v7.2.1 - Debug\EFM32.hex' -s 440121060
 
 $(name):  $(obj)
