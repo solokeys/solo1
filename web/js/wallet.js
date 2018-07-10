@@ -1,3 +1,5 @@
+DEVELOPMENT = 1;
+
 function hex(byteArray, join) {
   if (join === undefined) join = ' ';
   return Array.from(byteArray, function(byte) {
@@ -162,7 +164,7 @@ var PIN = {
     getPinToken: 0x05,
 };
 
-// Create the XHR object.
+// Create XHR object.
 function createCORSRequest(method, url) {
     var xhr = new XMLHttpRequest();
     if ("withCredentials" in xhr) {
@@ -222,7 +224,8 @@ function send_msg_http(data, func, timeout) {
 
     xhr.send(req);
 }
-//run_tests();
+
+// For real
 function send_msg_u2f(data, func, timeout) {
     // Use key handle and signature response as comm channel
     var d = new Date();
@@ -253,7 +256,6 @@ function send_msg_u2f(data, func, timeout) {
     },timeout);
 }
 
-DEVELOPMENT = 1
 var send_msg;
 if (DEVELOPMENT) {
     send_msg = send_msg_http;
@@ -304,6 +306,11 @@ function formatRequest(cmd, p1, p2, pinAuth, args) {
     return array;
 }
 
+// Computes sha256 HMAC
+// @pinToken is key for HMAC
+// @cmd,p1,p2 each are bytes input to HMAC
+// @args array of Uint8Arrays input to HMAC
+// @return first 16 bytes of HMAC
 function computePinAuth(pinToken, cmd,p1,p2,args)
 {
     var hmac = sha256.hmac.create(pinToken);
@@ -322,6 +329,12 @@ function computePinAuth(pinToken, cmd,p1,p2,args)
     return hmac.array().slice(0,16)
 }
 
+function computePinAuthRaw(pinToken, data)
+{
+    var hmac = sha256.hmac.create(pinToken);
+    hmac.update(data);
+    return hmac.array().slice(0,16)
+}
 
 // @sigAlg is a number 0-255
 // @pinAuth token, see pinToken information.  Uint8Array
@@ -340,7 +353,7 @@ function signRequestFormat(sigAlg,pinToken,challenge,keyid) {
 // keyID:               keyid               0-233
 // Note: total size must not exceed 255 bytes
 
-    var cmd = 0x10;
+    var cmd = CMD.sign;
     var p1 = sigAlg;
     var p2 = 0;
     var args = [challenge];
@@ -355,17 +368,19 @@ function signRequestFormat(sigAlg,pinToken,challenge,keyid) {
 }
 
 // @subCmd is one of the following in PIN {}
-function pinRequestFormat(subcmd,pubkey,pinHashEnc) {
+function pinRequestFormat(subcmd, pinAuth, pubkey, pinEnc, pinHashEnc) {
 
-    var cmd = 0x12;
+    var cmd = CMD.pin;
     var p1 = subcmd;
     var p2 = 0;
     //var args = [challenge];
     //if (keyid) args.push(keyid)
-    var pinAuth = pinHashEnc || new Uint8Array(16);
+    pinAuth = pinAuth || new Uint8Array(16);
     var args = [];
 
-    if (pubkey) args.push(pubkey)
+    if (pubkey) args.push(pubkey);
+    if (pinEnc) args.push(pinEnc);
+    if (pinHashEnc) args.push(pinHashEnc);
 
     //var pinAuth = computePinAuth(pinToken,cmd,p1,p2,args);
     //console.log(hex(pinAuth));
@@ -374,85 +389,274 @@ function pinRequestFormat(subcmd,pubkey,pinHashEnc) {
     return req;
 }
 
-
-
-
-function run_tests()
-{
-    var pin = '1234';
-    var ec256k1 = new EC('secp256k1');
-    var ecp256 = new EC('p256');
-    var sharedSecret = new Uint8Array([1,2,3,4])
-    var pinToken = new Uint8Array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16])
-
+var get_shared_secret_ = function(func) {
+    // Get temporary pubkey from device to compute shared secret
     var req = pinRequestFormat(PIN.getKeyAgreement);
+    var self = this;
     send_msg(req, function(resp){
 
         var i;
         console.log('getKeyAgreement response:', resp);
 
-        var pubkey_hex = '04'+hex(resp.data,'');
-        console.log('pubkey:', pubkey_hex);
+        var devicePubkeyHex = '04'+hex(resp.data,'');
+        var devicePubkey = self.ecp256.keyFromPublic(devicePubkeyHex,'hex');
+
+        // Generate a new key pair for shared secret
+        var platform_keypair = self.ecp256.genKeyPair();
+        self.platform_keypair = platform_keypair;
 
 
-        var pubkey = ecp256.keyFromPublic(pubkey_hex,'hex');
-        var keypair = ecp256.genKeyPair();
-        var shared = keypair.derive(pubkey.getPublic()).toArray();
-
-        hash = sha256.create();
+        // shared secret
+        var shared = platform_keypair.derive(devicePubkey.getPublic()).toArray();
+        var hash = sha256.create();
         hash.update(shared);
         shared = hash.array();
 
-        var ourPubkey = keypair.getPublic(undefined, 'hex');
+        if (func) func(shared);
 
-        var ourPubkeyBytes = hex2array(ourPubkey.slice(2,ourPubkey.length));
+    });
+};
+
+var authenticate_ = function(pin, func){
+    if (! this.shared_secret){
+        throw new Error('Device is not connected.');
+    }
+    hash = sha256.create();
+    hash.update(toUTF8Array(pin));
+    pinHash = hash.array().slice(0,16);
+    console.log('pinHash:', hex(pinHash));
+
+    var iv = new Uint8Array(16);
+    iv.fill(0);
+
+    var aesCbc = new aesjs.ModeOfOperation.cbc(this.shared_secret, iv);
+    pinHashEnc = aesCbc.encrypt(pinHash);
+
+    console.log('pinenc:', hex(pinHashEnc));
+
+    var ourPubkey = this.platform_keypair.getPublic(undefined, 'hex');
+    var ourPubkeyBytes = hex2array(ourPubkey.slice(2,ourPubkey.length));
 
 
-        console.log('shared-secret:', hex(shared));
-        console.log('our pubkey:', keypair.getPublic(undefined, 'hex'));
+    var req = pinRequestFormat(PIN.getPinToken, pinHashEnc, ourPubkeyBytes);
 
-        hash = sha256.create();
-        hash.update(toUTF8Array(pin));
-        pinHash = hash.array().slice(0,16);
-        console.log('pinHash:', hex(pinHash));
+    console.log('pinTokenReq',req);
 
-        var iv = new Uint8Array(16);
-        iv.fill(0);
+    var self = this;
 
-        var aesCbc = new aesjs.ModeOfOperation.cbc(shared, iv);
-        pinHashEnc = aesCbc.encrypt(pinHash);
+    send_msg(req, function(resp){
+        console.log('getPinToken:', resp);
+        var aesCbc = new aesjs.ModeOfOperation.cbc(self.shared_secret, iv);
+        var pinTokenEnc = resp.data;
+        var pinToken = aesCbc.decrypt(pinTokenEnc);
+        self.pinToken = pinToken;
+        if (func) func(pinToken);
+    });
+};
 
-        console.log('pinenc:', hex(pinHashEnc));
+function pin2bytes(pin){
+    var pinBytes = toUTF8Array(pin);
 
-        var req = pinRequestFormat(PIN.getPinToken, ourPubkeyBytes, pinHashEnc);
+    var encLen = pinBytes.length + (16-(pinBytes.length % 16));
 
-        console.log('pinTokenReq',req);
+    if (encLen < 64){
+        encLen = 64;
+    }
 
-        send_msg(req, function(resp){
-            console.log('getPinToken:', resp);
-            var aesCbc = new aesjs.ModeOfOperation.cbc(shared, iv);
-            var pinTokenEnc = resp.data;
-            var pinToken = aesCbc.decrypt(pinTokenEnc);
-            //var pinToken = string2array('123456789abcdfe0');
+    if (pin.length < 4){
+        throw Error('FIDO2 pin must be at least 4 unicode characters.');
+    }
+    if (encLen > 255){
+        throw Error('FIDO2 pin may not exceed 255 bytes');
+    }
+    if (encLen > 80){
+        throw Error('Recommended to not use pins longer than 80 bytes due to 255 byte max message size.');
+    }
 
-            console.log('pintoken:', hex(pinToken));
 
-            var sigAlg = 3;
-            var challenge = string2array('1234567890 1234567890 1234567890');
-            var keyid = string2array('');
+    var pinBytesPadded = new Uint8Array(encLen);
+    pinBytesPadded.fill(0);
 
-            var req = signRequestFormat(sigAlg,pinToken,challenge,keyid);
+    var i;
+    for (i = 0; i < pinBytes.length; i++){
+        pinBytesPadded[i] = pinBytes[i];
+    }
 
-            //console.log('req:',req)
+    return pinBytesPadded;
+}
 
-            send_msg(req, function(resp){
-                console.assert(resp.status == 'CTAP1_SUCCESS');
-                console.log('Walletsign',resp);
-            });
+var set_pin_ = function(pin, func, failAuth){
+    var subcmd = PIN.setPin;
 
+    var pinBytesPadded = pin2bytes(pin);
+    var encLen = pinBytesPadded.length;
+
+    console.log('encrypted len: ',encLen);
+
+    var iv = new Uint8Array(16);
+    iv.fill(0);
+
+    var aesCbc = new aesjs.ModeOfOperation.cbc(this.shared_secret, iv);
+    pinEnc = aesCbc.encrypt(pinBytesPadded);
+
+    var pinAuth = computePinAuthRaw(this.shared_secret, pinEnc);
+
+    if (failAuth){
+        pinAuth.fill(0xAA);
+        pinEnc.fill(0xAA);
+    }
+
+    var ourPubkey = this.platform_keypair.getPublic(undefined, 'hex');
+    var ourPubkeyBytes = hex2array(ourPubkey.slice(2,ourPubkey.length));
+
+    var req = pinRequestFormat(subcmd, pinAuth, ourPubkeyBytes, pinEnc);
+
+    send_msg(req, function(resp){
+        if (func) func(resp.status);
+    });
+}
+
+var is_pin_set_ = function(func)
+{
+    this.set_pin('12345', function(stat){
+        if (stat == "CTAP2_ERR_NOT_ALLOWED") {
+            func(true);
+        }
+        else if (stat == "CTAP2_ERR_PIN_AUTH_INVALID"){
+            func(false);
+        }
+        else {
+            throw new Error("Device returned expected status: " + stat);
+        }
+    }, true);
+}
+
+var change_pin_ = function(curpin, newpin, func, failAuth){
+    var subcmd = PIN.changePin;
+
+    pin2bytes(curpin);  // validation only
+
+    var pinBytesPadded = pin2bytes(newpin);
+    var encLen = pinBytesPadded.length;
+
+    console.log('encrypted len: ',encLen);
+
+    var iv = new Uint8Array(16);
+    iv.fill(0);
+
+    var aesCbc = new aesjs.ModeOfOperation.cbc(this.shared_secret, iv);
+    newPinEnc = aesCbc.encrypt(pinBytesPadded);
+
+    var hash = sha256.create();
+    hash.update(toUTF8Array(curpin));
+    curPinHash = hash.array().slice(0,16);
+
+    aesCbc = new aesjs.ModeOfOperation.cbc(this.shared_secret, iv);
+    curPinHashEnc = aesCbc.encrypt(curPinHash);
+
+    var concat = new Uint8Array(newPinEnc.length + curPinHashEnc.length);
+    concat.set(newPinEnc);
+    concat.set(curPinHashEnc, newPinEnc.length);
+
+    var pinAuth = computePinAuthRaw(this.shared_secret, concat);
+
+    var ourPubkey = this.platform_keypair.getPublic(undefined, 'hex');
+    var ourPubkeyBytes = hex2array(ourPubkey.slice(2,ourPubkey.length));
+
+    var req = pinRequestFormat(subcmd, pinAuth, ourPubkeyBytes, newPinEnc, curPinHashEnc);
+
+    send_msg(req, function(resp){
+        if (func) func(resp.status);
+    });
+}
+
+var get_retries_ = function(func){
+    var subcmd = PIN.getRetries;
+
+    var req = pinRequestFormat(subcmd);
+
+    send_msg(req, function(resp){
+        if (func) func(resp.data[0]);
+    });
+}
+
+var sign_ = function(obj, func){
+
+    if (!obj.challenge)
+        throw new Error("Need something to sign");
+
+    var alg = obj.alg || 3;
+
+    var req = signRequestFormat(alg,this.pinToken,obj.challenge,obj.keyid);
+
+    send_msg(req, function(resp){
+
+        if (func) func(resp);
+    });
+};
+
+function WalletDevice() {
+    var self = this;
+    this.shared_secret = null;
+    this.ec256k1 = new EC('secp256k1');
+    this.ecp256 = new EC('p256');
+
+
+    this.init = function(func){
+        this.get_shared_secret(function(shared){
+            self.shared_secret = shared;
+            if (func) func();
+        });
+    }
+
+    this.get_shared_secret = get_shared_secret_;
+
+    // getPinToken using set pin
+    this.authenticate = authenticate_;
+
+    this.sign = sign_;
+
+    this.set_pin = set_pin_;
+
+    this.is_pin_set = is_pin_set_;
+
+    this.change_pin = change_pin_;
+
+    this.get_retries = get_retries_;
+}
+
+
+function run_tests() {
+
+    var dev = new WalletDevice();
+    var pin = "Conor's pin 👽 ";;
+    var pin2 = "Conor's pin2 😀";;
+
+    dev.init(function(){
+        console.log('connected.');
+
+        dev.is_pin_set(function(bool){
+            if (bool) {
+                console.log('Pin is set.  Changing it again..');
+                dev.change_pin(pin,pin2,function(succ){
+                    console.log('Pin set to ' + pin2,succ);
+
+                    dev.get_retries(function(num){
+                        console.log("Have "+num+" attempts to get pin right");
+                    });
+
+                });
+            }
+            else {
+                console.log('Pin is NOT set. Setting it to "' + pin + '"');
+                dev.set_pin(pin, function(succ){
+                    console.log(succ);
+                });
+            }
         });
 
     });
+
 }
 
 

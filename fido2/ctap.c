@@ -21,7 +21,7 @@ uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
 uint8_t KEY_AGREEMENT_PUB[64];
 static uint8_t KEY_AGREEMENT_PRIV[32];
 static uint8_t PIN_CODE_SET = 0;
-static uint8_t PIN_CODE[NEW_PIN_ENC_MAX_SIZE];
+uint8_t PIN_CODE[NEW_PIN_ENC_MAX_SIZE];
 static uint8_t PIN_CODE_HASH[32];
 static uint8_t DEVICE_LOCKOUT = 0;
 

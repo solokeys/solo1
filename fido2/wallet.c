@@ -44,11 +44,11 @@ void wallet_init()
     printf1(TAG_WALLET,"Wallet is ready\n");
 
 
-    ctap_update_pin("1234", 4);
+    /*ctap_update_pin("1234", 4);*/
 
 }
 
-int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * arg2)
+int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * arg2, uint8_t * arg3, int len)
 {
     uint8_t pinTokenEnc[PIN_TOKEN_SIZE];
     int ret;
@@ -64,15 +64,38 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
             break;
         case CP_cmdGetRetries:
             printf1(TAG_WALLET,"cmdGetRetries\n");
-            return CTAP2_ERR_UNSUPPORTED_OPTION;
+            pinTokenEnc[0] = ctap_leftover_pin_attempts();
+            u2f_response_writeback(pinTokenEnc,1);
+
             break;
         case CP_cmdSetPin:
             printf1(TAG_WALLET,"cmdSetPin\n");
-            return CTAP2_ERR_UNSUPPORTED_OPTION;
+            if (ctap_is_pin_set())
+            {
+                return CTAP2_ERR_NOT_ALLOWED;
+            }
+
+                                              //pinEnc     // plat_pubkey
+            ret = ctap_update_pin_if_verified(   arg2, len,     arg1,     pinAuth, NULL);
+            if (ret != 0)
+                return ret;
+
+            printf1(TAG_WALLET,"Success.  Pin = %s\n",PIN_CODE);
+
             break;
         case CP_cmdChangePin:
             printf1(TAG_WALLET,"cmdChangePin\n");
-            return CTAP2_ERR_UNSUPPORTED_OPTION;
+
+            if (! ctap_is_pin_set())
+            {
+                return CTAP2_ERR_PIN_NOT_SET;
+            }
+
+                                              //pinEnc     // plat_pubkey        // pinHashEnc
+            ret = ctap_update_pin_if_verified(   arg2, len,     arg1,     pinAuth, arg3);
+            if (ret != 0)
+                return ret;
+
             break;
         case CP_cmdGetPinToken:
             printf1(TAG_WALLET,"cmdGetPinToken\n");
@@ -162,17 +185,28 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             }
 
             printf1(TAG_WALLET,"challenge:"); dump_hex1(TAG_WALLET, args[0], lens[0]);
-            if (args[1] != NULL) printf1(TAG_WALLET,"keyid:"); dump_hex1(TAG_WALLET, args[1], lens[1]);
-
-            if (check_pinhash(req->pinAuth, msg_buf, reqlen))
+            if (args[1] != NULL && req->numArgs > 1)
             {
-                printf1(TAG_WALLET,"pinAuth is valid\n");
+                printf1(TAG_WALLET,"keyid is specified\n");
+                printf1(TAG_WALLET,"keyid:"); dump_hex1(TAG_WALLET, args[1], lens[1]);
+            }
+
+            if (ctap_is_pin_set())
+            {
+                if (check_pinhash(req->pinAuth, msg_buf, reqlen))
+                {
+                    printf1(TAG_WALLET,"pinAuth is valid\n");
+                }
+                else
+                {
+                    printf1(TAG_WALLET,"pinAuth is NOT valid\n");
+                    ret = CTAP2_ERR_PIN_AUTH_INVALID;
+                    goto cleanup;
+                }
             }
             else
             {
-                printf1(TAG_WALLET,"pinAuth is NOT valid\n");
-                ret = CTAP2_ERR_PIN_AUTH_INVALID;
-                goto cleanup;
+                printf1(TAG_WALLET,"Warning: no pin is set.  Ignoring pinAuth\n");
             }
             break;
         case WalletRegister:
@@ -180,7 +214,7 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             break;
         case WalletPin:
             printf1(TAG_WALLET,"WalletPin\n");
-            ret = wallet_pin(req->p1, req->pinAuth, args[0], args[1]);
+            ret = wallet_pin(req->p1, req->pinAuth, args[0], args[1], args[2], lens[0]);
             break;
         default:
             printf2(TAG_ERR,"Invalid wallet command: %x\n",req->operation);
