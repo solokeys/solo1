@@ -162,7 +162,68 @@ var PIN = {
     getPinToken: 0x05,
 };
 
-function send_msg(data, func, timeout) {
+// Create the XHR object.
+function createCORSRequest(method, url) {
+    var xhr = new XMLHttpRequest();
+    if ("withCredentials" in xhr) {
+        // XHR for Chrome/Firefox/Opera/Safari.
+        xhr.open(method, url, true);
+    } else if (typeof XDomainRequest != "undefined") {
+        // XDomainRequest for IE.
+        xhr = new XDomainRequest();
+        xhr.open(method, url);
+    } else {
+        // CORS not supported.
+        xhr = null;
+    }
+    return xhr;
+}
+
+function parse_device_response(arr)
+{
+    var dataview = new DataView(arr.slice(1,5).buffer);
+
+    count = dataview.getUint32(0,true); // get count as 32 bit LE integer
+
+    data = null;
+    if (arr[5] == 0) {
+        data = arr.slice(6,arr.length);
+    }
+    return {count: count, status: error2string(arr[5]), data: data};
+}
+
+
+
+// For development purposes
+function send_msg_http(data, func, timeout) {
+    var url = 'https://localhost:8080';
+
+    var req = JSON.stringify({data: array2websafe(data)});
+
+    var xhr = createCORSRequest('POST', url);
+
+    if (!xhr) {
+        console.log('CORS not supported');
+        return;
+    }
+
+    // Response handlers.
+    xhr.onload = function() {
+        var text = xhr.responseText;
+        var resp = JSON.parse(text);
+        arr = websafe2array(resp.data);
+        data = parse_device_response(arr);
+        if (func) func(data);
+    };
+
+    xhr.onerror = function() {
+        console.log('Woops, there was an error making the request.');
+    };
+
+    xhr.send(req);
+}
+//run_tests();
+function send_msg_u2f(data, func, timeout) {
     // Use key handle and signature response as comm channel
     var d = new Date();
     var t1 = d.getTime();
@@ -186,28 +247,19 @@ function send_msg(data, func, timeout) {
         var d2 = new Date();
         t2 = d2.getTime();
         sig = websafe2array(res.signatureData)
-
-        //console.log(sig);
-        //console.log(sig.slice(1,5));
-        var dataview = new DataView(sig.slice(1,5).buffer);
-
-        count = dataview.getUint32(0,true); // get count as 32 bit LE integer
-
-        //console.log('sig:',sig);
-        //console.log('count:',count);
-        data = null;
-        if (sig[5] == 0) {
-            data = sig.slice(6,sig.length);
-        }
-        func({count: count, status: error2string(sig[5]), data: data});
-        //console.log('response:', res);
-        //console.log('time:', t2-t1);
-        //i += 1;
+        data = parse_device_response(sig);
+        func(data);
 
     },timeout);
 }
 
-
+DEVELOPMENT = 1
+var send_msg;
+if (DEVELOPMENT) {
+    send_msg = send_msg_http;
+} else {
+    send_msg = send_msg_u2f;
+}
 
 
 // Format a request message
@@ -405,4 +457,6 @@ function run_tests()
 
 
 EC = elliptic.ec
-run_tests();
+
+run_tests()
+

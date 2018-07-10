@@ -9,15 +9,22 @@
 
 platform=2
 
-src = $(wildcard *.c) $(wildcard crypto/*.c) crypto/tiny-AES-c/aes.c
+src = $(wildcard pc/*.c) $(wildcard fido2/*.c) $(wildcard crypto/sha256/*.c) crypto/tiny-AES-c/aes.c
 obj = $(src:.c=.o) uECC.o
 
 LDFLAGS = -Wl,--gc-sections ./tinycbor/lib/libtinycbor.a
-CFLAGS = -O2 -fdata-sections -ffunction-sections -I./tinycbor/src -I./crypto -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/ -I.
+CFLAGS = -O2 -fdata-sections -ffunction-sections 
+
+INCLUDES = -I./tinycbor/src -I./crypto/sha256 -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/ -I./fido2/ -I./pc
+
+CFLAGS += $(INCLUDES)
 
 name = main
 
 all: main
+
+cbor:
+	cd tinycbor/ && $(MAKE) clean && $(MAKE) -j8
 
 test: testgcm
 
