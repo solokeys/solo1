@@ -37,9 +37,23 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
     {
         if (req->p1 == U2F_AUTHENTICATE_CHECK)
         {
+            if (memcmp(auth->chal, CHALLENGE_PIN, 32) == 0)     // Pin requests
+            {
+                rcode =  U2F_SW_CONDITIONS_NOT_SATISFIED;
+            }
+            else
+            {
+                rcode =  U2F_SW_WRONG_DATA;
+            }
+            goto end;
         }
         else
         {
+            if (memcmp(auth->chal, CHALLENGE_PIN, 32) != 0)     // Pin requests
+            {
+                rcode = U2F_SW_WRONG_PAYLOAD;
+                goto end;
+            }
             rcode = bridge_u2f_to_wallet(auth->chal, auth->app, auth->khl, (uint8_t*)&auth->kh);
         }
     }

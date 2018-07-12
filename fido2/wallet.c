@@ -53,21 +53,13 @@ int check_pinhash(uint8_t * pinAuth, uint8_t * msg, uint8_t len)
     crypto_sha256_update(msg+ 4 + 16, len - 4 - 16);
     crypto_sha256_hmac_final(PIN_TOKEN, PIN_TOKEN_SIZE, hmac);
 
-    printf1(TAG_WALLET, "recalc pinhash:"); dump_hex1(TAG_WALLET, hmac,32);
-
     return (memcmp(pinAuth, hmac, 16) == 0);
 }
-/*int16_t wallet_sign(uint8_t alg, uint8_t * chal, uint8_t len, uint8_t * kh, uint8_t kl)*/
-/*{*/
-    /*crypto_sha256_hmac_init(uint8_t * key, uint32_t klen, uint8_t * hmac);*/
-/*}*/
+
 
 void wallet_init()
 {
-    // TODO dont leave this
     printf1(TAG_WALLET,"Wallet is ready\n");
-
-    /*ctap_update_pin("1234", 4);*/
 }
 
 int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * arg2, uint8_t * arg3, int len)
@@ -376,6 +368,7 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
                     if ( ! check_pinhash(req->pinAuth, msg_buf, reqlen))
                     {
                         printf1(TAG_WALLET,"pinAuth is NOT valid\n");
+                        dump_hex(msg_buf,reqlen);
                         ret = CTAP2_ERR_PIN_AUTH_INVALID;
                         goto cleanup;
                     }
@@ -385,6 +378,7 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
 
             if (ctap_user_presence_test())
             {
+                printf1(TAG_WALLET,"Reseting device!\n");
                 ctap_reset();
             }
             else

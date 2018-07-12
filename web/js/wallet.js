@@ -70,6 +70,40 @@ function hex2array(string)
     return arr;
 }
 
+
+// @key input private key in hex string format
+function key2wif(key)
+{
+    //2
+    key = '0x80' + key;
+
+    bin = hex2array(key);
+
+    //3
+    var hash = sha256.create();
+    hash.update(bin);
+    bin = hash.array();
+
+    //4
+    hash = sha256.create();
+    hash.update(bin);
+    bin = hash.array();
+
+    // 5
+    var chksum = bin.slice(0,4);
+
+    // 6
+    key = key + array2hex(chksum);
+
+    // 7
+    key = hex2array(key);
+    key = to_b58(key);
+
+    return key;
+}
+
+
+
 function array2hex(buffer) {
   return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
 }
@@ -161,6 +195,8 @@ var CMD = {
     sign: 0x10,
     register: 0x11,
     pin: 0x12,
+    reset: 0x13,
+    version: 0x14,
 };
 
 var PIN = {
@@ -242,6 +278,8 @@ function send_msg_u2f(data, func, timeout) {
     var appid = window.location.origin;
     var chal = string2websafe('AABBCC');
 
+    var chal = array2websafe(hex2array('d1cd7357bcedc03fcec112fe5a7f3f890292ff6f758978928b736ce1e63479e5'));
+
     var keyHandle = array2websafe(data);
 
     var key = {
@@ -279,6 +317,7 @@ if (DEVELOPMENT) {
 function formatRequest(cmd, p1, p2, pinAuth, args) {
     var argslen = 0;
     var i,j;
+    args = args || [];
     for (i = 0; i < args.length; i+=1) {
         argslen += args[i].length + 1
     }
@@ -296,8 +335,10 @@ function formatRequest(cmd, p1, p2, pinAuth, args) {
     array[2] = p2 & 0xff;
     array[3] = (args.length) & 0xff;
 
-    for (i = 0; i < 16; i += 1) {
-        array[4 + i] = pinAuth[i];
+    if (pinAuth) {
+        for (i = 0; i < 16; i += 1) {
+            array[4 + i] = pinAuth[i];
+        }
     }
 
     var offset = 4 + i;
@@ -325,12 +366,16 @@ function computePinAuth(pinToken, cmd,p1,p2,args)
     hmac.update([cmd]);
     hmac.update([p1]);
     hmac.update([p2]);
-    hmac.update([args.length]);
+    if (args && args.length) hmac.update([args.length]);
+    else hmac.update([0]);
 
-    for (i = 0; i < args.length; i++)
-    {
-        hmac.update([args[i].length]);
-        hmac.update(args[i]);
+
+    if (args) {
+        for (i = 0; i < args.length; i++)
+        {
+            hmac.update([args[i].length]);
+            hmac.update(args[i]);
+        }
     }
 
     return hmac.array().slice(0,16)
@@ -471,7 +516,7 @@ var authenticate_ = function(pin, func){
         var pinTokenEnc = resp.data;
         var pinToken = aesCbc.decrypt(pinTokenEnc);
         self.pinToken = pinToken;
-        if (func) func(pinToken);
+        if (func) func({pinToken: pinToken, status: resp.status});
     });
 };
 
@@ -531,17 +576,17 @@ var set_pin_ = function(pin, func, failAuth){
     var req = pinRequestFormat(subcmd, pinAuth, ourPubkeyBytes, pinEnc);
 
     send_msg(req, function(resp){
-        if (func) func(resp.status);
+        if (func) func(resp);
     });
 }
 
 var is_pin_set_ = function(func)
 {
-    this.set_pin('12345', function(stat){
-        if (stat == "CTAP2_ERR_NOT_ALLOWED") {
+    this.set_pin('12345', function(resp){
+        if (resp.status == "CTAP2_ERR_NOT_ALLOWED") {
             func(true);
         }
-        else if (stat == "CTAP2_ERR_PIN_AUTH_INVALID"){
+        else if (resp.status == "CTAP2_ERR_PIN_AUTH_INVALID"){
             func(false);
         }
         else {
@@ -626,7 +671,57 @@ var register_ = function(wifkey, func){
     });
 };
 
+// @note authorization required beforehand if device is not already locked.
+var reset_ = function(func){
 
+    var pinAuth = undefined;
+
+    if (this.pinToken) {
+        pinAuth = computePinAuth(this.pinToken, CMD.reset, 0, 0);
+    }
+
+    var req = formatRequest(CMD.reset,0,0, pinAuth);
+
+    var self = this;
+
+    send_msg(req, function(resp){
+        if (resp.status == "CTAP1_SUCCESS")
+        {
+            self.init(function(resp){
+                if (func)func(resp);
+            });
+        }
+        else {
+            if (func) func(resp);
+        }
+    });
+};
+
+function wrap_promise(func)
+{
+    var self = this;
+    return function (){
+        var args = arguments;
+        return new Promise(function(resolve,reject){
+            var i;
+            for (i = 0; i < args.length; i++)
+            {
+                if (typeof args[i] == 'function')
+                {
+                    var oldfunc = args[i];
+                    args[i] = function(){
+                        oldfunc.apply(self,arguments);
+                        resolve.apply(self,arguments);
+                        //oldfunc.call(arguments);
+                        //resolve.call(arguments);
+                    };
+                    break;
+                }
+            }
+            func.apply(self,args);
+        });
+    }
+}
 
 function WalletDevice() {
     var self = this;
@@ -636,11 +731,23 @@ function WalletDevice() {
 
 
     this.init = function(func){
-        this.get_shared_secret(function(shared){
-            self.shared_secret = shared;
-            if (func) func();
+        self.get_version(function(ver){
+            self.version = ver;
+            self.get_shared_secret(function(shared){
+                self.shared_secret = shared;
+                if (func) func();
+            });
         });
-    }
+    };
+
+
+    this.get_version = function(func){
+        var req = formatRequest(CMD.version,0,0);
+        send_msg(req, function(resp){
+            var ver = new TextDecoder("utf-8").decode(resp.data);
+            if (func) func(ver);
+        });
+    };
 
     this.get_shared_secret = get_shared_secret_;
 
@@ -658,74 +765,75 @@ function WalletDevice() {
     this.get_retries = get_retries_;
 
     this.register = register_;
+
+    this.reset = reset_;
+
+    //this.init = wrap_promise(this.init);
+    //this.get_version = wrap_promise(this.get_version);
+    //this.get_shared_secret = wrap_promise(this.get_shared_secret );
+    //this.authenticate = wrap_promise(this.authenticate );
+    //this.sign = wrap_promise(this.sign );
+    //this.set_pin = wrap_promise(this.set_pin );
+    //this.is_pin_set = wrap_promise(this.is_pin_set );
+    //this.change_pin = wrap_promise(this.change_pin );
+    //this.get_retries = wrap_promise(this.get_retries );
+    //this.register = wrap_promise(this.register );
+    //this.reset = wrap_promise(this.reset );
+
 }
 
-// @key input private key in hex string format
-function key2wif(key)
-{
-    //2
-    key = '0x80' + key;
-
-    bin = hex2array(key);
-
-    //3
-    var hash = sha256.create();
-    hash.update(bin);
-    bin = hash.array();
-
-    //4
-    hash = sha256.create();
-    hash.update(bin);
-    bin = hash.array();
-
-    // 5
-    var chksum = bin.slice(0,4);
-
-    // 6
-    key = key + array2hex(chksum);
-
-    // 7
-    key = hex2array(key);
-    key = to_b58(key);
-
-    return key;
-}
-
-
-function run_tests() {
+async function run_tests() {
 
     var dev = new WalletDevice();
-    var pin = "Conor's pin 👽 ";;
-    var pin2 = "Conor's pin2 😀";;
+    var pin = "Conor's pin 👽 ";
+    var pin2 = "sogyhdxoh3qwli😀";
 
-    dev.init(function(){
-        console.log('connected.');
 
-        dev.is_pin_set(function(bool){
-            if (bool) {
-                console.log('Pin is set.  ');
-                //dev.change_pin(pin,pin2,function(succ){
-                    //console.log('Pin set to ' + pin2,succ);
+    function device_start_over(next)
+    {
+        dev.init(function(resp){
 
-                    //dev.get_retries(function(num){
-                        //console.log("Have "+num+" attempts to get pin right");
-                    //});
+            console.log('connected. version: ', dev.version);
 
-                //});
-                dev.authenticate(pin, function(){
+            dev.is_pin_set(function(bool){
+                if (bool) {
+                    dev.authenticate(pin, function(resp){
+                        //reset_device(next);
+                    });
+                }
+                else {
+                    //reset_device(next);
+                }
+            });
 
-                    t2();
+        
+        });
+    }
+
+    function reset_device(func)
+    {
+        dev.reset(function(resp){
+            console.log("reset: ",resp);
+            if (func) func();
+        });
+    }
+
+    function test_pin(next)
+    {
+        dev.set_pin(pin, function(resp){
+            if (resp.status == "CTAP1_SUCCESS"){
+                console.log('Set pin to ' + pin);
+                dev.set_pin(pin, function(resp){
+                
                 });
             }
             else {
-                console.log('Pin is NOT set. Setting it to "' + pin + '"');
-                dev.set_pin(pin, function(succ){
-                    console.log(succ);
-                });
+                console.log("Fail set_pin");
             }
         });
+    }
 
-    });
+    device_start_over();
 
     function t2 ()
     {
