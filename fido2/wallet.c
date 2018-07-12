@@ -5,12 +5,34 @@
  *      Author: conor
  */
 #include "wallet.h"
+#include "app.h"
 #include "ctap.h"
 #include "ctap_errors.h"
 #include "crypto.h"
 #include "u2f.h"
 #include "log.h"
 #include "util.h"
+#include "storage.h"
+#include "device.h"
+
+#ifdef USING_PC
+typedef enum
+{
+    MBEDTLS_ECP_DP_NONE = 0,
+    MBEDTLS_ECP_DP_SECP192R1,      /*!< 192-bits NIST curve  */
+    MBEDTLS_ECP_DP_SECP224R1,      /*!< 224-bits NIST curve  */
+    MBEDTLS_ECP_DP_SECP256R1,      /*!< 256-bits NIST curve  */
+    MBEDTLS_ECP_DP_SECP384R1,      /*!< 384-bits NIST curve  */
+    MBEDTLS_ECP_DP_SECP521R1,      /*!< 521-bits NIST curve  */
+    MBEDTLS_ECP_DP_BP256R1,        /*!< 256-bits Brainpool curve */
+    MBEDTLS_ECP_DP_BP384R1,        /*!< 384-bits Brainpool curve */
+    MBEDTLS_ECP_DP_BP512R1,        /*!< 512-bits Brainpool curve */
+    MBEDTLS_ECP_DP_CURVE25519,           /*!< Curve25519               */
+    MBEDTLS_ECP_DP_SECP192K1,      /*!< 192-bits "Koblitz" curve */
+    MBEDTLS_ECP_DP_SECP224K1,      /*!< 224-bits "Koblitz" curve */
+    MBEDTLS_ECP_DP_SECP256K1,      /*!< 256-bits "Koblitz" curve */
+} mbedtls_ecp_group_id;
+#endif
 
 typedef enum
 {
@@ -43,9 +65,7 @@ void wallet_init()
     // TODO dont leave this
     printf1(TAG_WALLET,"Wallet is ready\n");
 
-
     /*ctap_update_pin("1234", 4);*/
-
 }
 
 int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * arg2, uint8_t * arg3, int len)
@@ -57,6 +77,11 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
     {
         case CP_cmdGetKeyAgreement:
             printf1(TAG_WALLET,"cmdGetKeyAgreement\n");
+
+            if ( ctap_device_locked() )
+            {
+                return CTAP2_ERR_OPERATION_DENIED;
+            }
 
             u2f_response_writeback(KEY_AGREEMENT_PUB,sizeof(KEY_AGREEMENT_PUB));
             printf1(TAG_WALLET,"pubkey: "); dump_hex1(TAG_WALLET,KEY_AGREEMENT_PUB,64);
@@ -80,15 +105,20 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
             if (ret != 0)
                 return ret;
 
-            printf1(TAG_WALLET,"Success.  Pin = %s\n",PIN_CODE);
+            printf1(TAG_WALLET,"Success.  Pin = %s\n", STATE.pin_code);
 
             break;
         case CP_cmdChangePin:
             printf1(TAG_WALLET,"cmdChangePin\n");
 
-            if (! ctap_is_pin_set())
+            if (! ctap_is_pin_set() )
             {
                 return CTAP2_ERR_PIN_NOT_SET;
+            }
+
+            if ( ctap_device_locked() )
+            {
+                return CTAP2_ERR_OPERATION_DENIED;
             }
 
                                               //pinEnc     // plat_pubkey        // pinHashEnc
@@ -99,6 +129,11 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
             break;
         case CP_cmdGetPinToken:
             printf1(TAG_WALLET,"cmdGetPinToken\n");
+
+            if ( ctap_device_locked() )
+            {
+                return CTAP2_ERR_OPERATION_DENIED;
+            }
 
             ret = ctap_add_pin_if_verified(pinTokenEnc, arg1, pinAuth); // pubkey, pinHashEnc
             if (ret != 0)
@@ -131,6 +166,12 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
 
     uint8_t * args[5] = {NULL,NULL,NULL,NULL,NULL};
     uint8_t lens[5];
+
+    uint8_t key[256];
+    uint8_t shasum[32];
+    uint8_t chksum[4];
+
+    int keysize = sizeof(key);
 
 
     for (i = 0; i < sizeof(sig); i++)
@@ -177,7 +218,7 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             printf1(TAG_WALLET,"WalletSign\n");
             printf1(TAG_WALLET,"pinAuth:"); dump_hex1(TAG_WALLET, req->pinAuth, 16);
 
-            if (args[0] == NULL)
+            if (args[0] == NULL || lens[0] == 0)
             {
                 ret = CTAP2_ERR_MISSING_PARAMETER;
                 printf2(TAG_ERR,"Missing parameter for WalletSign\n");
@@ -208,9 +249,91 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             {
                 printf1(TAG_WALLET,"Warning: no pin is set.  Ignoring pinAuth\n");
             }
+
+
+            ret = ctap_load_key(0, key);
+
+            if (ret != 0)
+            {
+                ret = CTAP2_ERR_NO_CREDENTIALS;
+                goto cleanup;
+            }
+
+            keysize = ctap_key_len(0);
+
+            crypto_load_external_key(key, keysize);
+            crypto_ecdsa_sign(args[0], lens[0], sig, MBEDTLS_ECP_DP_SECP256R1);
+
+            u2f_response_writeback(sig,64);
+
             break;
         case WalletRegister:
             printf1(TAG_WALLET,"WalletRegister\n");
+            if (args[0] == NULL)
+            {
+                ret = CTAP2_ERR_MISSING_PARAMETER;
+                printf2(TAG_ERR,"Missing parameter for WalletReg\n");
+                goto cleanup;
+            }
+            if (lens[0] < 8 || lens[0] > keysize)
+            {
+                ret = CTAP1_ERR_INVALID_LENGTH;
+                printf2(TAG_ERR,"Invalid length for WalletReg\n");
+                goto cleanup;
+            }
+            if (ctap_is_pin_set())
+            {
+                if (check_pinhash(req->pinAuth, msg_buf, reqlen))
+                {
+                    printf1(TAG_WALLET,"pinAuth is valid\n");
+                }
+                else
+                {
+                    printf1(TAG_WALLET,"pinAuth is NOT valid\n");
+                    ret = CTAP2_ERR_PIN_AUTH_INVALID;
+                    goto cleanup;
+                }
+            }
+            else
+            {
+                printf1(TAG_WALLET,"Warning: no pin is set.  Ignoring pinAuth\n");
+            }
+
+            memmove(chksum, args[0] + lens[0] - 4, 4);
+            lens[0] -= 4;
+
+            // perform integrity check
+            printf1(TAG_WALLET,"shasum on [%d]: ",lens[0]); dump_hex1(TAG_WALLET, args[0], lens[0]);
+            crypto_sha256_init();
+            crypto_sha256_update(args[0], lens[0]);
+            crypto_sha256_final(shasum);
+            crypto_sha256_init();
+            crypto_sha256_update(shasum, 32);
+            crypto_sha256_final(shasum);
+
+            if (memcmp(shasum, chksum, 4) != 0)
+            {
+                ret = CTAP2_ERR_CREDENTIAL_NOT_VALID;
+                printf2(TAG_ERR,"Integrity fail for WalletReg\n");
+                dump_hex1(TAG_ERR, chksum, sizeof(chksum));
+                goto cleanup;
+            }
+
+            // drop the first byte
+            args[0]++;
+            lens[0]--;
+
+            printf1(TAG_WALLET,"adding key [%d]: ",lens[0]); dump_hex1(TAG_WALLET, args[0], lens[0]);
+
+            ret = ctap_store_key(0, args[0], lens[0]);
+
+            if (ret == ERR_NO_KEY_SPACE || ret == ERR_KEY_SPACE_TAKEN)
+            {
+                ret = CTAP2_ERR_KEY_STORE_FULL;
+                goto cleanup;
+            }
+
+
             break;
         case WalletPin:
             printf1(TAG_WALLET,"WalletPin\n");

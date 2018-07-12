@@ -10,6 +10,8 @@
 
 #define USING_DEV_BOARD
 
+#define USING_PC
+
 #define BRIDGE_TO_WALLET
 
 void printing_init();

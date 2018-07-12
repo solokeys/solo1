@@ -2,7 +2,6 @@
 #define _CTAP_H
 
 #include "cbor.h"
-#include "device.h"
 
 #define CTAP_MAKE_CREDENTIAL        0x01
 #define CTAP_GET_ASSERTION          0x02
@@ -108,6 +107,8 @@
 #define NEW_PIN_ENC_MAX_SIZE        256     // includes NULL terminator
 
 #define CTAP_RESPONSE_BUFFER_SIZE   1024
+
+#define PIN_LOCKOUT_ATTEMPTS        8
 
 typedef struct
 {
@@ -260,10 +261,19 @@ uint8_t ctap_pin_matches(uint8_t * pin, int len);
 void ctap_reset();
 int8_t ctap_device_locked();
 
+// Key storage API
+
+// Return length of key at index.  0 if not exist.
+uint16_t ctap_key_len(uint8_t index);
+
+// See error codes in storage.h
+int8_t ctap_store_key(uint8_t index, uint8_t * key, uint16_t len);
+int8_t ctap_load_key(uint8_t index, uint8_t * key);
+uint16_t ctap_key_len(uint8_t index);
+
 #define PIN_TOKEN_SIZE      16
 extern uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
 extern uint8_t KEY_AGREEMENT_PUB[64];
-extern uint8_t PIN_CODE[NEW_PIN_ENC_MAX_SIZE];
 
 
 #endif

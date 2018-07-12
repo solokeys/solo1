@@ -15,6 +15,7 @@
 #include "log.h"
 
 
+void authenticator_initialize();
 
 int udp_server()
 {
@@ -135,9 +136,13 @@ void usbhid_close()
     udp_close(serverfd);
 }
 
+
 void device_init()
 {
     usbhid_init();
+
+    authenticator_initialize();
+
 }
 
 
@@ -203,6 +208,193 @@ int ctap_generate_rng(uint8_t * dst, size_t num)
     /*memset(dst,0xaa,num);*/
 
     return 1;
+}
+
+
+const char * state_file = "authenticator_state.bin";
+const char * backup_file = "authenticator_state2.bin";
+
+void authenticator_read_state(AuthenticatorState * state)
+{
+    FILE * f;
+    int ret;
+
+    f = fopen(state_file, "rb");
+    if (f== NULL)
+    {
+        perror("fopen");
+        exit(1);
+    }
+
+    ret = fread(state, 1, sizeof(AuthenticatorState), f);
+    fclose(f);
+    if(ret != sizeof(AuthenticatorState))
+    {
+        perror("fwrite");
+        exit(1);
+    }
+
+}
+
+void authenticator_read_backup_state(AuthenticatorState * state )
+{
+    FILE * f;
+    int ret;
+
+    f = fopen(backup_file, "rb");
+    if (f== NULL)
+    {
+        perror("fopen");
+        exit(1);
+    }
+
+    ret = fread(state, 1, sizeof(AuthenticatorState), f);
+    fclose(f);
+    if(ret != sizeof(AuthenticatorState))
+    {
+        perror("fwrite");
+        exit(1);
+    }
+}
+
+void authenticator_write_state(AuthenticatorState * state, int backup)
+{
+    FILE * f;
+    int ret;
+
+    if (! backup)
+    {
+        f = fopen(state_file, "wb+");
+        if (f== NULL)
+        {
+            perror("fopen");
+            exit(1);
+        }
+        ret = fwrite(state, 1, sizeof(AuthenticatorState), f);
+        fclose(f);
+        if (ret != sizeof(AuthenticatorState))
+        {
+            perror("fwrite");
+            exit(1);
+        }
+    }
+    else
+    {
+
+        f = fopen(backup_file, "wb+");
+        if (f== NULL)
+        {
+            perror("fopen");
+            exit(1);
+        }
+        ret = fwrite(state, 1, sizeof(AuthenticatorState), f);
+        fclose(f);
+        if (ret != sizeof(AuthenticatorState))
+        {
+            perror("fwrite");
+            exit(1);
+        }
+    }
+}
+
+// Return 1 yes backup is init'd, else 0
+int authenticator_is_backup_initialized()
+{
+    uint8_t header[16];
+    AuthenticatorState * state = (AuthenticatorState*) header;
+    FILE * f;
+    int ret;
+    uint8_t * mem;
+
+    printf("state file exists\n");
+    f = fopen(backup_file, "rb");
+    if (f== NULL)
+    {
+        printf("Warning, backup file doesn't exist\n");
+        return 0;
+    }
+
+    ret = fread(header, 1, sizeof(header), f);
+    fclose(f);
+    if(ret != sizeof(header))
+    {
+        perror("fwrite");
+        exit(1);
+    }
+
+    return state->is_initialized == INITIALIZED_MARKER;
+
+}
+
+// Return 1 yes backup is init'd, else 0
+int authenticator_is_initialized()
+{
+
+
+}
+
+void authenticator_initialize()
+{
+    uint8_t header[16];
+    FILE * f;
+    int ret;
+    uint8_t * mem;
+    if (access(state_file, F_OK) != -1)
+    {
+        printf("state file exists\n");
+        f = fopen(state_file, "rb");
+        if (f== NULL)
+        {
+            perror("fopen");
+            exit(1);
+        }
+
+        ret = fread(header, 1, sizeof(header), f);
+        fclose(f);
+        if(ret != sizeof(header))
+        {
+            perror("fwrite");
+            exit(1);
+        }
+    }
+    else
+    {
+        printf("state file does not exist, creating it\n");
+        f = fopen(state_file, "wb+");
+        if (f== NULL)
+        {
+            perror("fopen");
+            exit(1);
+        }
+        mem = malloc(sizeof(AuthenticatorState));
+        memset(mem,0xff,sizeof(AuthenticatorState));
+        ret = fwrite(mem, 1, sizeof(AuthenticatorState), f);
+        free(mem);
+        fclose(f);
+        if (ret != sizeof(AuthenticatorState))
+        {
+            perror("fwrite");
+            exit(1);
+        }
+
+        f = fopen(backup_file, "wb+");
+        if (f== NULL)
+        {
+            perror("fopen");
+            exit(1);
+        }
+        mem = malloc(sizeof(AuthenticatorState));
+        memset(mem,0xff,sizeof(AuthenticatorState));
+        ret = fwrite(mem, 1, sizeof(AuthenticatorState), f);
+        free(mem);
+        fclose(f);
+        if (ret != sizeof(AuthenticatorState))
+        {
+            perror("fwrite");
+            exit(1);
+        }
+
+    }
 }
 
 

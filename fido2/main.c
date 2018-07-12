@@ -28,6 +28,7 @@ int main(int argc, char * argv[])
             /*TAG_MC |*/
             /*TAG_GA |*/
             TAG_WALLET |
+            TAG_STOR |
             /*TAG_CP |*/
 //            TAG_CTAP|
 //            TAG_HID|

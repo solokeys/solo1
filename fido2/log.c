@@ -32,6 +32,7 @@ struct logtag tagtable[] = {
     {TAG_RED,"[1;31mDEBUG[0m"},
     {TAG_TIME,"[1;33mTIME[0m"},
     {TAG_WALLET,"[1;34mWALLET[0m"},
+    {TAG_STOR,"[1;35mSTOR[0m"},
 };
 
 

@@ -17,6 +17,27 @@
 #include "uECC.h"
 #include "aes.h"
 #include "ctap.h"
+#include "device.h"
+#include "app.h"
+
+#ifdef USING_PC
+typedef enum
+{
+    MBEDTLS_ECP_DP_NONE = 0,
+    MBEDTLS_ECP_DP_SECP192R1,      /*!< 192-bits NIST curve  */
+    MBEDTLS_ECP_DP_SECP224R1,      /*!< 224-bits NIST curve  */
+    MBEDTLS_ECP_DP_SECP256R1,      /*!< 256-bits NIST curve  */
+    MBEDTLS_ECP_DP_SECP384R1,      /*!< 384-bits NIST curve  */
+    MBEDTLS_ECP_DP_SECP521R1,      /*!< 521-bits NIST curve  */
+    MBEDTLS_ECP_DP_BP256R1,        /*!< 256-bits Brainpool curve */
+    MBEDTLS_ECP_DP_BP384R1,        /*!< 384-bits Brainpool curve */
+    MBEDTLS_ECP_DP_BP512R1,        /*!< 512-bits Brainpool curve */
+    MBEDTLS_ECP_DP_CURVE25519,           /*!< Curve25519               */
+    MBEDTLS_ECP_DP_SECP192K1,      /*!< 192-bits "Koblitz" curve */
+    MBEDTLS_ECP_DP_SECP224K1,      /*!< 224-bits "Koblitz" curve */
+    MBEDTLS_ECP_DP_SECP256K1,      /*!< 256-bits "Koblitz" curve */
+} mbedtls_ecp_group_id;
+#endif
 
 
 const uint8_t attestation_cert_der[];
@@ -29,6 +50,7 @@ const uint16_t attestation_key_size;
 static SHA256_CTX sha256_ctx;
 static const struct uECC_Curve_t * _es256_curve = NULL;
 static const uint8_t * _signing_key = NULL;
+static int _key_len = 0;
 
 // Secrets for testing only
 static uint8_t master_secret[32] = "\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff"
@@ -136,6 +158,7 @@ void crypto_ecc256_init()
 void crypto_ecc256_load_attestation_key()
 {
     _signing_key = attestation_key;
+    _key_len = 32;
 }
 
 void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig)
@@ -145,6 +168,55 @@ void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig)
         printf("error, uECC failed\n");
         exit(1);
     }
+}
+
+void crypto_ecc256_load_key(uint8_t * data, int len, uint8_t * data2, int len2)
+{
+    static uint8_t privkey[32];
+    generate_private_key(data,len,data2,len2,privkey);
+    _signing_key = privkey;
+    _key_len = 32;
+}
+
+void crypto_ecdsa_sign(uint8_t * data, int len, uint8_t * sig, int MBEDTLS_ECP_ID)
+{
+
+    const struct uECC_Curve_t * curve = NULL;
+
+    switch(MBEDTLS_ECP_ID)
+    {
+        case MBEDTLS_ECP_DP_SECP192R1:
+            curve = uECC_secp192r1();
+            if (_key_len != 24)  goto fail;
+            break;
+        case MBEDTLS_ECP_DP_SECP224R1:
+            curve = uECC_secp224r1();
+            if (_key_len != 28)  goto fail;
+            break;
+        case MBEDTLS_ECP_DP_SECP256R1:
+            curve = uECC_secp256r1();
+            if (_key_len != 32)  goto fail;
+            break;
+        case MBEDTLS_ECP_DP_SECP256K1:
+            curve = uECC_secp256k1();
+            if (_key_len != 32)  goto fail;
+            break;
+        default:
+            printf("error, invalid ECDSA alg specifier\n");
+            exit(1);
+    }
+
+    if ( uECC_sign(_signing_key, data, len, sig, curve) == 0)
+    {
+        printf("error, uECC failed\n");
+        exit(1);
+    }
+    return;
+
+fail:
+    printf("error, invalid key length\n");
+    exit(1);
+
 }
 
 void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey)
@@ -171,12 +243,12 @@ void crypto_ecc256_derive_public_key(uint8_t * data, int len, uint8_t * x, uint8
     memmove(y,pubkey+32,32);
 }
 
-void crypto_ecc256_load_key(uint8_t * data, int len, uint8_t * data2, int len2)
+void crypto_load_external_key(uint8_t * key, int len)
 {
-    static uint8_t privkey[32];
-    generate_private_key(data,len,data2,len2,privkey);
-    _signing_key = privkey;
+    _signing_key = key;
+    _key_len = len;
 }
+
 
 void crypto_ecc256_make_key_pair(uint8_t * pubkey, uint8_t * privkey)
 {

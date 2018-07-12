@@ -36,8 +36,6 @@ class Packet(object):
     def FromWireFormat(pkt_size,data):
         return Packet(data)
 
-
-
 class Tester():
     def __init__(self,):
         self.origin = 'https://examplo.org'

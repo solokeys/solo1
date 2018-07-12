@@ -1,5 +1,8 @@
 DEVELOPMENT = 1;
 
+var to_b58 = function(B){var A="123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";var d=[],s="",i,j,c,n;for(i in B){j=0,c=B[i];s+=c||s.length^i?"":1;while(j in d||c){n=d[j];n=n?n*256+c:c;c=n/58|0;d[j]=n%58;j++}}while(j--)s+=A[d[j]];return s};
+var from_b58 = function(S){var A="123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";var d=[],b=[],i,j,c,n;for(i in S){j=0,c=A.indexOf(S[i]);if(c<0)throw new Error('Invald b58 character');c||b.length^i?i:b.push(0);while(j in d||c){n=d[j];n=n?n*58+c:c;c=n>>8;d[j]=n%256;j++}}while(j--)b.push(d[j]);return new Uint8Array(b)};
+
 function hex(byteArray, join) {
   if (join === undefined) join = ' ';
   return Array.from(byteArray, function(byte) {
@@ -65,6 +68,10 @@ function hex2array(string)
         arr[i/2] = parseInt(string.slice(i,i+2),16);
     }
     return arr;
+}
+
+function array2hex(buffer) {
+  return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
 }
 
 // https://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
@@ -356,13 +363,32 @@ function signRequestFormat(sigAlg,pinToken,challenge,keyid) {
     var cmd = CMD.sign;
     var p1 = sigAlg;
     var p2 = 0;
+
+    if (typeof(challenge) == 'string')
+    {
+        challenge = websafe2array(challenge);
+    }
+
     var args = [challenge];
     if (keyid) args.push(keyid)
 
     var pinAuth = computePinAuth(pinToken,cmd,p1,p2,args);
-    console.log(hex(pinAuth));
     var req = formatRequest(cmd,p1,p2,pinAuth,args);
-    console.log('',req);
+
+    return req;
+}
+
+// @wifkey is wif key in base58 format string
+function registerRequestFormat(wifkey, pinToken) {
+
+    var cmd = CMD.register;
+    var p1 = 0;
+    var p2 = 0;
+    var keyarr = from_b58(wifkey);
+    var args = [keyarr];
+
+    var pinAuth = computePinAuth(pinToken,cmd,p1,p2,args);
+    var req = formatRequest(cmd,p1,p2,pinAuth,args);
 
     return req;
 }
@@ -396,7 +422,6 @@ var get_shared_secret_ = function(func) {
     send_msg(req, function(resp){
 
         var i;
-        console.log('getKeyAgreement response:', resp);
 
         var devicePubkeyHex = '04'+hex(resp.data,'');
         var devicePubkey = self.ecp256.keyFromPublic(devicePubkeyHex,'hex');
@@ -424,7 +449,6 @@ var authenticate_ = function(pin, func){
     hash = sha256.create();
     hash.update(toUTF8Array(pin));
     pinHash = hash.array().slice(0,16);
-    console.log('pinHash:', hex(pinHash));
 
     var iv = new Uint8Array(16);
     iv.fill(0);
@@ -432,7 +456,6 @@ var authenticate_ = function(pin, func){
     var aesCbc = new aesjs.ModeOfOperation.cbc(this.shared_secret, iv);
     pinHashEnc = aesCbc.encrypt(pinHash);
 
-    console.log('pinenc:', hex(pinHashEnc));
 
     var ourPubkey = this.platform_keypair.getPublic(undefined, 'hex');
     var ourPubkeyBytes = hex2array(ourPubkey.slice(2,ourPubkey.length));
@@ -440,12 +463,10 @@ var authenticate_ = function(pin, func){
 
     var req = pinRequestFormat(PIN.getPinToken, pinHashEnc, ourPubkeyBytes);
 
-    console.log('pinTokenReq',req);
 
     var self = this;
 
     send_msg(req, function(resp){
-        console.log('getPinToken:', resp);
         var aesCbc = new aesjs.ModeOfOperation.cbc(self.shared_secret, iv);
         var pinTokenEnc = resp.data;
         var pinToken = aesCbc.decrypt(pinTokenEnc);
@@ -490,8 +511,6 @@ var set_pin_ = function(pin, func, failAuth){
 
     var pinBytesPadded = pin2bytes(pin);
     var encLen = pinBytesPadded.length;
-
-    console.log('encrypted len: ',encLen);
 
     var iv = new Uint8Array(16);
     iv.fill(0);
@@ -539,7 +558,6 @@ var change_pin_ = function(curpin, newpin, func, failAuth){
     var pinBytesPadded = pin2bytes(newpin);
     var encLen = pinBytesPadded.length;
 
-    console.log('encrypted len: ',encLen);
 
     var iv = new Uint8Array(16);
     iv.fill(0);
@@ -595,6 +613,21 @@ var sign_ = function(obj, func){
     });
 };
 
+var register_ = function(wifkey, func){
+
+    if (!wifkey)
+        throw new Error("No key provided");
+
+
+    var req = registerRequestFormat(wifkey,this.pinToken);
+
+    send_msg(req, function(resp){
+        if (func) func(resp);
+    });
+};
+
+
+
 function WalletDevice() {
     var self = this;
     this.shared_secret = null;
@@ -623,6 +656,39 @@ function WalletDevice() {
     this.change_pin = change_pin_;
 
     this.get_retries = get_retries_;
+
+    this.register = register_;
+}
+
+// @key input private key in hex string format
+function key2wif(key)
+{
+    //2
+    key = '0x80' + key;
+
+    bin = hex2array(key);
+
+    //3
+    var hash = sha256.create();
+    hash.update(bin);
+    bin = hash.array();
+
+    //4
+    hash = sha256.create();
+    hash.update(bin);
+    bin = hash.array();
+
+    // 5
+    var chksum = bin.slice(0,4);
+
+    // 6
+    key = key + array2hex(chksum);
+
+    // 7
+    key = hex2array(key);
+    key = to_b58(key);
+
+    return key;
 }
 
 
@@ -637,14 +703,18 @@ function run_tests() {
 
         dev.is_pin_set(function(bool){
             if (bool) {
-                console.log('Pin is set.  Changing it again..');
-                dev.change_pin(pin,pin2,function(succ){
-                    console.log('Pin set to ' + pin2,succ);
+                console.log('Pin is set.  ');
+                //dev.change_pin(pin,pin2,function(succ){
+                    //console.log('Pin set to ' + pin2,succ);
 
-                    dev.get_retries(function(num){
-                        console.log("Have "+num+" attempts to get pin right");
-                    });
+                    //dev.get_retries(function(num){
+                        //console.log("Have "+num+" attempts to get pin right");
+                    //});
 
+                //});
+                dev.authenticate(pin, function(){
+
+                    t2();
                 });
             }
             else {
@@ -656,6 +726,45 @@ function run_tests() {
         });
 
     });
+
+    function t2 ()
+    {
+        var ec = new EC('p256');
+        var key = ec.genKeyPair();
+
+        var priv = key.getPrivate('hex');
+
+        // convert to wif
+        priv = key2wif(priv);
+
+        var chal = 'ogfhriodghdro;igh';
+
+        var hash = sha256.create();
+        hash.update(chal);
+        chal = hash.array();
+
+
+        dev.register(priv, function(resp){
+            console.log('register response', resp);
+            dev.sign({challenge: chal}, function(resp){
+
+                var r = resp.data.slice(0,32);
+                var s = resp.data.slice(32,64);
+
+                r = array2hex(r);
+                s = array2hex(s);
+
+                var sig = {r: r, s: s};
+
+                console.log('sign response', resp);
+
+                var ver = key.verify(chal, sig);
+
+                console.log("verify: ",ver);
+
+            });
+        });
+    }
 
 }
 

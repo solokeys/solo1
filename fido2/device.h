@@ -1,6 +1,8 @@
 #ifndef _DEVICE_H
 #define _DEVICE_H
 
+#include "storage.h"
+
 void device_init();
 
 uint32_t millis();
@@ -19,6 +21,16 @@ void usbhid_close();
 void main_loop_delay();
 
 void heartbeat();
+
+void authenticator_read_state(AuthenticatorState * );
+
+void authenticator_read_backup_state(AuthenticatorState * );
+
+// Return 1 yes backup is init'd, else 0
+//void authenticator_initialize()
+int authenticator_is_backup_initialized();
+
+void authenticator_write_state(AuthenticatorState *, int backup);
 
 
 // Test for user presence

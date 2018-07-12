@@ -15,15 +15,15 @@
 #include "app.h"
 #include "wallet.h"
 
+#include "device.h"
 
 #define PIN_TOKEN_SIZE      16
 uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
 uint8_t KEY_AGREEMENT_PUB[64];
 static uint8_t KEY_AGREEMENT_PRIV[32];
-static uint8_t PIN_CODE_SET = 0;
-uint8_t PIN_CODE[NEW_PIN_ENC_MAX_SIZE];
 static uint8_t PIN_CODE_HASH[32];
-static uint8_t DEVICE_LOCKOUT = 0;
+
+AuthenticatorState STATE;
 
 static struct {
     CTAP_authDataHeader authData;
@@ -766,7 +766,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
         return ret;
     }
 
-    if (PIN_CODE_SET == 1 && GA.pinAuthPresent == 0)
+    if (ctap_is_pin_set() && GA.pinAuthPresent == 0)
     {
         printf2(TAG_ERR,"pinAuth is required\n");
         return CTAP2_ERR_PIN_REQUIRED;
@@ -851,6 +851,14 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
         return CTAP1_ERR_OTHER;
     }
 
+    if (ctap_is_pin_set())  // Check first, prevent SCA
+    {
+        if (ctap_device_locked())
+        {
+            return CTAP2_ERR_OPERATION_DENIED;
+        }
+    }
+
     crypto_ecc256_shared_secret(platform_pubkey, KEY_AGREEMENT_PRIV, shared_secret);
 
     crypto_sha256_init();
@@ -898,6 +906,10 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
 
     if (ctap_is_pin_set())
     {
+        if (ctap_device_locked())
+        {
+            return CTAP2_ERR_OPERATION_DENIED;
+        }
         crypto_aes256_reset_iv(NULL);
         crypto_aes256_decrypt(pinHashEnc, 16);
         if (memcmp(pinHashEnc, PIN_CODE_HASH, 16) != 0)
@@ -1111,7 +1123,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
         case CTAP_CLIENT_PIN:
             if (ctap_device_locked())
             {
-                status = CTAP2_ERR_NOT_ALLOWED;
+                status = CTAP2_ERR_OPERATION_DENIED;
                 goto done;
             }
             break;
@@ -1207,12 +1219,69 @@ done:
     return status;
 }
 
+void ctap_flush_state(int backup)
+{
+    authenticator_write_state(&STATE, 0);
+    if (backup)
+    {
+        authenticator_write_state(&STATE, 1);
+    }
+}
+
+static void ctap_state_init()
+{
+    // Set to 0xff instead of 0x00 to be easier on flash
+    memset(&STATE, 0xff, sizeof(AuthenticatorState));
+    STATE.is_initialized = INITIALIZED_MARKER;
+    STATE.remaining_tries = PIN_LOCKOUT_ATTEMPTS;
+    STATE.is_pin_set = 0;
+}
+
 void ctap_init()
 {
     crypto_ecc256_init();
-    ctap_reset_pin_attempts();
 
-    DEVICE_LOCKOUT = 0;
+    authenticator_read_state(&STATE);
+
+    if (STATE.is_initialized == INITIALIZED_MARKER)
+    {
+        printf1(TAG_STOR,"Auth state is initialized\n");
+    }
+    else
+    {
+        printf1(TAG_STOR,"Auth state is NOT initialized.  Initializing..\n");
+        if (authenticator_is_backup_initialized())
+        {
+            printf1(TAG_ERR,"Warning: memory corruption detected.  restoring from backup..\n");
+            authenticator_read_backup_state(&STATE);
+            authenticator_write_state(&STATE, 0);
+        }
+        else
+        {
+            ctap_state_init();
+            authenticator_write_state(&STATE, 0);
+            authenticator_write_state(&STATE, 1);
+
+        }
+    }
+
+    if (ctap_is_pin_set())
+    {
+        printf1(TAG_STOR,"pin code: \"%s\"\n", STATE.pin_code);
+        crypto_sha256_init();
+        crypto_sha256_update(STATE.pin_code, strnlen(STATE.pin_code, NEW_PIN_ENC_MAX_SIZE));
+        crypto_sha256_final(PIN_CODE_HASH);
+        printf1(TAG_STOR, "attempts_left: %d\n", STATE.remaining_tries);
+    }
+    else
+    {
+        printf1(TAG_STOR,"pin not set.\n");
+    }
+    if (ctap_device_locked())
+    {
+        printf1(TAG_ERR, "DEVICE LOCKED!\n");
+    }
+
 
     if (ctap_generate_rng(PIN_TOKEN, PIN_TOKEN_SIZE) != 1)
     {
@@ -1230,12 +1299,12 @@ void ctap_init()
 
 uint8_t ctap_is_pin_set()
 {
-    return PIN_CODE_SET == 1;
+    return STATE.is_pin_set == 1;
 }
 
 uint8_t ctap_pin_matches(uint8_t * pin, int len)
 {
-    return memcmp(pin, PIN_CODE, len) == 0;
+    return memcmp(pin, STATE.pin_code, len) == 0;
 }
 
 
@@ -1247,30 +1316,35 @@ void ctap_update_pin(uint8_t * pin, int len)
         printf2(TAG_ERR, "Update pin fail length\n");
         exit(1);
     }
-    memset(PIN_CODE,0,sizeof(PIN_CODE));
-    memmove(PIN_CODE, pin, len);
+    memset(STATE.pin_code, 0, NEW_PIN_ENC_MAX_SIZE);
+    memmove(STATE.pin_code, pin, len);
 
     crypto_sha256_init();
-    crypto_sha256_update(PIN_CODE, len);
+    crypto_sha256_update(STATE.pin_code, len);
     crypto_sha256_final(PIN_CODE_HASH);
 
-    PIN_CODE_SET = 1;
+    STATE.is_pin_set = 1;
 
-    printf1(TAG_CTAP, "New pin set: %s\n", PIN_CODE);
+    printf1(TAG_CTAP, "New pin set: %s\n", STATE.pin_code);
 }
 
-// TODO flash
-static int8_t _flash_tries;
 uint8_t ctap_decrement_pin_attempts()
 {
-    if (_flash_tries > 0)
+    if (STATE.remaining_tries > 0)
     {
-        _flash_tries--;
-        printf1(TAG_CP, "ATTEMPTS left: %d\n", _flash_tries);
+        STATE.remaining_tries--;
+        ctap_flush_state(0);
+        printf1(TAG_CP, "ATTEMPTS left: %d\n", STATE.remaining_tries);
+
+        if (STATE.remaining_tries == 0)
+        {
+            memset(PIN_TOKEN,0,sizeof(PIN_TOKEN));
+            memset(PIN_CODE_HASH,0,sizeof(PIN_CODE_HASH));
+            printf1(TAG_CP, "Device locked!\n");
+        }
     }
     else
     {
-        DEVICE_LOCKOUT = 1;
         printf1(TAG_CP, "Device locked!\n");
         return -1;
     }
@@ -1279,17 +1353,18 @@ uint8_t ctap_decrement_pin_attempts()
 
 int8_t ctap_device_locked()
 {
-    return DEVICE_LOCKOUT == 1;
+    return STATE.remaining_tries == 0;
 }
 
 int8_t ctap_leftover_pin_attempts()
 {
-    return _flash_tries;
+    return STATE.remaining_tries;
 }
 
 void ctap_reset_pin_attempts()
 {
-    _flash_tries = 8;
+    STATE.remaining_tries = PIN_LOCKOUT_ATTEMPTS;
+    ctap_flush_state(0);
 }
 
 void ctap_reset_state()
@@ -1297,15 +1372,119 @@ void ctap_reset_state()
     memset(&getAssertionState, 0, sizeof(getAssertionState));
 }
 
+uint16_t ctap_keys_stored()
+{
+    int total = 0;
+    int i;
+    for (i = 0; i < MAX_KEYS; i++)
+    {
+        if (STATE.key_lens[i] != 0xffff)
+        {
+            total += 1;
+        }
+        else
+        {
+            break;
+        }
+    }
+    return total;
+}
+
+static uint16_t key_addr_offset(int index)
+{
+    uint16_t offset = 0;
+    int i;
+    for (i = 0; i < index; i++)
+    {
+        if (STATE.key_lens[i] != 0xffff) offset += STATE.key_lens[i];
+    }
+    return offset;
+}
+
+uint16_t ctap_key_len(uint8_t index)
+{
+    int i = ctap_keys_stored();
+    uint16_t offset;
+    if (i >= MAX_KEYS || index >= MAX_KEYS)
+    {
+        return 0;
+    }
+    if (STATE.key_lens[index] == 0xffff) return 0;
+    return STATE.key_lens[index];
+
+}
+
+int8_t ctap_store_key(uint8_t index, uint8_t * key, uint16_t len)
+{
+    int i = ctap_keys_stored();
+    uint16_t offset;
+    if (i >= MAX_KEYS || index >= MAX_KEYS || !len)
+    {
+        return ERR_NO_KEY_SPACE;
+    }
+
+    if (STATE.key_lens[index] != 0xffff)
+    {
+        return ERR_KEY_SPACE_TAKEN;
+    }
+
+    offset = key_addr_offset(index);
+
+    if ((offset + len) > KEY_SPACE_BYTES)
+    {
+        return ERR_NO_KEY_SPACE;
+    }
+
+    STATE.key_lens[index] = len;
+
+    memmove(STATE.key_space + offset, key, len);
+
+    ctap_flush_state(0);
+    ctap_flush_state(1);
+
+    return 0;
+}
+
+int8_t ctap_load_key(uint8_t index, uint8_t * key)
+{
+    int i = ctap_keys_stored();
+    uint16_t offset;
+    uint16_t len;
+    if (i >= MAX_KEYS || index >= MAX_KEYS)
+    {
+        return ERR_NO_KEY_SPACE;
+    }
+
+    if (STATE.key_lens[index] == 0)
+    {
+        return ERR_KEY_SPACE_EMPTY;
+    }
+
+    offset = key_addr_offset(index);
+    len = ctap_key_len(index);
+
+    if ((offset + len) > KEY_SPACE_BYTES)
+    {
+        return ERR_NO_KEY_SPACE;
+    }
+
+    memmove(key, STATE.key_space + offset, len);
+
+    return 0;
+}
+
+
+
 void ctap_reset()
 {
-    _flash_tries = 8;
-    PIN_CODE_SET = 0;
-    DEVICE_LOCKOUT = 0;
+    ctap_state_init();
+    authenticator_write_state(&STATE, 0);
+    authenticator_write_state(&STATE, 1);
+
     ctap_reset_state();
-    memset(PIN_CODE,0,sizeof(PIN_CODE));
     memset(PIN_CODE_HASH,0,sizeof(PIN_CODE_HASH));
     crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
-    crypto_reset_master_secret();
+
+    crypto_reset_master_secret();   // Not sure what the significance of this is??
 }
 

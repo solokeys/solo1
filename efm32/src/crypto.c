@@ -33,6 +33,7 @@ static mbedtls_ctr_drbg_context ctr_drbg;
 
 static const struct uECC_Curve_t * _es256_curve = NULL;
 static const uint8_t * _signing_key = NULL;
+static int _external_key_len = 0;
 
 // Secrets for testing only
 static uint8_t master_secret[32] = "\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff"
@@ -182,10 +183,14 @@ void crypto_ecc256_init()
 }
 
 
-void crypto_ecc256_load_attestation_key()
+void crypto_load_external_key(uint8_t * key, int len)
 {
-    _signing_key = attestation_key;
+    _signing_key = key;
+    _external_key_len = len;
 }
+
+
+
 
 /**
  * \brief           Import a point from unsigned binary data
@@ -228,6 +233,48 @@ void crypto_ecc256_load_attestation_key()
 
 
 void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig)
+{
+    mbedtls_ecp_group grp;      /*!<  Elliptic curve and base point     */
+    mbedtls_mpi d;              /*!<  our secret value                  */
+//#define CRYPTO_ENABLE CMU->HFBUSCLKEN0 |= CMU_HFBUSCLKEN0_CRYPTO; \
+//  CRYPTO->IFC = _CRYPTO_IFC_MASK; \
+//  CRYPTO->CMD = CRYPTO_CMD_SEQSTOP; \
+//  CRYPTO->CTRL = CRYPTO_CTRL_DMA0RSEL_DDATA0; \
+//  CRYPTO->SEQCTRL = 0; \
+//  CRYPTO->SEQCTRLB = 0
+//
+//#define CRYPTO_DISABLE \
+//  CRYPTO->IEN = 0; \
+//  CMU->HFBUSCLKEN0 &= ~CMU_HFBUSCLKEN0_CRYPTO;
+//  CRYPTO_DISABLE;
+//	CRYPTO_ENABLE;
+//    mbedtls_ecp_group_init( &grp );
+//    mbedtls_mpi_init( &d );
+//	mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_DP_SECP256R1);
+//	mbedtls_mpi_read_binary(&d, _signing_key, 32);
+//
+//	mbedtls_mpi r,s;
+//	mbedtls_mpi_init(&r);
+//	mbedtls_mpi_init(&s);
+//
+//	printf("signing..\n");
+//	dump_hex(data,len);
+//	mbedtls_ecdsa_sign_det( &grp, &r, &s, &d,
+//	                             data, 32, MBEDTLS_MD_SHA256 );// Issue: this will freeze on 13th iteration..
+//	printf("signed\n");
+//
+//	mbedtls_mpi_write_binary(&r,sig,32);
+//	mbedtls_mpi_write_binary(&s,sig+32,32);
+
+    if ( uECC_sign(_signing_key, data, len, sig, _es256_curve) == 0)
+    {
+        printf("error, uECC failed\n");
+        exit(1);
+    }
+
+}
+
+void crypto_ecdsa_sign(uint8_t * data, int len, uint8_t * sig, int MBEDTLS_ECP_ID)
 {
     mbedtls_ecp_group grp;      /*!<  Elliptic curve and base point     */
     mbedtls_mpi d;              /*!<  our secret value                  */
