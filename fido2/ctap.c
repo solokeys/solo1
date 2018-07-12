@@ -1180,7 +1180,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             }
             else
             {
-                status = CTAP2_ERR_NOT_ALLOWED;
+                status = CTAP2_ERR_OPERATION_DENIED;
             }
             break;
         case GET_NEXT_ASSERTION:

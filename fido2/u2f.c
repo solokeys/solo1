@@ -4,6 +4,7 @@
 #include "crypto.h"
 #include "log.h"
 #include "device.h"
+#include "wallet.h"
 #include "app.h"
 
 // void u2f_response_writeback(uint8_t * buf, uint8_t len);
@@ -36,18 +37,10 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
     {
         if (req->p1 == U2F_AUTHENTICATE_CHECK)
         {
-//         if (u2f_appid_eq(&req->kh, req->app) == 0)
-//          {
-//              rcode =  U2F_SW_CONDITIONS_NOT_SATISFIED;
-//            }
-//            else
-//         {
-            rcode =  U2F_SW_WRONG_DATA;
-//         }
         }
         else
         {
-            rcode = bridge_u2f_to_wallet(auth->chal, auth->app, auth->khl, &auth->kh);
+            rcode = bridge_u2f_to_wallet(auth->chal, auth->app, auth->khl, (uint8_t*)&auth->kh);
         }
     }
     else if (req->ins == U2F_VERSION)
@@ -64,7 +57,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
     }
     else
     {
-    	rcode = U2F_SW_INS_NOT_SUPPORTED;
+        rcode = U2F_SW_INS_NOT_SUPPORTED;
     }
 #else
     switch(req->ins)

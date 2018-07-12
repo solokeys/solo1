@@ -39,6 +39,8 @@ typedef enum
     WalletSign = 0x10,
     WalletRegister = 0x11,
     WalletPin = 0x12,
+    WalletReset= 0x13,
+    WalletVersion= 0x14,
 } WalletOperation;
 
 
@@ -80,7 +82,7 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
 
             if ( ctap_device_locked() )
             {
-                return CTAP2_ERR_OPERATION_DENIED;
+                return CTAP2_ERR_NOT_ALLOWED;
             }
 
             u2f_response_writeback(KEY_AGREEMENT_PUB,sizeof(KEY_AGREEMENT_PUB));
@@ -95,9 +97,14 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
             break;
         case CP_cmdSetPin:
             printf1(TAG_WALLET,"cmdSetPin\n");
-            if (ctap_is_pin_set())
+            if (ctap_is_pin_set() || ctap_device_locked())
             {
                 return CTAP2_ERR_NOT_ALLOWED;
+            }
+
+            if (!ctap_user_presence_test())
+            {
+                return CTAP2_ERR_OPERATION_DENIED;
             }
 
                                               //pinEnc     // plat_pubkey
@@ -118,8 +125,14 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
 
             if ( ctap_device_locked() )
             {
+                return CTAP2_ERR_NOT_ALLOWED;
+            }
+
+            if (!ctap_user_presence_test())
+            {
                 return CTAP2_ERR_OPERATION_DENIED;
             }
+
 
                                               //pinEnc     // plat_pubkey        // pinHashEnc
             ret = ctap_update_pin_if_verified(   arg2, len,     arg1,     pinAuth, arg3);
@@ -128,9 +141,16 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
 
             break;
         case CP_cmdGetPinToken:
+
+
             printf1(TAG_WALLET,"cmdGetPinToken\n");
 
             if ( ctap_device_locked() )
+            {
+                return CTAP2_ERR_NOT_ALLOWED;
+            }
+
+            if (!ctap_user_presence_test())
             {
                 return CTAP2_ERR_OPERATION_DENIED;
             }
@@ -338,6 +358,39 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
         case WalletPin:
             printf1(TAG_WALLET,"WalletPin\n");
             ret = wallet_pin(req->p1, req->pinAuth, args[0], args[1], args[2], lens[0]);
+            break;
+        case WalletReset:
+            // resets device
+            printf1(TAG_WALLET,"WalletReset\n");
+
+            if ( ! ctap_device_locked() )
+            {
+                if ( ctap_is_pin_set() )
+                {
+                    if ( ! check_pinhash(req->pinAuth, msg_buf, reqlen))
+                    {
+                        printf1(TAG_WALLET,"pinAuth is NOT valid\n");
+                        ret = CTAP2_ERR_PIN_AUTH_INVALID;
+                        goto cleanup;
+                    }
+
+                }
+            }
+
+            if (ctap_user_presence_test())
+            {
+                ctap_reset();
+            }
+            else
+            {
+                ret = CTAP2_ERR_OPERATION_DENIED;
+                goto cleanup;
+            }
+
+
+            break;
+        case WalletVersion:
+            u2f_response_writeback(WALLET_VERSION, sizeof(WALLET_VERSION));
             break;
         default:
             printf2(TAG_ERR,"Invalid wallet command: %x\n",req->operation);
