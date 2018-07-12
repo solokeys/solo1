@@ -345,6 +345,12 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
 
             printf1(TAG_WALLET,"adding key [%d]: ",lens[0]); dump_hex1(TAG_WALLET, args[0], lens[0]);
 
+            if (lens[0] == 33)
+            {
+                // drop the last byte
+                lens[0]--;
+            }
+
             ret = ctap_store_key(0, args[0], lens[0]);
 
             if (ret == ERR_NO_KEY_SPACE || ret == ERR_KEY_SPACE_TAKEN)
