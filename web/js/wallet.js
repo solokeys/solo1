@@ -3,6 +3,41 @@ DEVELOPMENT = 1;
 var to_b58 = function(B){var A="123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";var d=[],s="",i,j,c,n;for(i in B){j=0,c=B[i];s+=c||s.length^i?"":1;while(j in d||c){n=d[j];n=n?n*256+c:c;c=n/58|0;d[j]=n%58;j++}}while(j--)s+=A[d[j]];return s};
 var from_b58 = function(S){var A="123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";var d=[],b=[],i,j,c,n;for(i in S){j=0,c=A.indexOf(S[i]);if(c<0)throw new Error('Invald b58 character');c||b.length^i?i:b.push(0);while(j in d||c){n=d[j];n=n?n*58+c:c;c=n>>8;d[j]=n%256;j++}}while(j--)b.push(d[j]);return new Uint8Array(b)};
 
+// Calculate the Shannon entropy of a string in bits per symbol.
+// https://gist.github.com/jabney/5018b4adc9b2bf488696
+(function(shannon) {
+    'use strict';
+
+    // Create a dictionary of character frequencies and iterate over it.
+    function process(s, evaluator) {
+        var h = Object.create(null), k;
+        s.split('').forEach(function(c) {
+            h[c] && h[c]++ || (h[c] = 1); });
+        if (evaluator) for (k in h) evaluator(k, h[k]);
+        return h;
+    };
+
+    // Measure the entropy of a string in bits per symbol.
+    shannon.entropy = function(s) {
+        var sum = 0,len = s.length;
+        process(s, function(k, f) {
+            var p = f/len;
+            sum -= p * Math.log(p) / Math.log(2);
+        });
+        return sum;
+    };
+
+    // Measure the entropy of a string in total bits.
+    shannon.bits = function(s) {
+        return shannon.entropy(s) * s.length;
+    };
+
+    // Log the entropy of a string to the console.
+    shannon.log = function(s) {
+        console.log('Entropy of "' + s + '" in bits per symbol:', shannon.entropy(s));
+    };
+})(window.shannon = window.shannon || Object.create(null));
+
 function hex(byteArray, join) {
   if (join === undefined) join = ' ';
   return Array.from(byteArray, function(byte) {
@@ -197,6 +232,7 @@ var CMD = {
     pin: 0x12,
     reset: 0x13,
     version: 0x14,
+    rng: 0x15,
 };
 
 var PIN = {
@@ -233,6 +269,7 @@ function parse_device_response(arr)
     data = null;
     if (arr[5] == 0) {
         data = arr.slice(6,arr.length);
+
     }
     return {count: count, status: error2string(arr[5]), data: data};
 }
@@ -417,7 +454,11 @@ function signRequestFormat(sigAlg,pinToken,challenge,keyid) {
     var args = [challenge];
     if (keyid) args.push(keyid)
 
-    var pinAuth = computePinAuth(pinToken,cmd,p1,p2,args);
+    var pinAuth;
+
+    if (pinToken) pinAuth = computePinAuth(pinToken,cmd,p1,p2,args);
+    else pinAuth = new Uint8Array(16);
+
     var req = formatRequest(cmd,p1,p2,pinAuth,args);
 
     return req;
@@ -432,7 +473,11 @@ function registerRequestFormat(wifkey, pinToken) {
     var keyarr = from_b58(wifkey);
     var args = [keyarr];
 
-    var pinAuth = computePinAuth(pinToken,cmd,p1,p2,args);
+    var pinAuth;
+
+    if (pinToken) pinAuth = computePinAuth(pinToken,cmd,p1,p2,args);
+    else pinAuth = new Uint8Array(16);
+
     var req = formatRequest(cmd,p1,p2,pinAuth,args);
 
     return req;
@@ -466,23 +511,26 @@ var get_shared_secret_ = function(func) {
     var self = this;
     send_msg(req, function(resp){
 
-        var i;
+        if (resp.status == 'CTAP1_SUCCESS') {
+            var i;
 
-        var devicePubkeyHex = '04'+hex(resp.data,'');
-        var devicePubkey = self.ecp256.keyFromPublic(devicePubkeyHex,'hex');
+            var devicePubkeyHex = '04'+hex(resp.data,'');
+            var devicePubkey = self.ecp256.keyFromPublic(devicePubkeyHex,'hex');
 
-        // Generate a new key pair for shared secret
-        var platform_keypair = self.ecp256.genKeyPair();
-        self.platform_keypair = platform_keypair;
+            // Generate a new key pair for shared secret
+            var platform_keypair = self.ecp256.genKeyPair();
+            self.platform_keypair = platform_keypair;
 
 
-        // shared secret
-        var shared = platform_keypair.derive(devicePubkey.getPublic()).toArray();
-        var hash = sha256.create();
-        hash.update(shared);
-        shared = hash.array();
+            // shared secret
+            var shared = platform_keypair.derive(devicePubkey.getPublic()).toArray();
+            var hash = sha256.create();
+            hash.update(shared);
+            shared = hash.array();
 
-        if (func) func(shared);
+            resp.data = shared;
+        }
+        if (func) func(resp);
 
     });
 };
@@ -514,9 +562,16 @@ var authenticate_ = function(pin, func){
     send_msg(req, function(resp){
         var aesCbc = new aesjs.ModeOfOperation.cbc(self.shared_secret, iv);
         var pinTokenEnc = resp.data;
-        var pinToken = aesCbc.decrypt(pinTokenEnc);
-        self.pinToken = pinToken;
-        if (func) func({pinToken: pinToken, status: resp.status});
+        if  (resp.status == 'CTAP1_SUCCESS') {
+            var pinToken = aesCbc.decrypt(pinTokenEnc);
+            self.pinToken = pinToken;
+            if (func) func({pinToken: pinToken, status: resp.status});
+        }   else {
+
+            self.init(function(){
+                if (func) func(resp);
+            });
+        }
     });
 };
 
@@ -551,7 +606,7 @@ function pin2bytes(pin){
     return pinBytesPadded;
 }
 
-var set_pin_ = function(pin, func, failAuth){
+var set_pin_ = function(pin, failAuth, func){
     var subcmd = PIN.setPin;
 
     var pinBytesPadded = pin2bytes(pin);
@@ -564,6 +619,11 @@ var set_pin_ = function(pin, func, failAuth){
     pinEnc = aesCbc.encrypt(pinBytesPadded);
 
     var pinAuth = computePinAuthRaw(this.shared_secret, pinEnc);
+
+    if (func == undefined && typeof failAuth == 'function'){
+        func = failAuth;
+        failAuth = false;
+    }
 
     if (failAuth){
         pinAuth.fill(0xAA);
@@ -582,17 +642,18 @@ var set_pin_ = function(pin, func, failAuth){
 
 var is_pin_set_ = function(func)
 {
-    this.set_pin('12345', function(resp){
+    this.set_pin('12345', true, function(resp){
         if (resp.status == "CTAP2_ERR_NOT_ALLOWED") {
-            func(true);
+            func({data:true, status: 'CTAP1_SUCCESS'});
         }
         else if (resp.status == "CTAP2_ERR_PIN_AUTH_INVALID"){
-            func(false);
+            func({data:false, status: 'CTAP1_SUCCESS'});
         }
         else {
-            throw new Error("Device returned expected status: " + stat);
+            func({data: undefined, status: resp.status});
+            //throw new Error("Device returned expected status: " + stat);
         }
-    }, true);
+    });
 }
 
 var change_pin_ = function(curpin, newpin, func, failAuth){
@@ -629,7 +690,7 @@ var change_pin_ = function(curpin, newpin, func, failAuth){
     var req = pinRequestFormat(subcmd, pinAuth, ourPubkeyBytes, newPinEnc, curPinHashEnc);
 
     send_msg(req, function(resp){
-        if (func) func(resp.status);
+        if (func) func(resp);
     });
 }
 
@@ -639,7 +700,8 @@ var get_retries_ = function(func){
     var req = pinRequestFormat(subcmd);
 
     send_msg(req, function(resp){
-        if (func) func(resp.data[0]);
+        resp.data = resp.data[0];
+        if (func) func(resp);
     });
 }
 
@@ -650,9 +712,21 @@ var sign_ = function(obj, func){
 
     var alg = obj.alg || 3;
 
-    var req = signRequestFormat(alg,this.pinToken,obj.challenge,obj.keyid);
+    var pinToken = this.pinToken || undefined;
+
+    var req = signRequestFormat(alg,pinToken,obj.challenge,obj.keyid);
 
     send_msg(req, function(resp){
+        if (resp.status == 'CTAP1_SUCCESS') {
+            var r = resp.data.slice(0,32);
+            var s = resp.data.slice(32,64);
+            r = array2hex(r);
+            s = array2hex(s);
+            resp.sig = {};
+            resp.sig.r = r;
+            resp.sig.s = s;
+        }
+
 
         if (func) func(resp);
     });
@@ -697,6 +771,25 @@ var reset_ = function(func){
     });
 };
 
+
+// Read 72 random bytes from hardware RNG on device
+var get_rng_ = function(func){
+
+    var pinAuth = undefined;
+
+    if (this.pinToken) {
+        pinAuth = computePinAuth(this.pinToken, CMD.rng, 0, 0);
+    }
+
+    var req = formatRequest(CMD.rng,0,0, pinAuth);
+
+    var self = this;
+
+    send_msg(req, function(resp){
+        if (func)func(resp);
+    });
+};
+
 function wrap_promise(func)
 {
     var self = this;
@@ -704,19 +797,25 @@ function wrap_promise(func)
         var args = arguments;
         return new Promise(function(resolve,reject){
             var i;
+            var oldfunc = null;
             for (i = 0; i < args.length; i++)
             {
                 if (typeof args[i] == 'function')
                 {
-                    var oldfunc = args[i];
+                    oldfunc = args[i];
                     args[i] = function(){
                         oldfunc.apply(self,arguments);
                         resolve.apply(self,arguments);
-                        //oldfunc.call(arguments);
-                        //resolve.call(arguments);
                     };
                     break;
                 }
+            }
+            if (oldfunc === null)
+            {
+                args = Array.prototype.slice.call(args);
+                args.push(function(){
+                        resolve.apply(self,arguments);
+                    });
             }
             func.apply(self,args);
         });
@@ -733,9 +832,11 @@ function WalletDevice() {
     this.init = function(func){
         self.get_version(function(ver){
             self.version = ver;
-            self.get_shared_secret(function(shared){
-                self.shared_secret = shared;
-                if (func) func();
+            self.get_shared_secret(function(resp){
+                if (resp.status == "CTAP1_SUCCESS") self.shared_secret = resp.data;
+                else {
+                }
+                if (func) func(resp);
             });
         });
     };
@@ -768,18 +869,31 @@ function WalletDevice() {
 
     this.reset = reset_;
 
-    //this.init = wrap_promise(this.init);
-    //this.get_version = wrap_promise(this.get_version);
-    //this.get_shared_secret = wrap_promise(this.get_shared_secret );
-    //this.authenticate = wrap_promise(this.authenticate );
-    //this.sign = wrap_promise(this.sign );
-    //this.set_pin = wrap_promise(this.set_pin );
-    //this.is_pin_set = wrap_promise(this.is_pin_set );
-    //this.change_pin = wrap_promise(this.change_pin );
-    //this.get_retries = wrap_promise(this.get_retries );
-    //this.register = wrap_promise(this.register );
-    //this.reset = wrap_promise(this.reset );
+    this.get_rng = get_rng_;
 
+    this.init = wrap_promise.call(this, this.init);
+    this.get_version = wrap_promise.call(this, this.get_version);
+    this.get_shared_secret = wrap_promise.call(this, this.get_shared_secret );
+    this.authenticate = wrap_promise.call(this,this.authenticate );
+    this.sign = wrap_promise.call(this, this.sign );
+    this.set_pin = wrap_promise.call(this,this.set_pin );
+    this.is_pin_set = wrap_promise.call(this, this.is_pin_set );
+    this.change_pin = wrap_promise.call(this, this.change_pin );
+    this.get_retries = wrap_promise.call(this, this.get_retries );
+    this.register = wrap_promise.call(this, this.register );
+    this.reset = wrap_promise.call(this,this.reset );
+    this.get_rng = wrap_promise.call(this,this.get_rng);
+
+}
+
+function TEST(bool, test){
+    if (bool) {
+        if (test ) console.log("PASS: " + test);
+    }
+    else {
+        console.log("FAIL: " + test);
+        throw new Error("FAIL: " + test);
+    }
 }
 
 async function run_tests() {
@@ -788,91 +902,231 @@ async function run_tests() {
     var pin = "Conor's pin 👽 ";
     var pin2 = "sogyhdxoh3qwli😀";
 
-
-    function device_start_over(next)
-    {
-        dev.init(function(resp){
-
-            console.log('connected. version: ', dev.version);
-
-            dev.is_pin_set(function(bool){
-                if (bool) {
-                    dev.authenticate(pin, function(resp){
-                        //reset_device(next);
-                    });
-                }
-                else {
-                    //reset_device(next);
-                }
-            });
-
-        
-        });
-    }
-
-    function reset_device(func)
-    {
-        dev.reset(function(resp){
-            console.log("reset: ",resp);
-            if (func) func();
-        });
-    }
-
-    function test_pin(next)
-    {
-        dev.set_pin(pin, function(resp){
-            if (resp.status == "CTAP1_SUCCESS"){
-                console.log('Set pin to ' + pin);
-                dev.set_pin(pin, function(resp){
-                
-                });
-            }
-            else {
-                console.log("Fail set_pin");
-            }
-        });
-    }
-
-    device_start_over();
-
-    function t2 ()
-    {
-        var ec = new EC('p256');
-        var key = ec.genKeyPair();
-
-        var priv = key.getPrivate('hex');
-
-        // convert to wif
-        priv = key2wif(priv);
-
-        var chal = 'ogfhriodghdro;igh';
-
+    function string2challenge(chal) {
         var hash = sha256.create();
         hash.update(chal);
         chal = hash.array();
-
-
-        dev.register(priv, function(resp){
-            console.log('register response', resp);
-            dev.sign({challenge: chal}, function(resp){
-
-                var r = resp.data.slice(0,32);
-                var s = resp.data.slice(32,64);
-
-                r = array2hex(r);
-                s = array2hex(s);
-
-                var sig = {r: r, s: s};
-
-                console.log('sign response', resp);
-
-                var ver = key.verify(chal, sig);
-
-                console.log("verify: ",ver);
-
-            });
-        });
+        return chal;
     }
+
+    async function device_start_over()
+    {
+
+        var p = await dev.init();
+        if (p.status == 'CTAP2_ERR_NOT_ALLOWED') {   // its already locked
+            p = await dev.reset();
+            TEST(p.status == "CTAP1_SUCCESS", 'Device reset');
+            p = await dev.init();
+            TEST(p.status == "CTAP1_SUCCESS", 'Device initialize');
+        } else {
+            TEST(p.status == "CTAP1_SUCCESS", 'Device initialize');
+
+            //console.log(dev);
+
+            TEST(dev.version == "WALLET_V1.0", 'Device reports right version');
+
+            p = await dev.is_pin_set();
+            TEST(p.status == "CTAP1_SUCCESS", 'Check if pin is set');
+
+            if (!p.data) {
+            } else {
+
+                p = await dev.authenticate(pin);
+
+                if (p.status == "CTAP2_ERR_PIN_INVALID" ) {
+                    p = await dev.authenticate(pin2);     // try second pin
+                }
+                else {
+                }
+
+                TEST(p.status == "CTAP1_SUCCESS", 'Authenticated');
+            }
+
+            p = await dev.reset();
+            TEST(p.status == "CTAP1_SUCCESS", 'Device reset');
+        }
+    }
+
+    async function test_pin()
+    {
+        var p = await dev.is_pin_set();
+        TEST(p.status == "CTAP1_SUCCESS" && !p.data, 'Pin is not set');
+
+        p = await dev.set_pin(pin);
+        TEST(p.status == "CTAP1_SUCCESS", 'A pin was set');
+
+        p = await dev.is_pin_set();
+        TEST(p.status == "CTAP1_SUCCESS" && p.data, 'Pin set is detected');
+
+        p = await dev.set_pin(pin);
+        TEST(p.status == "CTAP2_ERR_NOT_ALLOWED", 'Trying to set a pin again will fail');
+
+        p = await dev.change_pin(pin, pin2);
+        TEST(p.status == "CTAP1_SUCCESS", 'Going through change pin process is successful');
+
+        p = await dev.authenticate(pin);
+        TEST(p.status == "CTAP2_ERR_PIN_INVALID", 'Authenticating to previous/wrong pin is denied');
+
+        p = await dev.get_retries();
+        TEST(p.status == "CTAP1_SUCCESS" && p.data > 2, 'Have at least 2 tries left ('+p.data+')');
+        var tries = p.data;
+
+        p = await dev.authenticate(pin);
+        TEST(p.status == "CTAP2_ERR_PIN_INVALID");
+
+        p = await dev.get_retries();
+        TEST(p.status == "CTAP1_SUCCESS" && (p.data > 1) && (p.data < tries),
+            'Have less attempts left after another failed attempt (' + p.data+')');
+
+        p = await dev.authenticate(pin2);
+        TEST(p.status == "CTAP1_SUCCESS", 'Authenticating with correct pin success');
+
+        p = await dev.get_retries();
+        TEST(p.status == "CTAP1_SUCCESS" && p.data > tries, 'Retries reset ('+ p.data+')');
+
+        p = await dev.change_pin(pin2, pin);
+        TEST(p.status == "CTAP1_SUCCESS", 'Change pin back');
+
+        // Reset device for next set of tests
+        p = await dev.authenticate(pin);
+        TEST(p.status == "CTAP1_SUCCESS");
+
+        p = await dev.reset();
+        TEST(p.status == "CTAP1_SUCCESS");
+
+    }
+
+    async function test_crypto(){
+        var ec = new EC('secp256k1');
+        var key = ec.genKeyPair();
+        var priv = key.getPrivate('hex');
+
+        var wif = key2wif(priv);  // convert to wif
+
+        // Corrupt 1 byte
+        var b = (wif[32] == 'A') ? 'B' : 'A';
+        var badwif = wif.substring(0, 32) + b + wif.substring(32+1);
+
+
+        var p = await dev.set_pin(pin);
+        TEST(p.status == "CTAP1_SUCCESS");
+
+        var chal = string2challenge('abc');
+        p = await dev.sign({challenge: chal});
+        TEST(p.status == 'CTAP2_ERR_PIN_AUTH_INVALID', 'No signature without authenticating first');
+
+        p = await dev.register(wif);
+        TEST(p.status == 'CTAP2_ERR_PIN_AUTH_INVALID', 'No key register without authenticating first');
+
+        p = await dev.get_rng();
+        TEST(p.status == "CTAP2_ERR_PIN_AUTH_INVALID", 'No rng without authenticating first');
+
+        p = await dev.authenticate(pin);
+        TEST(p.status == "CTAP1_SUCCESS");
+
+        p = await dev.sign({challenge: chal});
+        TEST(p.status == 'CTAP2_ERR_NO_CREDENTIALS', 'No signature without key');
+
+        p = await dev.register(badwif);
+        TEST(p.status == 'CTAP2_ERR_CREDENTIAL_NOT_VALID', 'Wallet does not accept corrupted key');
+
+        p = await dev.register(wif);
+        TEST(p.status == 'CTAP1_SUCCESS', 'Wallet accepts good WIF key');
+
+        p = await dev.register(wif);
+        TEST(p.status == 'CTAP2_ERR_KEY_STORE_FULL', 'Wallet does not accept another key');
+
+        p = await dev.sign({challenge: chal});
+        TEST(p.status == 'CTAP1_SUCCESS', 'Wallet returns signature');
+
+        var ver = key.verify(chal, p.sig);
+        TEST(ver, 'Signature is valid');
+
+        var count = p.count;
+        p = await dev.sign({challenge: chal});
+        ver = key.verify(chal, p.sig);
+        TEST(p.status == 'CTAP1_SUCCESS' && p.count > count && ver, 'Count increments for each signature');
+
+        // Test lockout
+        console.log("Exceeding all pin attempts...");
+        p = await dev.get_retries();
+        TEST(p.status == "CTAP1_SUCCESS");
+        var tries = p.data;
+
+        while (tries > 0) {
+            p = await dev.authenticate('1234'); // wrong pin
+            TEST(p.status == "CTAP2_ERR_PIN_INVALID");
+
+            p = await dev.get_retries();
+            TEST(p.status == "CTAP1_SUCCESS");
+            tries = p.data;
+        }
+
+        p = await dev.get_retries();
+        TEST(p.status == "CTAP1_SUCCESS");
+        tries = p.data;
+        TEST(tries == 0, 'Device has 0 tries left (lockout)');
+
+        p = await dev.register(wif);
+        TEST(p.status == 'CTAP2_ERR_PIN_AUTH_INVALID', 'Register is denied');
+
+        p = await dev.sign({challenge: chal});
+        TEST(p.status == 'CTAP2_ERR_PIN_AUTH_INVALID', 'Sign is denied');
+
+        p = await dev.set_pin(pin);
+        TEST(p.status == "CTAP2_ERR_NOT_ALLOWED", 'set_pin is locked out');
+
+        p = await dev.set_pin(pin,pin2);
+        TEST(p.status == "CTAP2_ERR_NOT_ALLOWED", 'change_pin is locked out');
+
+        p = await dev.get_rng();
+        TEST(p.status == "CTAP2_ERR_NOT_ALLOWED", 'get_rng is locked out');
+
+        p = await dev.init();
+        TEST(p.status == "CTAP2_ERR_NOT_ALLOWED", 'init (getKeyAgreement) is locked out');
+
+        p = await dev.reset();
+        TEST(p.status == "CTAP1_SUCCESS");
+
+        p = await dev.get_retries();
+        TEST(p.status == "CTAP1_SUCCESS");
+        tries = p.data;
+
+        p = await dev.is_pin_set();
+        TEST(p.status == "CTAP1_SUCCESS");
+        var is_pin_set = p.data;
+
+        p = await dev.sign({challenge: chal});
+        TEST(p.status == 'CTAP2_ERR_NO_CREDENTIALS');
+
+        TEST(tries > 2 && is_pin_set == false, 'Device is no longer locked after reset and pin and key are gone');
+    }
+
+    async function test_rng(){
+
+        var pool = '';
+
+        var p = await dev.get_rng();
+        TEST(p.status == "CTAP1_SUCCESS", 'Rng responds');
+
+        pool += array2hex(p.data);
+
+        console.log("Gathering many RNG bytes..");
+
+        while (pool.length < 1024 * 10) {
+            var p = await dev.get_rng();
+            TEST(p.status == "CTAP1_SUCCESS");
+            pool += array2hex(p.data);
+        }
+
+        var entropy = shannon.entropy(pool) * 2;
+        TEST(entropy > 7.99, 'Rng has good entropy: ' + entropy);
+    }
+
+    await device_start_over();
+    await test_pin();
+    await test_crypto();
+    await test_rng();
 
 }
 

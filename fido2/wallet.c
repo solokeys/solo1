@@ -41,6 +41,7 @@ typedef enum
     WalletPin = 0x12,
     WalletReset= 0x13,
     WalletVersion= 0x14,
+    WalletRng = 0x15,
 } WalletOperation;
 
 
@@ -198,7 +199,14 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
 
     printf1(TAG_WALLET, "u2f2wallet [%d]: ",reqlen); dump_hex1(TAG_WALLET, msg_buf,reqlen);
 
-    count = ctap_atomic_count(0);
+    if (req->operation != WalletRng)
+    {
+        count = ctap_atomic_count(0);
+    }
+    else
+    {
+        count = 0;
+    }
     u2f_response_writeback(&up,1);
     u2f_response_writeback((uint8_t *)&count,4);
     u2f_response_writeback((uint8_t *)&ret,1);
@@ -274,7 +282,7 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             keysize = ctap_key_len(0);
 
             crypto_load_external_key(key, keysize);
-            crypto_ecdsa_sign(args[0], lens[0], sig, MBEDTLS_ECP_DP_SECP256R1);
+            crypto_ecdsa_sign(args[0], lens[0], sig, MBEDTLS_ECP_DP_SECP256K1);
 
             u2f_response_writeback(sig,64);
 
@@ -314,6 +322,8 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             memmove(chksum, args[0] + lens[0] - 4, 4);
             lens[0] -= 4;
 
+            printf("chksum: "); dump_hex1(TAG_WALLET, chksum, 4);
+
             // perform integrity check
             printf1(TAG_WALLET,"shasum on [%d]: ",lens[0]); dump_hex1(TAG_WALLET, args[0], lens[0]);
             crypto_sha256_init();
@@ -322,6 +332,8 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             crypto_sha256_init();
             crypto_sha256_update(shasum, 32);
             crypto_sha256_final(shasum);
+
+            printf1(TAG_WALLET,"shasum: "); dump_hex1(TAG_WALLET, shasum, 32);
 
             if (memcmp(shasum, chksum, 4) != 0)
             {
@@ -390,8 +402,39 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
 
             break;
         case WalletVersion:
-            u2f_response_writeback(WALLET_VERSION, sizeof(WALLET_VERSION));
+            u2f_response_writeback(WALLET_VERSION, sizeof(WALLET_VERSION)-1);
             break;
+        case WalletRng:
+            printf1(TAG_WALLET,"WalletRng\n");
+            if ( ctap_device_locked() )
+            {
+                printf1(TAG_ERR,"device locked\n");
+                ret = CTAP2_ERR_NOT_ALLOWED;
+                goto cleanup;
+            }
+            if ( ctap_is_pin_set() )
+            {
+                if ( ! check_pinhash(req->pinAuth, msg_buf, reqlen))
+                {
+                    printf1(TAG_WALLET,"pinAuth is NOT valid\n");
+                    dump_hex(msg_buf,reqlen);
+                    ret = CTAP2_ERR_PIN_AUTH_INVALID;
+                    goto cleanup;
+                }
+            }
+
+            ret = ctap_generate_rng(sig, 72);
+            if (ret != 1)
+            {
+                printf1(TAG_WALLET,"Rng failed\n");
+                ret = CTAP2_ERR_PROCESSING;
+                goto cleanup;
+            }
+            ret = 0;
+
+            u2f_response_writeback((uint8_t *)sig,72);
+            break;
+
         default:
             printf2(TAG_ERR,"Invalid wallet command: %x\n",req->operation);
             ret = CTAP1_ERR_INVALID_COMMAND;

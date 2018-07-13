@@ -1455,7 +1455,7 @@ int8_t ctap_load_key(uint8_t index, uint8_t * key)
         return ERR_NO_KEY_SPACE;
     }
 
-    if (STATE.key_lens[index] == 0)
+    if (STATE.key_lens[index] == 0xffff)
     {
         return ERR_KEY_SPACE_EMPTY;
     }
@@ -1480,6 +1480,12 @@ void ctap_reset()
     ctap_state_init();
     authenticator_write_state(&STATE, 0);
     authenticator_write_state(&STATE, 1);
+
+    if (ctap_generate_rng(PIN_TOKEN, PIN_TOKEN_SIZE) != 1)
+    {
+        printf2(TAG_ERR,"Error, rng failed\n");
+        exit(1);
+    }
 
     ctap_reset_state();
     memset(PIN_CODE_HASH,0,sizeof(PIN_CODE_HASH));
