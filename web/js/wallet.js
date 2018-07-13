@@ -1076,7 +1076,7 @@ async function run_tests() {
         p = await dev.set_pin(pin);
         TEST(p.status == "CTAP2_ERR_NOT_ALLOWED", 'set_pin is locked out');
 
-        p = await dev.set_pin(pin,pin2);
+        p = await dev.change_pin(pin,pin2);
         TEST(p.status == "CTAP2_ERR_NOT_ALLOWED", 'change_pin is locked out');
 
         p = await dev.get_rng();
@@ -1100,6 +1100,8 @@ async function run_tests() {
         TEST(p.status == 'CTAP2_ERR_NO_CREDENTIALS');
 
         TEST(tries > 2 && is_pin_set == false, 'Device is no longer locked after reset and pin and key are gone');
+
+        TEST(p.count >= count, 'Counter did not reset');
     }
 
     async function test_rng(){

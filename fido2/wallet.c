@@ -186,6 +186,8 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
 
     int keysize = sizeof(key);
 
+    memset(lens,0,sizeof(lens));
+
 
     for (i = 0; i < sizeof(sig); i++)
     {
@@ -322,10 +324,10 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             memmove(chksum, args[0] + lens[0] - 4, 4);
             lens[0] -= 4;
 
-            printf("chksum: "); dump_hex1(TAG_WALLET, chksum, 4);
+            /*printf("chksum: "); dump_hex1(TAG_WALLET, chksum, 4);*/
 
             // perform integrity check
-            printf1(TAG_WALLET,"shasum on [%d]: ",lens[0]); dump_hex1(TAG_WALLET, args[0], lens[0]);
+            /*printf1(TAG_WALLET,"shasum on [%d]: ",lens[0]); dump_hex1(TAG_WALLET, args[0], lens[0]);*/
             crypto_sha256_init();
             crypto_sha256_update(args[0], lens[0]);
             crypto_sha256_final(shasum);
@@ -333,7 +335,7 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             crypto_sha256_update(shasum, 32);
             crypto_sha256_final(shasum);
 
-            printf1(TAG_WALLET,"shasum: "); dump_hex1(TAG_WALLET, shasum, 32);
+            /*printf1(TAG_WALLET,"shasum: "); dump_hex1(TAG_WALLET, shasum, 32);*/
 
             if (memcmp(shasum, chksum, 4) != 0)
             {
