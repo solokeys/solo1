@@ -37,7 +37,9 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
     {
         if (req->p1 == U2F_AUTHENTICATE_CHECK)
         {
-            if (memcmp(auth->chal, CHALLENGE_PIN, 32) == 0)     // Pin requests
+
+
+            if (is_wallet_device((uint8_t *) &auth->kh, auth->khl))     // Pin requests
             {
                 rcode =  U2F_SW_CONDITIONS_NOT_SATISFIED;
             }
@@ -45,13 +47,15 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
             {
                 rcode =  U2F_SW_WRONG_DATA;
             }
+            printf1(TAG_WALLET,"Ignoring U2F request\n");
             goto end;
         }
         else
         {
-            if (memcmp(auth->chal, CHALLENGE_PIN, 32) != 0)     // Pin requests
+            if ( ! is_wallet_device((uint8_t *) &auth->kh, auth->khl))     // Pin requests
             {
                 rcode = U2F_SW_WRONG_PAYLOAD;
+                printf1(TAG_WALLET,"Ignoring U2F request\n");
                 goto end;
             }
             rcode = bridge_u2f_to_wallet(auth->chal, auth->app, auth->khl, (uint8_t*)&auth->kh);

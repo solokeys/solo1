@@ -1,4 +1,4 @@
-DEVELOPMENT = 1;
+DEVELOPMENT = 0;
 
 var to_b58 = function(B){var A="123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";var d=[],s="",i,j,c,n;for(i in B){j=0,c=B[i];s+=c||s.length^i?"":1;while(j in d||c){n=d[j];n=n?n*256+c:c;c=n/58|0;d[j]=n%58;j++}}while(j--)s+=A[d[j]];return s};
 var from_b58 = function(S){var A="123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";var d=[],b=[],i,j,c,n;for(i in S){j=0,c=A.indexOf(S[i]);if(c<0)throw new Error('Invald b58 character');c||b.length^i?i:b.push(0);while(j in d||c){n=d[j];n=n?n*58+c:c;c=n>>8;d[j]=n%256;j++}}while(j--)b.push(d[j]);return new Uint8Array(b)};
@@ -313,9 +313,15 @@ function send_msg_u2f(data, func, timeout) {
     timeout = timeout || 5;
 
     var appid = window.location.origin;
-    var chal = string2websafe('AABBCC');
+    //var chal = string2websafe('AABBCC');
 
     var chal = array2websafe(hex2array('d1cd7357bcedc03fcec112fe5a7f3f890292ff6f758978928b736ce1e63479e5'));
+
+    var args = {
+        type: 'navigator.id.getAssertion',
+        challenge: chal,
+        origin: appid
+    };
 
     var keyHandle = array2websafe(data);
 
@@ -358,7 +364,7 @@ function formatRequest(cmd, p1, p2, pinAuth, args) {
     for (i = 0; i < args.length; i+=1) {
         argslen += args[i].length + 1
     }
-    var len = 16 + 4 + argslen;
+    var len = 16 + 4 + 4 +argslen;
 
     if (len > 255)
     {
@@ -372,13 +378,20 @@ function formatRequest(cmd, p1, p2, pinAuth, args) {
     array[2] = p2 & 0xff;
     array[3] = (args.length) & 0xff;
 
+    array[4] = 0x8C;    // Wallet tag.  To not interfere with U2F devices.
+    array[5] = 0x27;
+    array[6] = 0x90;
+    array[7] = 0xf6;
+
+    var offset = 8;
+
     if (pinAuth) {
         for (i = 0; i < 16; i += 1) {
-            array[4 + i] = pinAuth[i];
+            array[offset + i] = pinAuth[i];
         }
     }
 
-    var offset = 4 + i;
+    offset = offset + i;
 
     for (i = 0; i < args.length; i += 1) {
         array[offset] = args[i].length;
@@ -406,6 +419,7 @@ function computePinAuth(pinToken, cmd,p1,p2,args)
     if (args && args.length) hmac.update([args.length]);
     else hmac.update([0]);
 
+    hmac.update([0x8c,0x27,0x90,0xf6]);
 
     if (args) {
         for (i = 0; i < args.length; i++)
@@ -1125,10 +1139,41 @@ async function run_tests() {
         TEST(entropy > 7.99, 'Rng has good entropy: ' + entropy);
     }
 
+    async function benchmark()
+    {
+        var d = new Date();
+        var t1,t2,i;
+        var ec = new EC('secp256k1');
+        var key = ec.genKeyPair();
+        var priv = key.getPrivate('hex');
+
+        var wif = key2wif(priv);  // convert to wif
+
+        // Corrupt 1 byte
+        var b = (wif[32] == 'A') ? 'B' : 'A';
+        var badwif = wif.substring(0, 32) + b + wif.substring(32+1);
+        var chal = string2challenge('abc');
+
+        var p = await dev.register(wif);
+        TEST(p.status == 'CTAP1_SUCCESS', 'Wallet accepts good WIF key');
+
+        
+        for (i = 0; i < 10; i++)
+        {
+            t1 = performance.now();
+            p = await dev.sign({challenge: chal});
+            t2 = performance.now();
+            var ver = key.verify(chal, p.sig);
+            TEST(ver && p.status == 'CTAP1_SUCCESS', 'Wallet returns signature ('+(t2-t1)+' ms)');
+        }
+
+    }
+
     await device_start_over();
-    await test_pin();
-    await test_crypto();
-    await test_rng();
+    //await test_pin();
+    //await test_crypto();
+    //await test_rng();
+    await benchmark();
 
 }
 

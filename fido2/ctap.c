@@ -1404,7 +1404,6 @@ static uint16_t key_addr_offset(int index)
 uint16_t ctap_key_len(uint8_t index)
 {
     int i = ctap_keys_stored();
-    uint16_t offset;
     if (i >= MAX_KEYS || index >= MAX_KEYS)
     {
         return 0;

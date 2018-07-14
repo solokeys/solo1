@@ -14,10 +14,12 @@
 #include "em_adc.h"
 #include "em_cmu.h"
 
+#include "InitDevice.h"
 #include "cbor.h"
 #include "log.h"
 #include "ctaphid.h"
 #include "util.h"
+#include "app.h"
 
 #define MSG_AVAIL_PIN	gpioPortC,9
 #define RDY_PIN			gpioPortC,10
@@ -63,7 +65,6 @@ void ctaphid_write_block(uint8_t * data)
 
 void heartbeat()
 {
-    static int beat = 0;
     GPIO_PinOutToggle(gpioPortF,4);
     GPIO_PinOutToggle(gpioPortF,5);
 
@@ -199,6 +200,46 @@ void init_adc()
    ADC0->SINGLECTRLX |= _ADC_SINGLECTRLX_VINATT_MASK;
    ADC0->SINGLEFIFOCLEAR = ADC_SINGLEFIFOCLEAR_SINGLEFIFOCLEAR;
 }
+
+static uint8_t _STATE1[sizeof(AuthenticatorState)];
+static uint8_t _STATE2[sizeof(AuthenticatorState)];
+
+void authenticator_read_state(AuthenticatorState * state)
+{
+    memmove(state,_STATE1,sizeof(AuthenticatorState));
+}
+
+void authenticator_read_backup_state(AuthenticatorState * state )
+{
+    memmove(state,_STATE2,sizeof(AuthenticatorState));
+}
+
+void authenticator_write_state(AuthenticatorState * state, int backup)
+{
+    if (! backup)
+    {
+        memmove(_STATE1,state,sizeof(AuthenticatorState));
+    }
+    else
+    {
+        memmove(_STATE2,state,sizeof(AuthenticatorState));
+    }
+}
+
+// Return 1 yes backup is init'd, else 0
+int authenticator_is_backup_initialized()
+{
+    uint8_t header[16];
+    AuthenticatorState * state = (AuthenticatorState*) _STATE2;
+    return state->is_initialized == INITIALIZED_MARKER;
+}
+
+
+
+uint8_t adc_rng(void);
+
+
+
 void device_init(void)
 {
     /* Chip errata */

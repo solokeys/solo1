@@ -6,9 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "em_adc.h"
+
 #include "util.h"
 #include "crypto.h"
-#include "em_adc.h"
+#include "device.h"
 
 
 #include "sha256.h"
@@ -33,7 +35,7 @@ static mbedtls_ctr_drbg_context ctr_drbg;
 
 static const struct uECC_Curve_t * _es256_curve = NULL;
 static const uint8_t * _signing_key = NULL;
-static int _external_key_len = 0;
+static int _key_len = 0;
 
 // Secrets for testing only
 static uint8_t master_secret[32] = "\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff"
@@ -186,9 +188,13 @@ void crypto_ecc256_init()
 void crypto_load_external_key(uint8_t * key, int len)
 {
     _signing_key = key;
-    _external_key_len = len;
+    _key_len = len;
 }
-
+void crypto_ecc256_load_attestation_key()
+{
+    _signing_key = attestation_key;
+    _key_len = 32;
+}
 
 
 
@@ -274,48 +280,75 @@ void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig)
 
 }
 
+#if 1
 void crypto_ecdsa_sign(uint8_t * data, int len, uint8_t * sig, int MBEDTLS_ECP_ID)
 {
-    mbedtls_ecp_group grp;      /*!<  Elliptic curve and base point     */
-    mbedtls_mpi d;              /*!<  our secret value                  */
-//#define CRYPTO_ENABLE CMU->HFBUSCLKEN0 |= CMU_HFBUSCLKEN0_CRYPTO; \
-//  CRYPTO->IFC = _CRYPTO_IFC_MASK; \
-//  CRYPTO->CMD = CRYPTO_CMD_SEQSTOP; \
-//  CRYPTO->CTRL = CRYPTO_CTRL_DMA0RSEL_DDATA0; \
-//  CRYPTO->SEQCTRL = 0; \
-//  CRYPTO->SEQCTRLB = 0
-//
-//#define CRYPTO_DISABLE \
-//  CRYPTO->IEN = 0; \
-//  CMU->HFBUSCLKEN0 &= ~CMU_HFBUSCLKEN0_CRYPTO;
-//  CRYPTO_DISABLE;
-//	CRYPTO_ENABLE;
-//    mbedtls_ecp_group_init( &grp );
-//    mbedtls_mpi_init( &d );
-//	mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_DP_SECP256R1);
-//	mbedtls_mpi_read_binary(&d, _signing_key, 32);
-//
-//	mbedtls_mpi r,s;
-//	mbedtls_mpi_init(&r);
-//	mbedtls_mpi_init(&s);
-//
-//	printf("signing..\n");
-//	dump_hex(data,len);
-//	mbedtls_ecdsa_sign_det( &grp, &r, &s, &d,
-//	                             data, 32, MBEDTLS_MD_SHA256 );// Issue: this will freeze on 13th iteration..
-//	printf("signed\n");
-//
-//	mbedtls_mpi_write_binary(&r,sig,32);
-//	mbedtls_mpi_write_binary(&s,sig+32,32);
 
-    if ( uECC_sign(_signing_key, data, len, sig, _es256_curve) == 0)
+    const struct uECC_Curve_t * curve = NULL;
+
+    switch(MBEDTLS_ECP_ID)
+    {
+        case MBEDTLS_ECP_DP_SECP192R1:
+            curve = uECC_secp192r1();
+            if (_key_len != 24)  goto fail;
+            break;
+        case MBEDTLS_ECP_DP_SECP224R1:
+            curve = uECC_secp224r1();
+            if (_key_len != 28)  goto fail;
+            break;
+        case MBEDTLS_ECP_DP_SECP256R1:
+            curve = uECC_secp256r1();
+            if (_key_len != 32)  goto fail;
+            break;
+        case MBEDTLS_ECP_DP_SECP256K1:
+            curve = uECC_secp256k1();
+            if (_key_len != 32)  goto fail;
+            break;
+        default:
+            printf("error, invalid ECDSA alg specifier\n");
+            exit(1);
+    }
+
+    if ( uECC_sign(_signing_key, data, len, sig, curve) == 0)
     {
         printf("error, uECC failed\n");
         exit(1);
     }
+    return;
 
+fail:
+    printf("error, invalid key length\n");
+    exit(1);
 }
 
+#else
+void crypto_ecdsa_sign(uint8_t * data, int len, uint8_t * sig, int MBEDTLS_ECP_ID)
+{
+    mbedtls_ecp_group grp;      /*!<  Elliptic curve and base point     */
+    mbedtls_mpi d;              /*!<  our secret value                  */
+
+    mbedtls_ecp_group_init( &grp );
+    mbedtls_mpi_init( &d );
+    mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_ID);
+    mbedtls_mpi_read_binary(&d, _signing_key, 32);
+
+    mbedtls_mpi r,s;
+    mbedtls_mpi_init(&r);
+    mbedtls_mpi_init(&s);
+
+    printf("signing..\n");
+    dump_hex(data,len);
+    mbedtls_ecdsa_sign_det( &grp, &r, &s, &d,
+                                 data, 32, MBEDTLS_MD_SHA256 );// Issue: this will freeze on 13th iteration..
+    printf("signed\n");
+
+    mbedtls_mpi_write_binary(&r,sig,32);
+    mbedtls_mpi_write_binary(&s,sig+32,32);
+}
+
+
+
+#endif
 /*
  * Generate a keypair with configurable base point
  */
@@ -528,6 +561,7 @@ void crypto_ecc256_load_key(uint8_t * data, int len, uint8_t * data2, int len2)
     static uint8_t privkey[32];
     generate_private_key(data,len,data2,len2,privkey);
     _signing_key = privkey;
+    _key_len = 32;
 }
 
 void crypto_ecc256_make_key_pair(uint8_t * pubkey, uint8_t * privkey)

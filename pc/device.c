@@ -327,11 +327,11 @@ int authenticator_is_backup_initialized()
 }
 
 // Return 1 yes backup is init'd, else 0
-int authenticator_is_initialized()
-{
+/*int authenticator_is_initialized()*/
+/*{*/
 
 
-}
+/*}*/
 
 void authenticator_initialize()
 {

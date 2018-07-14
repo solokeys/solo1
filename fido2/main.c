@@ -27,7 +27,7 @@ int main(int argc, char * argv[])
 //            TAG_GEN|
             /*TAG_MC |*/
             /*TAG_GA |*/
-            TAG_WALLET |
+            /*TAG_WALLET |*/
             TAG_STOR |
             /*TAG_CP |*/
 //            TAG_CTAP|
@@ -35,7 +35,7 @@ int main(int argc, char * argv[])
             /*TAG_U2F|*/
             /*TAG_PARSE |*/
 //            TAG_TIME|
-//            TAG_DUMP|
+            /*TAG_DUMP|*/
             /*TAG_GREEN|*/
             /*TAG_RED|*/
             TAG_ERR

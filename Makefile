@@ -33,6 +33,8 @@ efm8prog:
 	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -erase
 	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -upload '.\efm8\Keil 8051 v9.53 - Debug\efm8.hex'
 
+efm32com:
+	cd '.\efm32\GNU ARM v7.2.1 - Debug' && $(MAKE) all
 efm32prog:
 	cd '.\efm32\GNU ARM v7.2.1 - Debug' && $(MAKE) all
 	commander flash '.\efm32\GNU ARM v7.2.1 - Debug\EFM32.hex' -s 440121060

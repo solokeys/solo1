@@ -185,7 +185,6 @@ u2f.GetJsApiVersionResponse;
  * @param {function((MessagePort|u2f.WrappedChromeRuntimePort_))} callback
  */
 u2f.getMessagePort = function(callback) {
-    console.log("getMessagePort");
   if (typeof chrome != 'undefined' && chrome.runtime) {
     // The actual message here does not matter, but we need to get a reply
     // for the callback to run. Thus, send an empty signature request
@@ -198,15 +197,12 @@ u2f.getMessagePort = function(callback) {
       if (!chrome.runtime.lastError) {
         // We are on a whitelisted origin and can talk directly
         // with the extension.
-        console.log("talk with ext");
         u2f.getChromeRuntimePort_(callback);
       } else {
         // chrome.runtime was available, but we couldn't message
         // the extension directly, use iframe
-        console.log("talk with ext from iframe");
         u2f.getIframePort_(callback);
 
-        console.log("setup");
       }
     });
   } else if (u2f.isAndroidChrome_()) {
@@ -412,7 +408,6 @@ u2f.WrappedAuthenticatorPort_.prototype.postMessage = function(message) {
     u2f.WrappedAuthenticatorPort_.INTENT_URL_BASE_ +
     ';S.request=' + encodeURIComponent(JSON.stringify(message)) +
     ';end';
-    console.log(intentUrl);
   document.location = intentUrl;
 };
 
@@ -641,7 +636,6 @@ u2f.sign = function(appId, challenge, registeredKeys, callback, opt_timeoutSecon
     u2f.getApiVersion(
         function (response) {
           js_api_version = response['js_api_version'] === undefined ? 0 : response['js_api_version'];
-          console.log("Extension JS API Version: ", js_api_version);
           u2f.sendSignRequest(appId, challenge, registeredKeys, callback, opt_timeoutSeconds);
         });
   } else {
@@ -687,7 +681,6 @@ u2f.register = function(appId, registerRequests, registeredKeys, callback, opt_t
     u2f.getApiVersion(
         function (response) {
           js_api_version = response['js_api_version'] === undefined ? 0: response['js_api_version'];
-          console.log("Extension JS API Version: ", js_api_version);
           u2f.sendRegisterRequest(appId, registerRequests, registeredKeys,
               callback, opt_timeoutSeconds);
         });

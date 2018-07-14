@@ -32,7 +32,10 @@ typedef enum
     MBEDTLS_ECP_DP_SECP224K1,      /*!< 224-bits "Koblitz" curve */
     MBEDTLS_ECP_DP_SECP256K1,      /*!< 256-bits "Koblitz" curve */
 } mbedtls_ecp_group_id;
+#else
+#include "ecp.h"
 #endif
+
 
 typedef enum
 {
@@ -44,14 +47,23 @@ typedef enum
     WalletRng = 0x15,
 } WalletOperation;
 
+int is_wallet_device(uint8_t * kh, int len)
+{
+    wallet_request * req = (wallet_request *) kh;
+
+    if (len < WALLET_MIN_LENGTH)
+        return 0;
+
+    return memcmp(req->tag, WALLET_TAG, sizeof(WALLET_TAG)-1) == 0;
+}
 
 // return 1 if hash is valid, 0 otherwise
 int check_pinhash(uint8_t * pinAuth, uint8_t * msg, uint8_t len)
 {
     uint8_t hmac[32];
     crypto_sha256_hmac_init(PIN_TOKEN, PIN_TOKEN_SIZE, hmac);
-    crypto_sha256_update(msg, 4);
-    crypto_sha256_update(msg+ 4 + 16, len - 4 - 16);
+    crypto_sha256_update(msg, 8);
+    crypto_sha256_update(msg+ 8 + 16, len - 8 - 16);
     crypto_sha256_hmac_final(PIN_TOKEN, PIN_TOKEN_SIZE, hmac);
 
     return (memcmp(pinAuth, hmac, 16) == 0);
@@ -404,7 +416,7 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
 
             break;
         case WalletVersion:
-            u2f_response_writeback(WALLET_VERSION, sizeof(WALLET_VERSION)-1);
+            u2f_response_writeback((uint8_t*)WALLET_VERSION, sizeof(WALLET_VERSION)-1);
             break;
         case WalletRng:
             printf1(TAG_WALLET,"WalletRng\n");
