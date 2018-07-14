@@ -1010,9 +1010,10 @@ async function run_tests() {
 
     }
 
-    async function test_crypto(){
+    async function test_crypto(leaveEarly, startLate,imkey){
         var ec = new EC('secp256k1');
-        var key = ec.genKeyPair();
+        key = imkey || ec.genKeyPair();
+
         var priv = key.getPrivate('hex');
 
         var wif = key2wif(priv);  // convert to wif
@@ -1020,32 +1021,43 @@ async function run_tests() {
         // Corrupt 1 byte
         var b = (wif[32] == 'A') ? 'B' : 'A';
         var badwif = wif.substring(0, 32) + b + wif.substring(32+1);
-
-
-        var p = await dev.set_pin(pin);
-        TEST(p.status == "CTAP1_SUCCESS");
+        var p;
 
         var chal = string2challenge('abc');
-        p = await dev.sign({challenge: chal});
-        TEST(p.status == 'CTAP2_ERR_PIN_AUTH_INVALID', 'No signature without authenticating first');
 
-        p = await dev.register(wif);
-        TEST(p.status == 'CTAP2_ERR_PIN_AUTH_INVALID', 'No key register without authenticating first');
+        if (!startLate) {
 
-        p = await dev.get_rng();
-        TEST(p.status == "CTAP2_ERR_PIN_AUTH_INVALID", 'No rng without authenticating first');
+            p = await dev.set_pin(pin);
+            TEST(p.status == "CTAP1_SUCCESS");
 
-        p = await dev.authenticate(pin);
-        TEST(p.status == "CTAP1_SUCCESS");
+            p = await dev.sign({challenge: chal});
+            TEST(p.status == 'CTAP2_ERR_PIN_AUTH_INVALID', 'No signature without authenticating first');
 
-        p = await dev.sign({challenge: chal});
-        TEST(p.status == 'CTAP2_ERR_NO_CREDENTIALS', 'No signature without key');
+            p = await dev.register(wif);
+            TEST(p.status == 'CTAP2_ERR_PIN_AUTH_INVALID', 'No key register without authenticating first');
 
-        p = await dev.register(badwif);
-        TEST(p.status == 'CTAP2_ERR_CREDENTIAL_NOT_VALID', 'Wallet does not accept corrupted key');
+            p = await dev.get_rng();
+            TEST(p.status == "CTAP2_ERR_PIN_AUTH_INVALID", 'No rng without authenticating first');
 
-        p = await dev.register(wif);
-        TEST(p.status == 'CTAP1_SUCCESS', 'Wallet accepts good WIF key');
+            p = await dev.authenticate(pin);
+            TEST(p.status == "CTAP1_SUCCESS");
+
+            p = await dev.sign({challenge: chal});
+            TEST(p.status == 'CTAP2_ERR_NO_CREDENTIALS', 'No signature without key');
+
+            p = await dev.register(badwif);
+            TEST(p.status == 'CTAP2_ERR_CREDENTIAL_NOT_VALID', 'Wallet does not accept corrupted key');
+
+            p = await dev.register(wif);
+            TEST(p.status == 'CTAP1_SUCCESS', 'Wallet accepts good WIF key');
+
+        } else {
+            p = await dev.authenticate(pin + 'A');
+            TEST(p.status == "CTAP2_ERR_PIN_INVALID", 'Wrong pin fails');
+
+            p = await dev.authenticate(pin);
+            TEST(p.status == "CTAP1_SUCCESS", 'Right pin works');
+        }
 
         p = await dev.register(wif);
         TEST(p.status == 'CTAP2_ERR_KEY_STORE_FULL', 'Wallet does not accept another key');
@@ -1056,10 +1068,13 @@ async function run_tests() {
         var ver = key.verify(chal, p.sig);
         TEST(ver, 'Signature is valid');
 
+
         var count = p.count;
         p = await dev.sign({challenge: chal});
         ver = key.verify(chal, p.sig);
-        TEST(p.status == 'CTAP1_SUCCESS' && p.count > count && ver, 'Count increments for each signature');
+        TEST(p.status == 'CTAP1_SUCCESS' && p.count > count && ver, 'Count increments for each signature ' + p.count);
+
+        if (leaveEarly) return;
 
         // Test lockout
         console.log("Exceeding all pin attempts...");
@@ -1139,9 +1154,29 @@ async function run_tests() {
         TEST(entropy > 7.99, 'Rng has good entropy: ' + entropy);
     }
 
+
+    async function test_persistence()
+    {
+
+        var ec = new EC('secp256k1');
+        var key = ec.keyFromPrivate('693e3c441129af84ed10693e3c441129af84ed10693e3c441129af84ed10aabb');
+        var p = await dev.init();
+        p = await dev.is_pin_set();
+        TEST(p.status == "CTAP1_SUCCESS");
+        var is_pin_set = p.data;
+        if (! is_pin_set) {
+            console.log("Pin is not set, resetting and loading new pin and key.");
+
+            await device_start_over();
+            await test_crypto(true,false,key);
+            console.log("Now restart device and reload page.");
+        } else {
+            await test_crypto(true,true,key);
+        }
+    }
+
     async function benchmark()
     {
-        var d = new Date();
         var t1,t2,i;
         var ec = new EC('secp256k1');
         var key = ec.genKeyPair();
@@ -1149,9 +1184,6 @@ async function run_tests() {
 
         var wif = key2wif(priv);  // convert to wif
 
-        // Corrupt 1 byte
-        var b = (wif[32] == 'A') ? 'B' : 'A';
-        var badwif = wif.substring(0, 32) + b + wif.substring(32+1);
         var chal = string2challenge('abc');
 
         var p = await dev.register(wif);
@@ -1171,7 +1203,6 @@ async function run_tests() {
 
             lcount = count;
         }
-
     }
 
     while(1)
@@ -1181,7 +1212,8 @@ async function run_tests() {
         await test_crypto();
         await test_rng();
     }
-    await benchmark();
+    //await benchmark();
+    //await test_persistence();
 
 }
 
