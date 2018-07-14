@@ -4,7 +4,7 @@
 #include "ctap.h"
 
 #define KEY_SPACE_BYTES     128
-#define MAX_KEYS            (KEY_SPACE_BYTES/1)
+#define MAX_KEYS            (1)
 
 #define BACKUP_MARKER       0x5A
 #define INITIALIZED_MARKER  0xA5

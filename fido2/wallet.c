@@ -213,7 +213,7 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
 
     printf1(TAG_WALLET, "u2f2wallet [%d]: ",reqlen); dump_hex1(TAG_WALLET, msg_buf,reqlen);
 
-    if (req->operation != WalletRng)
+    if (req->operation == WalletRegister || req->operation == WalletSign)
     {
         count = ctap_atomic_count(0);
     }

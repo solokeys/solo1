@@ -1157,22 +1157,30 @@ async function run_tests() {
         var p = await dev.register(wif);
         TEST(p.status == 'CTAP1_SUCCESS', 'Wallet accepts good WIF key');
 
-        
-        for (i = 0; i < 10; i++)
+        var count,lcount;
+        lcount = -1;
+        for (i = 0; i < 2048; i++)
         {
             t1 = performance.now();
             p = await dev.sign({challenge: chal});
             t2 = performance.now();
             var ver = key.verify(chal, p.sig);
+            count = p.count;
             TEST(ver && p.status == 'CTAP1_SUCCESS', 'Wallet returns signature ('+(t2-t1)+' ms)');
+            if (i != 0) TEST(count == (lcount+1), 'Count increased by 1 ('+count+')');
+
+            lcount = count;
         }
 
     }
 
-    await device_start_over();
-    //await test_pin();
-    //await test_crypto();
-    //await test_rng();
+    while(1)
+    {
+        await device_start_over();
+        await test_pin();
+        await test_crypto();
+        await test_rng();
+    }
     await benchmark();
 
 }

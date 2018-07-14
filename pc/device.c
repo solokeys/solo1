@@ -190,7 +190,8 @@ uint32_t ctap_atomic_count(int sel)
     }
     else
     {
-        return counter2++;
+        printf2(TAG_ERR,"counter2 not imple\n");
+        exit(1);
     }
 }
 

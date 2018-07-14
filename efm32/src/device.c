@@ -13,6 +13,7 @@
 #include "em_usart.h"
 #include "em_adc.h"
 #include "em_cmu.h"
+#include "em_msc.h"
 
 #include "InitDevice.h"
 #include "cbor.h"
@@ -25,20 +26,70 @@
 #define RDY_PIN			gpioPortC,10
 #define RW_PIN			gpioPortD,11
 
+#define PAGE_SIZE		2048
+#define PAGES			128
+#define	COUNTER_PAGE	125
+#define	STATE1_PAGE		126
+#define	STATE2_PAGE		127
 
-uint32_t _c1 = 0, _c2 = 0;
+
+
+static void init_atomic_counter()
+{
+    int offset = 0;
+    uint32_t count;
+    uint32_t one = 1;
+    uint32_t * ptr = PAGE_SIZE * COUNTER_PAGE;
+
+    for (offset = 0; offset < PAGE_SIZE/4; offset += 1)
+    {
+        count = *(ptr+offset);
+        if (count != 0xffffffff)
+        {
+            return;
+        }
+    }
+    MSC_WriteWordFast(ptr,&one,4);
+}
+
+
 uint32_t ctap_atomic_count(int sel)
 {
-    if (sel == 0)
+    int offset = 0;
+    uint32_t count;
+    uint32_t zero = 0;
+    uint32_t * ptr = PAGE_SIZE * COUNTER_PAGE;
+
+    if (sel != 0)
     {
-        _c1++;
-        return _c1;
+        printf2(TAG_ERR,"counter2 not imple\n");
+        exit(1);
     }
-    else
+
+    for (offset = 0; offset < PAGE_SIZE/4; offset += 1) // wear-level the flash
     {
-        _c2++;
-        return _c2;
+        count = *(ptr+offset);
+        if (count != 0)
+        {
+            count++;
+            offset++;
+            if (offset == PAGE_SIZE/4)
+            {
+                offset = 0;
+                MSC_ErasePage(ptr);
+                /*printf("RESET page counter\n");*/
+            }
+            else
+            {
+                MSC_WriteWordFast(ptr+offset-1,&zero,4);
+            }
+            MSC_WriteWordFast(ptr+offset,&count,4);
+
+            break;
+        }
     }
+
+    return count;
 }
 
 // Verify the user
@@ -166,7 +217,7 @@ void GPIO_ODD_IRQHandler()
     GPIO->IFC = flag;
     if (flag & (1<<9))
     {
-        //		printf("pin 9 interrupt\r\n");
+        // printf("pin 9 interrupt\r\n");
         msgs_to_recv++;
     }
     else
@@ -201,28 +252,40 @@ void init_adc()
    ADC0->SINGLEFIFOCLEAR = ADC_SINGLEFIFOCLEAR_SINGLEFIFOCLEAR;
 }
 
+
+
 static uint8_t _STATE1[sizeof(AuthenticatorState)];
 static uint8_t _STATE2[sizeof(AuthenticatorState)];
 
 void authenticator_read_state(AuthenticatorState * state)
 {
-    memmove(state,_STATE1,sizeof(AuthenticatorState));
+	uint32_t * ptr = PAGE_SIZE*STATE1_PAGE;
+    memmove(state,ptr,sizeof(AuthenticatorState));
 }
 
 void authenticator_read_backup_state(AuthenticatorState * state )
 {
-    memmove(state,_STATE2,sizeof(AuthenticatorState));
+	uint32_t * ptr = PAGE_SIZE*STATE2_PAGE;
+    memmove(state,ptr,sizeof(AuthenticatorState));
 }
 
 void authenticator_write_state(AuthenticatorState * state, int backup)
 {
+    uint32_t * ptr;
+    int i;
     if (! backup)
     {
-        memmove(_STATE1,state,sizeof(AuthenticatorState));
+        ptr = PAGE_SIZE*STATE1_PAGE;
+        MSC_ErasePage(ptr);
+        //    	for (i = 0; i < sizeof(AuthenticatorState)/4; i++ )
+        MSC_WriteWordFast(ptr,state,sizeof(AuthenticatorState) + (sizeof(AuthenticatorState)%4));
     }
     else
     {
-        memmove(_STATE2,state,sizeof(AuthenticatorState));
+        ptr = PAGE_SIZE*STATE2_PAGE;
+        MSC_ErasePage(ptr);
+        //    	for (i = 0; i < sizeof(AuthenticatorState)/4; i++ )
+        MSC_WriteWordFast(ptr,state,sizeof(AuthenticatorState) + (sizeof(AuthenticatorState)%4));
     }
 }
 
@@ -230,7 +293,9 @@ void authenticator_write_state(AuthenticatorState * state, int backup)
 int authenticator_is_backup_initialized()
 {
     uint8_t header[16];
-    AuthenticatorState * state = (AuthenticatorState*) _STATE2;
+    uint32_t * ptr = PAGE_SIZE*STATE2_PAGE;
+    memmove(header,ptr,16);
+    AuthenticatorState * state = (AuthenticatorState*)header;
     return state->is_initialized == INITIALIZED_MARKER;
 }
 
@@ -275,6 +340,14 @@ void device_init(void)
 
     init_adc();
 
+    MSC_Init();
+    init_atomic_counter();
+    if (sizeof(AuthenticatorState) > PAGE_SIZE)
+    {
+        printf2(TAG_ERR, "not enough room in page\n");
+        exit(1);
+    }
+
     CborEncoder test;
     uint8_t buf[64];
     cbor_encoder_init(&test, buf, 20, 0);
@@ -284,7 +357,7 @@ void device_init(void)
 
     for (i = 0; i < sizeof(buf); i++)
     {
-    	buf[i] = adc_rng();
+        buf[i] = adc_rng();
     }
     dump_hex(buf,sizeof(buf));
 }
