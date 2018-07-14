@@ -24,10 +24,10 @@ int main(int argc, char * argv[])
 
     set_logging_mask(
             /*0*/
-//            TAG_GEN|
+           TAG_GEN|
             /*TAG_MC |*/
             /*TAG_GA |*/
-            /*TAG_WALLET |*/
+            TAG_WALLET |
             TAG_STOR |
             /*TAG_CP |*/
 //            TAG_CTAP|

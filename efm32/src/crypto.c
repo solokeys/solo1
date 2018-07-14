@@ -311,13 +311,13 @@ void crypto_ecdsa_sign(uint8_t * data, int len, uint8_t * sig, int MBEDTLS_ECP_I
 
     if ( uECC_sign(_signing_key, data, len, sig, curve) == 0)
     {
-        printf("error, uECC failed\n");
+        printf2(TAG_ERR,"error, uECC failed\n");
         exit(1);
     }
     return;
 
 fail:
-    printf("error, invalid key length\n");
+    printf2(TAG_ERR,"error, invalid key length: %d\n", _key_len);
     exit(1);
 }
 

@@ -15,7 +15,7 @@
 #include "storage.h"
 #include "device.h"
 
-#ifdef USING_PC
+#if defined(USING_PC) || defined(IS_BOOTLOADER)
 typedef enum
 {
     MBEDTLS_ECP_DP_NONE = 0,

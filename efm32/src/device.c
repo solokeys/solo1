@@ -303,11 +303,52 @@ int authenticator_is_backup_initialized()
 
 uint8_t adc_rng(void);
 
+void bootloader_init(void)
+{
+    /* Chip errata */
+
+
+
+    // status LEDS
+    GPIO_PinModeSet(gpioPortF,
+            4,
+            gpioModePushPull,
+            0);
+
+    GPIO_PinModeSet(gpioPortF,
+            5,
+            gpioModePushPull,
+            1);
+
+    // EFM8 RDY/BUSY
+    GPIO_PinModeSet(RDY_PIN, gpioModeInput, 0);
+
+    // EFM8 MSG Available
+    GPIO_PinModeSet(MSG_AVAIL_PIN, gpioModeInput, 0);
+
+    // SPI R/w Indicator
+    GPIO_PinModeSet(RW_PIN, gpioModePushPull, 1);
+
+    // USB message rdy ext int
+    //  GPIO_ExtIntConfig(gpioPortC, 9, 9, 1, 0,1);
+    //  NVIC_EnableIRQ(GPIO_ODD_IRQn);
+
+
+    printing_init();
+
+
+    MSC_Init();
+
+
+
+}
+
 
 
 void device_init(void)
 {
     /* Chip errata */
+
     CHIP_Init();
     enter_DefaultMode_from_RESET();
 
@@ -341,6 +382,7 @@ void device_init(void)
     init_adc();
 
     MSC_Init();
+
     init_atomic_counter();
     if (sizeof(AuthenticatorState) > PAGE_SIZE)
     {
@@ -360,4 +402,6 @@ void device_init(void)
         buf[i] = adc_rng();
     }
     dump_hex(buf,sizeof(buf));
+
+
 }

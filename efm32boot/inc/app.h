@@ -8,7 +8,7 @@
 #ifndef SRC_APP_H_
 #define SRC_APP_H_
 
-
+#define IS_BOOTLOADER
 
 #define PRINTING_USE_VCOM
 

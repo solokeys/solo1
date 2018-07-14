@@ -1404,7 +1404,7 @@ static uint16_t key_addr_offset(int index)
 uint16_t ctap_key_len(uint8_t index)
 {
     int i = ctap_keys_stored();
-    if (i >= MAX_KEYS || index >= MAX_KEYS)
+    if (index >= i || index >= MAX_KEYS)
     {
         return 0;
     }
@@ -1449,7 +1449,7 @@ int8_t ctap_load_key(uint8_t index, uint8_t * key)
     int i = ctap_keys_stored();
     uint16_t offset;
     uint16_t len;
-    if (i >= MAX_KEYS || index >= MAX_KEYS)
+    if (index >= i || index >= MAX_KEYS)
     {
         return ERR_NO_KEY_SPACE;
     }
