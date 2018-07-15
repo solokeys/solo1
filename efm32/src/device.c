@@ -32,7 +32,13 @@
 #define	STATE1_PAGE		126
 #define	STATE2_PAGE		127
 
+#define APPLICATION_START_ADDR	0x8000
+#define APPLICATION_START_PAGE	(0x8000/PAGE_SIZE)
 
+#define APPLICATION_END_ADDR	(PAGE_SIZE*125-4)		// NOT included in application
+#define APPLICATION_END_PAGE	(125)				// 125 is NOT included in application
+
+#define AUTH_WORD_ADDR          (PAGE_SIZE*125-4)
 
 static void init_atomic_counter()
 {
@@ -254,9 +260,6 @@ void init_adc()
 
 
 
-static uint8_t _STATE1[sizeof(AuthenticatorState)];
-static uint8_t _STATE2[sizeof(AuthenticatorState)];
-
 void authenticator_read_state(AuthenticatorState * state)
 {
 	uint32_t * ptr = PAGE_SIZE*STATE1_PAGE;
@@ -272,7 +275,6 @@ void authenticator_read_backup_state(AuthenticatorState * state )
 void authenticator_write_state(AuthenticatorState * state, int backup)
 {
     uint32_t * ptr;
-    int i;
     if (! backup)
     {
         ptr = PAGE_SIZE*STATE1_PAGE;
@@ -402,6 +404,104 @@ void device_init(void)
         buf[i] = adc_rng();
     }
     dump_hex(buf,sizeof(buf));
-
-
 }
+
+typedef enum
+{
+    BootWrite = 0x40,
+    BootDone = 0x41,
+    BootCheck = 0x42,
+    BootErase = 0x43,
+} WalletOperation;
+
+
+typedef struct {
+    uint8_t op;
+    uint8_t addr[3];
+    uint8_t tag[4];
+    uint8_t len;
+    uint8_t payload[255 - 9];
+} __attribute__((packed)) BootloaderReq;
+
+//#define APPLICATION_START_ADDR	0x8000
+//#define APPLICATION_START_PAGE	(0x8000/PAGE_SIZE)
+
+//#define APPLICATION_END_ADDR	(PAGE_SIZE*125-4)		// NOT included in application
+
+static void erase_application()
+{
+    int page;
+    uint32_t * ptrpage;
+    for(page = APPLICATION_START_PAGE; page < APPLICATION_END_PAGE; page++)
+    {
+        ptrpage = page * PAGE_SIZE;
+        MSC_ErasePage(ptrpage);
+    }
+}
+
+static void authorize_application()
+{
+    uint32_t zero = 0;
+    uint32_t * ptr;
+    ptr = AUTH_WORD_ADDR;
+    MSC_WriteWordFast(ptr,&zero, 4);
+}
+int bootloader_bridge(uint8_t klen, uint8_t * keyh)
+{
+    static int has_erased = 0;
+    BootloaderReq * req =  (BootloaderReq *  )keyh;
+    uint8_t payload[256];
+    /*printf("bootloader_bridge\n");*/
+    if (req->len > 255-9)
+    {
+        return CTAP1_ERR_INVALID_LENGTH;
+    }
+
+    memset(payload, 0xff, sizeof(payload));
+    memmove(payload, req->payload, req->len);
+
+    uint32_t addr = (*((uint32_t*)req->addr)) & 0xffffff;
+
+    uint32_t * ptr = addr;
+
+    switch(req->op){
+        case BootWrite:
+            /*printf("BootWrite 0x%08x\n", addr);*/
+            if (ptr < APPLICATION_START_ADDR || ptr >= APPLICATION_END_ADDR)
+            {
+                return CTAP2_ERR_NOT_ALLOWED;
+            }
+            if (!has_erased)
+            {
+                erase_application();
+                has_erased = 1;
+            }
+            MSC_WriteWordFast(ptr,payload, req->len + (req->len%4));
+            break;
+        case BootDone:
+            /*printf("BootDone\n");*/
+            authorize_application();
+            NVIC_SystemReset();
+            break;
+        case BootCheck:
+            /*printf("BootCheck\n");*/
+            return 0;
+            break;
+        case BootErase:
+            /*printf("BootErase\n");*/
+            erase_application();
+            return 0;
+            break;
+        default:
+            return CTAP1_ERR_INVALID_COMMAND;
+    }
+    return 0;
+}
+
+int is_authorized_to_boot()
+{
+    uint32_t * auth = AUTH_WORD_ADDR;
+    return *auth == 0;
+}
+
+

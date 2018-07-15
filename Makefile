@@ -39,6 +39,10 @@ efm32prog:
 	cd '.\efm32\GNU ARM v7.2.1 - Debug' && $(MAKE) all
 	commander flash '.\efm32\GNU ARM v7.2.1 - Debug\EFM32.hex' -s 440121060
 
+efm32bootprog:
+	cd '.\efm32boot\GNU ARM v7.2.1 - Debug' && $(MAKE) all
+	commander flash '.\efm32boot\GNU ARM v7.2.1 - Debug\efm32boot.hex' -s 440121060
+
 $(name):  $(obj)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
 

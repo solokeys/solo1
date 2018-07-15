@@ -200,12 +200,6 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
 
     memset(lens,0,sizeof(lens));
 
-
-    for (i = 0; i < sizeof(sig); i++)
-    {
-        sig[i] = i;
-    }
-
     wallet_request * req = (wallet_request *) msg_buf;
     uint8_t * payload = req->payload;
 
@@ -219,11 +213,14 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
     }
     else
     {
-        count = 0;
+        count = 10;
     }
+
     u2f_response_writeback(&up,1);
     u2f_response_writeback((uint8_t *)&count,4);
     u2f_response_writeback((uint8_t *)&ret,1);
+
+#ifndef IS_BOOTLOADER
 
     int offset = 0;
     for (i = 0; i < MIN(5,req->numArgs); i++)
@@ -454,6 +451,9 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             ret = CTAP1_ERR_INVALID_COMMAND;
             break;
     }
+#else
+    ret = bootloader_bridge(klen, keyh);
+#endif
 
 cleanup:
     if (ret != 0)

@@ -57,6 +57,11 @@
     <property object="PD10" propertyId="ports.settings.pullup" value="Enabled"/>
     <property object="PF4" propertyId="ports.settings.pinmode" value="Push-pull"/>
     <property object="PF5" propertyId="ports.settings.pinmode" value="Push-pull"/>
+    <property object="PF6" propertyId="ports.settings.dout" value="1"/>
+    <property object="PF6" propertyId="ports.settings.filter" value="Enabled"/>
+    <property object="PF6" propertyId="ports.settings.pinmode" value="Input pull"/>
+    <property object="PF6" propertyId="ports.settings.pulldirection" value="Pullup"/>
+    <property object="PF6" propertyId="ports.settings.pullup" value="Enabled"/>
     <property object="PORTIO" propertyId="portio.usart0.enable.cts" value="Enabled"/>
     <property object="PORTIO" propertyId="portio.usart0.enable.rts" value="Enabled"/>
     <property object="PORTIO" propertyId="portio.usart0.enable.rx" value="Enabled"/>

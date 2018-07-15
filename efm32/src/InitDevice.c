@@ -651,6 +651,9 @@ extern void PORTIO_enter_DefaultMode_from_RESET(void) {
 
 	/* Pin PF5 is configured to Push-pull */
 	GPIO_PinModeSet(gpioPortF, 5, gpioModePushPull, 0);
+
+	/* Pin PF6 is configured to Input enabled with pull-up */
+	GPIO_PinModeSet(gpioPortF, 6, gpioModeInputPull, 1);
 	// [Port F Configuration]$
 
 }

@@ -16,7 +16,18 @@
 
 #define BRIDGE_TO_WALLET
 
+#define JUMP_LOC	0x8000
+
+#define PUSH_BUTTON		gpioPortF,6
+
+#define DISABLE_CTAPHID_PING
+#define DISABLE_CTAPHID_WINK
+#define DISABLE_CTAPHID_CBOR
+
 void printing_init();
 
+int bootloader_bridge(uint8_t klen, uint8_t * keyh);
+
+int is_authorized_to_boot();
 
 #endif /* SRC_APP_H_ */

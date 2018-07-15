@@ -29,6 +29,14 @@
 					<folderInfo id="com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:7.2.1.20170904." name="/" resourcePath="">
 						<toolChain id="com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.exe.1911691633" name="Si32 GNU ARM" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.exe">
 							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.debug.level.50213284" name="Debug Level" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.debug.level" value="com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.debug.level.default" valueType="enumerated"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.usescript.567506607" name="Use custom linker script" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.usescript" value="false" valueType="boolean"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.script.583769327" name="Linker Script:" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.script" value="C:\Users\conor\Desktop\u2f-one\efm32\boot\EFM32.ld" valueType="string"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.overrideflash.89245522" name="Override default flash options" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.overrideflash" value="true" valueType="boolean"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.overrideram.83367783" name="Override default RAM options" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.overrideram" value="true" valueType="boolean"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.flashorigin.1326657156" name="ORIGIN" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.flashorigin" value="0x8000" valueType="string"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.flashlength.1545864710" name="LENGTH" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.flashlength" value="0x38000" valueType="string"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.ramorigin.428840301" name="ORIGIN" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.ramorigin" value="0x20000000" valueType="string"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.ramlength.1809448749" name="LENGTH" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.ramlength" value="0x8000" valueType="string"/>
 							<targetPlatform binaryParser="org.eclipse.cdt.core.ELF;org.eclipse.cdt.core.GNU_ELF;com.silabs.ss.framework.debugger.core.BIN;com.silabs.ss.framework.debugger.core.HEX;com.silabs.ss.framework.debugger.core.S37;com.silabs.ss.framework.debugger.core.EBL;com.silabs.ss.framework.debugger.core.GBL" id="com.silabs.ide.si32.gcc.cdt.managedbuild.target.gnu.platform.base.1696251138" isAbstract="false" name="Debug Platform" osList="win32,linux,macosx" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.target.gnu.platform.base"/>
 							<builder buildPath="${workspace_loc:/EFM32}/GNU ARM v7.2.1 - Debug" id="com.silabs.ide.si32.gcc.cdt.managedbuild.target.gnu.builder.base.819523820" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Si32 GNU ARM Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.target.gnu.builder.base">
 								<outputEntries>
@@ -218,7 +226,7 @@
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
 	</storageModule>
-	<storageModule moduleId="com.silabs.ss.framework.ide.project.core.cpp" project.generation="74" projectCommon.boardIds="brd2500a:0.0.0" projectCommon.buildArtifactType="EXE" projectCommon.importModeId="COPY" projectCommon.partId="mcu.arm.efm32.pg1.efm32pg1b200f256gm48" projectCommon.sdkId="com.silabs.sdk.stack.super:1.1.1._310456152"/>
+	<storageModule moduleId="com.silabs.ss.framework.ide.project.core.cpp" project.generation="114" projectCommon.boardIds="brd2500a:0.0.0" projectCommon.buildArtifactType="EXE" projectCommon.importModeId="COPY" projectCommon.partId="mcu.arm.efm32.pg1.efm32pg1b200f256gm48" projectCommon.sdkId="com.silabs.sdk.stack.super:1.1.1._310456152"/>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="EFM32.com.silabs.ss.framework.ide.project.core.cdt.cdtMbsProjectType.1696568425" name="SLS CDT Project" projectType="com.silabs.ss.framework.ide.project.core.cdt.cdtMbsProjectType"/>
 	</storageModule>

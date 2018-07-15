@@ -29,6 +29,11 @@
 					<folderInfo id="com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt.debug#com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:7.2.1.20170904." name="/" resourcePath="">
 						<toolChain id="com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.exe.930698941" name="Si32 GNU ARM" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.exe">
 							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.debug.level.2037798819" name="Debug Level" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.debug.level" value="com.silabs.ide.si32.gcc.cdt.managedbuild.toolchain.debug.level.default" valueType="enumerated"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.overrideflash.495029551" name="Override default flash options" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.overrideflash" value="true" valueType="boolean"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.flashlength.2021030475" name="LENGTH" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.flashlength" value="0x8000" valueType="string"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.overrideram.2020332041" name="Override default RAM options" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.overrideram" value="true" valueType="boolean"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.ramorigin.2081162957" name="ORIGIN" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.ramorigin" value="0x20000000" valueType="string"/>
+							<option id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.ramlength.1981650487" name="LENGTH" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.linker.ramlength" value="0x8000" valueType="string"/>
 							<targetPlatform binaryParser="org.eclipse.cdt.core.ELF;org.eclipse.cdt.core.GNU_ELF;com.silabs.ss.framework.debugger.core.BIN;com.silabs.ss.framework.debugger.core.HEX;com.silabs.ss.framework.debugger.core.S37;com.silabs.ss.framework.debugger.core.EBL;com.silabs.ss.framework.debugger.core.GBL" id="com.silabs.ide.si32.gcc.cdt.managedbuild.target.gnu.platform.base.613101530" isAbstract="false" name="Debug Platform" osList="win32,linux,macosx" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.target.gnu.platform.base"/>
 							<builder buildPath="${workspace_loc:/efm32boot}/GNU ARM v7.2.1 - Debug" id="com.silabs.ide.si32.gcc.cdt.managedbuild.target.gnu.builder.base.2113865201" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Si32 GNU ARM Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.target.gnu.builder.base"/>
 							<tool id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base.981192541" name="GNU ARM C Compiler" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.base">
@@ -91,9 +96,9 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry excluding="crypto|fido2|efm32" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
-						<entry excluding="aes-gcm/|micro-ecc/examples/|micro-ecc/scripts/|micro-ecc/test/|tiny-AES-c/" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="crypto"/>
-						<entry excluding=".settings/|CMSIS/|docs/|emlib/|GNU ARM v7.2.1 - Debug/|hw/|inc/|mbedtls/|sl_crypto/|src/.crypto.c.swp|src/.device.c.swp|src/app.h|src/main.c|.cproject|.project|EFM32.hwconf|Makefile|src/crypto.c" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="efm32"/>
-						<entry excluding=".ctap_errors.h.swp|.ctap.c.swp|.ctap.h.swp|.main.c.swp|.storage.h.swp|.wallet.c.swp|.wallet.h.swp|crypto.c|main.c|ctap_parse.c|ctap.c" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="fido2"/>
+						<entry excluding="aes-gcm/|micro-ecc/examples/|micro-ecc/scripts/|micro-ecc/test/|tiny-AES-c/" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="crypto"/>
+						<entry excluding=".settings/|CMSIS/|docs/|emlib/|GNU ARM v7.2.1 - Debug/|hw/|inc/|mbedtls/|sl_crypto/|src/.crypto.c.swp|src/.device.c.swp|src/app.h|src/main.c|.cproject|.project|EFM32.hwconf|Makefile|src/crypto.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="efm32"/>
+						<entry excluding=".ctap_errors.h.swp|.ctap.c.swp|.ctap.h.swp|.main.c.swp|.storage.h.swp|.wallet.c.swp|.wallet.h.swp|crypto.c|main.c|ctap_parse.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="fido2"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

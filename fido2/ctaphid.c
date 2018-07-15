@@ -9,6 +9,7 @@
 #include "time.h"
 #include "util.h"
 #include "log.h"
+#include "app.h"
 
 typedef enum
 {
@@ -497,10 +498,12 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
         case BUFFERED:
             switch(buffer_cmd())
             {
+
                 case CTAPHID_INIT:
                     printf2(TAG_ERR,"CTAPHID_INIT, error this should already be handled\n");
                     exit(1);
                     break;
+#ifndef DISABLE_CTAPHID_PING
                 case CTAPHID_PING:
                     printf1(TAG_HID,"CTAPHID_PING\n");
 
@@ -514,7 +517,8 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
                     t2 = millis();
                     printf1(TAG_TIME,"PING writeback: %d ms\n",(uint32_t)(t2-t1));
                     break;
-
+#endif
+#ifndef DISABLE_CTAPHID_WINK
                 case CTAPHID_WINK:
                     printf1(TAG_HID,"CTAPHID_WINK\n");
 
@@ -526,7 +530,8 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
                     ctaphid_write(&wb,NULL,0);
 
                     break;
-
+#endif
+#ifndef DISABLE_CTAPHID_CBOR
                 case CTAPHID_CBOR:
                     printf1(TAG_HID,"CTAPHID_CBOR\n");
                     if (buffer_len() == 0)
@@ -552,7 +557,7 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
                     t2 = millis();
                     printf1(TAG_TIME,"CBOR writeback: %d ms\n",(uint32_t)(t2-t1));
                     break;
-
+#endif
                 case CTAPHID_MSG:
                     printf1(TAG_HID,"CTAPHID_MSG\n");
                     if (buffer_len() == 0)

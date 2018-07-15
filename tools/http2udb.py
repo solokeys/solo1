@@ -15,7 +15,7 @@ import socket,json,base64,ssl
 httpport = 8080
 udpport = 8111
 
-
+HEX_FILE = '../efm32/GNU ARM v7.2.1 - Debug/EFM32.hex'
 
 def ForceU2F(client,device):
     client.ctap = CTAP1(device)
@@ -25,13 +25,16 @@ def ForceU2F(client,device):
 
 
 if __name__ == '__main__':
-    dev = next(CtapHidDevice.list_devices(), None)
-    print(dev)
-    if not dev:
-        raise RuntimeError('No FIDO device found')
-    client = Fido2Client(dev, 'https://example.com')
-    ForceU2F(client, dev)
-    ctap = client.ctap
+    try:
+        dev = next(CtapHidDevice.list_devices(), None)
+        print(dev)
+        if not dev:
+            raise RuntimeError('No FIDO device found')
+        client = Fido2Client(dev, 'https://example.com')
+        ForceU2F(client, dev)
+        ctap = client.ctap
+    except Exception as e:
+        print(e)
 
 
 def to_websafe(data):
@@ -107,10 +110,15 @@ class UDPBridge(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.send_header('Content-type','text/json')
-        self.end_headers()
 
+        h = open(HEX_FILE,'r').read()
+        h = base64.b64encode(h.encode())
+        h = to_websafe(h.decode())
+        sig = [1,2,3,4]
         #msg = {'data': read()}
-        msg = {'data': 'rest'};
+        msg = {'firmware': h, 'signature':sig}
+
+        self.end_headers()
 
         self.wfile.write(json.dumps(msg).encode())
 

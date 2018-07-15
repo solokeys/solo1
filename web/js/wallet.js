@@ -76,6 +76,9 @@ function array2websafe(array) {
 function string2websafe(string) {
     return webSafe64(window.btoa(string));
 }
+function websafe2string(string) {
+    return window.atob(normal64(string));
+}
 function string2array(string) {
 
     var bytes = new Uint8Array( string.length );
@@ -233,6 +236,10 @@ var CMD = {
     reset: 0x13,
     version: 0x14,
     rng: 0x15,
+    boot_write: 0x40,
+    boot_done: 0x41,
+    boot_check: 0x42,
+    boot_erase: 0x43,
 };
 
 var PIN = {
@@ -305,6 +312,31 @@ function send_msg_http(data, func, timeout) {
     xhr.send(req);
 }
 
+function get_firmware_http_(func) {
+    var url = 'https://localhost:8080';
+
+    var xhr = createCORSRequest('GET', url);
+
+    if (!xhr) {
+        console.log('CORS not supported');
+        return;
+    }
+
+    // Response handlers.
+    xhr.onload = function() {
+        var text = xhr.responseText;
+        var resp = JSON.parse(text);
+        resp.firmware = websafe2string(resp.firmware);
+        if (func) func(resp);
+    };
+
+    xhr.onerror = function() {
+        console.log('Woops, there was an error making the request.');
+    };
+
+    xhr.send();
+}
+
 // For real
 function send_msg_u2f(data, func, timeout) {
     // Use key handle and signature response as comm channel
@@ -337,6 +369,8 @@ function send_msg_u2f(data, func, timeout) {
 
         var d2 = new Date();
         t2 = d2.getTime();
+        if (!res.signatureData)
+            func(res);
         sig = websafe2array(res.signatureData)
         data = parse_device_response(sig);
         func(data);
@@ -351,6 +385,37 @@ if (DEVELOPMENT) {
     send_msg = send_msg_u2f;
 }
 
+function formatBootRequest(cmd, addr, data) {
+    var array = new Uint8Array(255);
+
+    addr = addr || 0x8000;
+
+    data = data || new Uint8Array(1);
+
+    if (data.length > (255 - 9)) {
+        throw new Error("Max size exceeded");
+    }
+
+    array[0] = cmd & 0xff;
+    array[1] = (addr >> 0) & 0xff;
+    array[2] = (addr >> 8) & 0xff;
+    array[3] = (addr >> 16) & 0xff;
+
+    array[4] = 0x8C;    // Wallet tag.  To not interfere with U2F devices.
+    array[5] = 0x27;
+    array[6] = 0x90;
+    array[7] = 0xf6;
+
+    array[8] = data.length & 0xff;
+
+    var offset = 9;
+
+    var i;
+    for (i = 0; i < data.length; i++){
+        array[offset + i] = data[i];
+    }
+    return array;
+}
 
 // Format a request message
 // @cmd 0-255 value command
@@ -804,6 +869,40 @@ var get_rng_ = function(func){
     });
 };
 
+var is_bootloader_ = function(func){
+
+    var req = formatBootRequest(CMD.boot_check);
+
+    var self = this;
+
+    send_msg(req, function(resp){
+        if (func)func(resp);
+    });
+};
+
+var bootloader_finish_ = function(func){
+
+    var req = formatBootRequest(CMD.boot_done);
+
+    var self = this;
+
+    send_msg(req, function(resp){
+        if (func)func(resp);
+    });
+};
+
+var bootloader_write_ = function(addr,data,func){
+
+    var req = formatBootRequest(CMD.boot_write,addr,data);
+
+    var self = this;
+
+    send_msg(req, function(resp){
+        if (func)func(resp);
+    });
+};
+
+
 function wrap_promise(func)
 {
     var self = this;
@@ -835,6 +934,8 @@ function wrap_promise(func)
         });
     }
 }
+
+var get_firmware_http = wrap_promise(get_firmware_http_);
 
 function WalletDevice() {
     var self = this;
@@ -885,6 +986,12 @@ function WalletDevice() {
 
     this.get_rng = get_rng_;
 
+    this.is_bootloader = is_bootloader_;
+
+    this.bootloader_write = bootloader_write_;
+
+    this.bootloader_finish = bootloader_finish_;
+
     this.init = wrap_promise.call(this, this.init);
     this.get_version = wrap_promise.call(this, this.get_version);
     this.get_shared_secret = wrap_promise.call(this, this.get_shared_secret );
@@ -897,6 +1004,9 @@ function WalletDevice() {
     this.register = wrap_promise.call(this, this.register );
     this.reset = wrap_promise.call(this,this.reset );
     this.get_rng = wrap_promise.call(this,this.get_rng);
+    this.is_bootloader = wrap_promise.call(this,this.is_bootloader);
+    this.bootloader_write = wrap_promise.call(this,this.bootloader_write);
+    this.bootloader_finish = wrap_promise.call(this,this.bootloader_finish);
 
 }
 
@@ -1205,18 +1315,54 @@ async function run_tests() {
         }
     }
 
-    while(1)
+    async function test_bootloader()
     {
-        await device_start_over();
-        await test_pin();
-        await test_crypto();
-        await test_rng();
+        var addr = 0x8000;
+
+        var p = await dev.is_bootloader();
+        TEST(p.status == 'CTAP1_SUCCESS', 'Device is in bootloader mode');
+
+        p = await get_firmware_http();
+
+        var blocks = MemoryMap.fromHex(p.firmware);
+        var addresses = blocks.keys();
+
+        var addr = addresses.next();
+        var chunk_size = 244;
+        while(!addr.done) {
+            var data = blocks.get(addr.value);
+            var i;
+            for (i = 0; i < data.length; i += chunk_size) {
+                var chunk = data.slice(i,i+chunk_size);
+                p = await dev.bootloader_write(addr.value + i, chunk);
+                TEST(p.status == 'CTAP1_SUCCESS', 'Device wrote data');
+                var progress = (((i/data.length) * 100 * 100) | 0)/100;
+                document.getElementById('progress').textContent = ''+progress+' %';
+            }
+
+            addr = addresses.next();
+        }
+
+        p = await dev.bootloader_finish();
+        console.log(p);
+
     }
+
+    //while(1)
+    //{
+        //await device_start_over();
+        //await test_pin();
+        //await test_crypto();
+        //await test_rng();
+    //}
     //await benchmark();
     //await test_persistence();
 
-}
+    await test_bootloader();
 
+
+}
+var test;
 
 EC = elliptic.ec
 
