@@ -388,7 +388,8 @@ if (DEVELOPMENT) {
 function formatBootRequest(cmd, addr, data) {
     var array = new Uint8Array(255);
 
-    addr = addr || 0x8000;
+    if (addr == undefined)
+        addr = 0x8000;
 
     data = data || new Uint8Array(1);
 
@@ -884,8 +885,6 @@ var bootloader_finish_ = function(func){
 
     var req = formatBootRequest(CMD.boot_done);
 
-    var self = this;
-
     send_msg(req, function(resp){
         if (func)func(resp);
     });
@@ -894,8 +893,6 @@ var bootloader_finish_ = function(func){
 var bootloader_write_ = function(addr,data,func){
 
     var req = formatBootRequest(CMD.boot_write,addr,data);
-
-    var self = this;
 
     send_msg(req, function(resp){
         if (func)func(resp);
@@ -1321,6 +1318,24 @@ async function run_tests() {
 
         var p = await dev.is_bootloader();
         TEST(p.status == 'CTAP1_SUCCESS', 'Device is in bootloader mode');
+
+        var randdata = new Uint8Array(16);
+
+        p = await dev.bootloader_write(0, randdata);
+        TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
+
+        p = await dev.bootloader_write(0x8000-4, randdata);
+        TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
+
+        p = await dev.bootloader_write(2048 * 125-4, randdata);
+        TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
+
+        p = await dev.bootloader_write(2048 * 126, randdata);
+        TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
+
+        p = await dev.bootloader_write(2048 * 129, randdata);
+        TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
+
 
         p = await get_firmware_http();
 
