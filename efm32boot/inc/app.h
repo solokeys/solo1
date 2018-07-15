@@ -30,4 +30,6 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh);
 
 int is_authorized_to_boot();
 
+extern uint8_t REBOOT_FLAG;
+
 #endif /* SRC_APP_H_ */

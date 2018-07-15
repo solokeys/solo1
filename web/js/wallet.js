@@ -881,9 +881,9 @@ var is_bootloader_ = function(func){
     });
 };
 
-var bootloader_finish_ = function(func){
+var bootloader_finish_ = function(sig,func){
 
-    var req = formatBootRequest(CMD.boot_done);
+    var req = formatBootRequest(CMD.boot_done, 0x8000, sig);
 
     send_msg(req, function(resp){
         if (func)func(resp);
@@ -1338,6 +1338,9 @@ async function run_tests() {
 
 
         p = await get_firmware_http();
+        var sig = websafe2array(p.signature);
+        var badsig = websafe2array(p.signature);
+        badsig[40] = badsig[40] ^ 1;
 
         var blocks = MemoryMap.fromHex(p.firmware);
         var addresses = blocks.keys();
@@ -1358,8 +1361,11 @@ async function run_tests() {
             addr = addresses.next();
         }
 
-        p = await dev.bootloader_finish();
-        console.log(p);
+        p = await dev.bootloader_finish(badsig);
+        TEST(p.status == 'CTAP2_ERR_OPERATION_DENIED', 'Device rejected new image with bad signature');
+
+        p = await dev.bootloader_finish(sig);
+        TEST(p.status == 'CTAP1_SUCCESS', 'Device booted new image with correct signature');
 
     }
 

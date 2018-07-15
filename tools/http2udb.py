@@ -8,9 +8,13 @@ from fido2.ctap import CtapError
 from fido2.ctap1 import CTAP1
 from fido2.ctap2 import *
 from fido2.cose import *
-from fido2.utils import Timeout
+from fido2.utils import Timeout, sha256
 
-import socket,json,base64,ssl
+from intelhex import IntelHex
+
+from ecdsa import SigningKey, NIST256p
+
+import socket,json,base64,ssl,array,binascii
 
 httpport = 8080
 udpport = 8111
@@ -111,10 +115,32 @@ class UDPBridge(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type','text/json')
 
+        sk = SigningKey.from_pem(open("signing_key.pem").read())
         h = open(HEX_FILE,'r').read()
         h = base64.b64encode(h.encode())
         h = to_websafe(h.decode())
-        sig = [1,2,3,4]
+
+        START = 0x8000
+        END = 2048 * 125 - 4
+
+        ih = IntelHex(HEX_FILE)
+        segs = ih.segments()
+        arr = ih.tobinarray(start = START, size = END-START)
+
+        im_size = END-START
+
+        print('im_size: ', im_size)
+        print('firmware_size: ', len(arr))
+
+        sig = sha256((arr).tobytes())
+        print('hash', binascii.hexlify(sig))
+        sig = sk.sign_digest(sig)
+
+        print('sig', binascii.hexlify(sig))
+
+        sig = base64.b64encode(sig)
+        sig = to_websafe(sig.decode())
+
         #msg = {'data': read()}
         msg = {'firmware': h, 'signature':sig}
 

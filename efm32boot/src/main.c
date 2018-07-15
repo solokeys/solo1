@@ -8,7 +8,7 @@
 #include "InitDevice.h"
 
 void bootloader_init(void);
-
+uint8_t REBOOT_FLAG;
 
 int main(void)
 {
@@ -81,7 +81,7 @@ bootmode:
                     //		            printf("accum: %d\n", (uint32_t)accum);
                     //		            printf("dt: %d\n", t2 - dt);
                     //		            dt = t2;
-                    memset(hidmsg, 0, sizeof(hidmsg));
+//                    memset(hidmsg, 0, sizeof(hidmsg));
                 }
                 else
                 {
@@ -89,7 +89,11 @@ bootmode:
                 }
                 ctaphid_check_timeouts();
 
+                if (REBOOT_FLAG) break;
             }
+
+//            delay(100);
+
         }
     }
 

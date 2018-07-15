@@ -51,7 +51,7 @@ __asm void BOOT_jump(uint32_t sp, uint32_t pc)
   bx r1
 }
 #else
-void BOOT_jump(uint32_t sp, uint32_t pc)
+void __attribute__((optimize("O0"))) BOOT_jump(uint32_t sp, uint32_t pc)
 {
   (void) sp;
   (void) pc;
@@ -78,7 +78,7 @@ static void resetPeripherals(void)
  * Boots the firmware. This function will activate the vector table
  * of the firmware application and set the PC and SP from this table.
  *****************************************************************************/
-void BOOT_boot(void)
+void __attribute__((optimize("O0"))) BOOT_boot(void)
 {
   uint32_t pc, sp;
 

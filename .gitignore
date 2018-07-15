@@ -70,3 +70,4 @@ efm32/hw
 mbedtls/
 sl_crypto/
 tools/python-fido2/*
+*.pem
