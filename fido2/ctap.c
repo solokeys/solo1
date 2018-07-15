@@ -890,7 +890,7 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
 
     crypto_aes256_decrypt(pinEnc, len);
 
-    printf("new pin: %s\n", pinEnc);
+    printf1(TAG_CP,"new pin: %s\n", pinEnc);
 
     ret = strnlen((const char *)pinEnc, NEW_PIN_ENC_MAX_SIZE);
     if (ret == NEW_PIN_ENC_MAX_SIZE)

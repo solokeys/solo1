@@ -25,6 +25,11 @@
     <property object="PA5" propertyId="ports.settings.pinmode" value="Push-pull"/>
     <property object="PA5" propertyId="ports.settings.pulldirection" value="Pullup"/>
     <property object="PA5" propertyId="ports.settings.pullup" value="Enabled"/>
+    <property object="PB13" propertyId="ports.settings.dout" value="1"/>
+    <property object="PB13" propertyId="ports.settings.filter" value="Enabled"/>
+    <property object="PB13" propertyId="ports.settings.pinmode" value="Push-pull"/>
+    <property object="PB13" propertyId="ports.settings.pulldirection" value="Pullup"/>
+    <property object="PB13" propertyId="ports.settings.pullup" value="Enabled"/>
     <property object="PC10" propertyId="ports.settings.dout" value="1"/>
     <property object="PC10" propertyId="ports.settings.filter" value="Enabled"/>
     <property object="PC10" propertyId="ports.settings.pinmode" value="Push-pull"/>

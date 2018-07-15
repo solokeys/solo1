@@ -1367,6 +1367,7 @@ async function run_tests() {
         p = await dev.bootloader_finish(sig);
         TEST(p.status == 'CTAP1_SUCCESS', 'Device booted new image with correct signature');
 
+        document.getElementById('progress').textContent = ''+100+' %';
     }
 
     //while(1)
@@ -1377,9 +1378,9 @@ async function run_tests() {
         //await test_rng();
     //}
     //await benchmark();
-    //await test_persistence();
+    await test_persistence();
 
-    await test_bootloader();
+    //await test_bootloader();
 
 
 }

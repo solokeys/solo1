@@ -10,6 +10,8 @@
 
 #define IS_BOOTLOADER
 
+#define DEBUG_LEVEL 0
+
 #define PRINTING_USE_VCOM
 
 #define USING_DEV_BOARD
@@ -20,7 +22,7 @@
 
 #define PUSH_BUTTON		gpioPortF,6
 
-#define DISABLE_CTAPHID_PING
+//#define DISABLE_CTAPHID_PING
 #define DISABLE_CTAPHID_WINK
 #define DISABLE_CTAPHID_CBOR
 

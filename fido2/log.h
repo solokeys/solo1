@@ -1,7 +1,12 @@
 #ifndef _LOG_H
 #define _LOG_H
 
-#define DEBUG_LEVEL 1
+#include "app.h"
+
+#ifndef DEBUG_LEVEL
+#define DEBUG_LEVEL 0
+#endif
+
 #define ENABLE_FILE_LOGGING
 
 void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...);
@@ -44,6 +49,7 @@ typedef enum
 #define printf1(fmt, ...)
 #define printf2(fmt, ...)
 #define printf3(fmt, ...)
+#define dump_hex1(tag,data,len)
 
 #endif
 

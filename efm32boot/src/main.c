@@ -51,7 +51,7 @@ int main(void)
             TAG_ERR
             );
 
-    printf("Bootloader init\r\n");
+    printf1(TAG_GEN,"Bootloader init\r\n");
 
     if (GPIO_PinInGet(PUSH_BUTTON) == 0)
     {
@@ -60,8 +60,9 @@ int main(void)
             ;
         if (GPIO_PinInGet(PUSH_BUTTON) == 0) {
 bootmode:
-            printf("Reflash condition detected\n");
+            printf1(TAG_GEN,"Reflash condition detected\n");
             ctaphid_init();
+            reset_efm8();
             /* Infinite loop */
             int count = 0;
             while (1) {
@@ -97,13 +98,13 @@ bootmode:
         }
     }
 
-    printf("Normal boot\n");
+    printf1(TAG_GEN,"Normal boot\n");
 
     if (is_authorized_to_boot())
     {
         BOOT_boot();
     } else {
-        printf("Warning: not authorized to boot\n");
+        printf1(TAG_GEN,"Warning: not authorized to boot\n");
         goto bootmode;
     }
 

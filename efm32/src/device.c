@@ -21,10 +21,13 @@
 #include "ctaphid.h"
 #include "util.h"
 #include "app.h"
+#include "uECC.h"
+#include "crypto.h"
 
 #define MSG_AVAIL_PIN	gpioPortC,9
 #define RDY_PIN			gpioPortC,10
 #define RW_PIN			gpioPortD,11
+#define RESET_PIN		gpioPortB,13
 
 #define PAGE_SIZE		2048
 #define PAGES			128
@@ -302,14 +305,22 @@ int authenticator_is_backup_initialized()
 }
 
 
-
 uint8_t adc_rng(void);
+
+void reset_efm8()
+{
+    // Reset EFM8
+	GPIO_PinOutClear(RESET_PIN);
+	delay(2);
+	GPIO_PinOutSet(RESET_PIN);
+}
 
 void bootloader_init(void)
 {
     /* Chip errata */
 
-
+    // Reset EFM8
+    GPIO_PinModeSet(RESET_PIN, gpioModePushPull, 1);
 
     // status LEDS
     GPIO_PinModeSet(gpioPortF,
@@ -340,8 +351,6 @@ void bootloader_init(void)
 
 
     MSC_Init();
-
-
 
 }
 
@@ -374,6 +383,9 @@ void device_init(void)
     // SPI R/w Indicator
     GPIO_PinModeSet(RW_PIN, gpioModePushPull, 1);
 
+    // Reset EFM8
+    GPIO_PinModeSet(RESET_PIN, gpioModePushPull, 1);
+
     // USB message rdy ext int
     //  GPIO_ExtIntConfig(gpioPortC, 9, 9, 1, 0,1);
     //  NVIC_EnableIRQ(GPIO_ODD_IRQn);
@@ -396,16 +408,17 @@ void device_init(void)
     uint8_t buf[64];
     cbor_encoder_init(&test, buf, 20, 0);
 
-    printf("Device init\r\n");
+    reset_efm8();
+
+    printf1(TAG_GEN,"Device init\r\n");
     int i=0;
 
     for (i = 0; i < sizeof(buf); i++)
     {
         buf[i] = adc_rng();
     }
-    dump_hex(buf,sizeof(buf));
 }
-
+#ifdef IS_BOOTLOADER
 typedef enum
 {
     BootWrite = 0x40,
@@ -451,6 +464,10 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
     static int has_erased = 0;
     BootloaderReq * req =  (BootloaderReq *  )keyh;
     uint8_t payload[256];
+    uint8_t hash[32];
+    uint8_t * pubkey = (uint8_t*)"\x57\xe6\x80\x39\x56\x46\x2f\x0c\x95\xac\x72\x71\xf0\xbc\xe8\x2d\x67\xd0\x59\x29\x2e\x15\x22\x89\x6a\xbd\x3f\x7f\x27\xf3\xc0\xc6\xe2\xd7\x7d\x8a\x9f\xcc\x53\xc5\x91\xb2\x0c\x9c\x3b\x4e\xa4\x87\x31\x67\xb4\xa9\x4b\x0e\x8d\x06\x67\xd8\xc5\xef\x2c\x50\x4a\x55";
+    const struct uECC_Curve_t * curve = NULL;
+
     /*printf("bootloader_bridge\n");*/
     if (req->len > 255-9)
     {
@@ -471,17 +488,39 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
             {
                 return CTAP2_ERR_NOT_ALLOWED;
             }
+
             if (!has_erased)
             {
                 erase_application();
                 has_erased = 1;
             }
+            if (is_authorized_to_boot())
+            {
+                printf2(TAG_ERR, "Error, boot check bypassed\n");
+                exit(1);
+            }
             MSC_WriteWordFast(ptr,payload, req->len + (req->len%4));
             break;
         case BootDone:
-            /*printf("BootDone\n");*/
+//            printf("BootDone\n");
+            ptr = APPLICATION_START_ADDR;
+            crypto_sha256_init();
+            crypto_sha256_update(ptr, APPLICATION_END_ADDR-APPLICATION_START_ADDR);
+            crypto_sha256_final(hash);
+//            printf("hash: "); dump_hex(hash, 32);
+//            printf("sig: "); dump_hex(payload, 64);
+            curve = uECC_secp256r1();
+
+            if (! uECC_verify(pubkey,
+                hash,
+                32,
+                payload,
+                curve))
+            {
+                return CTAP2_ERR_OPERATION_DENIED;
+            }
             authorize_application();
-            NVIC_SystemReset();
+            REBOOT_FLAG = 1;
             break;
         case BootCheck:
             /*printf("BootCheck\n");*/
@@ -504,4 +543,4 @@ int is_authorized_to_boot()
     return *auth == 0;
 }
 
-
+#endif

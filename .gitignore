@@ -71,3 +71,6 @@ mbedtls/
 sl_crypto/
 tools/python-fido2/*
 *.pem
+*.bin
+*.key
+

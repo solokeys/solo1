@@ -390,8 +390,8 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
                 {
                     if ( ! check_pinhash(req->pinAuth, msg_buf, reqlen))
                     {
-                        printf1(TAG_WALLET,"pinAuth is NOT valid\n");
-                        dump_hex(msg_buf,reqlen);
+                        printf2(TAG_ERR,"pinAuth is NOT valid\n");
+                        dump_hex1(TAG_ERR,msg_buf,reqlen);
                         ret = CTAP2_ERR_PIN_AUTH_INVALID;
                         goto cleanup;
                     }
@@ -427,8 +427,8 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             {
                 if ( ! check_pinhash(req->pinAuth, msg_buf, reqlen))
                 {
-                    printf1(TAG_WALLET,"pinAuth is NOT valid\n");
-                    dump_hex(msg_buf,reqlen);
+                    printf2(TAG_ERR,"pinAuth is NOT valid\n");
+                    dump_hex1(TAG_ERR,msg_buf,reqlen);
                     ret = CTAP2_ERR_PIN_AUTH_INVALID;
                     goto cleanup;
                 }

@@ -615,6 +615,9 @@ extern void PORTIO_enter_DefaultMode_from_RESET(void) {
 	// [Port A Configuration]$
 
 	// $[Port B Configuration]
+
+	/* Pin PB13 is configured to Push-pull */
+	GPIO_PinModeSet(gpioPortB, 13, gpioModePushPull, 1);
 	// [Port B Configuration]$
 
 	// $[Port C Configuration]
