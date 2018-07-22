@@ -63,6 +63,7 @@ static void int2str_reduce_n(char ** snum, uint32_t copy, uint8_t n)
     do
     {
         copy /= n;
+        ++*snum;
     }while(copy);
 }
 
@@ -72,8 +73,10 @@ static char xdata __int2str_buf[9];
 
 static void int2str_map_n(char ** snum, uint32_t i, uint8_t n)
 {
+	int c = 0;
     do
     {
+    	if (*snum <__int2str_buf) break;
         *--*snum = __digits[i % n];
         i /= n;
     }while(i);

@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include "printing.h"
 #include "descriptors.h"
+#include "app.h"
 
 #define UNUSED(expr) do { (void)(expr); } while (0)
 
@@ -63,22 +64,19 @@ USB_Status_TypeDef USBD_SetupCmdCb(
 		SI_VARIABLE_SEGMENT_POINTER(setup, USB_Setup_TypeDef, MEM_MODEL_SEG)) {
 
 	USB_Status_TypeDef retVal = USB_STATUS_REQ_UNHANDLED;
-//	USB_Status_TypeDef retVal = USB_STATUS_OK;
-//	cprints("USBD_SetupCmdCb\r\n");
+
 
 	if ((setup->bmRequestType.Type == USB_SETUP_TYPE_STANDARD)
 			&& (setup->bmRequestType.Direction == USB_SETUP_DIR_IN)
 			&& (setup->bmRequestType.Recipient == USB_SETUP_RECIPIENT_INTERFACE)) {
 		// A HID device must extend the standard GET_DESCRIPTOR command
 		// with support for HID descriptors.
-//		cprints("USB_SETUP_TYPE_STANDARD\r\n");
+
 		switch (setup->bRequest) {
 		case GET_DESCRIPTOR:
-//			cprints("GET_DESCRIPTOR\r\n");
 			if (setup->wIndex == 0)
 			{
 				if ((setup->wValue >> 8) == USB_HID_REPORT_DESCRIPTOR) {
-//					cprints("1\r\n");
 
 						USBD_Write(EP0, ReportDescriptor0,
 								EFM8_MIN(sizeof(ReportDescriptor0), setup->wLength),
@@ -86,7 +84,7 @@ USB_Status_TypeDef USBD_SetupCmdCb(
 						retVal = USB_STATUS_OK;
 
 				} else if ((setup->wValue >> 8) == USB_HID_DESCRIPTOR) {
-//						cprints("2\r\n");
+
 						USBD_Write(EP0, (&configDesc[18]),
 								EFM8_MIN(USB_HID_DESCSIZE, setup->wLength), false);
 						retVal = USB_STATUS_OK;
@@ -100,12 +98,10 @@ USB_Status_TypeDef USBD_SetupCmdCb(
 	           && (setup->bmRequestType.Recipient == USB_SETUP_RECIPIENT_INTERFACE)
 	           && (setup->wIndex == HID_INTERFACE_INDEX))
 	  {
-//		cprints("USB_SETUP_TYPE_CLASS\r\n");
 	    // Implement the necessary HID class specific commands.
 	    switch (setup->bRequest)
 	    {
 	      case USB_HID_SET_IDLE:
-//	    	  cprints("USB_HID_SET_IDLE\r\n");
 	        if (((setup->wValue & 0xFF) == 0)             // Report ID
 	            && (setup->wLength == 0)
 	            && (setup->bmRequestType.Direction != USB_SETUP_DIR_IN))
@@ -115,7 +111,6 @@ USB_Status_TypeDef USBD_SetupCmdCb(
 	        break;
 
 	      case USB_HID_GET_IDLE:
-//	    	  cprints("USB_HID_GET_IDLE\r\n");
 	        if ((setup->wValue == 0)                      // Report ID
 	            && (setup->wLength == 1)
 	            && (setup->bmRequestType.Direction == USB_SETUP_DIR_IN))
@@ -129,10 +124,6 @@ USB_Status_TypeDef USBD_SetupCmdCb(
 	    	  break;
 	    }
 	  }
-	else
-	{
-//		cprints("nothing\r\n");
-	}
 
 	return retVal;
 }
@@ -147,11 +138,11 @@ uint16_t USBD_XferCompleteCb(uint8_t epAddr, USB_Status_TypeDef status,
 	UNUSED(xferred);
 	UNUSED(remaining);
 
-	if (epAddr == EP2OUT)
+	if (epAddr == INPUT_ENDPOINT)
 	{
 		usb_transfer_complete();
 	}
-	else if (epAddr == EP3IN)
+	else if (epAddr == OUTPUT_ENDPOINT)
 	{
 		usb_writeback_complete();
 	}

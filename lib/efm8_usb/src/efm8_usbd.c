@@ -6,9 +6,9 @@
 
 #include "si_toolchain.h"
 #include "efm8_usb.h"
-#include "assert.h"
+//#include "assert.h"
 #include <stdint.h>
-
+#define SLAB_ASSERT(x)
 // -----------------------------------------------------------------------------
 // Global Variables
 
@@ -65,8 +65,8 @@ void USBD_AbortAllTransfers(void)
 
 int8_t USBD_AbortTransfer(uint8_t epAddr)
 {
-  SI_VARIABLE_SEGMENT_POINTER(ep, USBD_Ep_TypeDef, MEM_MODEL_SEG);
-  int8_t retVal = USB_STATUS_OK;
+  USBD_Ep_TypeDef MEM_MODEL_SEG *ep;
+  uint8_t retVal = USB_STATUS_OK;
   bool usbIntsEnabled;
 
   USB_SaveSfrPage();
@@ -150,7 +150,7 @@ void USBD_Disconnect(void)
 
 bool USBD_EpIsBusy(uint8_t epAddr)
 {
-  SI_VARIABLE_SEGMENT_POINTER(ep, USBD_Ep_TypeDef, MEM_MODEL_SEG);
+  USBD_Ep_TypeDef MEM_MODEL_SEG *ep;
 
   // Verify this is a valid endpoint address
   if (epAddr >= SLAB_USB_NUM_EPS_USED)
@@ -174,7 +174,7 @@ USBD_State_TypeDef USBD_GetUsbState(void)
   return myUsbDevice.state;
 }
 
-int8_t USBD_Init(SI_VARIABLE_SEGMENT_POINTER(p, const USBD_Init_TypeDef, SI_SEG_GENERIC))
+int8_t USBD_Init(const USBD_Init_TypeDef *p)
 {
   uint8_t i;
 
@@ -190,12 +190,12 @@ int8_t USBD_Init(SI_VARIABLE_SEGMENT_POINTER(p, const USBD_Init_TypeDef, SI_SEG_
   // Zero out the myUsbDevice struct, then initialize all non-zero members
   for (i = 0; i < sizeof(myUsbDevice); i++)
   {
-    *((SI_VARIABLE_SEGMENT_POINTER(, uint8_t, MEM_MODEL_SEG))&myUsbDevice + i) = 0;
+    *((uint8_t MEM_MODEL_SEG *)&myUsbDevice + i) = 0;
   }
 
   // Get the USB descriptors from p
   myUsbDevice.deviceDescriptor = p->deviceDescriptor;
-  myUsbDevice.configDescriptor = p->configDescriptor;
+  myUsbDevice.configDescriptor = (USB_ConfigurationDescriptor_TypeDef *)p->configDescriptor;
   myUsbDevice.stringDescriptors = p->stringDescriptors;
   myUsbDevice.numberOfStrings = p->numberOfStrings;
 
@@ -246,12 +246,12 @@ int8_t USBD_Init(SI_VARIABLE_SEGMENT_POINTER(p, const USBD_Init_TypeDef, SI_SEG_
 }
 
 int8_t USBD_Read(uint8_t epAddr,
-                 SI_VARIABLE_SEGMENT_POINTER(dat, uint8_t, SI_SEG_GENERIC),
+                 uint8_t *dat,
                  uint16_t byteCount,
                  bool callback)
 {
   bool usbIntsEnabled;
-  SI_VARIABLE_SEGMENT_POINTER(ep, USBD_Ep_TypeDef, MEM_MODEL_SEG);
+  USBD_Ep_TypeDef MEM_MODEL_SEG *ep;
 
   USB_SaveSfrPage();
 
@@ -432,13 +432,8 @@ void USBD_Stop(void)
 
 void USBD_Suspend(void)
 {
-#if (!(SLAB_USB_PWRSAVE_MODE & USB_PWRSAVE_MODE_FASTWAKE))
   uint8_t i;
-#endif
   bool regulatorEnabled, prefetchEnabled;
-#if SLAB_USB_REMOTE_WAKEUP_ENABLED
-  bool remoteWakeup = false;
-#endif
 
   USB_SaveSfrPage();
 
@@ -494,9 +489,8 @@ void USBD_Suspend(void)
       // wakeup event occurred. If so, exit USBD_Suspend().
       if (USB_IsSuspended() == true)
       {
-        remoteWakeup = USBD_RemoteWakeupCb();
-        if (remoteWakeup == true)
-        {          
+        if (USBD_RemoteWakeupCb() == true)
+        {
           break;
         }
       }
@@ -510,13 +504,8 @@ void USBD_Suspend(void)
         break;
       }
 #endif
-
-#if ((!(SLAB_USB_PWRSAVE_MODE & USB_PWRSAVE_MODE_ONVBUSOFF)) || \
-       (SLAB_USB_BUS_POWERED))
     } while (USB_IsSuspended() == true);
-#else
-    } while ((USB_IsSuspended() == true) || (USB_IsVbusOn() == false));
-#endif
+
     // Restore the internal regulator
     if (regulatorEnabled == true)
     {
@@ -534,20 +523,6 @@ void USBD_Suspend(void)
     USB_SetNormalClock();
 #endif
     USB_EnableTransceiver();
-    
-#if SLAB_USB_REMOTE_WAKEUP_ENABLED
-    // If the device woke from suspend due to a remote wakeup source, call
-    // USBD_RemoteWakeup() here to wake up the host.
-    if (remoteWakeup == true)
-    {
-      // Wake up the host
-      if (USBD_RemoteWakeup() == USB_STATUS_OK)
-      {
-        // If the remote wakeup succeeded, transition out of  USB suspend state
-        USBD_SetUsbState(myUsbDevice.savedState);
-      }
-    }
-#endif
   }
 
   USB_RestoreSfrPage();
@@ -624,12 +599,12 @@ int8_t USBD_UnStallEp(uint8_t epAddr)
 }
 
 int8_t USBD_Write(uint8_t epAddr,
-                  SI_VARIABLE_SEGMENT_POINTER(dat, uint8_t, SI_SEG_GENERIC),
+                  uint8_t *dat,
                   uint16_t byteCount,
                   bool callback)
 {
   bool usbIntsEnabled;
-  SI_VARIABLE_SEGMENT_POINTER(ep, USBD_Ep_TypeDef, MEM_MODEL_SEG);
+  USBD_Ep_TypeDef MEM_MODEL_SEG *ep;
 
   USB_SaveSfrPage();
 

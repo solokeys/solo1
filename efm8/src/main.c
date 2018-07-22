@@ -79,7 +79,7 @@ void usb_write()
 {
 	data uint8_t errors = 0;
 	USB_TX_COUNT += 64;
-	while (USB_STATUS_OK != (USBD_Write(EP3IN, writebackbuf, 64, true)))
+	while (USB_STATUS_OK != (USBD_Write(OUTPUT_ENDPOINT, writebackbuf, 64, true)))
 	{
 		delay(2);
 		if (errors++ > 30)
@@ -89,7 +89,7 @@ void usb_write()
 		}
 	}
 }
-
+extern USBD_Device_TypeDef  myUsbDevice;
 
 int main(void) {
 	data uint8_t k;
@@ -102,7 +102,9 @@ int main(void) {
 
 	enter_DefaultMode_from_RESET();
 
+
 	eeprom_init();
+
 
 	SCON0_TI = 1;
 	P2_B0 = 1;
@@ -121,18 +123,13 @@ int main(void) {
 
 	cprints("hello,world\r\n");
 
+
 	reset = RSTSRC;
 	cprintx("reset source: ", 1, reset);
 	if (reset != 0x10)
 	{
 		RSTSRC = (1<<4);
 	}
-
-//	last_efm32_pin = SPI0FCN0;
-//	cprintx("spi fifo0 cntrl: ", 1, last_efm32_pin);
-//
-//	last_efm32_pin = SPI0FCN1;
-//	cprintx("spi fifo1 cntrl: ", 1, last_efm32_pin);
 
 	MSG_RDY_INT_PIN = 1;
 	SIGNAL_WRITE_BSY();
@@ -211,7 +208,7 @@ int main(void) {
 			t1 = millis();
 		}
 //		if (!USBD_EpIsBusy(EP2OUT) && !USBD_EpIsBusy(EP3IN) && lastcount==count)
-		if (!USBD_EpIsBusy(EP2OUT)  && lastcount==count)
+		if (!USBD_EpIsBusy(INPUT_ENDPOINT)  && lastcount==count)
 		{
 //			cprintd("sched read to ",1,(int)(hidmsgbuf + write_ptr*64));
 			if (count == BUFFER_SIZE)
@@ -220,7 +217,7 @@ int main(void) {
 			}
 			else
 			{
-				USBD_Read(EP2OUT, hidmsgbuf + write_ptr*64, 64, true);
+				USBD_Read(INPUT_ENDPOINT, hidmsgbuf + write_ptr*64, 64, true);
 			}
 		}
 

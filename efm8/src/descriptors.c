@@ -14,6 +14,7 @@
 #include <string.h>
 #include <efm8_usb.h>
 #include "descriptors.h"
+#include "app.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -107,7 +108,7 @@ SI_SEGMENT_VARIABLE(configDesc[],
 	//Endpoint 2 IN Descriptor
 	USB_ENDPOINT_DESCSIZE,// bLength
 	USB_ENDPOINT_DESCRIPTOR,// bDescriptorType
-	0x83,// bEndpointAddress
+	OUTPUT_ENDPOINT_NUM,// bEndpointAddress
 	USB_EPTYPE_INTR,// bAttrib
 	HID_PACKET_SIZE,// wMaxPacketSize (LSB)
 	0x00,// wMaxPacketSize (MSB)
@@ -116,7 +117,7 @@ SI_SEGMENT_VARIABLE(configDesc[],
 	//Endpoint 3 OUT Descriptor
 	USB_ENDPOINT_DESCSIZE,// bLength
 	USB_ENDPOINT_DESCRIPTOR,// bDescriptorType
-	0x02,// bEndpointAddress
+	INPUT_ENDPOINT_NUM,// bEndpointAddress
 	USB_EPTYPE_INTR,// bAttrib
 	HID_PACKET_SIZE,// wMaxPacketSize (LSB)
 	0x00,// wMaxPacketSize (MSB)
@@ -139,7 +140,7 @@ LANGID_STATIC_CONST_STRING_DESC( langDesc[], LANG_STRING );
 UTF16LE_PACKED_STATIC_CONST_STRING_DESC( mfrDesc[], MFR_STRING, MFR_SIZE);
 UTF16LE_PACKED_STATIC_CONST_STRING_DESC( prodDesc[], PROD_STRING, PROD_SIZE);
 UTF16LE_PACKED_STATIC_CONST_STRING_DESC( serDesc[], SER_STRING, SER_SIZE);
-UTF16LE_PACKED_STATIC_CONST_STRING_DESC( cfgDesc[], CFG_STRING, CFG_SIZE);
+//UTF16LE_PACKED_STATIC_CONST_STRING_DESC( cfgDesc[], CFG_STRING, CFG_SIZE);
 UTF16LE_PACKED_STATIC_CONST_STRING_DESC( int0Desc[], INT0_STRING, INT0_SIZE);
 
 
@@ -165,7 +166,7 @@ SI_SEGMENT_VARIABLE(initstruct,
 	deviceDesc,                                         // deviceDescriptor
 	configDesc,// configDescriptor
 	myUsbStringTable_USEnglish,// stringDescriptors
-	sizeof(myUsbStringTable_USEnglish) / sizeof(void *)// numberOfStrings
+	5// numberOfStrings
 };
 
 #ifdef __cplusplus

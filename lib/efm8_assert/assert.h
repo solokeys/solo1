@@ -51,9 +51,9 @@
   #ifdef  USER_ASSERT
     #define SLAB_ASSERT(expr)    ((expr) ? ((void)0) : USER_ASSERT( __FILE__, __LINE__ ))
   #else
-    void slab_Assert();
+    void slab_Assert( const char * file, int line );
     //Yes this is smaller than if(!expr){assert}
-    #define SLAB_ASSERT(expr)    if(expr){}else{slab_Assert();}
+    #define SLAB_ASSERT(expr)    if(expr){}else{slab_Assert( __FILE__, __LINE__ );}
   #endif
 #endif
 
