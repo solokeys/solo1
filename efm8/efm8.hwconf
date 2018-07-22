@@ -33,6 +33,7 @@
     <property object="P1.6" propertyId="ports.settings.iomode" value="Digital Push-Pull Output"/>
     <property object="P1.6" propertyId="ports.settings.outputmode" value="Push-pull"/>
     <property object="PBCFG_0" propertyId="pbcfg.settings.enablecrossbar" value="Enabled"/>
+    <property object="PMU_0" propertyId="ABPeripheral.included" value="true"/>
     <property object="SPI_0" propertyId="ABPeripheral.included" value="true"/>
     <property object="SPI_0" propertyId="spi.clockrate.spiclockfrequencyactual" value="2.000 MHz"/>
     <property object="SPI_0" propertyId="spi.clockrate.spiclockfrequencytarget" value="2000000"/>
@@ -74,7 +75,7 @@
     <property object="UART_0" propertyId="uart.serialportcontrol.enablereceive" value="Enabled"/>
     <property object="UART_0" propertyId="uart.serialportcontrol.timer1overflowfrequency" value="230.769 kHz"/>
     <property object="USBLIB_0" propertyId="ABPeripheral.included" value="true"/>
-    <property object="USBLIB_0" propertyId="configuration.configurationparameters.configurationstring" value="conf"/>
+    <property object="USBLIB_0" propertyId="configuration.configurationparameters.configurationstring" value=""/>
     <property object="USBLIB_0" propertyId="configuration.configurationparameters.devicepower" value="Bus-Powered"/>
     <property object="USBLIB_0" propertyId="device.deviceproperties.bmaxpacketsize" value="64"/>
     <property object="USBLIB_0" propertyId="device.deviceproperties.productidpid" value="35535"/>
