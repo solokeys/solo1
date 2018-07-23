@@ -14,6 +14,7 @@
 #include "em_adc.h"
 #include "em_cmu.h"
 #include "em_msc.h"
+#include "em_i2c.h"
 
 #include "InitDevice.h"
 #include "cbor.h"
@@ -23,6 +24,7 @@
 #include "app.h"
 #include "uECC.h"
 #include "crypto.h"
+#include "nfc.h"
 
 #define MSG_AVAIL_PIN	gpioPortC,9
 #define RDY_PIN			gpioPortC,10
@@ -117,17 +119,19 @@ int ctap_user_presence_test()
 
 // Must be implemented by application
 // data is HID_MESSAGE_SIZE long in bytes
+#ifndef TEST_POWER
 void ctaphid_write_block(uint8_t * data)
 {
     printf1(TAG_DUMP,"<< "); dump_hex1(TAG_DUMP, data, HID_MESSAGE_SIZE);
     usbhid_send(data);
 }
+#endif
 
 void heartbeat()
 {
     GPIO_PinOutToggle(gpioPortF,4);
     GPIO_PinOutToggle(gpioPortF,5);
-
+    nfc_test();
     //	printf("heartbeat %d %d\r\n", beat++,CRYOTIMER->CNT);
 }
 
@@ -158,6 +162,7 @@ static void wait_for_efm8_busy()
         ;
 }
 
+#ifndef TEST_POWER
 int usbhid_recv(uint8_t * msg)
 {
     int i;
@@ -187,6 +192,8 @@ int usbhid_recv(uint8_t * msg)
 
     return 0;
 }
+
+#endif
 
 void usbhid_send(uint8_t * msg)
 {

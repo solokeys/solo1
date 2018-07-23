@@ -3,7 +3,7 @@
   <mode name="DefaultMode">
     <property object="ADC0" propertyId="ABPeripheral.included" value="true"/>
     <property object="CMU" propertyId="ABPeripheral.included" value="true"/>
-    <property object="CMU" propertyId="clocksettings.hfrcosettings.hfrcofrequency" value="38 MHz"/>
+    <property object="CMU" propertyId="clocksettings.hfrcosettings.hfrcofrequency" value="13 MHz"/>
     <property object="CMU" propertyId="clocksettings.lfclocksettings.lfrcorequired" value="Yes"/>
     <property object="CRYOTIMER" propertyId="ABPeripheral.included" value="true"/>
     <property object="CRYOTIMER" propertyId="cryotimer.clocking.eventafterevery" value="1 cycle"/>
@@ -12,7 +12,7 @@
     <property object="DefaultMode" propertyId="mode.diagramLocation" value="100, 100"/>
     <property object="EMU" propertyId="ABPeripheral.included" value="true"/>
     <property object="GPIO" propertyId="ABPeripheral.included" value="true"/>
-    <property object="LDMA" propertyId="ABPeripheral.included" value="true"/>
+    <property object="I2C0" propertyId="ABPeripheral.included" value="true"/>
     <property object="PA0" propertyId="ports.settings.pinmode" value="Push-pull"/>
     <property object="PA1" propertyId="ports.settings.dout" value="1"/>
     <property object="PA1" propertyId="ports.settings.filter" value="Enabled"/>
@@ -20,6 +20,7 @@
     <property object="PA1" propertyId="ports.settings.pulldirection" value="Pullup"/>
     <property object="PA1" propertyId="ports.settings.pullup" value="Enabled"/>
     <property object="PA3" propertyId="ports.settings.pinmode" value="Push-pull"/>
+    <property object="PA4" propertyId="ports.settings.pinmode" value="Wired-and pullup filter"/>
     <property object="PA5" propertyId="ports.settings.dout" value="1"/>
     <property object="PA5" propertyId="ports.settings.filter" value="Enabled"/>
     <property object="PA5" propertyId="ports.settings.pinmode" value="Push-pull"/>
@@ -60,6 +61,7 @@
     <property object="PD10" propertyId="ports.settings.pinmode" value="Push-pull"/>
     <property object="PD10" propertyId="ports.settings.pulldirection" value="Pullup"/>
     <property object="PD10" propertyId="ports.settings.pullup" value="Enabled"/>
+    <property object="PF3" propertyId="ports.settings.pinmode" value="Wired-and pullup filter"/>
     <property object="PF4" propertyId="ports.settings.pinmode" value="Push-pull"/>
     <property object="PF5" propertyId="ports.settings.pinmode" value="Push-pull"/>
     <property object="PF6" propertyId="ports.settings.dout" value="1"/>
@@ -67,6 +69,10 @@
     <property object="PF6" propertyId="ports.settings.pinmode" value="Input pull"/>
     <property object="PF6" propertyId="ports.settings.pulldirection" value="Pullup"/>
     <property object="PF6" propertyId="ports.settings.pullup" value="Enabled"/>
+    <property object="PORTIO" propertyId="portio.i2c0.enable.scl" value="Enabled"/>
+    <property object="PORTIO" propertyId="portio.i2c0.enable.sda" value="Enabled"/>
+    <property object="PORTIO" propertyId="portio.i2c0.location.i2c0_sclloc" value="3"/>
+    <property object="PORTIO" propertyId="portio.i2c0.location.i2c0_sdaloc" value="27"/>
     <property object="PORTIO" propertyId="portio.usart0.enable.cts" value="Enabled"/>
     <property object="PORTIO" propertyId="portio.usart0.enable.rts" value="Enabled"/>
     <property object="PORTIO" propertyId="portio.usart0.enable.rx" value="Enabled"/>

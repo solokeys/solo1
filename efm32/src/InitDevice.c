@@ -23,7 +23,7 @@
 #include "em_cryotimer.h"
 #include "em_crypto.h"
 #include "em_gpio.h"
-#include "em_ldma.h"
+#include "em_i2c.h"
 #include "em_usart.h"
 // [Library includes]$
 
@@ -39,7 +39,7 @@ extern void enter_DefaultMode_from_RESET(void) {
 	ADC0_enter_DefaultMode_from_RESET();
 	USART0_enter_DefaultMode_from_RESET();
 	USART1_enter_DefaultMode_from_RESET();
-	LDMA_enter_DefaultMode_from_RESET();
+	I2C0_enter_DefaultMode_from_RESET();
 	CRYOTIMER_enter_DefaultMode_from_RESET();
 	PORTIO_enter_DefaultMode_from_RESET();
 	// [Config Calls]$
@@ -104,7 +104,7 @@ extern void CMU_enter_DefaultMode_from_RESET(void) {
 	CMU_HFXOInit(&hfxoInit);
 
 	/* Setting system HFRCO frequency */
-	CMU_HFRCOFreqSet (cmuHFRCOFreq_38M0Hz);
+	CMU_HFRCOFreqSet (cmuHFRCOFreq_13M0Hz);
 
 	/* Using HFRCO as high frequency clock, HFCLK */
 	CMU_ClockSelectSet(cmuClock_HF, cmuSelect_HFRCO);
@@ -135,8 +135,8 @@ extern void CMU_enter_DefaultMode_from_RESET(void) {
 	/* Enable clock for CRYOTIMER */
 	CMU_ClockEnable(cmuClock_CRYOTIMER, true);
 
-	/* Enable clock for LDMA */
-	CMU_ClockEnable(cmuClock_LDMA, true);
+	/* Enable clock for I2C0 */
+	CMU_ClockEnable(cmuClock_I2C0, true);
 
 	/* Enable clock for USART0 */
 	CMU_ClockEnable(cmuClock_USART0, true);
@@ -455,9 +455,24 @@ extern void WDOG0_enter_DefaultMode_from_RESET(void) {
 extern void I2C0_enter_DefaultMode_from_RESET(void) {
 
 	// $[I2C0 I/O setup]
+	/* Set up SCL */
+	I2C0->ROUTEPEN = I2C0->ROUTEPEN | I2C_ROUTEPEN_SCLPEN;
+	I2C0->ROUTELOC0 = (I2C0->ROUTELOC0 & (~_I2C_ROUTELOC0_SCLLOC_MASK))
+			| I2C_ROUTELOC0_SCLLOC_LOC3;
+	/* Set up SDA */
+	I2C0->ROUTEPEN = I2C0->ROUTEPEN | I2C_ROUTEPEN_SDAPEN;
+	I2C0->ROUTELOC0 = (I2C0->ROUTELOC0 & (~_I2C_ROUTELOC0_SDALOC_MASK))
+			| I2C_ROUTELOC0_SDALOC_LOC27;
 	// [I2C0 I/O setup]$
 
 	// $[I2C0 initialization]
+	I2C_Init_TypeDef init = I2C_INIT_DEFAULT;
+
+	init.enable = 1;
+	init.master = 1;
+	init.freq = I2C_FREQ_STANDARD_MAX;
+	init.clhr = i2cClockHLRStandard;
+	I2C_Init(I2C0, &init);
 	// [I2C0 initialization]$
 
 }
@@ -610,6 +625,9 @@ extern void PORTIO_enter_DefaultMode_from_RESET(void) {
 	/* Pin PA3 is configured to Push-pull */
 	GPIO_PinModeSet(gpioPortA, 3, gpioModePushPull, 0);
 
+	/* Pin PA4 is configured to Open-drain with pull-up and filter */
+	GPIO_PinModeSet(gpioPortA, 4, gpioModeWiredAndPullUpFilter, 0);
+
 	/* Pin PA5 is configured to Push-pull */
 	GPIO_PinModeSet(gpioPortA, 5, gpioModePushPull, 1);
 	// [Port A Configuration]$
@@ -648,6 +666,9 @@ extern void PORTIO_enter_DefaultMode_from_RESET(void) {
 	// [Port E Configuration]$
 
 	// $[Port F Configuration]
+
+	/* Pin PF3 is configured to Open-drain with pull-up and filter */
+	GPIO_PinModeSet(gpioPortF, 3, gpioModeWiredAndPullUpFilter, 0);
 
 	/* Pin PF4 is configured to Push-pull */
 	GPIO_PinModeSet(gpioPortF, 4, gpioModePushPull, 0);

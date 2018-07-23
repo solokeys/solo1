@@ -1,3 +1,4 @@
+#include "app.h"
 #ifdef TEST_POWER
 
 /*
@@ -13,15 +14,29 @@
 #include "cbor.h"
 #include "device.h"
 #include "ctaphid.h"
-#include "bsp.h"
 #include "util.h"
 #include "log.h"
 #include "ctap.h"
 
+//#define BUTT NRF_GPIO_PIN_MAP(0,11)
+//#define TRIG NRF_GPIO_PIN_MAP(0,30)
+//
+//#define GPIO_CLEAR(PIN)			nrf_gpio_pin_clear(PIN)
+//#define GPIO_SET(PIN)			nrf_gpio_pin_set(PIN)
+//#define GPIO_OUTPUT(PIN)		nrf_gpio_cfg_output(PIN)
+//#define GPIO_INPUT(PIN)	nrf_gpio_cfg_input(PIN,NRF_GPIO_PIN_PULLUP)
+//#define GPIO_READ(PIN)			nrf_gpio_pin_read(PIN)
 
+#include "em_gpio.h"
+#define BUTT		gpioPortF,6
+#define TRIG		gpioPortD,14
 
-#define BUTT NRF_GPIO_PIN_MAP(0,11)
-#define TRIG NRF_GPIO_PIN_MAP(0,30)
+#define GPIO_CLEAR(PIN)			GPIO_PinOutClear(PIN)
+#define GPIO_SET(PIN)			GPIO_PinOutSet(PIN)
+#define GPIO_OUTPUT(PIN)		GPIO_PinModeSet(PIN,gpioModePushPull,1)
+#define GPIO_INPUT(PIN)			GPIO_PinModeSet(PIN,gpioModeInputPull,1)
+#define GPIO_READ(PIN)			GPIO_PinInGet(PIN)
+
 
 int main(int argc, char * argv[])
 {
@@ -45,16 +60,16 @@ int main(int argc, char * argv[])
             /*TAG_DUMP|*/
             /*TAG_GREEN|*/
             /*TAG_RED|*/
-            /*TAG_ERR*/
+            |TAG_ERR
             );
 
     device_init();
     ctaphid_init();
     ctap_init();
 
-    nrf_gpio_cfg_input(BUTT, NRF_GPIO_PIN_PULLUP);
-    nrf_gpio_cfg_output(TRIG);
-    nrf_gpio_pin_clear(TRIG);
+    GPIO_INPUT(BUTT);
+    GPIO_OUTPUT(TRIG);
+    GPIO_CLEAR(TRIG);
 
     memset(hidmsg,0,sizeof(hidmsg));
 
@@ -92,13 +107,7 @@ int main(int argc, char * argv[])
     return 0;
 }
 
-void delay(int ms)
-{
-    uint64_t t1;
-    t1 = millis();
-    while(millis()-t1 < ms)
-        ;
-}
+
 
 void ctaphid_write_block(uint8_t * data)
 {
@@ -130,8 +139,8 @@ int usbhid_recv(uint8_t * msg)
     if (!reading)
     {
         delay(1);
-        nrf_gpio_pin_clear(TRIG);
-        val = nrf_gpio_pin_read(BUTT);
+        GPIO_CLEAR(TRIG);
+        val = GPIO_READ(BUTT);
         if (val == 0)
         {
             if (lastval != 0)
@@ -145,7 +154,7 @@ int usbhid_recv(uint8_t * msg)
     }
     else
     {
-        nrf_gpio_pin_set(TRIG);
+    	GPIO_SET(TRIG);
         memmove(msg, hidcmds[reading-1], 64);
         reading++;
         if (reading-1 == sizeof(hidcmds)/64)

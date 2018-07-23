@@ -9,7 +9,7 @@
 #include "util.h"
 #include "log.h"
 #include "ctap.h"
-
+#include "app.h"
 
 #if !defined(TEST)
 
