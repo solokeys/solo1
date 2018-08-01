@@ -104,7 +104,7 @@ extern void CMU_enter_DefaultMode_from_RESET(void) {
 	CMU_HFXOInit(&hfxoInit);
 
 	/* Setting system HFRCO frequency */
-	CMU_HFRCOFreqSet (cmuHFRCOFreq_13M0Hz);
+	CMU_HFRCOFreqSet (cmuHFRCOFreq_38M0Hz);
 
 	/* Using HFRCO as high frequency clock, HFCLK */
 	CMU_ClockSelectSet(cmuClock_HF, cmuSelect_HFRCO);
@@ -660,6 +660,9 @@ extern void PORTIO_enter_DefaultMode_from_RESET(void) {
 
 	/* Pin PD10 is configured to Push-pull */
 	GPIO_PinModeSet(gpioPortD, 10, gpioModePushPull, 1);
+
+	/* Pin PD15 is configured to Push-pull */
+	GPIO_PinModeSet(gpioPortD, 15, gpioModePushPull, 1);
 	// [Port D Configuration]$
 
 	// $[Port E Configuration]

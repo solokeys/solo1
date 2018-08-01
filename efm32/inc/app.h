@@ -14,13 +14,17 @@
 
 #define USING_DEV_BOARD
 
-#define BRIDGE_TO_WALLET
+//#define BRIDGE_TO_WALLET
 
 //#define DISABLE_CTAPHID_PING
 //#define DISABLE_CTAPHID_WINK
-#define DISABLE_CTAPHID_CBOR
+//#define DISABLE_CTAPHID_CBOR
 
 void printing_init();
+
+#define TEST
+#define TEST_POWER
+
 
 
 #endif /* SRC_APP_H_ */

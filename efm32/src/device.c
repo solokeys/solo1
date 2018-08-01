@@ -424,6 +424,7 @@ void device_init(void)
     {
         buf[i] = adc_rng();
     }
+
 }
 #ifdef IS_BOOTLOADER
 typedef enum

@@ -3,7 +3,7 @@
   <mode name="DefaultMode">
     <property object="ADC0" propertyId="ABPeripheral.included" value="true"/>
     <property object="CMU" propertyId="ABPeripheral.included" value="true"/>
-    <property object="CMU" propertyId="clocksettings.hfrcosettings.hfrcofrequency" value="13 MHz"/>
+    <property object="CMU" propertyId="clocksettings.hfrcosettings.hfrcofrequency" value="38 MHz"/>
     <property object="CMU" propertyId="clocksettings.lfclocksettings.lfrcorequired" value="Yes"/>
     <property object="CRYOTIMER" propertyId="ABPeripheral.included" value="true"/>
     <property object="CRYOTIMER" propertyId="cryotimer.clocking.eventafterevery" value="1 cycle"/>
@@ -61,6 +61,11 @@
     <property object="PD10" propertyId="ports.settings.pinmode" value="Push-pull"/>
     <property object="PD10" propertyId="ports.settings.pulldirection" value="Pullup"/>
     <property object="PD10" propertyId="ports.settings.pullup" value="Enabled"/>
+    <property object="PD15" propertyId="ports.settings.dout" value="1"/>
+    <property object="PD15" propertyId="ports.settings.filter" value="Enabled"/>
+    <property object="PD15" propertyId="ports.settings.pinmode" value="Push-pull"/>
+    <property object="PD15" propertyId="ports.settings.pulldirection" value="Pullup"/>
+    <property object="PD15" propertyId="ports.settings.pullup" value="Enabled"/>
     <property object="PF3" propertyId="ports.settings.pinmode" value="Wired-and pullup filter"/>
     <property object="PF4" propertyId="ports.settings.pinmode" value="Push-pull"/>
     <property object="PF5" propertyId="ports.settings.pinmode" value="Push-pull"/>
