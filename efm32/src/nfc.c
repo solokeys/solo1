@@ -18,7 +18,6 @@
 #include "nfc.h"
 #include "app.h"
 
-#define NT3H2111_ADDR		0xAA
 
 I2C_TransferReturn_TypeDef I2CSPM_Transfer(I2C_TypeDef *i2c, I2C_TransferSeq_TypeDef *seq)
 {
@@ -26,6 +25,7 @@ I2C_TransferReturn_TypeDef I2CSPM_Transfer(I2C_TypeDef *i2c, I2C_TransferSeq_Typ
   uint32_t timeout = 10000;
   /* Do a polled transfer */
   ret = I2C_TransferInit(i2c, seq);
+
   while (ret == i2cTransferInProgress && timeout--)
   {
     ret = I2C_Transfer(i2c);
@@ -36,7 +36,7 @@ I2C_TransferReturn_TypeDef I2CSPM_Transfer(I2C_TypeDef *i2c, I2C_TransferSeq_Typ
 // data must be 16 bytes
 void read_block(uint8_t block, uint8_t * data)
 {
-	uint8_t addr = NT3H2111_ADDR;
+	uint8_t addr = NFC_DEV_ADDR;
 	I2C_TransferSeq_TypeDef    seq;
 	I2C_TransferReturn_TypeDef ret;
 	uint8_t i2c_read_data[16];
@@ -64,7 +64,7 @@ void read_block(uint8_t block, uint8_t * data)
 // data must be 16 bytes
 void write_block(uint8_t block, uint8_t * data)
 {
-	uint8_t addr = NT3H2111_ADDR;
+	uint8_t addr = NFC_DEV_ADDR;
 	I2C_TransferSeq_TypeDef    seq;
 	I2C_TransferReturn_TypeDef ret;
 	uint8_t i2c_write_data[1 + 16];
@@ -90,7 +90,7 @@ void write_block(uint8_t block, uint8_t * data)
 
 void write_reg_flash(uint8_t reg_addr, uint8_t mask,uint8_t data)
 {
-	uint8_t addr = NT3H2111_ADDR;
+	uint8_t addr = NFC_DEV_ADDR;
 	I2C_TransferSeq_TypeDef    seq;
 	I2C_TransferReturn_TypeDef ret;
 	uint8_t i2c_write_data[4];
@@ -116,7 +116,7 @@ void write_reg_flash(uint8_t reg_addr, uint8_t mask,uint8_t data)
 }
 void write_reg(uint8_t reg_addr, uint8_t mask,uint8_t data)
 {
-	uint8_t addr = NT3H2111_ADDR;
+	uint8_t addr = NFC_DEV_ADDR;
 	I2C_TransferSeq_TypeDef    seq;
 	I2C_TransferReturn_TypeDef ret;
 	uint8_t i2c_write_data[4];
@@ -145,18 +145,18 @@ uint8_t read_reg(uint8_t reg_addr)
 {
 	I2C_TransferSeq_TypeDef    seq;
 	I2C_TransferReturn_TypeDef ret;
-	uint8_t write_data[2];
+	uint8_t write_data[1];
 	uint8_t read_data[1];
 
-	seq.addr  = NT3H2111_ADDR;
+	seq.addr  = NFC_DEV_ADDR;
 	seq.flags = I2C_FLAG_WRITE_READ;
-	write_data[0] = 0xFE;
-	write_data[1] = reg_addr;
+	write_data[0] = (0x1f & reg_addr) | (0x20);
+	printf("mode: 0x%x = 0x%02x\n",NFC_DEV_ADDR, (int)write_data[0]);
 
 	seq.buf[0].data   = write_data;
-	seq.buf[0].len    = 2;
-	seq.buf[1].data = read_data;
-	seq.buf[1].len  = 1;
+	seq.buf[0].len    = 1;
+	seq.buf[1].data   = read_data;
+	seq.buf[1].len    = 1;
 
 	ret = I2CSPM_Transfer(I2C0, &seq);
 
@@ -168,15 +168,19 @@ uint8_t read_reg(uint8_t reg_addr)
 	return read_data[0];
 }
 
+// data must be 17 bytes long
 void read_reg_block(uint8_t * data)
 {
 	int i;
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < 15; i++)
 	{
+
 		*data = read_reg(i);
-//		printf("data %d: %x\n" ,i,(int)(*data));
+		printf("data %d: %x\n" ,i,(int)(*data));
 		data++;
 	}
+	*data++ = read_reg(0x1E);
+	*data++ = read_reg(0x1F);
 }
 #define NS_REG_ADDR		6
 typedef enum{
@@ -204,7 +208,7 @@ typedef struct {
 
 void nfc_test()
 {
-	uint8_t data[16];
+	uint8_t data[17];
 	uint8_t ns_reg;
 	uint8_t last_ns_reg;
 	// magic-number,
@@ -213,6 +217,26 @@ void nfc_test()
 	uint8_t ndef[32] = "\x03\x11\xD1\x01\x0D\x55\x01adafruit.com";
 
 	printf("-NFC test-\n");
+
+	GPIO_PinOutSet(NFC_DEV_SS);
+	delay(10);
+	GPIO_PinOutClear(NFC_DEV_SS);
+	delay(10);
+
+	read_reg_block(data);
+
+	printf("regs:\n");
+	dump_hex(data,17);
+
+	while(1)
+		;
+
+	while (1)
+	{
+		delay(1090);
+		read_reg_block(data);
+	}
+
 
 	return;
 //

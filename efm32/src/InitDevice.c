@@ -626,7 +626,7 @@ extern void PORTIO_enter_DefaultMode_from_RESET(void) {
 	GPIO_PinModeSet(gpioPortA, 3, gpioModePushPull, 0);
 
 	/* Pin PA4 is configured to Open-drain with pull-up and filter */
-	GPIO_PinModeSet(gpioPortA, 4, gpioModeWiredAndPullUpFilter, 0);
+	GPIO_PinModeSet(gpioPortA, 4, gpioModeWiredAndPullUpFilter, 1);
 
 	/* Pin PA5 is configured to Push-pull */
 	GPIO_PinModeSet(gpioPortA, 5, gpioModePushPull, 1);
@@ -670,8 +670,11 @@ extern void PORTIO_enter_DefaultMode_from_RESET(void) {
 
 	// $[Port F Configuration]
 
+	/* Pin PF2 is configured to Push-pull */
+	GPIO_PinModeSet(gpioPortF, 2, gpioModePushPull, 1);
+
 	/* Pin PF3 is configured to Open-drain with pull-up and filter */
-	GPIO_PinModeSet(gpioPortF, 3, gpioModeWiredAndPullUpFilter, 0);
+	GPIO_PinModeSet(gpioPortF, 3, gpioModeWiredAndPullUpFilter, 1);
 
 	/* Pin PF4 is configured to Push-pull */
 	GPIO_PinModeSet(gpioPortF, 4, gpioModePushPull, 0);

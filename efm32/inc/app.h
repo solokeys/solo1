@@ -25,6 +25,7 @@ void printing_init();
 #define TEST
 #define TEST_POWER
 
-
+// GPIO assignments
+#define NFC_DEV_SS	gpioPortF,2
 
 #endif /* SRC_APP_H_ */
