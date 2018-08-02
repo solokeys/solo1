@@ -18,6 +18,7 @@
 #include "nfc.h"
 #include "app.h"
 
+#define NFC_DEV_ADDR		(0xa0|(0x0<<1))
 
 I2C_TransferReturn_TypeDef I2CSPM_Transfer(I2C_TypeDef *i2c, I2C_TransferSeq_TypeDef *seq)
 {
