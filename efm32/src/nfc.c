@@ -207,6 +207,65 @@ typedef struct {
 	uint8_t rtype;
 } NDEF;
 
+#define PIN_SCL		gpioPortA,4
+#define PIN_SDA		gpioPortF,3
+
+#define SDA_WRITE(x)	if (x) GPIO_PinOutSet(PIN_SDA); else GPIO_PinOutClear(PIN_SDA);
+#define SCL_WRITE(x)	if (x) GPIO_PinOutSet(PIN_SCL); else GPIO_PinOutClear(PIN_SCL);
+
+void i2c_delay()
+{
+	int i;
+	for (i = 0; i < 38*5; i++)
+	{
+		__asm("nop");
+	}
+}
+
+void i2c_start()
+{
+	SDA_WRITE(0);
+	i2c_delay();
+	i2c_delay();
+	SCL_WRITE(0);
+}
+
+void i2c_end()
+{
+	SCL_WRITE(1);
+	i2c_delay();
+	i2c_delay();
+	SDA_WRITE(1);
+}
+
+//
+int i2c_write_byte(uint8_t byte)
+{
+	uint8_t bit;
+	int i;
+	for(i = 0; i < 8; i++)
+	{
+		bit = (byte & 0x80) ? 1 : 0;
+		byte <<= 1;
+		SCL_WRITE(0);
+		SDA_WRITE(bit);
+		i2c_delay();
+		SCL_WRITE(1);
+		i2c_delay();
+	}
+
+	SCL_WRITE(0);
+	SDA_WRITE(1);	// release
+	i2c_delay();
+	SCL_WRITE(1);
+	i2c_delay();
+	int ack = GPIO_PinInGet(PIN_SDA);
+	SCL_WRITE(0);
+	i2c_delay();
+
+	return ack;
+}
+
 void nfc_test()
 {
 	uint8_t data[17];
@@ -219,28 +278,58 @@ void nfc_test()
 
 	printf("-NFC test-\n");
 
+	GPIO_PinOutSet(PIN_SCL);
+	GPIO_PinOutSet(PIN_SDA);
+	delay(1);
+	printf("pins: %d %d\n",GPIO_PinInGet(PIN_SCL),GPIO_PinInGet(PIN_SDA));
+	delay(1);
+	GPIO_PinOutClear(PIN_SCL);
+	GPIO_PinOutClear(PIN_SDA);
+	delay(1);
+	printf("pins: %d %d\n",GPIO_PinInGet(PIN_SCL),GPIO_PinInGet(PIN_SDA));
+
+	GPIO_PinOutSet(PIN_SCL);
+	GPIO_PinOutSet(PIN_SDA);
+
+	delay(10);
 	GPIO_PinOutSet(NFC_DEV_SS);
 	delay(10);
 	GPIO_PinOutClear(NFC_DEV_SS);
 	delay(10);
 
-	read_reg_block(data);
+	i2c_start();
+	int ack = i2c_write_byte(0xA0);
+	i2c_end();
+	i2c_delay();
 
-	printf("regs:\n");
-	dump_hex(data,17);
+	int ack2 = GPIO_PinInGet(PIN_SDA);
 
-	while(1)
-		;
+	printf("ack:%d, release: %d\n", ack,ack2);
 
 	while (1)
-	{
-		delay(1090);
-		read_reg_block(data);
-	}
+		;
 
+//	delay(10);
+//	GPIO_PinOutClear(NFC_DEV_SS);
+//	delay(10);
 
-	return;
+//	read_reg_block(data);
 //
+//	printf("regs:\n");
+//	dump_hex(data,17);
+//
+//	while(1)
+//		;
+//
+//	while (1)
+//	{
+//		delay(1090);
+//		read_reg_block(data);
+//	}
+//
+//
+//	return;
+////
 ////
 //	read_block(0x00, data);
 //	read_block(0x00, data);
