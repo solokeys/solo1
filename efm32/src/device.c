@@ -30,6 +30,8 @@
 #define RDY_PIN			gpioPortC,10
 #define RW_PIN			gpioPortD,11
 #define RESET_PIN		gpioPortB,13
+#define LED1_PIN		gpioPortF,4
+#define LED2_PIN		gpioPortF,5
 
 #define PAGE_SIZE		2048
 #define PAGES			128
@@ -129,8 +131,8 @@ void ctaphid_write_block(uint8_t * data)
 
 void heartbeat()
 {
-    GPIO_PinOutToggle(gpioPortF,4);
-    GPIO_PinOutToggle(gpioPortF,5);
+    GPIO_PinOutToggle(LED1_PIN);
+    GPIO_PinOutToggle(LED2_PIN);
     nfc_test();
     //	printf("heartbeat %d %d\r\n", beat++,CRYOTIMER->CNT);
 }
@@ -330,13 +332,11 @@ void bootloader_init(void)
     GPIO_PinModeSet(RESET_PIN, gpioModePushPull, 1);
 
     // status LEDS
-    GPIO_PinModeSet(gpioPortF,
-            4,
+    GPIO_PinModeSet(LED1_PIN,
             gpioModePushPull,
             0);
 
-    GPIO_PinModeSet(gpioPortF,
-            5,
+    GPIO_PinModeSet(LED2_PIN,
             gpioModePushPull,
             1);
 
@@ -348,10 +348,6 @@ void bootloader_init(void)
 
     // SPI R/w Indicator
     GPIO_PinModeSet(RW_PIN, gpioModePushPull, 1);
-
-    // USB message rdy ext int
-    //  GPIO_ExtIntConfig(gpioPortC, 9, 9, 1, 0,1);
-    //  NVIC_EnableIRQ(GPIO_ODD_IRQn);
 
 
     printing_init();
@@ -371,13 +367,11 @@ void device_init(void)
     enter_DefaultMode_from_RESET();
 
     // status LEDS
-    GPIO_PinModeSet(gpioPortF,
-            4,
+    GPIO_PinModeSet(LED1_PIN,
             gpioModePushPull,
             0);
 
-    GPIO_PinModeSet(gpioPortF,
-            5,
+    GPIO_PinModeSet(LED2_PIN,
             gpioModePushPull,
             1);
 
@@ -392,10 +386,6 @@ void device_init(void)
 
     // Reset EFM8
     GPIO_PinModeSet(RESET_PIN, gpioModePushPull, 1);
-
-    // USB message rdy ext int
-    //  GPIO_ExtIntConfig(gpioPortC, 9, 9, 1, 0,1);
-    //  NVIC_EnableIRQ(GPIO_ODD_IRQn);
 
 
     printing_init();

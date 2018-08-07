@@ -19,6 +19,7 @@
 #include "app.h"
 
 #define NFC_DEV_ADDR		(0xa0|(0x0<<1))
+#define NFC_DEV_USART		USART1
 
 I2C_TransferReturn_TypeDef I2CSPM_Transfer(I2C_TypeDef *i2c, I2C_TransferSeq_TypeDef *seq)
 {
@@ -115,89 +116,147 @@ void write_reg_flash(uint8_t reg_addr, uint8_t mask,uint8_t data)
 		exit(1);
 	}
 }
-void write_reg(uint8_t reg_addr, uint8_t mask,uint8_t data)
+
+void write_reg(uint8_t reg_addr, uint8_t data)
 {
-	uint8_t addr = NFC_DEV_ADDR;
-	I2C_TransferSeq_TypeDef    seq;
-	I2C_TransferReturn_TypeDef ret;
-	uint8_t i2c_write_data[4];
 
-	seq.addr  = addr;
-	seq.flags = I2C_FLAG_WRITE;
-	i2c_write_data[0] = 0xFE;
-	i2c_write_data[1] = reg_addr;
-	i2c_write_data[2] = mask;
-	i2c_write_data[3] = data;
+	uint8_t mode = 0x00 | (reg_addr & 0x1f);
+//	delay(10);
 
-	seq.buf[0].data   = i2c_write_data;
-	seq.buf[0].len    = 4;
-	seq.buf[1].data = NULL;
-	seq.buf[1].len  = 0;
+//	delay(10);
+	GPIO_PinOutClear(NFC_DEV_SS);
+	delay(1);
+	USART_SpiTransfer(NFC_DEV_USART, mode);
+	mode = USART_SpiTransfer(NFC_DEV_USART, data);
+	GPIO_PinOutSet(NFC_DEV_SS);
+}
 
-	ret = I2CSPM_Transfer(I2C0, &seq);
+void write_command(uint8_t cmd)
+{
 
-	if (ret != i2cTransferDone) {
-		printf("I2C fail %04x\r\n",ret);
-		exit(1);
-	}
+	uint8_t mode = cmd;
+//	delay(10);
+
+//	delay(10);
+	GPIO_PinOutClear(NFC_DEV_SS);
+	delay(1);
+	USART_SpiTransfer(NFC_DEV_USART, mode);
+	GPIO_PinOutSet(NFC_DEV_SS);
+	GPIO_PinOutClear(NFC_DEV_SS);
+
+}
+
+void write_eeprom(uint8_t block, uint8_t * data)
+{
+
+	uint8_t mode = 0x40;
+//	delay(10);
+
+//	delay(10);
+	GPIO_PinOutClear(NFC_DEV_SS);
+	delay(1);
+	USART_SpiTransfer(NFC_DEV_USART, mode);
+	mode = block << 1;
+	USART_SpiTransfer(NFC_DEV_USART, mode);
+	USART_SpiTransfer(NFC_DEV_USART, *data++);
+	USART_SpiTransfer(NFC_DEV_USART, *data++);
+	USART_SpiTransfer(NFC_DEV_USART, *data++);
+	USART_SpiTransfer(NFC_DEV_USART, *data++);
+
+	GPIO_PinOutSet(NFC_DEV_SS);
+	GPIO_PinOutClear(NFC_DEV_SS);
+
+}
+
+void read_eeprom(uint8_t block, uint8_t * data)
+{
+
+	uint8_t mode = 0x7f;
+//	delay(10);
+
+//	delay(10);
+	GPIO_PinOutClear(NFC_DEV_SS);
+	delay(1);
+	USART_SpiTransfer(NFC_DEV_USART, mode);
+	mode = block << 1;
+	USART_SpiTransfer(NFC_DEV_USART, mode);
+	*data++ = USART_SpiTransfer(NFC_DEV_USART, 0);
+	*data++ = USART_SpiTransfer(NFC_DEV_USART, 0);
+	*data++ = USART_SpiTransfer(NFC_DEV_USART, 0);
+	*data++ = USART_SpiTransfer(NFC_DEV_USART, 0);
+
+
+	GPIO_PinOutSet(NFC_DEV_SS);
+	GPIO_PinOutClear(NFC_DEV_SS);
+
 }
 
 uint8_t read_reg(uint8_t reg_addr)
 {
-	I2C_TransferSeq_TypeDef    seq;
-	I2C_TransferReturn_TypeDef ret;
-	uint8_t write_data[1];
-	uint8_t read_data[1];
 
-	seq.addr  = NFC_DEV_ADDR;
-	seq.flags = I2C_FLAG_WRITE_READ;
-	write_data[0] = (0x1f & reg_addr) | (0x20);
-	printf("mode: 0x%x = 0x%02x\n",NFC_DEV_ADDR, (int)write_data[0]);
+	uint8_t mode = 0x20 | (reg_addr & 0x1f);
+//	delay(10);
 
-	seq.buf[0].data   = write_data;
-	seq.buf[0].len    = 1;
-	seq.buf[1].data   = read_data;
-	seq.buf[1].len    = 1;
+//	delay(10);
+	GPIO_PinOutClear(NFC_DEV_SS);
+	delay(1);
+	USART_SpiTransfer(NFC_DEV_USART, mode);
+	mode = USART_SpiTransfer(NFC_DEV_USART, 0);
+	GPIO_PinOutSet(NFC_DEV_SS);
 
-	ret = I2CSPM_Transfer(I2C0, &seq);
+	GPIO_PinOutClear(NFC_DEV_SS);
 
-	if (ret != i2cTransferDone) {
-		printf("I2C fail %04x\r\n",ret);
-		exit(1);
-	}
-
-	return read_data[0];
+//	printf("%02x: %x\n",(reg_addr),(int)mode);
+	return mode;
 }
 
-// data must be 17 bytes long
+void read_buffer(uint8_t * data, int len)
+{
+
+	uint8_t mode = 0xC0;
+	int i;
+	if (len > 32)
+	{
+		printf("warning, max len is 32\n");
+		len = 32;
+	}
+
+	GPIO_PinOutClear(NFC_DEV_SS);
+	delay(1);
+	USART_SpiTransfer(NFC_DEV_USART, mode);
+	for(i = 0; i < len; i++)
+	{
+		*data++ = USART_SpiTransfer(NFC_DEV_USART, 0);
+	}
+	GPIO_PinOutSet(NFC_DEV_SS);
+
+	GPIO_PinOutClear(NFC_DEV_SS);
+
+}
+
+// data must be 14 bytes long
 void read_reg_block(uint8_t * data)
 {
 	int i;
-	for (i = 0; i < 15; i++)
+	uint8_t mode = 0x20 | (0 & 0x1f);
+	GPIO_PinOutClear(NFC_DEV_SS);
+	delay(1);
+	USART_SpiTransfer(NFC_DEV_USART, mode);
+	for (i = 0; i < 0x20; i++)
 	{
-
-		*data = read_reg(i);
-		printf("data %d: %x\n" ,i,(int)(*data));
-		data++;
+		mode = USART_SpiTransfer(NFC_DEV_USART, 0);
+		if (i < 6 || (i >=8 && i < 0x0f) || (i >= 0x1e))
+		{
+			*data = mode;
+			data++;
+		}
 	}
-	*data++ = read_reg(0x1E);
-	*data++ = read_reg(0x1F);
-}
-#define NS_REG_ADDR		6
-typedef enum{
-	RF_FIELD_PRESENT = 	0x01,
-	EEPROM_WR_BUSY = 	0x02,
-	EEPROM_WR_ERR = 	0x04,
-	SRAM_RF_READY = 	0x08,
-	SRAM_I2C_READY = 	0x10,
-	RF_LOCKED = 		0x20,
-	I2C_LOCKED = 		0x40,
-	NDEF_DATA_READ = 	0x80,
-} NS_REG_BIT;
 
-#define RF_FIELD_PRESENT		0x01
-#define EEPROM_WR_BUSY			0x02
-#define SRAM_RF_READY			0x02
+	GPIO_PinOutSet(NFC_DEV_SS);
+	GPIO_PinOutClear(NFC_DEV_SS);
+}
+
+
 
 typedef struct {
 	uint8_t header;
@@ -207,68 +266,27 @@ typedef struct {
 	uint8_t rtype;
 } NDEF;
 
-#define PIN_SCL		gpioPortA,4
-#define PIN_SDA		gpioPortF,3
-
-#define SDA_WRITE(x)	if (x) GPIO_PinOutSet(PIN_SDA); else GPIO_PinOutClear(PIN_SDA);
-#define SCL_WRITE(x)	if (x) GPIO_PinOutSet(PIN_SCL); else GPIO_PinOutClear(PIN_SCL);
-
-void i2c_delay()
-{
-	int i;
-	for (i = 0; i < 38*5; i++)
-	{
-		__asm("nop");
-	}
-}
-
-void i2c_start()
-{
-	SDA_WRITE(0);
-	i2c_delay();
-	i2c_delay();
-	SCL_WRITE(0);
-}
-
-void i2c_end()
-{
-	SCL_WRITE(1);
-	i2c_delay();
-	i2c_delay();
-	SDA_WRITE(1);
-}
-
-//
-int i2c_write_byte(uint8_t byte)
-{
-	uint8_t bit;
-	int i;
-	for(i = 0; i < 8; i++)
-	{
-		bit = (byte & 0x80) ? 1 : 0;
-		byte <<= 1;
-		SCL_WRITE(0);
-		SDA_WRITE(bit);
-		i2c_delay();
-		SCL_WRITE(1);
-		i2c_delay();
-	}
-
-	SCL_WRITE(0);
-	SDA_WRITE(1);	// release
-	i2c_delay();
-	SCL_WRITE(1);
-	i2c_delay();
-	int ack = GPIO_PinInGet(PIN_SDA);
-	SCL_WRITE(0);
-	i2c_delay();
-
-	return ack;
-}
+typedef struct {
+	uint8_t io;
+	uint8_t conf0;
+	uint8_t conf1;
+	uint8_t conf2;
+	uint8_t rfid_status;
+	uint8_t ic_status;
+	uint8_t mask0;
+	uint8_t mask1;
+	uint8_t int0;
+	uint8_t int1;
+	uint8_t buf_status2;
+	uint8_t buf_status1;
+	uint8_t last_nfc_address;
+	uint8_t maj;
+	uint8_t minor;
+} __attribute__((packed)) AMS_REGS;
 
 void nfc_test()
 {
-	uint8_t data[17];
+	uint8_t data[32];
 	uint8_t ns_reg;
 	uint8_t last_ns_reg;
 	// magic-number,
@@ -276,20 +294,11 @@ void nfc_test()
 
 	uint8_t ndef[32] = "\x03\x11\xD1\x01\x0D\x55\x01adafruit.com";
 
-	printf("-NFC test-\n");
+	AMS_REGS  * regs;
 
-	GPIO_PinOutSet(PIN_SCL);
-	GPIO_PinOutSet(PIN_SDA);
-	delay(1);
-	printf("pins: %d %d\n",GPIO_PinInGet(PIN_SCL),GPIO_PinInGet(PIN_SDA));
-	delay(1);
-	GPIO_PinOutClear(PIN_SCL);
-	GPIO_PinOutClear(PIN_SDA);
-	delay(1);
-	printf("pins: %d %d\n",GPIO_PinInGet(PIN_SCL),GPIO_PinInGet(PIN_SDA));
+	return ;
 
-	GPIO_PinOutSet(PIN_SCL);
-	GPIO_PinOutSet(PIN_SDA);
+
 
 	delay(10);
 	GPIO_PinOutSet(NFC_DEV_SS);
@@ -297,94 +306,54 @@ void nfc_test()
 	GPIO_PinOutClear(NFC_DEV_SS);
 	delay(10);
 
-	i2c_start();
-	int ack = i2c_write_byte(0xA0);
-	i2c_end();
-	i2c_delay();
+//	uint8_t reg = read_reg(0);
+	write_command(0xC2);				// Set to default state
+	write_command(0xC4);				// Clear buffer
 
-	int ack2 = GPIO_PinInGet(PIN_SDA);
+	write_reg(0x3, 0x80 | 0x40);		// enable tunneling mode and RF configuration
 
-	printf("ack:%d, release: %d\n", ack,ack2);
+
+
+	read_reg_block(data);
+
+	printf("regs: "); dump_hex(data,15);
+
+	delay(100);
+
+
+	read_reg_block(data);
+
+	printf("regs: "); dump_hex(data,15);
+
+
+
+	if (0)
+	{
+		read_eeprom(0x7F, data);
+		printf("initial config: "); dump_hex(data,4);
+
+		data[0] = (1<<2) | 0x03;	// save cfg1 setting for energy harvesting
+		data[1] = 0x80 | 0x40;	// save cfg2 setting for tunneling
+		write_eeprom(0x7F, data);
+
+		printf("updated config: "); dump_hex(data,4);
+	}
 
 	while (1)
-		;
-
-//	delay(10);
-//	GPIO_PinOutClear(NFC_DEV_SS);
-//	delay(10);
-
-//	read_reg_block(data);
-//
-//	printf("regs:\n");
-//	dump_hex(data,17);
-//
-//	while(1)
-//		;
-//
-//	while (1)
-//	{
-//		delay(1090);
+	{
+//		delay(100);
 //		read_reg_block(data);
-//	}
+//		regs = (AMS_REGS *)data;
 //
-//
-//	return;
-////
-////
-//	read_block(0x00, data);
-//	read_block(0x00, data);
-//	printf("block 00: "); dump_hex(data,16);
-//
-//	printf("capability container [init]: "); dump_hex(data+12,4);
-//
-//	data[0] = 0xaa;
-//	memmove(data+12,cc,4);
-//
-//	write_block(0x00,data);
-//	delay(10);
-//	write_block(0x01,ndef);
-//	delay(10);
-//	write_block(0x02,ndef+16);
-//	delay(10);
-//	printf("wrote block\n");
-//
-//	read_block(0x00, data);
-//
-//	printf("capability container [done]: "); dump_hex(data+12,4);
-//
-//	read_reg_block(data);
-//	printf("regs [init]:"); dump_hex(data,8);
-
-//	write_reg(0, 0xff, 0x42);
-//	write_reg(2, 0xff, 0x01);
-//
-//	read_reg_block(data);
-//	printf("block 3A [done]:"); dump_hex(data,8);
-//
-//	read_block(0x3A, data);
-//	printf("block 3A [done]:"); dump_hex(data,16);
-
-//	while(1)
-//	{
-//		delay(250);
-//		read_reg_block(data);
-//		printf("regs:"); dump_hex(data,8);
-//
-//		ns_reg = read_reg(NS_REG_ADDR);
-//		if (ns_reg & SRAM_I2C_READY)
+//		if ((regs->buf_status2 & 0x3f) && !(regs->buf_status2 & 0x80))
 //		{
-//			printf("Data in sram\r\n");
-//		}
+//			read_buffer(data, regs->buf_status2 & 0x3f);
+//			printf("data: ");
 //
-////		if ((ns_reg & RF_FIELD_PRESENT) && !(last_ns_reg & RF_FIELD_PRESENT))
-////		{
-////			printf("RF present\r\n");
-////		}
-////		if (!(ns_reg & RF_FIELD_PRESENT) && (last_ns_reg & RF_FIELD_PRESENT))
-////		{
-////			printf("RF gone\r\n");
-////		}
-//		last_ns_reg = ns_reg;
-//	}
+//			dump_hex(data, regs->buf_status2 & 0x3f);
+//		}
+
+//		dump_hex(data,15);
+	}
 
 }

@@ -4,15 +4,14 @@
     <property object="ADC0" propertyId="ABPeripheral.included" value="true"/>
     <property object="CMU" propertyId="ABPeripheral.included" value="true"/>
     <property object="CMU" propertyId="clocksettings.hfrcosettings.hfrcofrequency" value="38 MHz"/>
-    <property object="CMU" propertyId="clocksettings.lfclocksettings.lfrcorequired" value="Yes"/>
+    <property object="CMU" propertyId="clocksettings.lfclocksettings.ulfrcorequired" value="Yes"/>
     <property object="CRYOTIMER" propertyId="ABPeripheral.included" value="true"/>
+    <property object="CRYOTIMER" propertyId="cryotimer.clocking.clocksourceforcryotimer" value="ULFRCO"/>
     <property object="CRYOTIMER" propertyId="cryotimer.clocking.eventafterevery" value="1 cycle"/>
-    <property object="CRYOTIMER" propertyId="cryotimer.clocking.prescalerforcryotimer" value="Divide by 32"/>
     <property object="CRYPTO" propertyId="ABPeripheral.included" value="true"/>
     <property object="DefaultMode" propertyId="mode.diagramLocation" value="100, 100"/>
     <property object="EMU" propertyId="ABPeripheral.included" value="true"/>
     <property object="GPIO" propertyId="ABPeripheral.included" value="true"/>
-    <property object="I2C0" propertyId="ABPeripheral.included" value="true"/>
     <property object="PA0" propertyId="ports.settings.pinmode" value="Push-pull"/>
     <property object="PA1" propertyId="ports.settings.dout" value="1"/>
     <property object="PA1" propertyId="ports.settings.filter" value="Enabled"/>
@@ -87,8 +86,6 @@
     <property object="PF6" propertyId="ports.settings.pinmode" value="Input pull"/>
     <property object="PF6" propertyId="ports.settings.pulldirection" value="Pullup"/>
     <property object="PF6" propertyId="ports.settings.pullup" value="Enabled"/>
-    <property object="PORTIO" propertyId="portio.i2c0.enable.scl" value="Enabled"/>
-    <property object="PORTIO" propertyId="portio.i2c0.enable.sda" value="Enabled"/>
     <property object="PORTIO" propertyId="portio.i2c0.location.i2c0_sclloc" value="3"/>
     <property object="PORTIO" propertyId="portio.i2c0.location.i2c0_sdaloc" value="27"/>
     <property object="PORTIO" propertyId="portio.usart0.enable.cts" value="Enabled"/>
@@ -110,6 +107,7 @@
     <property object="USART1" propertyId="usart.mode.usartmode" value="Synchronous Mode (SPI / I2S)"/>
     <property object="USART1" propertyId="usart.outputsettings.clockselect" value="Disabled"/>
     <property object="USART1" propertyId="usart.synchronoussettings.baudrate" value="130000"/>
+    <property object="USART1" propertyId="usart.synchronoussettings.clockpolarityphasemode" value="Clock idle low, sample on falling edge"/>
   </mode>
   <modeTransition>
     <property object="RESET &#x2192; DefaultMode" propertyId="modeTransition.source" value="RESET"/>
