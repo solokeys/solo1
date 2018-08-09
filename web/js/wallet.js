@@ -1314,7 +1314,8 @@ async function run_tests() {
 
     async function test_bootloader()
     {
-        var addr = 0x8000;
+        var addr = 0x4000;
+        var num_pages = 64;
 
         var p = await dev.is_bootloader();
         TEST(p.status == 'CTAP1_SUCCESS', 'Device is in bootloader mode');
@@ -1324,16 +1325,16 @@ async function run_tests() {
         p = await dev.bootloader_write(0, randdata);
         TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
 
-        p = await dev.bootloader_write(0x8000-4, randdata);
+        p = await dev.bootloader_write(addr-4, randdata);
         TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
 
-        p = await dev.bootloader_write(2048 * 125-4, randdata);
+        p = await dev.bootloader_write(2048 * (num_pages-3)-4, randdata);
         TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
 
-        p = await dev.bootloader_write(2048 * 126, randdata);
+        p = await dev.bootloader_write(2048 * (num_pages-2), randdata);
         TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
 
-        p = await dev.bootloader_write(2048 * 129, randdata);
+        p = await dev.bootloader_write(2048 * (num_pages+1), randdata);
         TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
 
 
@@ -1371,14 +1372,14 @@ async function run_tests() {
     }
 
     //while(1)
-    //{
-        //await device_start_over();
-        //await test_pin();
-        //await test_crypto();
-        //await test_rng();
-    //}
+    {
+        await device_start_over();
+        await test_pin();
+        await test_crypto();
+        await test_rng();
+    }
     //await benchmark();
-    await test_persistence();
+    //await test_persistence();
 
     //await test_bootloader();
 

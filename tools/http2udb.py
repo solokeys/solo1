@@ -120,8 +120,9 @@ class UDPBridge(BaseHTTPRequestHandler):
         h = base64.b64encode(h.encode())
         h = to_websafe(h.decode())
 
-        START = 0x8000
-        END = 2048 * 125 - 4
+        num_pages = 64
+        START = 0x4000
+        END = 2048 * (num_pages - 3) - 4
 
         ih = IntelHex(HEX_FILE)
         segs = ih.segments()
@@ -132,7 +133,8 @@ class UDPBridge(BaseHTTPRequestHandler):
         print('im_size: ', im_size)
         print('firmware_size: ', len(arr))
 
-        sig = sha256((arr).tobytes())
+        byts = (arr).tobytes() if hasattr(arr,'tobytes') else (arr).tostring()
+        sig = sha256(byts)
         print('hash', binascii.hexlify(sig))
         sig = sk.sign_digest(sig)
 

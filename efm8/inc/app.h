@@ -13,8 +13,7 @@
 void usb_transfer_complete();
 void spi_transfer_complete();
 
-#define EFM32_RW_PIN	P1_B2
-#define MSG_RDY_INT_PIN	P1_B1
+
 
 #define INPUT_ENDPOINT		EP2OUT
 #define OUTPUT_ENDPOINT		EP3IN

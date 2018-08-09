@@ -20,7 +20,7 @@
 
 #define NFC_DEV_ADDR		(0xa0|(0x0<<1))
 #define NFC_DEV_USART		USART1
-
+#ifndef IS_BOOTLOADER
 I2C_TransferReturn_TypeDef I2CSPM_Transfer(I2C_TypeDef *i2c, I2C_TransferSeq_TypeDef *seq)
 {
   I2C_TransferReturn_TypeDef ret;
@@ -357,3 +357,5 @@ void nfc_test()
 	}
 
 }
+
+#endif

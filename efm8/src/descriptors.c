@@ -127,14 +127,22 @@ SI_SEGMENT_VARIABLE(configDesc[],
 #define LANG_STRING   htole16( SLAB_USB_LANGUAGE )
 #define MFR_STRING                                'S','i','l','i','c','o','n',' ','L','a','b','s','\0'
 #define MFR_SIZE                                  13
-#define PROD_STRING                               'E','O','S',' ','W','a','l','l','e','t','\0'
-#define PROD_SIZE                                 11
+
 #define SER_STRING                                '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','\0'
 #define SER_SIZE                                  17
 #define CFG_STRING                                'C','o','n','f','i','g',' ','#','1','\0'
 #define CFG_SIZE                                  10
+#ifdef BRIDGE_TO_WALLET
 #define INT0_STRING                               'E','O','S',' ','W','a','l','l','e','t','\0'
 #define INT0_SIZE                                 11
+#define PROD_STRING                               'E','O','S',' ','W','a','l','l','e','t','\0'
+#define PROD_SIZE                                 11
+#else
+#define INT0_STRING                               'S','o','l','o',' ','K','e','y','\0'
+#define INT0_SIZE                                 9
+#define PROD_STRING                               'S','o','l','o',' ','K','e','y','\0'
+#define PROD_SIZE                                 9
+#endif
 
 LANGID_STATIC_CONST_STRING_DESC( langDesc[], LANG_STRING );
 UTF16LE_PACKED_STATIC_CONST_STRING_DESC( mfrDesc[], MFR_STRING, MFR_SIZE);

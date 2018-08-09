@@ -10,9 +10,9 @@
 
 #define DEBUG_LEVEL 1
 
-#define PRINTING_USE_VCOM
+//#define PRINTING_USE_VCOM
 
-#define USING_DEV_BOARD
+//#define USING_DEV_BOARD
 
 //#define BRIDGE_TO_WALLET
 
@@ -22,10 +22,12 @@
 
 void printing_init();
 
-#define TEST
-#define TEST_POWER
+//#define TEST
+//#define TEST_POWER
 
 // GPIO assignments
 #define NFC_DEV_SS	gpioPortF,2
+
+#define LED_INIT_VALUE			0x001000
 
 #endif /* SRC_APP_H_ */

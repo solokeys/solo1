@@ -9,6 +9,9 @@
 
 platform=2
 
+EFM32_DEBUGGER= -s 440083537 --device EFM32JG1B200F128GM32
+#EFM32_DEBUGGER= -s 440121060    #dev board
+
 src = $(wildcard pc/*.c) $(wildcard fido2/*.c) $(wildcard crypto/sha256/*.c) crypto/tiny-AES-c/aes.c
 obj = $(src:.c=.o) uECC.o
 
@@ -37,11 +40,16 @@ efm32com:
 	cd '.\efm32\GNU ARM v7.2.1 - Debug' && $(MAKE) all
 efm32prog:
 	cd '.\efm32\GNU ARM v7.2.1 - Debug' && $(MAKE) all
-	commander flash '.\efm32\GNU ARM v7.2.1 - Debug\EFM32.hex' -s 440121060
+	commander flash '.\efm32\GNU ARM v7.2.1 - Debug\EFM32.hex' $(EFM32_DEBUGGER)  -p "0x1E7FC:0x00000000:4" 
+efm32read:
+	cd '.\efm32\GNU ARM v7.2.1 - Debug' && $(MAKE) all
+	commander swo read $(EFM32_DEBUGGER)
+
+
 
 efm32bootprog:
 	cd '.\efm32boot\GNU ARM v7.2.1 - Debug' && $(MAKE) all
-	commander flash '.\efm32boot\GNU ARM v7.2.1 - Debug\efm32boot.hex' -s 440121060
+	commander flash '.\efm32boot\GNU ARM v7.2.1 - Debug\efm32boot.hex' $(EFM32_DEBUGGER) --masserase
 
 $(name):  $(obj)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)

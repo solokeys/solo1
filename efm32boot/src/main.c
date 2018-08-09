@@ -1,5 +1,6 @@
 #include "em_device.h"
 #include "em_chip.h"
+#include "em_timer.h"
 
 #include "device.h"
 #include "app.h"
@@ -63,10 +64,15 @@ bootmode:
             printf1(TAG_GEN,"Reflash condition detected\n");
             ctaphid_init();
             reset_efm8();
+            TIMER0_enter_DefaultMode_from_RESET();
+            TIMER_TopSet(TIMER0, 255);
+
+            RGB(LED_INIT_VALUE);
+
             /* Infinite loop */
             int count = 0;
             while (1) {
-                if (millis() - t1 > 1000)
+                if (millis() - t1 > 10)
                 {
                     /*printf("heartbeat %ld\n", beat++);*/
                     heartbeat();
@@ -100,7 +106,7 @@ bootmode:
 
     printf1(TAG_GEN,"Normal boot\n");
 
-    if (is_authorized_to_boot())
+    if (is_authorized_to_boot() )
     {
         BOOT_boot();
     } else {

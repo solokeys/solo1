@@ -15,6 +15,7 @@
 #include "em_cmu.h"
 #include "em_msc.h"
 #include "em_i2c.h"
+#include "em_timer.h"
 
 #include "InitDevice.h"
 #include "cbor.h"
@@ -26,6 +27,8 @@
 #include "crypto.h"
 #include "nfc.h"
 
+#ifdef USING_DEV_BOARD
+
 #define MSG_AVAIL_PIN	gpioPortC,9
 #define RDY_PIN			gpioPortC,10
 #define RW_PIN			gpioPortD,11
@@ -33,19 +36,34 @@
 #define LED1_PIN		gpioPortF,4
 #define LED2_PIN		gpioPortF,5
 
+#else
+
+#define MSG_AVAIL_PIN	gpioPortA,1
+#define RDY_PIN			gpioPortA,0
+#define RW_PIN			gpioPortD,15
+#define RESET_PIN		gpioPortB,15
+#define LED1_PIN		gpioPortD,9
+#define LED2_PIN		gpioPortD,10
+#define LED3_PIN		gpioPortD,14
+#define BUTTON_PIN		gpioPortD,13
+
+#endif
+
 #define PAGE_SIZE		2048
-#define PAGES			128
-#define	COUNTER_PAGE	125
-#define	STATE1_PAGE		126
-#define	STATE2_PAGE		127
+#define PAGES			64
+#define	COUNTER_PAGE	(PAGES - 3)
+#define	STATE1_PAGE		(PAGES - 2)
+#define	STATE2_PAGE		(PAGES - 1)
 
-#define APPLICATION_START_ADDR	0x8000
-#define APPLICATION_START_PAGE	(0x8000/PAGE_SIZE)
+#define APPLICATION_START_ADDR	0x4000
+#define APPLICATION_START_PAGE	(0x4000/PAGE_SIZE)
 
-#define APPLICATION_END_ADDR	(PAGE_SIZE*125-4)		// NOT included in application
-#define APPLICATION_END_PAGE	(125)				// 125 is NOT included in application
+#define APPLICATION_END_ADDR	(PAGE_SIZE*(PAGES - 3)-4)		// NOT included in application
+#define APPLICATION_END_PAGE	((PAGES - 3))					// 125 is NOT included in application
 
-#define AUTH_WORD_ADDR          (PAGE_SIZE*125-4)
+#define AUTH_WORD_ADDR          (PAGE_SIZE*(PAGES - 3)-4)
+
+
 
 static void init_atomic_counter()
 {
@@ -105,6 +123,27 @@ uint32_t ctap_atomic_count(int sel)
     return count;
 }
 
+static uint32_t _color;
+uint32_t get_RBG()
+{
+	return _color;
+}
+
+void RGB(uint32_t hex)
+{
+	uint16_t r = 256 - ((hex & 0xff0000) >> 16);
+	uint16_t g = 256 - ((hex & 0xff00) >> 8);
+	uint16_t b = 256 - ((hex & 0xff) >> 0);
+
+    TIMER_CompareBufSet(TIMER0, 0, g);		// green
+    TIMER_CompareBufSet(TIMER0, 1, r);		// red
+    TIMER_CompareBufSet(TIMER0, 2, b);		// blue
+    _color = hex;
+}
+
+
+#define IS_BUTTON_PRESSED()		(GPIO_PinInGet(BUTTON_PIN) == 0)
+
 // Verify the user
 // return 1 if user is verified, 0 if not
 int ctap_user_verification(uint8_t arg)
@@ -116,6 +155,30 @@ int ctap_user_verification(uint8_t arg)
 // Return 1 for user is present, 0 user not present
 int ctap_user_presence_test()
 {
+	uint32_t t1 = millis();
+	RGB(0x304010);
+	while (IS_BUTTON_PRESSED())
+	{
+		if (t1 + 5000 < millis())
+			return 0;
+	}
+
+	t1 = millis();
+
+	do
+	{
+		if (t1 + 5000 < millis())
+			return 0;
+		if (! IS_BUTTON_PRESSED())
+			continue;
+		delay(1);
+	}
+	while (! IS_BUTTON_PRESSED());
+
+	RGB(0x001040);
+
+	delay(50);
+
     return 1;
 }
 
@@ -129,14 +192,60 @@ void ctaphid_write_block(uint8_t * data)
 }
 #endif
 
+#ifdef IS_BOOTLOADER	// two different colors between bootloader and app
 void heartbeat()
 {
-    GPIO_PinOutToggle(LED1_PIN);
-    GPIO_PinOutToggle(LED2_PIN);
-    nfc_test();
-    //	printf("heartbeat %d %d\r\n", beat++,CRYOTIMER->CNT);
-}
+	static int state = 0;
+	static uint32_t val = (LED_INIT_VALUE >> 8) & 0xff;
+	int but = IS_BUTTON_PRESSED();
 
+
+	if (state)
+	{
+		val--;
+	}
+	else
+	{
+		val++;
+	}
+
+	if (val > 30 || val < 1)
+	{
+		state = !state;
+	}
+
+//	if (but) RGB(val * 2);
+//	else
+		RGB((val << 16) | (val*2 << 8));
+
+}
+#else
+void heartbeat()
+{
+	static int state = 0;
+	static uint32_t val = (LED_INIT_VALUE >> 8) & 0xff;
+	int but = IS_BUTTON_PRESSED();
+
+
+	if (state)
+	{
+		val--;
+	}
+	else
+	{
+		val++;
+	}
+
+	if (val > 30 || val < 1)
+	{
+		state = !state;
+	}
+
+	if (but) RGB(val * 2);
+	else RGB(val << 8);
+
+}
+#endif
 uint32_t millis()
 {
     return CRYOTIMER->CNT;
@@ -186,9 +295,9 @@ int usbhid_recv(uint8_t * msg)
         wait_for_efm8_busy();
 
 
-        //		msgs_to_recv--;
-        //		printf(">> ");
-        //		dump_hex(msg,64);
+//        //		msgs_to_recv--;
+//        		printf(">> ");
+//        		dump_hex(msg,64);
         return 64;
     }
 
@@ -209,6 +318,8 @@ void usbhid_send(uint8_t * msg)
         USART_SpiTransfer(USART1, *msg++);
     }
     wait_for_efm8_busy();
+
+    delay(10);
     //	uint32_t t2 = millis();
     //	printf("wait time: %u\n", (uint32_t)(t2-t1));
 
@@ -334,11 +445,14 @@ void bootloader_init(void)
     // status LEDS
     GPIO_PinModeSet(LED1_PIN,
             gpioModePushPull,
-            0);
+            1);		// red
 
     GPIO_PinModeSet(LED2_PIN,
             gpioModePushPull,
-            1);
+            1);		// green
+    GPIO_PinModeSet(LED3_PIN,
+            gpioModePushPull,
+            1);		// blue
 
     // EFM8 RDY/BUSY
     GPIO_PinModeSet(RDY_PIN, gpioModeInput, 0);
@@ -369,11 +483,14 @@ void device_init(void)
     // status LEDS
     GPIO_PinModeSet(LED1_PIN,
             gpioModePushPull,
-            0);
+            1);		// red
 
     GPIO_PinModeSet(LED2_PIN,
             gpioModePushPull,
-            1);
+            1);		// green
+    GPIO_PinModeSet(LED3_PIN,
+            gpioModePushPull,
+            1);		// blue
 
     // EFM8 RDY/BUSY
     GPIO_PinModeSet(RDY_PIN, gpioModeInput, 0);
@@ -387,6 +504,9 @@ void device_init(void)
     // Reset EFM8
     GPIO_PinModeSet(RESET_PIN, gpioModePushPull, 1);
 
+    TIMER_TopSet(TIMER0, 255);
+
+    RGB(LED_INIT_VALUE);
 
     printing_init();
 

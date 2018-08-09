@@ -27,7 +27,7 @@ void setupSWOForPrint(void)
   /* Enable Serial wire output pin */
   GPIO->ROUTEPEN |= GPIO_ROUTEPEN_SWVPEN;
 
-    /* Set location 0 */
+  /* Set location 0 */
   GPIO->ROUTELOC0 = GPIO_ROUTELOC0_SWVLOC_LOC0;
 
   /* Enable output on pin - GPIO Port F, Pin 2 */
@@ -76,7 +76,9 @@ int RETARGET_ReadChar(void)
 
 void printing_init()
 {
+#ifdef USING_DEV_BOARD
 //	GPIO_PinModeSet(gpioPortA,5,gpioModePushPull,1); // VCOM enable
+#endif
 }
 
 #endif

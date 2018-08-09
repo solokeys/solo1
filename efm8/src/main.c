@@ -7,8 +7,20 @@
 
 #define BUFFER_SIZE	12
 
-#define SIGNAL_WRITE_BSY()		P1_B2 = 0 	 // Set P1 low
-#define SIGNAL_WRITE_RDY()		P1_B2 = 1 	 // Set P1 high
+#ifdef USING_DEVELOPMENT_BOARD
+#define RW_PIN 			P2_B3
+#define BUSY_PIN 		P1_B2
+#define MSG_RDY_PIN		P1_B1
+#else
+#define RW_PIN 			P0_B1
+#define BUSY_PIN 		P0_B2
+#define MSG_RDY_PIN		P0_B3
+#endif
+
+#define SIGNAL_WRITE_BSY()		BUSY_PIN = 0 	 // Set P1 low
+#define SIGNAL_WRITE_RDY()		BUSY_PIN = 1 	 // Set P1 high
+
+
 
 data uint8_t write_ptr = 0;
 data uint8_t read_ptr = 0;
@@ -63,6 +75,7 @@ void usb_writeback_complete()
 
 void spi_transfer_complete()
 {
+
 	if (count > 0) count--;
 	i_ptr = 0;
 	read_ptr++;
@@ -107,9 +120,9 @@ int main(void) {
 
 
 	SCON0_TI = 1;
-	P2_B0 = 1;
+//	P2_B0 = 1;
 
-	MSG_RDY_INT_PIN = 1;
+	MSG_RDY_PIN = 1;
 
 	// enable SPI interrupts
 //	SPI0FCN1 = SPI0FCN1 | (1<<4);
@@ -121,7 +134,7 @@ int main(void) {
 //	SPI0FCN0 &= ~3; // FIFO threshold 0x0
 	SPI0FCN1 |= (1); // Enable RX fifo
 
-	cprints("hello,world\r\n");
+//	cprints("hello,world\r\n");
 
 
 	reset = RSTSRC;
@@ -131,13 +144,12 @@ int main(void) {
 		RSTSRC = (1<<4);
 	}
 
-	MSG_RDY_INT_PIN = 1;
+	MSG_RDY_PIN = 1;
 	SIGNAL_WRITE_BSY();
 
 	while (1) {
 
-
-		if (P2_B3 == 0)
+		if (RW_PIN == 0)
 		{
 			i_ptr = 0;
 			SPI0FCN0 |= (1<<6); // Flush TX fifo buffer
@@ -153,7 +165,7 @@ int main(void) {
 				SPI0DAT = (hidmsgbuf+read_ptr*64)[i_ptr++];
 			}
 
-			while(P2_B3 == 0)
+			while(RW_PIN == 0)
 			{
 			}
 
@@ -162,7 +174,7 @@ int main(void) {
 			spi_transfer_complete();
 			if (count == 0)
 			{
-				MSG_RDY_INT_PIN = 1;
+				MSG_RDY_PIN = 1;
 			}
 
 			SPI0FCN0 = SPI0FCN0 | (1<<2); // flush RX fifo
@@ -181,6 +193,7 @@ int main(void) {
 			// Did we RX data and have room?
 			if ((SPI0CFG & (0x1)) == 0 && USB_TX_COUNT < 511/2)
 			{
+
 				writebackbuf[writebackbuf_count++] = SPI0DAT;
 				SIGNAL_WRITE_RDY();
 
@@ -204,11 +217,14 @@ int main(void) {
 
 		if (millis() - t1 > 1500)
 		{
+#ifdef USING_DEVELOPMENT_BOARD
 			P1_B5 = k++&1;
+#endif
 			t1 = millis();
 		}
 //		if (!USBD_EpIsBusy(EP2OUT) && !USBD_EpIsBusy(EP3IN) && lastcount==count)
 		if (!USBD_EpIsBusy(INPUT_ENDPOINT)  && lastcount==count)
+//		if (lastcount==count)
 		{
 //			cprintd("sched read to ",1,(int)(hidmsgbuf + write_ptr*64));
 			if (count == BUFFER_SIZE)
@@ -217,11 +233,12 @@ int main(void) {
 			}
 			else
 			{
+//				cprints("sched read\r\n");
 				USBD_Read(INPUT_ENDPOINT, hidmsgbuf + write_ptr*64, 64, true);
 			}
 		}
 
-
+//		cprints("it\r\n");
 
 		if (lastcount != count)
 		{
@@ -229,7 +246,7 @@ int main(void) {
 			{
 //				cputd(debugRi); cprints(">> ");
 //				dump_hex(debugR,64);
-				MSG_RDY_INT_PIN = 0;
+				MSG_RDY_PIN = 0;
 			}
 			else
 			{

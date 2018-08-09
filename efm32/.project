@@ -35,5 +35,15 @@
 			<type>2</type>
 			<location>C:/Users/conor/Desktop/u2f-one/fido2/</location>
 		</link>
+		<link>
+			<name>CMSIS/EFM32JG1B/startup_gcc_efm32jg1b.s</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/platform/Device/SiliconLabs/EFM32JG1B/Source/GCC/startup_efm32jg1b.S</locationURI>
+		</link>
+		<link>
+			<name>CMSIS/EFM32JG1B/system_efm32jg1b.c</name>
+			<type>1</type>
+			<locationURI>STUDIO_SDK_LOC/platform/Device/SiliconLabs/EFM32JG1B/Source/system_efm32jg1b.c</locationURI>
+		</link>
 	</linkedResources>
 </projectDescription>
