@@ -63,4 +63,4 @@ uECC.o: ./crypto/micro-ecc/uECC.c
 	$(CC) -c -o $@ $^ -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(platform) -I./crypto/micro-ecc/
 
 clean:
-	rm -f *.o main.exe main crypto/tiny-AES-c/*.o crypto/*.o crypto/micro-ecc/*.o
+	rm -f *.o main.exe main $(obj)
