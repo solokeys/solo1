@@ -126,14 +126,14 @@ uint32_t ctap_atomic_count(int sel)
 static uint32_t _color;
 uint32_t get_RBG()
 {
-	return _color;
+    return _color;
 }
 
 void RGB(uint32_t hex)
 {
-	uint16_t r = 256 - ((hex & 0xff0000) >> 16);
-	uint16_t g = 256 - ((hex & 0xff00) >> 8);
-	uint16_t b = 256 - ((hex & 0xff) >> 0);
+    uint16_t r = 256 - ((hex & 0xff0000) >> 16);
+    uint16_t g = 256 - ((hex & 0xff00) >> 8);
+    uint16_t b = 256 - ((hex & 0xff) >> 0);
 
     TIMER_CompareBufSet(TIMER0, 0, g);		// green
     TIMER_CompareBufSet(TIMER0, 1, r);		// red
@@ -155,29 +155,46 @@ int ctap_user_verification(uint8_t arg)
 // Return 1 for user is present, 0 user not present
 int ctap_user_presence_test()
 {
-	uint32_t t1 = millis();
-	RGB(0x304010);
-	while (IS_BUTTON_PRESSED())
-	{
-		if (t1 + 5000 < millis())
-			return 0;
-	}
+#ifdef SKIP_BUTTON_CHECK
+    return 1;
+#endif
 
-	t1 = millis();
 
-	do
-	{
-		if (t1 + 5000 < millis())
-			return 0;
-		if (! IS_BUTTON_PRESSED())
-			continue;
-		delay(1);
-	}
-	while (! IS_BUTTON_PRESSED());
+    uint32_t t1 = millis();
+    RGB(0x304010);
 
-	RGB(0x001040);
+#ifdef USE_BUTTON_DELAY
+    delay(3000);
+    RGB(0x001040);
+    delay(50);
+    return 1;
+#endif
+    while (IS_BUTTON_PRESSED())
+    {
+        if (t1 + 5000 < millis())
+        {
+            printf1(TAG_GEN,"Button not pressed\n");
+            return 0;
+        }
+    }
 
-	delay(50);
+    t1 = millis();
+
+    do
+    {
+        if (t1 + 5000 < millis())
+        {
+            return 0;
+        }
+        if (! IS_BUTTON_PRESSED())
+            continue;
+        delay(1);
+    }
+    while (! IS_BUTTON_PRESSED());
+
+    RGB(0x001040);
+
+    delay(50);
 
     return 1;
 }
@@ -195,54 +212,61 @@ void ctaphid_write_block(uint8_t * data)
 #ifdef IS_BOOTLOADER	// two different colors between bootloader and app
 void heartbeat()
 {
-	static int state = 0;
-	static uint32_t val = (LED_INIT_VALUE >> 8) & 0xff;
-	int but = IS_BUTTON_PRESSED();
+    static int state = 0;
+    static uint32_t val = (LED_INIT_VALUE >> 8) & 0xff;
+    int but = IS_BUTTON_PRESSED();
 
 
-	if (state)
-	{
-		val--;
-	}
-	else
-	{
-		val++;
-	}
+    if (state)
+    {
+        val--;
+    }
+    else
+    {
+        val++;
+    }
 
-	if (val > 30 || val < 1)
-	{
-		state = !state;
-	}
+    if (val > 30 || val < 1)
+    {
+        state = !state;
+    }
 
-//	if (but) RGB(val * 2);
-//	else
-		RGB((val << 16) | (val*2 << 8));
+    //	if (but) RGB(val * 2);
+    //	else
+    RGB((val << 16) | (val*2 << 8));
 
 }
 #else
 void heartbeat()
 {
-	static int state = 0;
-	static uint32_t val = (LED_INIT_VALUE >> 8) & 0xff;
-	int but = IS_BUTTON_PRESSED();
+    static int state = 0;
+    static uint32_t val = (LED_INIT_VALUE >> 8) & 0xff;
+    int but = IS_BUTTON_PRESSED();
 
 
-	if (state)
-	{
-		val--;
-	}
-	else
-	{
-		val++;
-	}
 
-	if (val > 30 || val < 1)
-	{
-		state = !state;
-	}
+#if 0
+    RGB(0x70fefe);  // bright ass light
+    return;
+#endif
 
-	if (but) RGB(val * 2);
-	else RGB(val << 8);
+    if (state)
+    {
+        val--;
+    }
+    else
+    {
+        val++;
+    }
+
+    if (val >120/3 || val < 1)
+    {
+        state = !state;
+    }
+
+    if (but) RGB(val * 2);
+    else RGB(val*3 | ((val*3) << 8) | (val << 16) );
+//    else RGB((val*3) << 8);
 
 }
 #endif
@@ -295,9 +319,9 @@ int usbhid_recv(uint8_t * msg)
         wait_for_efm8_busy();
 
 
-//        //		msgs_to_recv--;
-//        		printf(">> ");
-//        		dump_hex(msg,64);
+        //        //		msgs_to_recv--;
+        //        		printf(">> ");
+        //        		dump_hex(msg,64);
         return 64;
     }
 
@@ -359,39 +383,39 @@ void GPIO_ODD_IRQHandler()
 
 void init_adc()
 {
-   /* Enable ADC Clock */
-   CMU_ClockEnable(cmuClock_ADC0, true);
-   ADC_Init_TypeDef init = ADC_INIT_DEFAULT;
-   ADC_InitSingle_TypeDef singleInit = ADC_INITSINGLE_DEFAULT;
+    /* Enable ADC Clock */
+    CMU_ClockEnable(cmuClock_ADC0, true);
+    ADC_Init_TypeDef init = ADC_INIT_DEFAULT;
+    ADC_InitSingle_TypeDef singleInit = ADC_INITSINGLE_DEFAULT;
 
-   /* Initialize the ADC with the required values */
-   init.timebase = ADC_TimebaseCalc(0);
-   init.prescale = ADC_PrescaleCalc(7000000, 0);
-   ADC_Init(ADC0, &init);
+    /* Initialize the ADC with the required values */
+    init.timebase = ADC_TimebaseCalc(0);
+    init.prescale = ADC_PrescaleCalc(7000000, 0);
+    ADC_Init(ADC0, &init);
 
-   /* Initialize for single conversion specific to RNG */
-   singleInit.reference = adcRefVEntropy;
-   singleInit.diff = true;
-   singleInit.posSel = adcPosSelVSS;
-   singleInit.negSel = adcNegSelVSS;
-   ADC_InitSingle(ADC0, &singleInit);
+    /* Initialize for single conversion specific to RNG */
+    singleInit.reference = adcRefVEntropy;
+    singleInit.diff = true;
+    singleInit.posSel = adcPosSelVSS;
+    singleInit.negSel = adcNegSelVSS;
+    ADC_InitSingle(ADC0, &singleInit);
 
-   /* Set VINATT to maximum value and clear FIFO */
-   ADC0->SINGLECTRLX |= _ADC_SINGLECTRLX_VINATT_MASK;
-   ADC0->SINGLEFIFOCLEAR = ADC_SINGLEFIFOCLEAR_SINGLEFIFOCLEAR;
+    /* Set VINATT to maximum value and clear FIFO */
+    ADC0->SINGLECTRLX |= _ADC_SINGLECTRLX_VINATT_MASK;
+    ADC0->SINGLEFIFOCLEAR = ADC_SINGLEFIFOCLEAR_SINGLEFIFOCLEAR;
 }
 
 
 
 void authenticator_read_state(AuthenticatorState * state)
 {
-	uint32_t * ptr = PAGE_SIZE*STATE1_PAGE;
+    uint32_t * ptr = PAGE_SIZE*STATE1_PAGE;
     memmove(state,ptr,sizeof(AuthenticatorState));
 }
 
 void authenticator_read_backup_state(AuthenticatorState * state )
 {
-	uint32_t * ptr = PAGE_SIZE*STATE2_PAGE;
+    uint32_t * ptr = PAGE_SIZE*STATE2_PAGE;
     memmove(state,ptr,sizeof(AuthenticatorState));
 }
 
@@ -430,9 +454,9 @@ uint8_t adc_rng(void);
 void reset_efm8()
 {
     // Reset EFM8
-	GPIO_PinOutClear(RESET_PIN);
-	delay(2);
-	GPIO_PinOutSet(RESET_PIN);
+    GPIO_PinOutClear(RESET_PIN);
+    delay(2);
+    GPIO_PinOutSet(RESET_PIN);
 }
 
 void bootloader_init(void)
@@ -620,20 +644,20 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
             MSC_WriteWordFast(ptr,payload, req->len + (req->len%4));
             break;
         case BootDone:
-//            printf("BootDone\n");
+            //            printf("BootDone\n");
             ptr = APPLICATION_START_ADDR;
             crypto_sha256_init();
             crypto_sha256_update(ptr, APPLICATION_END_ADDR-APPLICATION_START_ADDR);
             crypto_sha256_final(hash);
-//            printf("hash: "); dump_hex(hash, 32);
-//            printf("sig: "); dump_hex(payload, 64);
+            //            printf("hash: "); dump_hex(hash, 32);
+            //            printf("sig: "); dump_hex(payload, 64);
             curve = uECC_secp256r1();
 
             if (! uECC_verify(pubkey,
-                hash,
-                32,
-                payload,
-                curve))
+                        hash,
+                        32,
+                        payload,
+                        curve))
             {
                 return CTAP2_ERR_OPERATION_DENIED;
             }

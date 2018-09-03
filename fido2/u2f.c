@@ -31,7 +31,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
         rcode = U2F_SW_CLASS_NOT_SUPPORTED;
         goto end;
     }
-#if defined(BRIDGE_TO_WALLET)
+#if defined(BRIDGE_TO_WALLET) || defined(IS_BOOTLOADER)
     struct u2f_authenticate_request * auth = (struct u2f_authenticate_request *) req->payload;
 
 
