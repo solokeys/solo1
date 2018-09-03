@@ -12,7 +12,7 @@
 
 #define USING_PC
 
-#define BRIDGE_TO_WALLET
+//#define BRIDGE_TO_WALLET
 
 void printing_init();
 
