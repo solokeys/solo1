@@ -1,8 +1,7 @@
-# U2F One
+# Solo
 
-This project is in early development.
-
-It will be a embedded device friendly implementation of FIDO 2.0 and U2F protocols.
+This is the source code for Solo.  It implements the authenticator U2F and FIDO2 protocols.  It is designed 
+to be easily ported to lightweight embedded platforms, as well as run on the PC.
 
 No hardware is needed for development.
 
