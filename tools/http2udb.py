@@ -81,6 +81,38 @@ def read():
     msg = to_websafe(pkt)
     return msg
 
+def get_firmware_object():
+    sk = SigningKey.from_pem(open("signing_key.pem").read())
+    h = open(HEX_FILE,'r').read()
+    h = base64.b64encode(h.encode())
+    h = to_websafe(h.decode())
+
+    num_pages = 64
+    START = 0x4000
+    END = 2048 * (num_pages - 3) - 4
+
+    ih = IntelHex(HEX_FILE)
+    segs = ih.segments()
+    arr = ih.tobinarray(start = START, size = END-START)
+
+    im_size = END-START
+
+    print('im_size: ', im_size)
+    print('firmware_size: ', len(arr))
+
+    byts = (arr).tobytes() if hasattr(arr,'tobytes') else (arr).tostring()
+    sig = sha256(byts)
+    print('hash', binascii.hexlify(sig))
+    sig = sk.sign_digest(sig)
+
+    print('sig', binascii.hexlify(sig))
+
+    sig = base64.b64encode(sig)
+    sig = to_websafe(sig.decode())
+
+    #msg = {'data': read()}
+    msg = {'firmware': h, 'signature':sig}
+    return msg
 class UDPBridge(BaseHTTPRequestHandler):
     def end_headers (self):
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -115,36 +147,7 @@ class UDPBridge(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-type','text/json')
 
-        sk = SigningKey.from_pem(open("signing_key.pem").read())
-        h = open(HEX_FILE,'r').read()
-        h = base64.b64encode(h.encode())
-        h = to_websafe(h.decode())
-
-        num_pages = 64
-        START = 0x4000
-        END = 2048 * (num_pages - 3) - 4
-
-        ih = IntelHex(HEX_FILE)
-        segs = ih.segments()
-        arr = ih.tobinarray(start = START, size = END-START)
-
-        im_size = END-START
-
-        print('im_size: ', im_size)
-        print('firmware_size: ', len(arr))
-
-        byts = (arr).tobytes() if hasattr(arr,'tobytes') else (arr).tostring()
-        sig = sha256(byts)
-        print('hash', binascii.hexlify(sig))
-        sig = sk.sign_digest(sig)
-
-        print('sig', binascii.hexlify(sig))
-
-        sig = base64.b64encode(sig)
-        sig = to_websafe(sig.decode())
-
-        #msg = {'data': read()}
-        msg = {'firmware': h, 'signature':sig}
+        msg = get_firmware_object()
 
         self.end_headers()
 
@@ -158,7 +161,14 @@ try:
             keyfile="../web/localhost.key", 
             certfile='../web/localhost.crt', server_side=True)
 
+    print('Saving signed firmware to firmware.json')
+    msg = get_firmware_object()
+    wfile = open('firmware.json','wb+')
+    wfile.write(json.dumps(msg).encode())
+    wfile.close()
+
     server.serve_forever()
+
 except KeyboardInterrupt:
     server.socket.close()
 
