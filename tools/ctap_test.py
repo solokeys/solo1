@@ -46,7 +46,7 @@ class Tester():
             raise RuntimeError('No FIDO device found')
         self.dev = dev
         self.client = Fido2Client(dev, self.origin)
-        self.ctap = self.client.ctap
+        self.ctap = self.client.ctap2
 
         # consume timeout error
         #cmd,resp = self.recv_raw()
@@ -470,6 +470,8 @@ class Tester():
                     attest, data = self.client.make_credential(rp, user, challenge, pin = PIN + ' ', exclude_list = [])
                 except CtapError as e:
                     assert(e.code == CtapError.ERR.PIN_INVALID)
+                except ClientError as e:
+                    assert(e.cause.code == CtapError.ERR.PIN_INVALID)
                 print('PASS')
 
             print('make credential with exclude list')
@@ -572,11 +574,11 @@ if __name__ == '__main__':
     t = Tester()
     t.find_device()
     #t.test_hid()
-    t.test_long_ping()
-    #t.test_fido2()
+    #t.test_long_ping()
+    t.test_fido2()
     #test_find_brute_force()
     #t.test_fido2_simple()
-    t.test_fido2_brute_force()
+    # t.test_fido2_brute_force()
 
 
 

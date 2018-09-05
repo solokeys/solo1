@@ -19,6 +19,15 @@ cd ..
 
 cd python-fido2/
 python setup.py install
+
+```
+
+Open `crypto/tiny-AES-c/aes.h` in a text editor and make sure AES256 is selected as follows.
+
+```
+//#define AES128 1
+//#define AES192 1
+#define AES256 1
 ```
 
 Now compile FIDO 2.0 and U2F authenticator.

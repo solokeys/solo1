@@ -12,6 +12,8 @@
 
 #define USING_PC
 
+#define DEBUG_LEVEL 1
+
 //#define BRIDGE_TO_WALLET
 
 void printing_init();

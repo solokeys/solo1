@@ -162,7 +162,7 @@ void heartbeat()
 
 void ctaphid_write_block(uint8_t * data)
 {
-    printf("<< "); dump_hex(data, 64);
+    /*printf("<< "); dump_hex(data, 64);*/
     usbhid_send(data);
 }
 

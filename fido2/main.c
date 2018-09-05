@@ -30,7 +30,7 @@ int main(int argc, char * argv[])
             TAG_WALLET |
             TAG_STOR |
             /*TAG_CP |*/
-//            TAG_CTAP|
+            TAG_CTAP|
 //            TAG_HID|
             /*TAG_U2F|*/
             /*TAG_PARSE |*/
