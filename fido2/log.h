@@ -2,6 +2,7 @@
 #define _LOG_H
 
 #include "app.h"
+#include <stdint.h>
 
 #ifndef DEBUG_LEVEL
 #define DEBUG_LEVEL 0
