@@ -236,6 +236,7 @@ var CMD = {
     reset: 0x13,
     version: 0x14,
     rng: 0x15,
+    pubkey: 0x16,
     boot_write: 0x40,
     boot_done: 0x41,
     boot_check: 0x42,
@@ -870,6 +871,24 @@ var get_rng_ = function(func){
     });
 };
 
+// Derive public key from the private key stored on device.  Returns X,Y point.  64 bytes.
+var get_pubkey_ = function(func){
+
+    var pinAuth = undefined;
+
+    if (this.pinToken) {
+        pinAuth = computePinAuth(this.pinToken, CMD.pubkey, 0, 0);
+    }
+
+    var req = formatRequest(CMD.pubkey,0,0, pinAuth);
+
+    var self = this;
+
+    send_msg(req, function(resp){
+        if (func)func(resp);
+    });
+};
+
 var is_bootloader_ = function(func){
 
     var req = formatBootRequest(CMD.boot_check);
@@ -983,6 +1002,8 @@ function WalletDevice() {
 
     this.get_rng = get_rng_;
 
+    this.get_pubkey = get_pubkey_;
+
     this.is_bootloader = is_bootloader_;
 
     this.bootloader_write = bootloader_write_;
@@ -1001,10 +1022,69 @@ function WalletDevice() {
     this.register = wrap_promise.call(this, this.register );
     this.reset = wrap_promise.call(this,this.reset );
     this.get_rng = wrap_promise.call(this,this.get_rng);
+    this.get_pubkey = wrap_promise.call(this,this.get_pubkey);
     this.is_bootloader = wrap_promise.call(this,this.is_bootloader);
     this.bootloader_write = wrap_promise.call(this,this.bootloader_write);
     this.bootloader_finish = wrap_promise.call(this,this.bootloader_finish);
 
+}
+
+async function handleFirmware(files)
+{
+    var dev = new WalletDevice();
+
+    var p = await dev.is_bootloader();
+
+    document.getElementById('errors').textContent = '';
+    if (p.status != 'CTAP1_SUCCESS')
+    {
+        document.getElementById('errors').textContent = 'Make sure device is in bootloader mode.  Unplug, hold button, plug in, wait for flashing yellow light.';
+        return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = async function(ev){
+        var resp = JSON.parse(ev.target.result);
+        resp.firmware = websafe2string(resp.firmware);
+
+        console.log(resp);
+        var addr = 0x4000;
+        var num_pages = 64;
+        var sig = websafe2array(resp.signature);
+        var badsig = websafe2array(resp.signature);
+        badsig[40] = badsig[40] ^ 1;
+
+        var blocks = MemoryMap.fromHex(resp.firmware);
+        var addresses = blocks.keys();
+
+        var addr = addresses.next();
+        var chunk_size = 244;
+        while(!addr.done) {
+            var data = blocks.get(addr.value);
+            var i;
+            for (i = 0; i < data.length; i += chunk_size) {
+                var chunk = data.slice(i,i+chunk_size);
+                p = await dev.bootloader_write(addr.value + i, chunk);
+                TEST(p.status == 'CTAP1_SUCCESS', 'Device wrote data');
+                var progress = (((i/data.length) * 100 * 100) | 0)/100;
+                document.getElementById('progress').textContent = ''+progress+' %';
+            }
+
+            addr = addresses.next();
+        }
+        p = await dev.bootloader_finish(sig);
+        if(p.status != 'CTAP1_SUCCESS')
+        {
+            document.getElementById('errors').textContent = 'Firmware image signature denied';
+        }
+        else
+        {
+            document.getElementById('errors').textContent = 'Update successful';
+        }
+
+    };
+
+    reader.readAsText(files[0]);
 }
 
 function TEST(bool, test){
@@ -1166,15 +1246,25 @@ async function run_tests() {
             TEST(p.status == "CTAP1_SUCCESS", 'Right pin works');
         }
 
+        p = await dev.get_pubkey();
+        TEST(p.status == 'CTAP1_SUCCESS', '(1) Wallet derives public key from stored private key');
+
         p = await dev.register(wif);
         TEST(p.status == 'CTAP2_ERR_KEY_STORE_FULL', 'Wallet does not accept another key');
 
         p = await dev.sign({challenge: chal});
         TEST(p.status == 'CTAP1_SUCCESS', 'Wallet returns signature');
+        var sig = p.sig;
 
-        var ver = key.verify(chal, p.sig);
+        var ver = key.verify(chal, sig);
         TEST(ver, 'Signature is valid');
 
+        p = await dev.get_pubkey();
+        TEST(p.status == 'CTAP1_SUCCESS', '(2) Wallet derives public key from stored private key');
+
+        var key2 = ec.keyFromPublic('04'+array2hex(p.data), 'hex');
+        ver = key2.verify(chal, sig);
+        TEST(ver, 'Signature verifies with the derived public key');
 
         var count = p.count;
         p = await dev.sign({challenge: chal});
@@ -1374,9 +1464,9 @@ async function run_tests() {
     //while(1)
     {
         await device_start_over();
-        await test_pin();
+        //await test_pin();
         await test_crypto();
-        await test_rng();
+        //await test_rng();
     }
     //await benchmark();
     //await test_persistence();
@@ -1389,5 +1479,5 @@ var test;
 
 EC = elliptic.ec
 
-run_tests()
+//run_tests()
 
