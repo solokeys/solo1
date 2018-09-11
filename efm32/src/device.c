@@ -33,8 +33,8 @@
 #define RDY_PIN			gpioPortC,10
 #define RW_PIN			gpioPortD,11
 #define RESET_PIN		gpioPortB,13
-#define LED1_PIN		gpioPortF,4
-#define LED2_PIN		gpioPortF,5
+#define LED_RED_PIN		gpioPortF,4
+#define LED_GREEN_PIN		gpioPortF,5
 
 #else
 
@@ -42,10 +42,14 @@
 #define RDY_PIN			gpioPortA,0
 #define RW_PIN			gpioPortD,15
 #define RESET_PIN		gpioPortB,15
-#define LED1_PIN		gpioPortD,9
-#define LED2_PIN		gpioPortD,10
-#define LED3_PIN		gpioPortD,14
+#define LED_RED_PIN		gpioPortD,10
+#define LED_GREEN_PIN	gpioPortD,14
+#define LED_BLUE_PIN	gpioPortD,9
 #define BUTTON_PIN		gpioPortD,13
+
+#define RED_CHANNEL		0
+#define GREEN_CHANNEL	2
+#define BLUE_CHANNEL	1
 
 #endif
 
@@ -135,9 +139,9 @@ void RGB(uint32_t hex)
     uint16_t g = 256 - ((hex & 0xff00) >> 8);
     uint16_t b = 256 - ((hex & 0xff) >> 0);
 
-    TIMER_CompareBufSet(TIMER0, 0, g);		// green
-    TIMER_CompareBufSet(TIMER0, 1, r);		// red
-    TIMER_CompareBufSet(TIMER0, 2, b);		// blue
+    TIMER_CompareBufSet(TIMER0, GREEN_CHANNEL, g);		// green
+    TIMER_CompareBufSet(TIMER0, RED_CHANNEL, r);		// red
+    TIMER_CompareBufSet(TIMER0, BLUE_CHANNEL, b);		// blue
     _color = hex;
 }
 
@@ -246,7 +250,7 @@ void heartbeat()
 
 
 #if 0
-    RGB(0x70fefe);  // bright ass light
+    RGB(0x100000);  // bright ass light
     return;
 #endif
 
@@ -467,14 +471,14 @@ void bootloader_init(void)
     GPIO_PinModeSet(RESET_PIN, gpioModePushPull, 1);
 
     // status LEDS
-    GPIO_PinModeSet(LED1_PIN,
+    GPIO_PinModeSet(LED_RED_PIN,
             gpioModePushPull,
             1);		// red
 
-    GPIO_PinModeSet(LED2_PIN,
+    GPIO_PinModeSet(LED_GREEN_PIN,
             gpioModePushPull,
             1);		// green
-    GPIO_PinModeSet(LED3_PIN,
+    GPIO_PinModeSet(LED_BLUE_PIN,
             gpioModePushPull,
             1);		// blue
 
@@ -505,14 +509,14 @@ void device_init(void)
     enter_DefaultMode_from_RESET();
 
     // status LEDS
-    GPIO_PinModeSet(LED1_PIN,
+    GPIO_PinModeSet(LED_RED_PIN,
             gpioModePushPull,
             1);		// red
 
-    GPIO_PinModeSet(LED2_PIN,
+    GPIO_PinModeSet(LED_GREEN_PIN,
             gpioModePushPull,
             1);		// green
-    GPIO_PinModeSet(LED3_PIN,
+    GPIO_PinModeSet(LED_BLUE_PIN,
             gpioModePushPull,
             1);		// blue
 
