@@ -32,24 +32,24 @@ cbor:
 test: testgcm
 
 efm8prog:
-	cd '.\efm8\Keil 8051 v9.53 - Debug' && $(MAKE) all
+	cd './targets/efm8\Keil 8051 v9.53 - Debug' && $(MAKE) all
 	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -erase
-	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -upload '.\efm8\Keil 8051 v9.53 - Debug\efm8.hex'
+	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -upload './targets/efm8/Keil 8051 v9.53 - Debug/efm8.hex'
 
 efm32com:
-	cd '.\efm32\GNU ARM v7.2.1 - Debug' && $(MAKE) all
+	cd './targets/efm32/GNU ARM v7.2.1 - Debug' && $(MAKE) all
 efm32prog:
-	cd '.\efm32\GNU ARM v7.2.1 - Debug' && $(MAKE) all
-	commander flash '.\efm32\GNU ARM v7.2.1 - Debug\EFM32.hex' $(EFM32_DEBUGGER)  -p "0x1E7FC:0x00000000:4" 
+	cd './targets/efm32/GNU ARM v7.2.1 - Debug' && $(MAKE) all
+	commander flash './targets/efm32/GNU ARM v7.2.1 - Debug/EFM32.hex' $(EFM32_DEBUGGER)  -p "0x1E7FC:0x00000000:4" 
 efm32read:
-	cd '.\efm32\GNU ARM v7.2.1 - Debug' && $(MAKE) all
+	cd './targets/efm32/GNU ARM v7.2.1 - Debug' && $(MAKE) all
 	commander swo read $(EFM32_DEBUGGER)
 
 
 
 efm32bootprog:
-	cd '.\efm32boot\GNU ARM v7.2.1 - Debug' && $(MAKE) all
-	commander flash '.\efm32boot\GNU ARM v7.2.1 - Debug\efm32boot.hex' $(EFM32_DEBUGGER) --masserase
+	cd './targets/efm32boot/GNU ARM v7.2.1 - Debug' && $(MAKE) all
+	commander flash './efm32boot/GNU ARM v7.2.1 - Debug/efm32boot.hex' $(EFM32_DEBUGGER) --masserase
 
 $(name):  $(obj)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)

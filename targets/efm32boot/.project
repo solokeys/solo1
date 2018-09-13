@@ -21,7 +21,7 @@
 		<link>
 			<name>crypto</name>
 			<type>2</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/crypto</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/crypto</locationURI>
 		</link>
 		<link>
 			<name>efm32</name>
@@ -31,7 +31,7 @@
 		<link>
 			<name>fido2</name>
 			<type>2</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/fido2</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/fido2</locationURI>
 		</link>
 		<link>
 			<name>CMSIS/EFM32JG1B/startup_gcc_efm32jg1b.s</name>

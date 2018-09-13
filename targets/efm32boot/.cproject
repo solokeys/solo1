@@ -48,11 +48,11 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/inc&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../efm32/inc&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../fido2&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../tinycbor/src&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../crypto/sha256&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../crypto/micro-ecc&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../crypto/tiny-AES-c&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../fido2&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../tinycbor/src&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../crypto/sha256&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../crypto/micro-ecc&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../../crypto/tiny-AES-c&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${StudioSdkPath}/hardware/kit/common/bsp&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${StudioSdkPath}/hardware/kit/common/drivers&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${StudioSdkPath}/platform/Device/SiliconLabs/EFM32JG1B/Include&quot;"/>
