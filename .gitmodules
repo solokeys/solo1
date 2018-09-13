@@ -3,7 +3,7 @@
 	url = https://github.com/intel/tinycbor
 [submodule "python-fido2"]
 	path = python-fido2
-	url = https://github.com/conorpp/python-fido2
+	url = https://github.com/SoloKeysSec/python-fido2
 [submodule "crypto/micro-ecc"]
 	path = crypto/micro-ecc
 	url = https://github.com/kmackay/micro-ecc.git
