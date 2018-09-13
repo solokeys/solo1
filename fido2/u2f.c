@@ -9,7 +9,6 @@
 
 // void u2f_response_writeback(uint8_t * buf, uint8_t len);
 static int16_t u2f_register(struct u2f_register_request * req);
-static int16_t u2f_version();
 static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control);
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
 void u2f_reset_response();
@@ -18,7 +17,7 @@ static CTAP_RESPONSE * _u2f_resp = NULL;
 
 void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
 {
-    uint16_t rcode;
+    uint16_t rcode = 0;
     uint64_t t1,t2;
     uint32_t len = ((req->LC3) | ((uint32_t)req->LC2 << 8) | ((uint32_t)req->LC1 << 16));
     uint8_t byte;
@@ -31,101 +30,58 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
         rcode = U2F_SW_CLASS_NOT_SUPPORTED;
         goto end;
     }
-#if defined(BRIDGE_TO_WALLET) || defined(IS_BOOTLOADER)
-    struct u2f_authenticate_request * auth = (struct u2f_authenticate_request *) req->payload;
-
-
-    if (req->ins == U2F_AUTHENTICATE)
-    {
-        if (req->p1 == U2F_AUTHENTICATE_CHECK)
-        {
-
-
-            if (is_wallet_device((uint8_t *) &auth->kh, auth->khl))     // Pin requests
-            {
-                rcode =  U2F_SW_CONDITIONS_NOT_SATISFIED;
-            }
-            else
-            {
-                rcode =  U2F_SW_WRONG_DATA;
-            }
-            printf1(TAG_WALLET,"Ignoring U2F request\n");
-            goto end;
-        }
-        else
-        {
-            if ( ! is_wallet_device((uint8_t *) &auth->kh, auth->khl))     // Pin requests
-            {
-                rcode = U2F_SW_WRONG_PAYLOAD;
-                printf1(TAG_WALLET,"Ignoring U2F request\n");
-                goto end;
-            }
-            rcode = bridge_u2f_to_wallet(auth->chal, auth->app, auth->khl, (uint8_t*)&auth->kh);
-        }
-    }
-    else if (req->ins == U2F_VERSION)
-    {
-        printf1(TAG_U2F, "U2F_VERSION\n");
-        if (len)
-        {
-            rcode = U2F_SW_WRONG_LENGTH;
-        }
-        else
-        {
-            rcode = u2f_version();
-        }
-    }
-    else
-    {
-        rcode = U2F_SW_INS_NOT_SUPPORTED;
-    }
-
-#else
-    switch(req->ins)
-    {
-        case U2F_REGISTER:
-            printf1(TAG_U2F, "U2F_REGISTER\n");
-            if (len != 64)
-            {
-                rcode = U2F_SW_WRONG_LENGTH;
-            }
-            else
-            {
-                t1 = millis();
-                rcode = u2f_register((struct u2f_register_request*)req->payload);
-                t2 = millis();
-                printf1(TAG_TIME,"u2f_register time: %d ms\n", t2-t1);
-            }
-            break;
-        case U2F_AUTHENTICATE:
-            printf1(TAG_U2F, "U2F_AUTHENTICATE\n");
-            t1 = millis();
-            rcode = u2f_authenticate((struct u2f_authenticate_request*)req->payload, req->p1);
-            t2 = millis();
-            printf1(TAG_TIME,"u2f_authenticate time: %d ms\n", t2-t1);
-            break;
-        case U2F_VERSION:
-            printf1(TAG_U2F, "U2F_VERSION\n");
-            if (len)
-            {
-                rcode = U2F_SW_WRONG_LENGTH;
-            }
-            else
-            {
-                rcode = u2f_version();
-            }
-            break;
-        case U2F_VENDOR_FIRST:
-        case U2F_VENDOR_LAST:
-            printf1(TAG_U2F, "U2F_VENDOR\n");
-            rcode = U2F_SW_NO_ERROR;
-            break;
-        default:
-            printf1(TAG_ERR, "Error, unknown U2F command\n");
-            rcode = U2F_SW_INS_NOT_SUPPORTED;
-            break;
-    }
+#ifdef ENABLE_U2F_EXTENSIONS
+    rcode = extend_u2f(req, len);
 #endif
+    if (rcode != U2F_SW_NO_ERROR)       // If the extension didn't do anything...
+    {
+#ifdef ENABLE_U2F
+        switch(req->ins)
+        {
+            case U2F_REGISTER:
+                printf1(TAG_U2F, "U2F_REGISTER\n");
+                if (len != 64)
+                {
+                    rcode = U2F_SW_WRONG_LENGTH;
+                }
+                else
+                {
+                    t1 = millis();
+                    rcode = u2f_register((struct u2f_register_request*)req->payload);
+                    t2 = millis();
+                    printf1(TAG_TIME,"u2f_register time: %d ms\n", t2-t1);
+                }
+                break;
+            case U2F_AUTHENTICATE:
+                printf1(TAG_U2F, "U2F_AUTHENTICATE\n");
+                t1 = millis();
+                rcode = u2f_authenticate((struct u2f_authenticate_request*)req->payload, req->p1);
+                t2 = millis();
+                printf1(TAG_TIME,"u2f_authenticate time: %d ms\n", t2-t1);
+                break;
+            case U2F_VERSION:
+                printf1(TAG_U2F, "U2F_VERSION\n");
+                if (len)
+                {
+                    rcode = U2F_SW_WRONG_LENGTH;
+                }
+                else
+                {
+                    rcode = u2f_version();
+                }
+                break;
+            case U2F_VENDOR_FIRST:
+            case U2F_VENDOR_LAST:
+                printf1(TAG_U2F, "U2F_VENDOR\n");
+                rcode = U2F_SW_NO_ERROR;
+                break;
+            default:
+                printf1(TAG_ERR, "Error, unknown U2F command\n");
+                rcode = U2F_SW_INS_NOT_SUPPORTED;
+                break;
+        }
+#endif
+    }
 
 end:
     if (rcode != U2F_SW_NO_ERROR)
@@ -329,7 +285,7 @@ static int16_t u2f_register(struct u2f_register_request * req)
     return U2F_SW_NO_ERROR;
 }
 
-static int16_t u2f_version()
+int16_t u2f_version()
 {
     const char version[] = "U2F_V2";
     u2f_response_writeback((uint8_t*)version, sizeof(version)-1);

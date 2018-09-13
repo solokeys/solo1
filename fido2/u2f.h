@@ -96,11 +96,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp);
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
 void u2f_reset_response();
 
-
-//////////////////////////////////////////////////////////////////
-/* Platform specific functions that must be implemented by user */
-//////////////////////////////////////////////////////////////////
-
+int16_t u2f_version();
 
 
 #endif /* U2F_H_ */
