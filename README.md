@@ -146,9 +146,7 @@ Look at the issues to see what is currently being worked on.  Feel free to add i
 This is an upgrade to [U2F
 Zero](https://github.com/conorpp/u2f-zero).
 
+# License
 
-
-
-
-
+Everything in this repo is open source and licensed under the MIT License.
 
