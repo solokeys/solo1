@@ -25,6 +25,8 @@ Solo is based on the SAM L11 secure microcontroller.  It offers the following se
 The SAM L11 is one of the best chips for this application in terms of security,
 when considering the NDA-free market.
 
+The firmware can be readout using a debugger to verify that a Solo is running
+the code posted publicly.  The secret information is of course inaccessible.
 
 # Setting up
 
