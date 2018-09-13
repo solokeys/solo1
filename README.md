@@ -1,9 +1,30 @@
 # Solo
 
-This is the source code for Solo.  It implements the authenticator U2F and FIDO2 protocols.  It is designed 
-to be easily ported to lightweight embedded platforms, as well as run on the PC.
+This is the source code for Solo.  Solo is a security key that implements FIDO2/U2F and supports USB, NFC, and extensions.  Extensions
+include SSH, GPG, and cryptocurrency.  Solo is a work in progress.
 
-No hardware is needed for development.
+![](https://i.imgur.com/O7qPR3o.png)
+![](https://i.imgur.com/vwFbsQW.png?1)
+
+The Solo FIDO2/U2F code base is designed to be easily ported to different embedded systems.
+Right now, it has been ported to the NRF52840 and EFM32J.  Soon to be supported is the SAM L11.
+
+No hardware is needed for development.  You can run and extend the FIDO2 code base
+using just your PC.
+
+# Security
+
+Solo is based on the SAM L11 secure microcontroller.  It offers the following security features.
+
+- True random number generation to guarantee random keys.
+- Side channel resistant RAM and AES for physically secure key derivation.
+- ARM TrustZone to provide security isolation for master key.
+- Scrambled key storage to prevent invasive flash readout methods.
+- Secure boot to ensure application integrity.
+
+The SAM L11 is one of the best chips for this application in terms of security,
+when considering the NDA-free market.
+
 
 # Setting up
 
@@ -21,6 +42,10 @@ cd python-fido2/
 python setup.py install
 
 ```
+
+Note that our python-fido2 fork will only connect to the software FIDO2 application,
+not a hardware authenticator.  Install Yubico's fork to do that.
+
 
 Open `crypto/tiny-AES-c/aes.h` in a text editor and make sure AES256 is selected as follows.
 
@@ -53,15 +78,33 @@ Run FIDO 2 / U2F application.
 ./main
 ```
 
-Run client software.
+Run example client software.  This runs through a registration and authentication.
 
 ```
 python python-fido2/examples/credential.py
 ```
 
-You should see messages exchange between the client and the authenticator but that's it.  Follow specifications to develop further.
+Run the FIDO2 tests.
+
+```
+python tools/ctap_test.py
+```
+
+Follow specifications to really dig in.
 
 [https://fidoalliance.org/specs/fido-v2.0-ps-20170927/fido-client-to-authenticator-protocol-v2.0-ps-20170927.html](https://fidoalliance.org/specs/fido-v2.0-ps-20170927/fido-client-to-authenticator-protocol-v2.0-ps-20170927.html)
+
+## Extensions
+
+Extensions can be added to FIDO2/U2F to support things like SSH, GPG, and cryptocurrency.
+Right now, an experimental cryptocurrency extension can be found in `fido2/extensions` and `web/index.html`.
+More documentation to come.
+
+## Porting
+
+The main code base is in `fido2/`.  See `targets/nrf52840`, `targets/efm32/src`, and `pc/`
+for examples of FIDO2/U2F ports.  In essence, you need to reimplement `device.c`.
+More documentation to come.
 
 # Contributors
 
@@ -69,11 +112,11 @@ Contributors are welcome.  The ultimate goal is to have a FIDO 2 hardware token
 capable of USB, Bluetooth, and NFC interfaces.  There could be multiple tokens
 for each interface.  [Hardware is still being decided
     on](https://github.com/conorpp/u2f-zero/issues/76).
+    
+Look at the issues to see what is currently being worked on.  Feel free to add issues as well.
 
 This is an upgrade to [U2F
-Zero](https://github.com/conorpp/u2f-zero).  A lot of the hardware and software
-will be different so I think it's best to start a new repository.
-
+Zero](https://github.com/conorpp/u2f-zero).
 
 
 
