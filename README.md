@@ -31,7 +31,7 @@ the code posted publicly.  The secret information is of course inaccessible.
 # How do I get one?
 
 We are still working on open sourcing an implementation that anyone can cheaply
-build and program, just like with U2F Zero.  This will be released soon.
+build and program, just like with U2F Zero.  This will be released soon.  It will be easy to solder :)
 
 In the meantime, you can port the code to your favorite microcontroller, or support
 us by signing up for our Kickstarter.  Our aim is to crowdfund enough to make an economic
