@@ -3,7 +3,7 @@
 This is the source code for Solo.  Solo is a security key that implements FIDO2/U2F and supports USB, NFC, and extensions.  Extensions
 include SSH, GPG, and cryptocurrency.  Solo is a work in progress.
 
-![](https://i.imgur.com/O7qPR3o.png)
+![](https://i.imgur.com/cXWtI1D.png)
 ![](https://i.imgur.com/vwFbsQW.png?1)
 
 The Solo FIDO2/U2F code base is designed to be easily ported to different embedded systems.
