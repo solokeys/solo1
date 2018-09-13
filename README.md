@@ -46,7 +46,7 @@ bulk order and provide open source security tokens for everyone that is interest
 Clone and Compile CBOR library and FIDO 2 client library.
 
 ```bash
-git clone https://gitlab.com/solokeys/solo
+git clone https://github.com/SoloKeysSec/solo
 cd solo/
 git submodule update --init
 
