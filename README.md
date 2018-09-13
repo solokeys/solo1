@@ -1,6 +1,6 @@
 # Solo
 
-This is the source code for Solo.  Solo is a security key that implements FIDO2/U2F and supports USB, NFC, and extensions.  Extensions
+This is the source code for Solo.  Solo is a security key that implements FIDO2/U2F and supports USB-A, USB-C, NFC, and extensions.  Extensions
 include SSH, GPG, and cryptocurrency.  Solo is a work in progress.
 
 ![](https://i.imgur.com/cXWtI1D.png)
@@ -25,7 +25,7 @@ Solo is based on the SAM L11 secure microcontroller.  It offers the following se
 The SAM L11 is one of the best chips for this application in terms of security,
 when considering the NDA-free market.
 
-The firmware can be readout using a debugger to verify that a Solo is running
+Solo can be trusted to be running the open source code.  The firmware can be readout using a debugger to verify that a Solo is running
 the code posted publicly.  The secret information is of course inaccessible.
 
 # How do I get one?
@@ -34,7 +34,7 @@ We are still working on open sourcing an implementation that anyone can cheaply
 build and program, just like with U2F Zero.  This will be released soon.  It will be easy to solder :)
 
 In the meantime, you can port the code to your favorite microcontroller, or support
-us by signing up for our Kickstarter.  Our aim is to crowdfund enough to make an economic
+us by [signing up for our Kickstarter](https://solokeys.com/).  Our aim is to crowdfund enough to make an economic
 bulk order and provide open source security tokens for everyone that is interested.  We will offer 
 "hackable" tokens that come with USB bootloaders and are reprogrammable.
 
@@ -81,10 +81,8 @@ make
 The application is set up to send and recv USB HID messages over UDP to ease
 development and reduce need for hardware.
 
-Testing can be done using Yubico's client software.  Note that the client
-software is also a work in progress and the [FIDO 2.0
-specification](https://fidoalliance.org/specs/fido-v2.0-ps-20170927/fido-client-to-authenticator-protocol-v2.0-ps-20170927.html)
-is ultimate.  Some small changes to Yubico's Client software make it send
+Testing can be done using our fork of Yubico's client software, `python-fido2`.  
+Our fork of `python-fido2` has small changes to make it send
 USB HID over UDP to the authenticator application.
 
 Run FIDO 2 / U2F application.
@@ -115,10 +113,25 @@ Extensions can be added to FIDO2/U2F to support things like SSH, GPG, and crypto
 Right now, an experimental cryptocurrency extension can be found in `fido2/extensions` and `web/index.html`.
 More documentation to come.
 
+The main goal is to expose an extensible API on Solo, like the following:
+- Command to store private key
+- Command to sign arbitrary hash
+- Command to derive a public key
+- Commands for setting/changing/authenticating a pin code (like in FIDO2)
+- Command to expose entropy from TRNG.
+
+Using these generic commands, various external programs can be implemented for the security key.
+Since FIDO2/U2F are implemented, these programs can potentially work in the browser on desktops
+and mobile devices, with no drivers needed to be installed.
+
+
 ## Porting
 
 The main code base is in `fido2/`.  See `targets/nrf52840`, `targets/efm32/src`, and `pc/`
-for examples of FIDO2/U2F ports.  In essence, you need to reimplement `device.c`.
+for examples of FIDO2/U2F ports.  In essence, you just need to reimplement `device.c`.  Optionally you can
+re-implement `crypto.c` to accelerate operations and/or add other security features.
+
+
 More documentation to come.
 
 # Contributors
