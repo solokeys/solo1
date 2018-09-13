@@ -28,6 +28,19 @@ when considering the NDA-free market.
 The firmware can be readout using a debugger to verify that a Solo is running
 the code posted publicly.  The secret information is of course inaccessible.
 
+# How do I get one?
+
+We are still working on open sourcing an implementation that anyone can cheaply
+build and program, just like with U2F Zero.  This will be released soon.
+
+In the meantime, you can port the code to your favorite microcontroller, or support
+us by signing up for our Kickstarter.  Our aim is to crowdfund enough to make an economic
+bulk order and provide open source security tokens for everyone that is interested.  We will offer 
+"hackable" tokens that come with USB bootloaders and are reprogrammable.
+
+[Sign up here](https://solokeys.com/)!
+
+
 # Setting up
 
 Clone and Compile CBOR library and FIDO 2 client library.
