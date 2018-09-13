@@ -46,8 +46,8 @@ bulk order and provide open source security tokens for everyone that is interest
 Clone and Compile CBOR library and FIDO 2 client library.
 
 ```bash
-git clone https://github.com/conorpp/u2f-one
-cd u2f-one/
+git clone https://gitlab.com/solokeys/solo
+cd solo/
 git submodule update --init
 
 cd tinycbor && make
