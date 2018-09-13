@@ -138,8 +138,7 @@ More documentation to come.
 
 Contributors are welcome.  The ultimate goal is to have a FIDO 2 hardware token
 capable of USB, Bluetooth, and NFC interfaces.  There could be multiple tokens
-for each interface.  [Hardware is still being decided
-    on](https://github.com/conorpp/u2f-zero/issues/76).
+for each interface.
     
 Look at the issues to see what is currently being worked on.  Feel free to add issues as well.
 
