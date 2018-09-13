@@ -14,7 +14,9 @@
 
 //#define USING_DEV_BOARD
 
-//#define BRIDGE_TO_WALLET
+//#define ENABLE_U2F_EXTENSIONS
+
+#define ENABLE_U2F
 
 //#define DISABLE_CTAPHID_PING
 //#define DISABLE_CTAPHID_WINK

@@ -18,7 +18,7 @@ obj = $(src:.c=.o) uECC.o
 LDFLAGS = -Wl,--gc-sections ./tinycbor/lib/libtinycbor.a
 CFLAGS = -O2 -fdata-sections -ffunction-sections 
 
-INCLUDES = -I./tinycbor/src -I./crypto/sha256 -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/ -I./fido2/ -I./pc
+INCLUDES = -I./tinycbor/src -I./crypto/sha256 -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/ -I./fido2/ -I./pc -I./fido2/extensions
 
 CFLAGS += $(INCLUDES)
 

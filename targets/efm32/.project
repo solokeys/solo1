@@ -28,12 +28,12 @@
 		<link>
 			<name>crypto</name>
 			<type>2</type>
-			<location>C:/Users/conor/Desktop/u2f-one/crypto/</location>
+			<locationURI>$%7BPARENT-2-PROJECT_LOC%7D/crypto</locationURI>
 		</link>
 		<link>
 			<name>fido2</name>
 			<type>2</type>
-			<location>C:/Users/conor/Desktop/u2f-one/fido2/</location>
+			<locationURI>$%7BPARENT-2-PROJECT_LOC%7D/fido2</locationURI>
 		</link>
 		<link>
 			<name>CMSIS/EFM32JG1B/startup_gcc_efm32jg1b.s</name>
