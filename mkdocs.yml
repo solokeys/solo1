@@ -4,6 +4,12 @@ site_description: 'Documentation for the SoloKeys solo software'
 repo_url: 'https://github.com/solokeyssec/solo'
 copyright: 'Copyright &copy; 2018 SoloKeys'
 
+nav:
+    - Home: index.md
+    - README.md: repo-readme.md
+    - Contributing: contributing.md
+    - Hosting: hosting.md
+
 theme:
   name: material
   logo: 'images/logo.svg'
