@@ -1,0 +1,9 @@
+site_name: Solo
+site_author: SoloKeys
+site_description: 'Documentation for the SoloKeys solo software'
+repo_url: 'https://github.com/solokeyssec/solo'
+copyright: 'Copyright &copy; 2018 SoloKeys'
+
+theme:
+  name: material
+  logo: 'images/logo.svg'
