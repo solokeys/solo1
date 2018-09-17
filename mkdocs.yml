@@ -8,8 +8,9 @@ copyright: 'Copyright &copy; 2018 SoloKeys'
 nav:
     - Home: index.md
     - README.md: repo-readme.md
-    - Contributing: contributing.md
-    - Hosting: hosting.md
+    - Contributing Code: contributing.md
+    - Contributing Docs: documenting.md
+    - What the udev?!: udev.md
 
 theme:
   name: material
