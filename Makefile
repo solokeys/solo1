@@ -26,7 +26,7 @@ CFLAGS += $(INCLUDES)
 name = main
 
 .PHONY: all
-all: main
+all: python-fido2 main
 
 
 tinycbor/Makefile crypto/tiny-AES-c/aes.h:
@@ -63,7 +63,7 @@ efm32bootprog:
 
 
 crypto/tiny-AES-c/aes.o:
-	if ! grep "^#define AES256" crypto/tiny-AES-c/aes.h ; then \
+	if ! grep -q "^#define AES256" crypto/tiny-AES-c/aes.h ; then \
 		echo "Fixing crypto/tiny-AES-c/aes.h" ;\
 		sed -i 's/^#define AES1\/\/#define AES1; s/^\/*#define AES256/#define AES256/' crypto/tiny-AES-c/aes.h ;\
 	fi
@@ -81,11 +81,41 @@ testgcm: $(obj) $(LIBCBOR)
 uECC.o: ./crypto/micro-ecc/uECC.c
 	$(CC) -c -o $@ $^ -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(platform) -I./crypto/micro-ecc/
 
+
+# python virtualenv
+
+venv:
+	@if ! which virtualenv >/dev/null ; then \
+	    echo "ERR: Sorry, no python virtualenv found. Please consider installing " ;\
+	    echo "     it via something like:" ;\
+	    echo "   sudo apt install python-virtualenv" ;\
+	    echo "     or maybe:" ;\
+	    echo "   pip install virtualenv" ;\
+	fi
+	virtualenv venv
+	./venv/bin/pip install wheel 
+
+.PHONY: python-fido2
+python-fido2: venv
+	cd python-fido2/ && ../venv/bin/python setup.py install 
+
+venv/bin/mkdocs: venv
+	./venv/bin/pip install mkdocs mkdocs-material
+
+.PHONY: docsrv
+docsrv:	venv/bin/mkdocs
+	./venv/bin/mkdocs serve
+
+.PHONY: fido2-test
+fido2-test:
+	./venv/bin/python tools/ctap_test.py
+
 clean:
 	rm -f *.o main.exe main $(obj)
 	for f in crypto/tiny-AES-c/Makefile tinycbor/Makefile ; do \
 	    if [ -f "$$f" ]; then \
-	    	(cd `dirname $$f` ; git co -- .) ;\
+	    	(cd `dirname $$f` ; git checkout -- .) ;\
 	    fi ;\
 	done
+	rm -rf venv
 

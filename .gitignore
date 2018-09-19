@@ -74,3 +74,4 @@ tools/python-fido2/*
 *.key
 site/
 _site/
+venv/
