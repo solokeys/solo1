@@ -34,11 +34,11 @@ We are still working on open sourcing an implementation that anyone can cheaply
 build and program, just like with U2F Zero.  This will be released soon.  It will be easy to solder :)
 
 In the meantime, you can port the code to your favorite microcontroller, or support
-us by [signing up for our Kickstarter](https://solokeys.com/).  Our aim is to crowdfund enough to make an economic
+us by [signing up for our Kickstarter](https://solokeys.com/kickstarter).  Our aim is to crowdfund enough to make an economic
 bulk order and provide open source security tokens for everyone that is interested.  We will offer 
 "hackable" tokens that come with USB bootloaders and are reprogrammable.
 
-[Sign up here](https://solokeys.com/)!
+[Sign up here](https://solokeys.com/kickstarter)!
 
 
 # Setting up
