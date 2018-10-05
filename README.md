@@ -7,26 +7,20 @@ include SSH, GPG, and cryptocurrency.  Solo is an upgrade to [U2F Zero](https://
 ![](https://i.imgur.com/vwFbsQW.png?1)
 
 The Solo FIDO2/U2F code base is designed to be easily ported to different embedded systems.
-Right now, it has been ported to the NRF52840 and EFM32J.  Soon to be supported is the SAM L11.
+Right now, it has been ported to the NRF52840 and EFM32J.  Soon to be supported is the STM32L442.
 
 No hardware is needed for development.  You can run and extend the FIDO2 code base
 using just your PC.
 
 # Security
 
-Solo is based on the SAM L11 secure microcontroller.  It offers the following security features.
+Solo is based on the STM32L442 microcontroller.  It offers the following security features.
 
 - True random number generation to guarantee random keys.
-- Side channel resistant RAM and AES for physically secure key derivation.
-- ARM TrustZone to provide security isolation for master key.
-- Scrambled key storage to prevent invasive flash readout methods.
-- Secure boot to ensure application integrity.
+- Firewall feature for code and secret data isolation.
+- Locked flash
 
-The SAM L11 is one of the best chips for this application in terms of security,
-when considering the NDA-free market.
-
-Solo can be trusted to be running the open source code.  The firmware can be readout using a debugger to verify that a Solo is running
-the code posted publicly.  The secret information is of course inaccessible.
+It also has up to 256 KB of memory, meaning it has room for side channel and fault resistant crypto implementations, plus other features.
 
 # How do I get one?
 
