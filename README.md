@@ -22,6 +22,8 @@ Solo is based on the STM32L442 microcontroller.  It offers the following securit
 
 It also has up to 256 KB of memory, meaning it has room for side channel and fault resistant crypto implementations, plus other features.
 
+Each chip ships with a read-only USB bootloader, put in place by ST.  This can be leveraged to completely reset and reprogram the device, to make sure you can trust it's running the right code.  The bootloader can be disabled.
+
 # How do I get one?
 
 We are still working on open sourcing an implementation that anyone can cheaply
