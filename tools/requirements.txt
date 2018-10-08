@@ -1,2 +1,2 @@
-ecdsa
-intelhex
+ecdsa==0.13
+intelhex==2.2.1
