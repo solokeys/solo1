@@ -1,2 +1,2 @@
-ecdsa
+ecdsa==0.13
 intelhex
