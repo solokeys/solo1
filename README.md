@@ -130,6 +130,10 @@ re-implement `crypto.c` to accelerate operations and/or add other security featu
 
 More documentation to come.
 
+# Documentation
+
+Check out our [official documentation](https://solo.solokeys.io/).
+
 # Contributors
 
 Contributors are welcome.  The ultimate goal is to have a FIDO 2 hardware token
