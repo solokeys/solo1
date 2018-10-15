@@ -1,3 +1,18 @@
+# tl;dr
+
+Create `/etc/udev/fido.rules` and add the following.
+
+```
+# U2F Zero
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="8acf", TAG+="uaccess"
+```
+
+Then run
+
+```
+udevadm trigger
+```
+
 # How do udev rules work and why are they needed
 
 In Linux, `udev` (part of `systemd`, read `man 7 udev`) handles "hot-pluggable" devices, of which Solo and U2F Zero are examples. In particular, it creates nodes in the `/dev` filesystem (in Linux, everything is a file), which allow accessing the device.
@@ -33,6 +48,12 @@ It matches on the correct vendor/product IDs of 10c4/8acf, and adds the TAG `uac
 KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", MODE="0644", GROUP="plugdev"
 ```
 which sets MODE of the device node to readable by anyone.
+
+Now reload the device events.
+
+```
+udevadm trigger
+```
 
 ## What about vendor and product ID for Solo?
 Current prototypes reuse the IDs of the U2F Zero (10c4/8acf). The final Solo will probably be assigned new IDs; read about it here first :)

@@ -8,6 +8,8 @@ copyright: 'Copyright &copy; 2018 SoloKeys'
 nav:
     - Home: index.md
     - README.md: repo-readme.md
+    - FIDO2 Implementation: fido2-impl.md
+    - Signed update process: signed-updates.md
     - Contributing Code: contributing.md
     - Contributing Docs: documenting.md
     - What the udev?!: udev.md
