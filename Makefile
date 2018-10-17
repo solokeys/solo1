@@ -22,6 +22,8 @@ CFLAGS = -O2 -fdata-sections -ffunction-sections
 INCLUDES = -I./tinycbor/src -I./crypto/sha256 -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/ -I./fido2/ -I./pc -I./fido2/extensions
 
 CFLAGS += $(INCLUDES)
+# for crypto/tiny-AES-c
+CFLAGS += -DAES256=1
 
 name = main
 
@@ -29,7 +31,7 @@ name = main
 all: python-fido2 main
 
 
-tinycbor/Makefile crypto/tiny-AES-c/aes.h:
+tinycbor/Makefile crypto/tiny-AES-c/aes.c:
 	git submodule update --init
 
 .PHONY: cbor
@@ -60,15 +62,6 @@ efm32read:
 efm32bootprog:
 	cd './targets/efm32boot/GNU ARM v7.2.1 - Debug' && $(MAKE) all
 	commander flash './efm32boot/GNU ARM v7.2.1 - Debug/efm32boot.hex' $(EFM32_DEBUGGER) --masserase
-
-
-crypto/tiny-AES-c/aes.o:
-	if ! grep -q "^#define AES256" crypto/tiny-AES-c/aes.h ; then \
-		echo "Fixing crypto/tiny-AES-c/aes.h" ;\
-		sed -i 's/^#define AES1\/\/#define AES1; s/^\/*#define AES256/#define AES256/' crypto/tiny-AES-c/aes.h ;\
-	fi
-	$(CC) $(CFLAGS) -c -o crypto/tiny-AES-c/aes.o crypto/tiny-AES-c/aes.c
-
 
 $(name): $(obj) $(LIBCBOR)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
