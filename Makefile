@@ -66,9 +66,11 @@ efm32bootprog:
 $(name): $(obj) $(LIBCBOR)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
 
-testgcm: $(obj) $(LIBCBOR)
-	$(CC) -c main.c $(CFLAGS) -DTEST -o main.o
-	$(CC) -c crypto/aes_gcm.c $(CFLAGS) -DTEST -o crypto/aes_gcm.o
+crypto/aes-gcm/aes_gcm.o: 
+	$(CC) -c crypto/aes-gcm/aes_gcm.c $(CFLAGS) -DTEST -o crypto/aes-gcm/aes_gcm.o
+
+testgcm: $(obj) $(LIBCBOR) crypto/aes-gcm/aes_gcm.o             
+	$(CC) -c fido2/main.c $(CFLAGS) -DTEST -o fido2/main.o
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDFLAGS)
 
 uECC.o: ./crypto/micro-ecc/uECC.c
@@ -104,7 +106,7 @@ fido2-test:
 	./venv/bin/python tools/ctap_test.py
 
 clean:
-	rm -f *.o main.exe main $(obj)
+	rm -f *.o main.exe main testgcm $(obj)
 	for f in crypto/tiny-AES-c/Makefile tinycbor/Makefile ; do \
 	    if [ -f "$$f" ]; then \
 	    	(cd `dirname $$f` ; git checkout -- .) ;\
