@@ -15,20 +15,32 @@ EFM32_DEBUGGER= -s 440083537 --device EFM32JG1B200F128GM32
 src = $(wildcard pc/*.c) $(wildcard fido2/*.c) $(wildcard crypto/sha256/*.c) crypto/tiny-AES-c/aes.c
 obj = $(src:.c=.o) uECC.o
 
-LDFLAGS = -Wl,--gc-sections ./tinycbor/lib/libtinycbor.a
+LIBCBOR = tinycbor/lib/libtinycbor.a
+LDFLAGS = -Wl,--gc-sections $(LIBCBOR)
 CFLAGS = -O2 -fdata-sections -ffunction-sections 
 
 INCLUDES = -I./tinycbor/src -I./crypto/sha256 -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/ -I./fido2/ -I./pc -I./fido2/extensions
 
 CFLAGS += $(INCLUDES)
+# for crypto/tiny-AES-c
+CFLAGS += -DAES256=1
 
 name = main
 
-all: main
+.PHONY: all
+all: python-fido2 main
 
-cbor:
+
+tinycbor/Makefile crypto/tiny-AES-c/aes.c:
+	git submodule update --init
+
+.PHONY: cbor
+cbor: $(LIBCBOR)
+
+$(LIBCBOR): tinycbor/Makefile
 	cd tinycbor/ && $(MAKE) clean && $(MAKE) -j8
 
+.PHONY: test
 test: testgcm
 
 efm8prog:
@@ -51,16 +63,54 @@ efm32bootprog:
 	cd './targets/efm32boot/GNU ARM v7.2.1 - Debug' && $(MAKE) all
 	commander flash './efm32boot/GNU ARM v7.2.1 - Debug/efm32boot.hex' $(EFM32_DEBUGGER) --masserase
 
-$(name):  $(obj)
+$(name): $(obj) $(LIBCBOR)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
 
-testgcm: $(obj)
-	$(CC) -c main.c $(CFLAGS) -DTEST -o main.o
-	$(CC) -c crypto/aes_gcm.c $(CFLAGS) -DTEST -o crypto/aes_gcm.o
+crypto/aes-gcm/aes_gcm.o: 
+	$(CC) -c crypto/aes-gcm/aes_gcm.c $(CFLAGS) -DTEST -o crypto/aes-gcm/aes_gcm.o
+
+testgcm: $(obj) $(LIBCBOR) crypto/aes-gcm/aes_gcm.o             
+	$(CC) -c fido2/main.c $(CFLAGS) -DTEST -o fido2/main.o
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDFLAGS)
 
 uECC.o: ./crypto/micro-ecc/uECC.c
 	$(CC) -c -o $@ $^ -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(platform) -I./crypto/micro-ecc/
 
+
+# python virtualenv
+
+venv:
+	@if ! which virtualenv >/dev/null ; then \
+	    echo "ERR: Sorry, no python virtualenv found. Please consider installing " ;\
+	    echo "     it via something like:" ;\
+	    echo "   sudo apt install python-virtualenv" ;\
+	    echo "     or maybe:" ;\
+	    echo "   pip install virtualenv" ;\
+	fi
+	virtualenv venv
+	./venv/bin/pip install wheel 
+
+.PHONY: python-fido2
+python-fido2: venv
+	cd python-fido2/ && ../venv/bin/python setup.py install 
+
+venv/bin/mkdocs: venv
+	./venv/bin/pip install mkdocs mkdocs-material
+
+.PHONY: docsrv
+docsrv:	venv/bin/mkdocs
+	./venv/bin/mkdocs serve
+
+.PHONY: fido2-test
+fido2-test:
+	./venv/bin/python tools/ctap_test.py
+
 clean:
-	rm -f *.o main.exe main $(obj)
+	rm -f *.o main.exe main testgcm $(obj)
+	for f in crypto/tiny-AES-c/Makefile tinycbor/Makefile ; do \
+	    if [ -f "$$f" ]; then \
+	    	(cd `dirname $$f` ; git checkout -- .) ;\
+	    fi ;\
+	done
+	rm -rf venv
+

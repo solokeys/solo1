@@ -39,38 +39,21 @@ bulk order and provide open source security tokens for everyone that is interest
 
 # Setting up
 
-Clone and Compile CBOR library and FIDO 2 client library.
+Clone solo and build it
 
 ```bash
 git clone https://github.com/SoloKeysSec/solo
 cd solo/
-git submodule update --init
-
-cd tinycbor && make
-cd ..
-
-cd python-fido2/
-python setup.py install
+make all
 
 ```
+
+This builds our FIDO 2.0 and the U2F authenticator, as well as making a virtualenv in venv/
+that has our python-fido2 fork installed.
 
 Note that our python-fido2 fork will only connect to the software FIDO2 application,
 not a hardware authenticator.  Install Yubico's fork to do that.
 
-
-Open `crypto/tiny-AES-c/aes.h` in a text editor and make sure AES256 is selected as follows.
-
-```
-//#define AES128 1
-//#define AES192 1
-#define AES256 1
-```
-
-Now compile FIDO 2.0 and U2F authenticator.
-
-```bash
-make
-```
 
 # Testing and development
 
@@ -90,13 +73,13 @@ Run FIDO 2 / U2F application.
 Run example client software.  This runs through a registration and authentication.
 
 ```
-python python-fido2/examples/credential.py
+./venv/bin/python python-fido2/examples/credential.py
 ```
 
 Run the FIDO2 tests.
 
 ```
-python tools/ctap_test.py
+make fido2-test
 ```
 
 Follow specifications to really dig in.
@@ -142,8 +125,7 @@ for each interface.
     
 Look at the issues to see what is currently being worked on.  Feel free to add issues as well.
 
-This is an upgrade to [U2F
-Zero](https://github.com/conorpp/u2f-zero).
+This is an upgrade to [U2F Zero](https://github.com/conorpp/u2f-zero).
 
 # License
 
