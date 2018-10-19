@@ -1,0 +1,12 @@
+dist: trusty
+language: c
+compiler: gcc
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-7
+script:
+  - export CC=gcc-7
+  - make test

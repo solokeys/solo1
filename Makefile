@@ -30,6 +30,11 @@ name = main
 .PHONY: all
 all: python-fido2 main
 
+.PHONY: test
+test: 
+	$(MAKE) -C . main
+	$(MAKE) -C . testgcm
+	./testgcm
 
 tinycbor/Makefile crypto/tiny-AES-c/aes.c:
 	git submodule update --init
@@ -40,27 +45,20 @@ cbor: $(LIBCBOR)
 $(LIBCBOR): tinycbor/Makefile
 	cd tinycbor/ && $(MAKE) clean && $(MAKE) -j8
 
-.PHONY: test
-test: testgcm
-
+.PHONY: efm8prog
 efm8prog:
 	cd './targets/efm8\Keil 8051 v9.53 - Debug' && $(MAKE) all
 	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -erase
 	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -upload './targets/efm8/Keil 8051 v9.53 - Debug/efm8.hex'
 
+.PHONY: efm32com efm32prog efm32read efm32bootprog
 efm32com:
 	cd './targets/efm32/GNU ARM v7.2.1 - Debug' && $(MAKE) all
-efm32prog:
-	cd './targets/efm32/GNU ARM v7.2.1 - Debug' && $(MAKE) all
+efm32prog: efm32com
 	commander flash './targets/efm32/GNU ARM v7.2.1 - Debug/EFM32.hex' $(EFM32_DEBUGGER)  -p "0x1E7FC:0x00000000:4" 
-efm32read:
-	cd './targets/efm32/GNU ARM v7.2.1 - Debug' && $(MAKE) all
+efm32read: efm32com
 	commander swo read $(EFM32_DEBUGGER)
-
-
-
-efm32bootprog:
-	cd './targets/efm32boot/GNU ARM v7.2.1 - Debug' && $(MAKE) all
+efm32bootprog: efm32com
 	commander flash './efm32boot/GNU ARM v7.2.1 - Debug/efm32boot.hex' $(EFM32_DEBUGGER) --masserase
 
 $(name): $(obj) $(LIBCBOR)
