@@ -9,4 +9,7 @@
 	url = https://github.com/kmackay/micro-ecc.git
 [submodule "crypto/tiny-AES-c"]
 	path = crypto/tiny-AES-c
-	url = https://github.com/kokke/tiny-AES-c
+    url = https://github.com/kokke/tiny-AES-c
+[submodule "targets/stm32l442/dfuse-tool"]
+	path = targets/stm32l442/dfuse-tool
+    url = https://github.com/SoloKeysSec/dfuse-tool
