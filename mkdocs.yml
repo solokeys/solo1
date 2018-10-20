@@ -10,6 +10,7 @@ nav:
     - README.md: repo-readme.md
     - FIDO2 Implementation: fido2-impl.md
     - Signed update process: signed-updates.md
+    - Building: building.md
     - Contributing Code: contributing.md
     - Contributing Docs: documenting.md
     - What the udev?!: udev.md
