@@ -5,6 +5,8 @@ include SSH, GPG, and cryptocurrency.  Solo is an upgrade to [U2F Zero](https://
 
 > Technical documentation for this project is contained in [docs/](https://github.com/SoloKeysSec/solo/tree/master/docs), built with [MkDocs](https://solo.solokeys.io/documenting/) and deployed automatically to <https://solo.solokeys.io>, part of our technical documentation suite hosted at <https://docs.solokeys.io>.
 
+[![Build Status](https://travis-ci.com/SoloKeysSec/solo.svg?branch=master)](https://travis-ci.com/SoloKeysSec/solo)
+
 ![](https://i.imgur.com/cXWtI1D.png)
 ![](https://i.imgur.com/vwFbsQW.png?1)
 
