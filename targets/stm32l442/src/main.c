@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 #include "stm32l4xx.h"
 #include "stm32l4xx_ll_gpio.h"
 #include "stm32l4xx_ll_rcc.h"
@@ -9,173 +10,163 @@
 #include "stm32l4xx_ll_gpio.h"
 #include "stm32l4xx_ll_usart.h"
 #include "stm32l4xx_ll_bus.h"
+#include "stm32l4xx_ll_tim.h"
+
+#include "app.h"
 
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
-
-#define VCP_TX_Pin LL_GPIO_PIN_6
-#define VCP_RX_Pin LL_GPIO_PIN_7
-#define VCP_TX_GPIO_Port GPIOB
-#define VCP_RX_GPIO_Port GPIOB
-
-void _Error_Handler(char *file, int line);
-
-void delay(uint32_t ms)
-{
-    volatile int x,y;
-    for (x=0; x < 100; x++)
-        for (y=0; y < ms * 20; y++)
-            ;
-}
-
-void uart_write(USART_TypeDef *uart, uint8_t * data, uint32_t len)
-{
-    while(len--)
-    {
-        while (! LL_USART_IsActiveFlag_TXE(uart))
-            ;
-        LL_USART_TransmitData8(uart,*data++);
-    }
-}
-
-void MX_USART1_UART_Init(void)
-{
-
-  LL_USART_InitTypeDef USART_InitStruct;
-
-  LL_GPIO_InitTypeDef GPIO_InitStruct;
-
-  /* Peripheral clock enable */
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
-  
-  /**USART1 GPIO Configuration  
-  PB6   ------> USART1_TX
-  PB7   ------> USART1_RX 
-  */
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_6|LL_GPIO_PIN_7;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_7;
-  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  USART_InitStruct.BaudRate = 115200;
-  USART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
-  USART_InitStruct.StopBits = LL_USART_STOPBITS_1;
-  USART_InitStruct.Parity = LL_USART_PARITY_NONE;
-  USART_InitStruct.TransferDirection = LL_USART_DIRECTION_TX_RX;
-  USART_InitStruct.HardwareFlowControl = LL_USART_HWCONTROL_NONE;
-  USART_InitStruct.OverSampling = LL_USART_OVERSAMPLING_16;
-  LL_USART_Init(USART1, &USART_InitStruct);
-
-  LL_USART_ConfigAsyncMode(USART1);
-
-  LL_USART_Enable(USART1);
-
-}
-
-// Generated via cube
-void SystemClock_Config(void)
-{
-
-  LL_FLASH_SetLatency(LL_FLASH_LATENCY_2);
-
-   if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_2)
-  {
-  Error_Handler();  
-  }
-  LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
-
-  LL_RCC_MSI_Enable();
-
-   /* Wait till MSI is ready */
-  while(LL_RCC_MSI_IsReady() != 1)
-  {
-    
-  }
-  LL_RCC_MSI_EnableRangeSelection();
-
-  LL_RCC_MSI_SetRange(LL_RCC_MSIRANGE_11);
-
-  LL_RCC_MSI_SetCalibTrimming(0);
-
-  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_MSI);
-
-   /* Wait till System clock is ready */
-  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
-  {
-  
-  }
-  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
-
-  LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_16);
-
-  LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_16);
-
-  LL_Init1msTick(48000000);
-
-  LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
-
-  LL_SetSystemCoreClock(48000000);
-
-  LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
-
-  /* SysTick_IRQn interrupt configuration */
-  NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-}
 
 #define LED_PIN_G     LL_GPIO_PIN_0
 #define LED_PIN_B     LL_GPIO_PIN_1
 #define LED_PIN_R     LL_GPIO_PIN_2
 #define LED_PORT    GPIOA
-void hw_init()
+
+void hw_init(void);
+
+void delay(uint32_t ms)
 {
+    uint32_t time = millis();
+    while ((millis() - time) < ms)
+        ;
+}
 
-    /*SystemClock_Config();*/
-    // initialize GPIO
-    // Enable clock to A,B,C
-    SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOAEN);
-    SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOBEN);
-    SET_BIT(RCC->AHB2ENR, RCC_AHB2ENR_GPIOCEN);
-    LL_GPIO_SetPinMode(LED_PORT, LED_PIN_R, LL_GPIO_MODE_OUTPUT);
-    LL_GPIO_SetPinMode(LED_PORT, LED_PIN_G, LL_GPIO_MODE_OUTPUT);
-    LL_GPIO_SetPinMode(LED_PORT, LED_PIN_B, LL_GPIO_MODE_OUTPUT);
-    /*  NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);*/
-    /*SystemClock_Config();*/
+void rgb(uint32_t hex)
+{
+    uint32_t r = hex >> 16;
+    uint32_t g = (hex >> 8)&0xff;
+    uint32_t b = hex & 0xff;
+
+    // CCR2 == blue
+    // CCR3 == red
+    // CCR4 == green
+
+    // map and scale colors
+    TIM2->CCR2 = 1000 - (b * 1000)/(256);
+    TIM2->CCR3 = 1000 - (r * 1000)/(256*6);
+    TIM2->CCR4 = 1000 - (g * 1000)/(256);
+}
+
+void test_colors()
+{
+    // Should produce pulsing of various colors
+    int i = 0;
+    int j = 0;
+    int inc = 1;
+    uint32_t time = 0;
+#define update() do {\
+        i += inc;\
+        if (i > 254)\
+        {\
+            inc *= -1;\
+        }\
+        else if (i == 0)\
+        {\
+            inc *= -1;\
+        }\
+        delay(2);\
+        }while(0);
+
+    while(1)
+    {
+
+        printf("%d: %d\r\n", j++, millis());
+
+        printf("white pulse\r\n");
+        time = millis();
+        while((millis() - time) < 5000)
+        {
+            update();
+            rgb(i | (i << 8) | (i << 16));
+        }
+
+        printf("blue pulse\r\n");
+        time = millis();
+        while((millis() - time) < 5000)
+        {
+            update();
+            rgb(i);
+        }
+
+        printf("green pulse\r\n");
+        time = millis();
+        while((millis() - time) < 5000)
+        {
+            update();
+            rgb(i<<8);
+        }
+
+        printf("red pulse\r\n");
+        time = millis();
+        while((millis() - time) < 5000)
+        {
+            update();
+            rgb(i<<16);
+        }
+
+        printf("purple pulse\r\n");
+        time = millis();
+        while((millis() - time) < 5000)
+        {
+            update();
+            rgb((i<<16) | i);
+        }
+
+        printf("orange pulse\r\n");
+        time = millis();
+        while((millis() - time) < 5000)
+        {
+            update();
+            rgb((i<<16) | (i<<8));
+        }
+
+        printf("yellow pulse\r\n");
+        time = millis();
+        while((millis() - time) < 5000)
+        {
+            update();
+            rgb((i<<8) | (i<<0));
+        }
+
+    }
 
 
-    /*MX_USART1_UART_Init();*/
+
+}
+
+uint32_t __65_seconds = 0;
+void TIM6_DAC_IRQHandler()
+{
+    // timer is only 16 bits, so roll it over here
+    TIM6->SR = 0;
+    __65_seconds += 1;
 }
 
 int main(void)
 {
-    uint8_t msg[] = "hi  !\r\n";
-    int i = 'A';
+    uint32_t i = 0;
+    int inc = 1;
     hw_init();
+
+
+    /*LL_GPIO_SetPinMode(LED_PORT, LED_PIN_R, LL_GPIO_MODE_OUTPUT);*/
+    /*LL_GPIO_SetPinMode(LED_PORT, LED_PIN_G, LL_GPIO_MODE_OUTPUT);*/
+    /*LL_GPIO_SetPinMode(LED_PORT, LED_PIN_B, LL_GPIO_MODE_OUTPUT);*/
+
+    /*LL_GPIO_SetOutputPin(LED_PORT, LED_PIN_R);*/
+    /*LL_GPIO_SetOutputPin(LED_PORT, LED_PIN_G);*/
+    /*LL_GPIO_SetOutputPin(LED_PORT, LED_PIN_B);*/
+    test_colors();
+
 
     while (1)
     {
-        /*LL_GPIO_TogglePin(LED_PORT, LED_PIN_R);*/
-        /*LL_GPIO_TogglePin(LED_PORT, LED_PIN_R);*/
-        /*LL_GPIO_TogglePin(LED_PORT, LED_PIN_G);*/
-        /*LL_GPIO_TogglePin(LED_PORT, LED_PIN_B);*/
+        rgb(i | (i << 8) | (i << 16));
 
-        LL_GPIO_SetOutputPin(LED_PORT, LED_PIN_R);
-        LL_GPIO_SetOutputPin(LED_PORT, LED_PIN_G);
-        LL_GPIO_SetOutputPin(LED_PORT, LED_PIN_B);
-
-        LL_GPIO_ResetOutputPin(LED_PORT, LED_PIN_R);
-        /*LL_GPIO_ResetOutputPin(LED_PORT, LED_PIN_G);*/
-        /*LL_GPIO_ResetOutputPin(LED_PORT, LED_PIN_B);*/
-
-
-        /*delay(10);*/
-        msg[3] = i++;
-        while (1)
-            ;
-        /*uart_write(USART2, msg, sizeof(msg));*/
+        delay(100);
+        printf("%d: %d\r\n", i++, millis());
     }
 }
+
 
 void _Error_Handler(char *file, int line)
 {
@@ -184,4 +175,5 @@ void _Error_Handler(char *file, int line)
     {
     }
 }
+
 
