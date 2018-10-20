@@ -1,6 +1,6 @@
 To build, develop and debug the firmware for the STM32L442 (WIP!) via cross-compilation on Linux, no vendor-specific software is necessary.
 
-There exists a development board [NUCLEO-L432KC](https://www.st.com/en/evaluation-tools/nucleo-l432kc.html) you can use; the L432 chip differs from the L442 used for Solo only in that it lacks a cryptographic accelerator. The board does contain a debugger, so all you need is a USB cable :)
+There exists a development board [NUCLEO-L432KC](https://www.st.com/en/evaluation-tools/nucleo-l432kc.html) you can use; the L432 chip differs from the L442 used for Solo only in that it lacks a cryptographic accelerator. The board does contain a debugger, so all you need is a USB cable (and some [udev](/udev) [rules](https://rust-embedded.github.io/book/intro/install/linux.html#udev-rules)).
 
 You will need the following packages (naming given for Arch Linux):
 
