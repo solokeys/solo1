@@ -2,11 +2,13 @@ CC=arm-none-eabi-gcc
 CP=arm-none-eabi-objcopy
 SZ=arm-none-eabi-size
 
-SRC=src/main.c src/init.c src/redirect.c src/flash.c src/rng.c \
+SRC=src/main.c src/init.c src/redirect.c src/flash.c src/rng.c src/led.c src/device.c \
+../../fido2/util.c \
 src/startup_stm32l432xx.s src/system_stm32l4xx.c $(wildcard lib/*c)
 
-OBJ=$(SRC:.c=.o)
-INC=-Isrc/ -Isrc/cmsis -Ilib/
+OBJ1=$(SRC:.c=.o)
+OBJ=$(OBJ1:.s=.o)
+INC=-Isrc/ -Isrc/cmsis -Ilib/ -I../../fido2
 LDSCRIPT=stm32l432xx.ld
 
 CFLAGS= $(INC)
@@ -41,7 +43,7 @@ all: $(TARGET).elf
 	$(CP) -O ihex $^ $(TARGET).hex
 
 clean:
-	rm -f *.o src/*.o src/*.elf *.elf *.hex
+	rm -f *.o src/*.o src/*.elf *.elf *.hex $(OBJ)
 
 flash: $(TARGET).hex
 	STM32_Programmer_CLI -c port=SWD -halt -d $(TARGET).hex -rst

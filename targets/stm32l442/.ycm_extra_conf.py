@@ -90,6 +90,7 @@ get_python_inc(),
     '-std=c99',
     '-Ilib/',
     '-Isrc/cmsis',
+    '-I../../fido2',
 ]
 
 # Clang automatically sets the '-std=' flag to 'c++14' for MSVC 2015 or later,
