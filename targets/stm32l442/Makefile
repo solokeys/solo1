@@ -2,7 +2,7 @@ CC=arm-none-eabi-gcc
 CP=arm-none-eabi-objcopy
 SZ=arm-none-eabi-size
 
-SRC=src/main.c src/init.c src/redirect.c src/startup_stm32l432xx.s src/system_stm32l4xx.c $(wildcard lib/*c)
+SRC=src/main.c src/init.c src/redirect.c src/flash.c src/startup_stm32l432xx.s src/system_stm32l4xx.c $(wildcard lib/*c)
 OBJ=$(SRC:.c=.o)
 INC=-Isrc/ -Isrc/cmsis -Ilib/
 LDSCRIPT=stm32l432xx.ld

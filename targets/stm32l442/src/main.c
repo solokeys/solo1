@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include "stm32l4xx.h"
 #include "stm32l4xx_ll_gpio.h"
 #include "stm32l4xx_ll_rcc.h"
@@ -13,6 +14,7 @@
 #include "stm32l4xx_ll_tim.h"
 
 #include "app.h"
+#include "flash.h"
 
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
 
@@ -69,7 +71,7 @@ void test_colors()
     while(1)
     {
 
-        printf("%d: %d\r\n", j++, millis());
+        printf("%d: %lu\r\n", j++, millis());
 
         printf("white pulse\r\n");
         time = millis();
@@ -126,12 +128,9 @@ void test_colors()
             update();
             rgb((i<<8) | (i<<0));
         }
-
     }
-
-
-
 }
+
 
 uint32_t __65_seconds = 0;
 void TIM6_DAC_IRQHandler()
@@ -143,9 +142,11 @@ void TIM6_DAC_IRQHandler()
 
 int main(void)
 {
+    uint8_t str[] = "YouCompleteMe: a code-completion engine for Vim";
+    uint8_t buf[500];
     uint32_t i = 0;
-    int inc = 1;
     hw_init();
+    printf("hello solo\r\n");
 
 
     /*LL_GPIO_SetPinMode(LED_PORT, LED_PIN_R, LL_GPIO_MODE_OUTPUT);*/
@@ -155,15 +156,28 @@ int main(void)
     /*LL_GPIO_SetOutputPin(LED_PORT, LED_PIN_R);*/
     /*LL_GPIO_SetOutputPin(LED_PORT, LED_PIN_G);*/
     /*LL_GPIO_SetOutputPin(LED_PORT, LED_PIN_B);*/
-    test_colors();
 
+    // Test flash
+    flash_erase_page(60);
+    flash_write(flash_addr(60), str, sizeof(str));
+    memmove(buf,(uint8_t*)flash_addr(60),sizeof(str));
+    printf("flash: \"%s\"\r\n", buf);
+
+    // test timer
+    uint32_t t1 = millis();
+    delay(100);
+    uint32_t t2 = millis();
+    printf("100 ms delay (%lu)\r\n",t2-t1);
+
+    // Test PWM + weighting of RGB
+    test_colors();
 
     while (1)
     {
         rgb(i | (i << 8) | (i << 16));
 
-        delay(100);
-        printf("%d: %d\r\n", i++, millis());
+        delay(1000);
+        printf("%lu: %lu\r\n", i+=50, millis());
     }
 }
 
