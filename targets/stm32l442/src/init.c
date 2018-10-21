@@ -11,6 +11,7 @@
 #include "stm32l4xx_ll_usart.h"
 #include "stm32l4xx_ll_bus.h"
 #include "stm32l4xx_ll_tim.h"
+#include "stm32l4xx_ll_rng.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -30,6 +31,7 @@ static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM6_Init(void);
+static void MX_RNG_Init(void);
 
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
 void _Error_Handler(char *file, int line);
@@ -63,6 +65,7 @@ void hw_init(void)
   MX_TIM2_Init();
 
   MX_TIM6_Init();
+  MX_RNG_Init();
 
   TIM6->SR = 0;
   __enable_irq();
@@ -298,4 +301,15 @@ static void MX_TIM6_Init(void)
 
   // Start immediately
   LL_TIM_EnableCounter(TIM6);
+}
+
+/* RNG init function */
+static void MX_RNG_Init(void)
+{
+
+  /* Peripheral clock enable */
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_RNG);
+
+  LL_RNG_Enable(RNG);
+
 }

@@ -1,5 +1,5 @@
-#ifndef _FLASH_H_H
-#define _FLASH_H_H
+#ifndef _FLASH_H_
+#define _FLASH_H_
 
 void flash_erase_page(uint8_t page);
 void flash_write_dword(uint32_t addr, uint64_t data);

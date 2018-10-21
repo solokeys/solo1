@@ -2,7 +2,9 @@ CC=arm-none-eabi-gcc
 CP=arm-none-eabi-objcopy
 SZ=arm-none-eabi-size
 
-SRC=src/main.c src/init.c src/redirect.c src/flash.c src/startup_stm32l432xx.s src/system_stm32l4xx.c $(wildcard lib/*c)
+SRC=src/main.c src/init.c src/redirect.c src/flash.c src/rng.c \
+src/startup_stm32l432xx.s src/system_stm32l4xx.c $(wildcard lib/*c)
+
 OBJ=$(SRC:.c=.o)
 INC=-Isrc/ -Isrc/cmsis -Ilib/
 LDSCRIPT=stm32l432xx.ld
@@ -18,7 +20,7 @@ HW=-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb
 CHIP=STM32L442xx
 
 CFLAGS=$(INC) -c -D$(CHIP) -DUSE_FULL_LL_DRIVER -O0  -Wall -fdata-sections -ffunction-sections
-LDFLAGS=$(HW) -specs=nano.specs  -specs=nosys.specs -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,--gc-sections
+LDFLAGS=$(HW) -specs=nano.specs  -specs=nosys.specs -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,--gc-sections -u _printf_float
 
 .PRECIOUS: %.o
 
@@ -39,7 +41,7 @@ all: $(TARGET).elf
 	$(CP) -O ihex $^ $(TARGET).hex
 
 clean:
-	rm -f *.o src/*.o src/*.elf *.elf
+	rm -f *.o src/*.o src/*.elf *.elf *.hex
 
 flash: $(TARGET).hex
 	STM32_Programmer_CLI -c port=SWD -halt -d $(TARGET).hex -rst

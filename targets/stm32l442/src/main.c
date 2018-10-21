@@ -15,13 +15,14 @@
 
 #include "app.h"
 #include "flash.h"
+#include "rng.h"
 
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
 
 #define LED_PIN_G     LL_GPIO_PIN_0
 #define LED_PIN_B     LL_GPIO_PIN_1
 #define LED_PIN_R     LL_GPIO_PIN_2
-#define LED_PORT    GPIOA
+#define LED_PORT      GPIOA
 
 void hw_init(void);
 
@@ -140,11 +141,22 @@ void TIM6_DAC_IRQHandler()
     __65_seconds += 1;
 }
 
+void dump_hex(uint8_t * b, int len)
+{
+    while(len--)
+    {
+        printf("%02x ", *b++);
+    }
+    printf("\r\n");
+}
+
 int main(void)
 {
     uint8_t str[] = "YouCompleteMe: a code-completion engine for Vim";
-    uint8_t buf[500];
+    uint8_t buf[5000];
     uint32_t i = 0;
+    float ent;
+    float test = 1235.889944f;
     hw_init();
     printf("hello solo\r\n");
 
@@ -168,6 +180,12 @@ int main(void)
     delay(100);
     uint32_t t2 = millis();
     printf("100 ms delay (%lu)\r\n",t2-t1);
+
+
+    ent = rng_test(64 * 1024);
+
+    printf("entropy of 64KB from RNG: %.6f\r\n", ent);
+    printf("test float: %.2f\r\n", test);
 
     // Test PWM + weighting of RGB
     test_colors();
