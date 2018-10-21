@@ -1,6 +1,6 @@
 
 Solo has a bootloader that's fixed in memory to allow for signed firmware updates.  It is not a built-in bootloader provided by the chip
-manufacturer, it is our own.
+manufacturer, it is our own. We plan to use Ed25519 signatures, which have [efficient constant-time implementations on Cortex-M4 chips](http://www.cs.haifa.ac.il/~orrd/LC17/paper39.pdf).
 
 On the STM32L442, there is 256 KB of memory.  The first 14 KB of memory is reserved for the bootloader.
 The bootloader is the first thing that boots, and if the button of the device is not held for 2 seconds, the
