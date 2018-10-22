@@ -1,11 +1,12 @@
+[![Kickstarter](https://img.shields.io/badge/kickstarter-back%20us-14e16e.svg)](https://solokeys.com/kickstarter&ref=github)
+[![Build Status](https://travis-ci.com/SoloKeysSec/solo.svg?branch=master)](https://travis-ci.com/SoloKeysSec/solo)
+
 # Solo
 
 Solo is an affordable security key that implements FIDO2/U2F and supports USB, NFC, and extensions.  Extensions
 include SSH, GPG, and cryptocurrency.  Solo is an upgrade to [U2F Zero](https://github.com/conorpp/u2f-zero) and is a work in progress.
 
 > Technical documentation for this project is contained in [docs/](https://github.com/SoloKeysSec/solo/tree/master/docs), built with [MkDocs](https://solo.solokeys.io/documenting/) and deployed automatically to <https://solo.solokeys.io>, part of our technical documentation suite hosted at <https://docs.solokeys.io>.
-
-[![Build Status](https://travis-ci.com/SoloKeysSec/solo.svg?branch=master)](https://travis-ci.com/SoloKeysSec/solo)
 
 ![](https://i.imgur.com/cXWtI1D.png)
 ![](https://i.imgur.com/vwFbsQW.png?1)
