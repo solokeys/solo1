@@ -1,5 +1,9 @@
-[![Kickstarter](https://img.shields.io/badge/kickstarter-back%20us-14e16e.svg)](https://solokeys.com/kickstarter)
+![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)
+[![Kickstarter](https://img.shields.io/badge/kickstarter-back%20us-red.svg)](https://solokeys.com/kickstarter)
 [![Build Status](https://travis-ci.com/SoloKeysSec/solo.svg?branch=master)](https://travis-ci.com/SoloKeysSec/solo)
+[![Discourse Status](https://img.shields.io/discourse/https/meta.discourse.org/status.svg)](https://discourse.solokeys.com)
+[![Keybase Chat](https://img.shields.io/badge/chat-on%20keybase-brightgreen.svg)](https://keybase.io/team/solokeys.public)
+
 
 # Solo
 
