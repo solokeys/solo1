@@ -1,4 +1,4 @@
-[![Kickstarter](https://img.shields.io/badge/kickstarter-back%20us-14e16e.svg)](https://solokeys.com/kickstarter&ref=github)
+[![Kickstarter](https://img.shields.io/badge/kickstarter-back%20us-14e16e.svg)](https://solokeys.com/kickstarter)
 [![Build Status](https://travis-ci.com/SoloKeysSec/solo.svg?branch=master)](https://travis-ci.com/SoloKeysSec/solo)
 
 # Solo
