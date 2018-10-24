@@ -46,61 +46,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_ioreq.h"
 
-/** @addtogroup STM32_USB_DEVICE_LIBRARY
-  * @{
-  */
-
-
-/** @defgroup USBD_IOREQ
-  * @brief control I/O requests module
-  * @{
-  */
-
-/** @defgroup USBD_IOREQ_Private_TypesDefinitions
-  * @{
-  */
-/**
-  * @}
-  */
-
-
-/** @defgroup USBD_IOREQ_Private_Defines
-  * @{
-  */
-
-/**
-  * @}
-  */
-
-
-/** @defgroup USBD_IOREQ_Private_Macros
-  * @{
-  */
-/**
-  * @}
-  */
-
-
-/** @defgroup USBD_IOREQ_Private_Variables
-  * @{
-  */
-
-/**
-  * @}
-  */
-
-
-/** @defgroup USBD_IOREQ_Private_FunctionPrototypes
-  * @{
-  */
-/**
-  * @}
-  */
-
-
-/** @defgroup USBD_IOREQ_Private_Functions
-  * @{
-  */
 
 /**
 * @brief  USBD_CtlSendData
@@ -212,31 +157,3 @@ USBD_StatusTypeDef USBD_CtlReceiveStatus (USBD_HandleTypeDef *pdev)
 
   return USBD_OK;
 }
-
-/**
-* @brief  USBD_GetRxCount
-*         returns the received data length
-* @param  pdev: device instance
-* @param  ep_addr: endpoint address
-* @retval Rx Data blength
-*/
-uint32_t USBD_GetRxCount (USBD_HandleTypeDef *pdev, uint8_t ep_addr)
-{
-  return USBD_LL_GetRxDataSize(pdev, ep_addr);
-}
-
-/**
-  * @}
-  */
-
-
-/**
-  * @}
-  */
-
-
-/**
-  * @}
-  */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

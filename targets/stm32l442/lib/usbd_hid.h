@@ -60,28 +60,22 @@
 #define HID_EPOUT_ADDR                  0x01U
 #define HID_EPOUT_SIZE                  HID_PACKET_SIZE
 
-#define USB_HID_DESC_SIZ              9U
-#define HID_MOUSE_REPORT_DESC_SIZE    34U
+#define USB_HID_DESC_SIZ                9U
+#define HID_FIDO_REPORT_DESC_SIZE       34U
 
-#define HID_DESCRIPTOR_TYPE           0x21U
-#define HID_REPORT_DESC               0x22U
+#define HID_DESCRIPTOR_TYPE             0x21U
+#define HID_REPORT_DESC                 0x22U
 
-#ifndef HID_HS_BINTERVAL
-  #define HID_HS_BINTERVAL            0x07U
-#endif
+#define HID_BINTERVAL                   10
 
-#ifndef HID_FS_BINTERVAL
-  #define HID_FS_BINTERVAL            0x0AU
-#endif
+#define HID_REQ_SET_PROTOCOL            0x0BU
+#define HID_REQ_GET_PROTOCOL            0x03U
 
-#define HID_REQ_SET_PROTOCOL          0x0BU
-#define HID_REQ_GET_PROTOCOL          0x03U
+#define HID_REQ_SET_IDLE                0x0AU
+#define HID_REQ_GET_IDLE                0x02U
 
-#define HID_REQ_SET_IDLE              0x0AU
-#define HID_REQ_GET_IDLE              0x02U
-
-#define HID_REQ_SET_REPORT            0x09U
-#define HID_REQ_GET_REPORT            0x01U
+#define HID_REQ_SET_REPORT              0x09U
+#define HID_REQ_GET_REPORT              0x01U
 
 typedef enum
 {
@@ -89,7 +83,6 @@ typedef enum
   HID_BUSY,
 }
 HID_StateTypeDef;
-
 
 typedef struct
 {
@@ -100,15 +93,8 @@ typedef struct
 }
 USBD_HID_HandleTypeDef;
 
-
 extern USBD_ClassTypeDef  USBD_HID;
-#define USBD_HID_CLASS    &USBD_HID
 
-uint8_t USBD_HID_SendReport (USBD_HandleTypeDef *pdev,
-                                 uint8_t *report,
-                                 uint16_t len);
-
-uint32_t USBD_HID_GetPollingInterval (USBD_HandleTypeDef *pdev);
 
 void usb_hid_recieve_callback(uint8_t ep);
 

@@ -199,7 +199,7 @@ void SystemClock_Config(void)
 
 static void usb_init()
 {
-    USBD_Init(&Solo_USBD_Device, &HID_Desc, 0);
+    USBD_Init(&Solo_USBD_Device, &Solo_Desc, 0);
     USBD_RegisterClass(&Solo_USBD_Device, &USBD_HID);
     USBD_Start(&Solo_USBD_Device);
 }

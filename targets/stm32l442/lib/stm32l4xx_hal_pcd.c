@@ -1489,13 +1489,11 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
   */
 void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 {
-    int skip = 0;
   if (__HAL_PCD_GET_FLAG(hpcd, USB_ISTR_CTR))
   {
     /* servicing of the endpoint correct transfer interrupt */
     /* clear of the CTR flag into the sub */
     (void)PCD_EP_ISR_Handler(hpcd);
-    skip = 1;
   }
 
   if (__HAL_PCD_GET_FLAG(hpcd, USB_ISTR_RESET))
@@ -1597,7 +1595,6 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
   {
     __HAL_PCD_CLEAR_FLAG(hpcd, USB_ISTR_SOF);
 
-    skip = 1;
 #if (USE_HAL_PCD_REGISTER_CALLBACKS == 1U)
     hpcd->SOFCallback(hpcd);
 #else
@@ -1608,7 +1605,6 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
   if (__HAL_PCD_GET_FLAG(hpcd, USB_ISTR_ESOF))
   {
       // probably something to do here
-    skip = 1;
     /* clear ESOF flag in ISTR */
     __HAL_PCD_CLEAR_FLAG(hpcd, USB_ISTR_ESOF);
   }

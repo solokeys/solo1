@@ -14,7 +14,6 @@ extern PCD_HandleTypeDef hpcd;
 // Global USB interrupt handler
 void USB_IRQHandler(void)
 {
-    /*printf("USB int !\r\n");*/
   HAL_PCD_IRQHandler(&hpcd);
 }
 

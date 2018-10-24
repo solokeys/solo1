@@ -173,14 +173,6 @@
 #define USBD_EP_TYPE_INTR                                 3U
 
 
-/**
-  * @}
-  */
-
-
-/** @defgroup USBD_DEF_Exported_TypesDefinitions
-  * @{
-  */
 
 typedef  struct  usb_setup_req
 {
@@ -329,37 +321,10 @@ extern USBD_HandleTypeDef Solo_USBD_Device;            // top level USB obj
 #endif /* __GNUC__ */
 
 
-/**
-  * @}
-  */
 
-/** @defgroup USBD_DEF_Exported_Variables
-  * @{
-  */
-
-/**
-  * @}
-  */
-
-/** @defgroup USBD_DEF_Exported_FunctionsPrototype
-  * @{
-  */
-
-/**
-  * @}
-  */
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __USBD_DEF_H */
-
-/**
-  * @}
-  */
-
-/**
-* @}
-*/
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

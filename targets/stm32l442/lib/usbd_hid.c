@@ -91,10 +91,6 @@ static uint8_t  USBD_HID_Setup (USBD_HandleTypeDef *pdev,
 
 static uint8_t  *USBD_HID_GetFSCfgDesc (uint16_t *length);
 
-static uint8_t  *USBD_HID_GetHSCfgDesc (uint16_t *length);
-
-static uint8_t  *USBD_HID_GetOtherSpeedCfgDesc (uint16_t *length);
-
 static uint8_t  *USBD_HID_GetDeviceQualifierDesc (uint16_t *length);
 
 static uint8_t  USBD_HID_DataIn (USBD_HandleTypeDef *pdev, uint8_t epnum);
@@ -112,9 +108,9 @@ USBD_ClassTypeDef  USBD_HID =
   NULL, /*SOF */
   NULL,
   NULL,
-  USBD_HID_GetHSCfgDesc,
   USBD_HID_GetFSCfgDesc,
-  USBD_HID_GetOtherSpeedCfgDesc,
+  USBD_HID_GetFSCfgDesc,
+  USBD_HID_GetFSCfgDesc,
   USBD_HID_GetDeviceQualifierDesc,
 };
 
@@ -156,7 +152,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_OtherSpeedCfgDesc[]  __ALIGN_END =
   0x00,         /*bCountryCode: Hardware target country*/
   0x01,         /*bNumDescriptors: Number of HID class descriptors to follow*/
   0x22,         /*bDescriptorType*/
-  HID_MOUSE_REPORT_DESC_SIZE,/*wItemLength: Total length of Report descriptor*/
+  HID_FIDO_REPORT_DESC_SIZE,/*wItemLength: Total length of Report descriptor*/
   0x00,
   /******************** Descriptor of Mouse endpoint ********************/
   0x07,          /*bLength: Endpoint Descriptor size*/
@@ -165,7 +161,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_OtherSpeedCfgDesc[]  __ALIGN_END =
   0x03,          /*bmAttributes: Interrupt endpoint*/
   HID_EPIN_SIZE, /*wMaxPacketSize: 4 Byte max */
   0x00,
-  HID_FS_BINTERVAL,          /*bInterval: Polling Interval */
+  HID_BINTERVAL,          /*bInterval: Polling Interval */
 
 
   0x07,          /*bLength: Endpoint Descriptor size*/
@@ -174,7 +170,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_OtherSpeedCfgDesc[]  __ALIGN_END =
   0x03,          /*bmAttributes: Interrupt endpoint*/
   HID_EPOUT_SIZE, /*wMaxPacketSize: 4 Byte max */
   0x00,
-  HID_FS_BINTERVAL,          /*bInterval: Polling Interval */
+  HID_BINTERVAL,          /*bInterval: Polling Interval */
 };
 
 
@@ -189,7 +185,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_Desc[USB_HID_DESC_SIZ]  __ALIGN_END  =
   0x00,         /*bCountryCode: Hardware target country*/
   0x01,         /*bNumDescriptors: Number of HID class descriptors to follow*/
   0x22,         /*bDescriptorType*/
-  HID_MOUSE_REPORT_DESC_SIZE,/*wItemLength: Total length of Report descriptor*/
+  HID_FIDO_REPORT_DESC_SIZE,/*wItemLength: Total length of Report descriptor*/
   0x00,
 };
 
@@ -207,7 +203,7 @@ __ALIGN_BEGIN static uint8_t USBD_HID_DeviceQualifierDesc[USB_LEN_DEV_QUALIFIER_
   0x01,
   0x00,
 };
-__ALIGN_BEGIN static uint8_t HID_MOUSE_ReportDesc[HID_MOUSE_REPORT_DESC_SIZE]  __ALIGN_END =
+__ALIGN_BEGIN static uint8_t HID_MOUSE_ReportDesc[HID_FIDO_REPORT_DESC_SIZE]  __ALIGN_END =
 {
 
     0x06, 0xd0, 0xf1,// USAGE_PAGE (FIDO Alliance)
@@ -256,10 +252,11 @@ static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   /* Open EP IN */
   USBD_LL_OpenEP(pdev, HID_EPIN_ADDR, USBD_EP_TYPE_INTR, HID_EPIN_SIZE);
   USBD_LL_OpenEP(pdev, HID_EPOUT_ADDR, USBD_EP_TYPE_INTR, HID_EPOUT_SIZE);
+  static uint8_t mem[4];
   pdev->ep_in[HID_EPIN_ADDR & 0xFU].is_used = 1U;
   pdev->ep_out[HID_EPOUT_ADDR & 0xFU].is_used = 1U;
 
-  pdev->pClassData = USBD_malloc(sizeof (USBD_HID_HandleTypeDef));
+  pdev->pClassData = mem;
 
   if (pdev->pClassData == NULL)
   {
@@ -292,13 +289,6 @@ static uint8_t  USBD_HID_DeInit (USBD_HandleTypeDef *pdev,
   USBD_LL_CloseEP(pdev, HID_EPOUT_ADDR);
   pdev->ep_in[HID_EPIN_ADDR & 0xFU].is_used = 0U;
   pdev->ep_out[HID_EPOUT_ADDR & 0xFU].is_used = 0U;
-
-  /* FRee allocated memory */
-  if(pdev->pClassData != NULL)
-  {
-    USBD_free(pdev->pClassData);
-    pdev->pClassData = NULL;
-  }
 
   return USBD_OK;
 }
@@ -364,8 +354,7 @@ static uint8_t  USBD_HID_Setup (USBD_HandleTypeDef *pdev,
     case USB_REQ_GET_DESCRIPTOR:
       if(req->wValue >> 8 == HID_REPORT_DESC)
       {
-        /*len = MIN(HID_MOUSE_REPORT_DESC_SIZE , req->wLength);*/
-        len = HID_MOUSE_REPORT_DESC_SIZE;
+        len = MIN(HID_FIDO_REPORT_DESC_SIZE , req->wLength);
         pbuf = HID_MOUSE_ReportDesc;
       }
       else if(req->wValue >> 8 == HID_DESCRIPTOR_TYPE)
@@ -465,13 +454,13 @@ uint32_t USBD_HID_GetPollingInterval (USBD_HandleTypeDef *pdev)
    /* Sets the data transfer polling interval for high speed transfers.
     Values between 1..16 are allowed. Values correspond to interval
     of 2 ^ (bInterval-1). This option (8 ms, corresponds to HID_HS_BINTERVAL */
-    polling_interval = (((1U <<(HID_HS_BINTERVAL - 1U))) / 8U);
+    polling_interval = (((1U <<(HID_BINTERVAL - 1U))) / 8U);
   }
   else   /* LOW and FULL-speed endpoints */
   {
     /* Sets the data transfer polling interval for low and full
     speed transfers */
-    polling_interval =  HID_FS_BINTERVAL;
+    polling_interval =  HID_BINTERVAL;
   }
 
   return ((uint32_t)(polling_interval));
@@ -491,32 +480,6 @@ static uint8_t  *USBD_HID_GetFSCfgDesc (uint16_t *length)
 }
 
 /**
-  * @brief  USBD_HID_GetCfgHSDesc
-  *         return HS configuration descriptor
-  * @param  speed : current device speed
-  * @param  length : pointer data length
-  * @retval pointer to descriptor buffer
-  */
-static uint8_t  *USBD_HID_GetHSCfgDesc (uint16_t *length)
-{
-  *length = sizeof (USBD_HID_CfgHSDesc);
-  return USBD_HID_CfgHSDesc;
-}
-
-/**
-  * @brief  USBD_HID_GetOtherSpeedCfgDesc
-  *         return other speed configuration descriptor
-  * @param  speed : current device speed
-  * @param  length : pointer data length
-  * @retval pointer to descriptor buffer
-  */
-static uint8_t  *USBD_HID_GetOtherSpeedCfgDesc (uint16_t *length)
-{
-  *length = sizeof (USBD_HID_OtherSpeedCfgDesc);
-  return USBD_HID_OtherSpeedCfgDesc;
-}
-
-/**
   * @brief  USBD_HID_DataIn
   *         handle data IN Stage
   * @param  pdev: device instance
@@ -527,7 +490,7 @@ static uint8_t  USBD_HID_DataIn (USBD_HandleTypeDef *pdev,
                               uint8_t epnum)
 {
   /* Ensure that the FIFO is empty before a new transfer, this condition could
-  be caused by  a new transfer before the end of the previous transfer */
+  be caused by a new transfer before the end of the previous transfer */
   ((USBD_HID_HandleTypeDef *)pdev->pClassData)->state = HID_IDLE;
   return USBD_OK;
 }
@@ -544,19 +507,3 @@ static uint8_t  *USBD_HID_GetDeviceQualifierDesc (uint16_t *length)
   *length = sizeof (USBD_HID_DeviceQualifierDesc);
   return USBD_HID_DeviceQualifierDesc;
 }
-
-/**
-  * @}
-  */
-
-
-/**
-  * @}
-  */
-
-
-/**
-  * @}
-  */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

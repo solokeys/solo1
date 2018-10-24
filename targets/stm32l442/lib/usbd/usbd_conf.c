@@ -53,21 +53,9 @@
 
 void SystemClock_Config(void);
 
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
+
 PCD_HandleTypeDef hpcd;
-__IO uint32_t remotewakeupon=0;
 
-/* Private function prototypes -----------------------------------------------*/
-static void SystemClockConfig_STOP(void);
-
-/* Private functions ---------------------------------------------------------*/
-
-/*******************************************************************************
-                       PCD BSP Routines
-*******************************************************************************/
 
 /**
   * @brief  Initializes the PCD MSP.
@@ -76,37 +64,23 @@ static void SystemClockConfig_STOP(void);
   */
 void HAL_PCD_MspInit(PCD_HandleTypeDef *hpcd)
 {
-  /*GPIO_InitTypeDef  GPIO_InitStruct;*/
 
-  /*[> Enable the GPIOA clock <]*/
-  /*__HAL_RCC_GPIOA_CLK_ENABLE();*/
-
-  /* Configure USB DM and DP pins.*/
-  /*This is optional, and maintained only for user guidance. */
-  /*GPIO_InitStruct.Pin = (GPIO_PIN_11 | GPIO_PIN_12);*/
-  /*GPIO_InitStruct.Mode = GPIO_MODE_INPUT;*/
-  /*GPIO_InitStruct.Pull = GPIO_NOPULL;*/
-  /*GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;*/
-  /*HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);*/
-
-  /*[> Enable USB FS Clock <]*/
-  /*__HAL_RCC_USB_CLK_ENABLE();*/
 
   /*LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);*/
-  SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
-
-  if(hpcd->Init.low_power_enable == 1)
-  {
-    /* Enable EXTI Line 17 for USB wakeup */
-    __HAL_USB_WAKEUP_EXTI_ENABLE_IT();
-  }
-
-  /*[> Set USB FS Interrupt priority <]*/
-  /*HAL_NVIC_SetPriority(USB_IRQn, 0x0F, 0);*/
-  NVIC_SetPriority(USB_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0x0f, 0));
-
-  /*[> Enable USB FS Interrupt <]*/
-  NVIC_EnableIRQ(USB_IRQn);
+  // SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
+  //
+  // if(hpcd->Init.low_power_enable == 1)
+  // {
+  //   /* Enable EXTI Line 17 for USB wakeup */
+  //   __HAL_USB_WAKEUP_EXTI_ENABLE_IT();
+  // }
+  //
+  // /*[> Set USB FS Interrupt priority <]*/
+  // /*HAL_NVIC_SetPriority(USB_IRQn, 0x0F, 0);*/
+  // NVIC_SetPriority(USB_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0x0f, 0));
+  //
+  // /*[> Enable USB FS Interrupt <]*/
+  // NVIC_EnableIRQ(USB_IRQn);
 }
 
 /**
@@ -141,19 +115,15 @@ void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd)
   * @param  epnum: Endpoint Number
   * @retval None
   */
+// From host --> device
 void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 {
   USBD_LL_DataOutStage((USBD_HandleTypeDef*)hpcd->pData, epnum, hpcd->OUT_ep[epnum].xfer_buff);
   switch(epnum)
   {
       case HID_ENDPOINT:
-        printf("HID\r\n");
         usb_hid_recieve_callback(epnum);
       break;
-  }
-  if (epnum)
-  {
-      printf("HID\r\n");
   }
 }
 
@@ -163,11 +133,10 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
   * @param  epnum: Endpoint Number
   * @retval None
   */
+  // From device --> host
 void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 {
   USBD_LL_DataInStage((USBD_HandleTypeDef*)hpcd->pData, epnum, hpcd->IN_ep[epnum].xfer_buff);
-
-
 }
 
 /**
@@ -200,7 +169,6 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd)
 void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd)
 {
   /* Inform USB library that core enters in suspend Mode */
-  printf("suspend\r\n");
 }
 
 /**
@@ -210,15 +178,7 @@ void HAL_PCD_SuspendCallback(PCD_HandleTypeDef *hpcd)
   */
 void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd)
 {
-  if ((hpcd->Init.low_power_enable)&&(remotewakeupon == 0))
-  {
-    SystemClockConfig_STOP();
-
-    /* Reset SLEEPDEEP bit of Cortex System Control Register */
-    SCB->SCR &= (uint32_t)~((uint32_t)(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
-  }
-  USBD_LL_Resume((USBD_HandleTypeDef*)hpcd->pData);
-  remotewakeupon=0;
+    // Go to sleep ?
 }
 
 /**
@@ -484,75 +444,6 @@ void USBD_LL_Delay(uint32_t Delay)
   HAL_Delay(Delay);
 }
 
-/**
-  * @brief  static single allocation.
-  * @param  size: size of allocated memory
-  * @retval None
-  */
-void *USBD_static_malloc(uint32_t size)
-{
-  static uint32_t mem[MAX_STATIC_ALLOC_SIZE];
-  return mem;
-}
 
-/**
-  * @brief  Dummy memory free
-  * @param  *p pointer to allocated  memory address
-  * @retval None
-  */
-void USBD_static_free(void *p)
-{
-
-}
-
-/**
-  * @brief  Configures system clock after wakeup from STOP mode.
-  * @param  None
-  * @retval None
-  */
-static void SystemClockConfig_STOP(void)
-{
-  SystemClock_Config();
-}
-
-/**
-  * @brief  GPIO EXTI Callback function
-  *         Handle remote-wakeup through Tamper button
-  * @param  GPIO_Pin
-  * @retval None
-  */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  if (GPIO_Pin == LL_GPIO_PIN_0)
-  {
-    if ((((USBD_HandleTypeDef *)hpcd.pData)->dev_remote_wakeup == 1)&&
-        (((USBD_HandleTypeDef *)hpcd.pData)->dev_state == USBD_STATE_SUSPENDED))
-    {
-      if ((&hpcd)->Init.low_power_enable)
-      {
-        /* Reset SLEEPDEEP bit of Cortex System Control Register */
-        SCB->SCR &= (uint32_t)~((uint32_t)(SCB_SCR_SLEEPDEEP_Msk | SCB_SCR_SLEEPONEXIT_Msk));
-
-        SystemClockConfig_STOP();
-      }
-
-      /* Activate Remote wakeup */
-      HAL_PCD_ActivateRemoteWakeup((&hpcd));
-
-      /* remote wakeup delay */
-      HAL_Delay(10);
-
-      /* Disable Remote wakeup */
-      HAL_PCD_DeActivateRemoteWakeup((&hpcd));
-
-      /* change state to configured */
-      ((USBD_HandleTypeDef *)hpcd.pData)->dev_state = USBD_STATE_CONFIGURED;
-
-      /* change remote_wakeup feature to 0*/
-      ((USBD_HandleTypeDef *)hpcd.pData)->dev_remote_wakeup=0;
-      remotewakeupon = 1;
-    }
-  }
-}
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
