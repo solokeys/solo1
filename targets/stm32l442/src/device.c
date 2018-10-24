@@ -1,5 +1,6 @@
 
 #include "device.h"
+#include "usbd_def.h"
 
 uint32_t __65_seconds = 0;
 void TIM6_DAC_IRQHandler()
@@ -9,6 +10,13 @@ void TIM6_DAC_IRQHandler()
     __65_seconds += 1;
 }
 
+extern PCD_HandleTypeDef hpcd;
+// Global USB interrupt handler
+void USB_IRQHandler(void)
+{
+    /*printf("USB int !\r\n");*/
+  HAL_PCD_IRQHandler(&hpcd);
+}
 
 void delay(uint32_t ms)
 {
@@ -16,5 +24,3 @@ void delay(uint32_t ms)
     while ((millis() - time) < ms)
         ;
 }
-
-

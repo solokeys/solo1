@@ -3,6 +3,7 @@
 #include "stm32l4xx.h"
 #include "stm32l4xx_ll_gpio.h"
 #include "stm32l4xx_ll_rcc.h"
+#include "stm32l4xx_ll_crs.h"
 #include "stm32l4xx_ll_system.h"
 #include "stm32l4xx_ll_pwr.h"
 #include "stm32l4xx_ll_utils.h"
@@ -12,6 +13,13 @@
 #include "stm32l4xx_ll_bus.h"
 #include "stm32l4xx_ll_tim.h"
 #include "stm32l4xx_ll_rng.h"
+#include "stm32l4xx_ll_usb.h"
+#include "stm32l4xx_hal_pcd.h"
+#include "stm32l4xx_hal.h"
+
+#include "usbd_core.h"
+#include "usbd_desc.h"
+#include "usbd_hid.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -19,10 +27,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-/* USER CODE BEGIN PV */
-/* Private variables ---------------------------------------------------------*/
-
-/* USER CODE END PV */
+USBD_HandleTypeDef Solo_USBD_Device;
 
 /* Private function prototypes -----------------------------------------------*/
 static void LL_Init(void);
@@ -32,6 +37,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_RNG_Init(void);
+static void usb_init();
 
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
 void _Error_Handler(char *file, int line);
@@ -44,9 +50,19 @@ void hw_init(void)
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
-
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   LL_Init();
+
+  // enable power clock
+  SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
+
+  // enable USB power
+  SET_BIT(PWR->CR2, PWR_CR2_USV);
+
+  // Enable USB Clock
+  SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
+
 
   /* USER CODE BEGIN Init */
 
@@ -71,10 +87,12 @@ void hw_init(void)
   __enable_irq();
   NVIC_EnableIRQ(TIM6_IRQn);
 
+  usb_init();
+
 }
 static void LL_Init(void)
 {
-  
+
 
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
@@ -110,16 +128,23 @@ void SystemClock_Config(void)
 
    if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_2)
   {
-  Error_Handler();  
+  Error_Handler();
   }
   LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
 
+  LL_RCC_HSI48_Enable();
+
+   /* Wait till HSI48 is ready */
+  while(LL_RCC_HSI48_IsReady() != 1)
+  {
+
+  }
   LL_RCC_MSI_Enable();
 
    /* Wait till MSI is ready */
   while(LL_RCC_MSI_IsReady() != 1)
   {
-    
+
   }
   LL_RCC_MSI_EnableRangeSelection();
 
@@ -132,11 +157,11 @@ void SystemClock_Config(void)
    /* Wait till System clock is ready */
   while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
   {
-  
+
   }
   LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
 
-  LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_16);
+  LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
 
   LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_16);
 
@@ -148,8 +173,35 @@ void SystemClock_Config(void)
 
   LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
 
+  LL_RCC_SetUSBClockSource(LL_RCC_USB_CLKSOURCE_HSI48);
+
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_CRS);
+
+  LL_APB1_GRP1_ForceReset(LL_APB1_GRP1_PERIPH_CRS);
+
+  LL_APB1_GRP1_ReleaseReset(LL_APB1_GRP1_PERIPH_CRS);
+
+  LL_CRS_SetSyncDivider(LL_CRS_SYNC_DIV_1);
+
+  LL_CRS_SetSyncPolarity(LL_CRS_SYNC_POLARITY_RISING);
+
+  LL_CRS_SetSyncSignalSource(LL_CRS_SYNC_SOURCE_USB);
+
+  LL_CRS_SetReloadCounter(__LL_CRS_CALC_CALCULATE_RELOADVALUE(48000000,1000));
+
+  LL_CRS_SetFreqErrorLimit(34);
+
+  LL_CRS_SetHSI48SmoothTrimming(32);
+
   /* SysTick_IRQn interrupt configuration */
   NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+}
+
+static void usb_init()
+{
+    USBD_Init(&Solo_USBD_Device, &HID_Desc, 0);
+    USBD_RegisterClass(&Solo_USBD_Device, &USBD_HID);
+    USBD_Start(&Solo_USBD_Device);
 }
 
 /* TIM2 init function */
@@ -207,10 +259,10 @@ static void MX_TIM2_Init(void)
 
   LL_TIM_DisableMasterSlaveMode(TIM2);
 
-  /**TIM2 GPIO Configuration  
+  /**TIM2 GPIO Configuration
   PA1   ------> TIM2_CH2
   PA2   ------> TIM2_CH3
-  PA3   ------> TIM2_CH4 
+  PA3   ------> TIM2_CH4
   */
   GPIO_InitStruct.Pin = LL_GPIO_PIN_1|LL_GPIO_PIN_2|LL_GPIO_PIN_3;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
@@ -234,10 +286,10 @@ static void MX_USART1_UART_Init(void)
 
   /* Peripheral clock enable */
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
-  
-  /**USART1 GPIO Configuration  
+
+  /**USART1 GPIO Configuration
   PB6   ------> USART1_TX
-  PB7   ------> USART1_RX 
+  PB7   ------> USART1_RX
   */
   GPIO_InitStruct.Pin = LL_GPIO_PIN_6|LL_GPIO_PIN_7;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
@@ -285,7 +337,7 @@ static void MX_TIM6_Init(void)
 
   // 48 MHz sys clock --> 6 MHz timer clock
   // 6 MHz / 6000 == 1000 Hz
-  TIM_InitStruct.Prescaler = 6000;
+  TIM_InitStruct.Prescaler = 48000;
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
   TIM_InitStruct.Autoreload = 0xffff;
   LL_TIM_Init(TIM6, &TIM_InitStruct);
