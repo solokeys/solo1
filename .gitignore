@@ -75,3 +75,6 @@ tools/python-fido2/*
 site/
 _site/
 venv/
+.project
+.tags
+docs/
