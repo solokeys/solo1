@@ -76,5 +76,5 @@ site/
 _site/
 venv/
 .project
-.tags
-docs/
+.tags*
+targets/*/docs/
