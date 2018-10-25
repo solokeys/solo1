@@ -1290,7 +1290,7 @@ void ctap_init()
     {
         printf1(TAG_STOR,"pin code: \"%s\"\n", STATE.pin_code);
         crypto_sha256_init();
-        crypto_sha256_update(STATE.pin_code, strnlen(STATE.pin_code, NEW_PIN_ENC_MAX_SIZE));
+        crypto_sha256_update(STATE.pin_code, strnlen((char *)STATE.pin_code, NEW_PIN_ENC_MAX_SIZE));
         crypto_sha256_final(PIN_CODE_HASH);
         printf1(TAG_STOR, "attempts_left: %d\n", STATE.remaining_tries);
     }
