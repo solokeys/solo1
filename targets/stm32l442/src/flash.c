@@ -89,5 +89,5 @@ void flash_write(uint32_t addr, uint8_t * data, size_t sz)
 
 void flash_lock()
 {
-    FLASH->CR |= (1<<31);
+    FLASH->CR |= (1U<<31);
 }
