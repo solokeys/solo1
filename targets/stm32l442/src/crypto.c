@@ -53,12 +53,8 @@ static const uint8_t * _signing_key = NULL;
 static int _key_len = 0;
 
 // Secrets for testing only
-static uint8_t master_secret[32] = "\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff"
-                                "\xff\xee\xdd\xcc\xbb\xaa\x99\x88\x77\x66\x55\x44\x33\x22\x11\x00";
-
-static uint8_t transport_secret[32] = "\x10\x01\x22\x33\x44\x55\x66\x77\x87\x90\x0a\xbb\x3c\xd8\xee\xff"
-                                "\xff\xee\x8d\x1c\x3b\xfa\x99\x88\x77\x86\x55\x44\xd3\xff\x33\x00";
-
+static uint8_t master_secret[64];
+static uint8_t transport_secret[32];
 
 
 void crypto_sha256_init()
@@ -66,9 +62,20 @@ void crypto_sha256_init()
     sha256_init(&sha256_ctx);
 }
 
+
+void crypto_load_master_secret(uint8_t * key)
+{
+#if KEY_SPACE_BYTES < 96
+#error "need more key bytes"
+#endif
+    memmove(master_secret, key, 64);
+    memmove(transport_secret, key+64, 32);
+}
+
 void crypto_reset_master_secret()
 {
-    ctap_generate_rng(master_secret, 32);
+    memset(master_secret, 0, 64);
+    ctap_generate_rng(master_secret, 64);
 }
 
 
@@ -96,7 +103,7 @@ void crypto_sha256_hmac_init(uint8_t * key, uint32_t klen, uint8_t * hmac)
     if (key == CRYPTO_MASTER_KEY)
     {
         key = master_secret;
-        klen = sizeof(master_secret);
+        klen = sizeof(master_secret)/2;
     }
 
     if(klen > 64)
@@ -125,7 +132,7 @@ void crypto_sha256_hmac_final(uint8_t * key, uint32_t klen, uint8_t * hmac)
     if (key == CRYPTO_MASTER_KEY)
     {
         key = master_secret;
-        klen = sizeof(master_secret);
+        klen = sizeof(master_secret)/2;
     }
 
 
@@ -224,7 +231,7 @@ void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, ui
     crypto_sha256_hmac_init(CRYPTO_MASTER_KEY, 0, privkey);
     crypto_sha256_update(data, len);
     crypto_sha256_update(data2, len2);
-    crypto_sha256_update(master_secret, 32);
+    crypto_sha256_update(master_secret, 32);    // TODO AES
     crypto_sha256_hmac_final(CRYPTO_MASTER_KEY, 0, privkey);
 }
 

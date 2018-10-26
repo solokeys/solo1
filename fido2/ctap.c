@@ -1253,6 +1253,9 @@ static void ctap_state_init()
 {
     // Set to 0xff instead of 0x00 to be easier on flash
     memset(&STATE, 0xff, sizeof(AuthenticatorState));
+    // Fresh RNG for key
+    ctap_generate_rng(STATE.key_space, KEY_SPACE_BYTES);
+
     STATE.is_initialized = INITIALIZED_MARKER;
     STATE.remaining_tries = PIN_LOCKOUT_ATTEMPTS;
     STATE.is_pin_set = 0;
@@ -1286,6 +1289,8 @@ void ctap_init()
         }
     }
 
+    crypto_load_master_secret(STATE.key_space);
+
     if (ctap_is_pin_set())
     {
         printf1(TAG_STOR,"pin code: \"%s\"\n", STATE.pin_code);
@@ -1302,7 +1307,6 @@ void ctap_init()
     {
         printf1(TAG_ERR, "DEVICE LOCKED!\n");
     }
-
 
     if (ctap_generate_rng(PIN_TOKEN, PIN_TOKEN_SIZE) != 1)
     {
@@ -1513,4 +1517,3 @@ void ctap_reset()
 
     crypto_reset_master_secret();   // Not sure what the significance of this is??
 }
-
