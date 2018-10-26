@@ -9,7 +9,7 @@
 
 #define DEBUG_LEVEL 1
 
-#define NON_BLOCK_PRINTING 1
+#define NON_BLOCK_PRINTING 0
 
 //#define PRINTING_USE_VCOM
 
@@ -30,5 +30,7 @@ void hw_init(void);
 //#define TEST_POWER
 
 #define LED_INIT_VALUE			0x001000
+
+
 
 #endif
