@@ -31,6 +31,10 @@ void hw_init(void);
 
 #define LED_INIT_VALUE			0x001000
 
+// Button
+#define SOLO_BUTTON_PORT        GPIOA
+#define SOLO_BUTTON_PIN         LL_GPIO_PIN_0
 
+#define SKIP_BUTTON_CHECK       0
 
 #endif

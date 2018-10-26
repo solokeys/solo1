@@ -2,6 +2,7 @@
 #include "device.h"
 #include "usbd_def.h"
 #include "stm32l4xx.h"
+#include "stm32l4xx_ll_gpio.h"
 #include "stm32l4xx_ll_tim.h"
 #include "stm32l4xx_ll_usart.h"
 #include "usbd_hid.h"
@@ -17,6 +18,8 @@
 
 uint32_t __65_seconds = 0;
 extern PCD_HandleTypeDef hpcd;
+
+#define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
 
 // Timer6 overflow handler
 void TIM6_DAC_IRQHandler()
@@ -50,6 +53,9 @@ void delay(uint32_t ms)
 void device_init()
 {
     hw_init();
+    LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
+    LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
+
     printf1(TAG_GEN,"hello solo\r\n");
 }
 
@@ -100,8 +106,7 @@ void heartbeat()
 {
     static int state = 0;
     static uint32_t val = (LED_INIT_VALUE >> 8) & 0xff;
-    // int but = IS_BUTTON_PRESSED();
-    int but = 0;
+    int but = IS_BUTTON_PRESSED();
 
     if (state)
     {
@@ -116,13 +121,9 @@ void heartbeat()
     {
         state = !state;
     }
-    // int c = PCD_GET_EP_TX_CNT(USB,1);
-    // int c = PCD_GET_EP_TX_STATUS(USB,1);
-    // printf("tx counter: %x\r\n",PCD_GET_EP_TX_CNT(USB,1));
-
-    //	if (but) RGB(val * 2);
-    //	else
-    led_rgb((val << 16) | (val*2 << 8));
+    if (but) led_rgb(val * 2);
+    else
+        led_rgb((val << 16) | (val*2 << 8));
 }
 
 void authenticator_read_state(AuthenticatorState * a)
@@ -171,7 +172,47 @@ void device_manage()
 
 int ctap_user_presence_test()
 {
+#if SKIP_BUTTON_CHECK
     return 1;
+#endif
+
+    uint32_t t1 = millis();
+    led_rgb(0xff3520);
+
+#if USE_BUTTON_DELAY
+    delay(3000);
+    led_rgb(0x001040);
+    delay(50);
+    return 1;
+#endif
+while (IS_BUTTON_PRESSED())
+{
+    if (t1 + 5000 < millis())
+    {
+        printf1(TAG_GEN,"Button not pressed\n");
+        return 0;
+    }
+}
+
+t1 = millis();
+
+do
+{
+    if (t1 + 5000 < millis())
+    {
+        return 0;
+    }
+    if (! IS_BUTTON_PRESSED())
+        continue;
+    delay(1);
+}
+while (! IS_BUTTON_PRESSED());
+
+led_rgb(0x001040);
+
+delay(50);
+
+return 1;
 }
 
 int ctap_generate_rng(uint8_t * dst, size_t num)
