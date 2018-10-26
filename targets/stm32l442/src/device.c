@@ -16,6 +16,23 @@
 #include "fifo.h"
 #include "log.h"
 
+
+#define PAGE_SIZE		2048
+#define PAGES			128
+// Pages 120-127 are data
+#define	COUNTER_PAGE	(PAGES - 3)
+#define	STATE2_PAGE		(PAGES - 2)
+#define	STATE1_PAGE		(PAGES - 1)
+
+
+#define APPLICATION_START_PAGE	(0)
+#define APPLICATION_START_ADDR	flash_addr(APPLICATION_START_PAGE)
+
+#define APPLICATION_END_PAGE	((PAGES - 8))					         // 120 is NOT included in application
+#define APPLICATION_END_ADDR	(flash_addr(APPLICATION_END_PAGE)-4)     // NOT included in application
+
+#define AUTH_WORD_ADDR          (flash_addr(APPLICATION_END_PAGE)-4)
+
 uint32_t __65_seconds = 0;
 extern PCD_HandleTypeDef hpcd;
 
@@ -128,24 +145,43 @@ void heartbeat()
 
 void authenticator_read_state(AuthenticatorState * a)
 {
-
+    uint32_t * ptr = (uint32_t *)flash_addr(STATE1_PAGE);
+    memmove(a,ptr,sizeof(AuthenticatorState));
 }
 
 void authenticator_read_backup_state(AuthenticatorState * a)
 {
-
+    uint32_t * ptr = (uint32_t *)flash_addr(STATE2_PAGE);
+    memmove(a,ptr,sizeof(AuthenticatorState));
 }
 
 // Return 1 yes backup is init'd, else 0
-//void authenticator_initialize()
 int authenticator_is_backup_initialized()
 {
-    return 0;
+    uint8_t header[16];
+    uint32_t * ptr = (uint32_t *)flash_addr(STATE2_PAGE);
+    memmove(header,ptr,16);
+    AuthenticatorState * state = (AuthenticatorState*)header;
+    return state->is_initialized == INITIALIZED_MARKER;
 }
 
 void authenticator_write_state(AuthenticatorState * a, int backup)
 {
+    uint32_t * ptr;
+    if (! backup)
+    {
+        ptr = (uint32_t *)(PAGE_SIZE*STATE1_PAGE);
+        flash_erase_page(STATE1_PAGE);
 
+        flash_write(flash_addr(STATE1_PAGE), (uint8_t*)a, sizeof(AuthenticatorState));
+    }
+    else
+    {
+        ptr = (uint32_t *)(PAGE_SIZE*STATE2_PAGE);
+        flash_erase_page(STATE2_PAGE);
+
+        flash_write(flash_addr(STATE2_PAGE), (uint8_t*)a, sizeof(AuthenticatorState));
+    }
 }
 
 void device_manage()

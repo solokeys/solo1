@@ -35,6 +35,6 @@ void hw_init(void);
 #define SOLO_BUTTON_PORT        GPIOA
 #define SOLO_BUTTON_PIN         LL_GPIO_PIN_0
 
-#define SKIP_BUTTON_CHECK       0
+#define SKIP_BUTTON_CHECK       1
 
 #endif

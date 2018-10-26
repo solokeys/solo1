@@ -41,7 +41,7 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 256K
+FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 240K /* Leave out 16 Kb for data */
 RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 48K
 SRAM2 (rw)      : ORIGIN = 0x10000000, LENGTH = 16K
 }
@@ -83,8 +83,8 @@ SECTIONS
     . = ALIGN(8);
   } >FLASH
 
-  .ARM.extab   : 
-  { 
+  .ARM.extab   :
+  {
   . = ALIGN(8);
   *(.ARM.extab* .gnu.linkonce.armextab.*)
   . = ALIGN(8);
@@ -105,7 +105,7 @@ SECTIONS
     PROVIDE_HIDDEN (__preinit_array_end = .);
 	. = ALIGN(8);
   } >FLASH
-  
+
   .init_array :
   {
 	. = ALIGN(8);
@@ -129,7 +129,7 @@ SECTIONS
   _sidata = LOADADDR(.data);
 
   /* Initialized data sections goes into RAM, load LMA copy after code */
-  .data : 
+  .data :
   {
     . = ALIGN(8);
     _sdata = .;        /* create a global symbol at data start */
@@ -142,11 +142,11 @@ SECTIONS
 
   _sisram2 = LOADADDR(.sram2);
 
-  /* CCM-RAM section 
-  * 
-  * IMPORTANT NOTE! 
+  /* CCM-RAM section
+  *
+  * IMPORTANT NOTE!
   * If initialized variables will be placed in this section,
-  * the startup code needs to be modified to copy the init-values.  
+  * the startup code needs to be modified to copy the init-values.
   */
   .sram2 :
   {
@@ -154,12 +154,12 @@ SECTIONS
     _ssram2 = .;       /* create a global symbol at sram2 start */
     *(.sram2)
     *(.sram2*)
-    
+
     . = ALIGN(8);
     _esram2 = .;       /* create a global symbol at sram2 end */
   } >SRAM2 AT> FLASH
 
-  
+
   /* Uninitialized data section */
   . = ALIGN(4);
   .bss :
@@ -187,7 +187,7 @@ SECTIONS
     . = ALIGN(8);
   } >RAM
 
-  
+
 
   /* Remove information from the standard libraries */
   /DISCARD/ :
@@ -199,5 +199,3 @@ SECTIONS
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
-
-
