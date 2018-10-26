@@ -74,8 +74,8 @@ void usbhid_send(uint8_t * msg)
 {
     printf1(TAG_DUMP,"<< ");
     dump_hex1(TAG_DUMP, msg, HID_PACKET_SIZE);
-    // USBD_HID_HandleTypeDef     *hhid = (USBD_HID_HandleTypeDef*)&Solo_USBD_Device.pClassData;
-
+    while (PCD_GET_EP_TX_STATUS(USB, HID_EPIN_ADDR & 0x0f) == USB_EP_TX_VALID)
+        ;
     USBD_LL_Transmit(&Solo_USBD_Device, HID_EPIN_ADDR, msg, HID_PACKET_SIZE);
 
 }
