@@ -170,19 +170,56 @@ void authenticator_write_state(AuthenticatorState * a, int backup)
     uint32_t * ptr;
     if (! backup)
     {
-        ptr = (uint32_t *)(PAGE_SIZE*STATE1_PAGE);
         flash_erase_page(STATE1_PAGE);
 
         flash_write(flash_addr(STATE1_PAGE), (uint8_t*)a, sizeof(AuthenticatorState));
     }
     else
     {
-        ptr = (uint32_t *)(PAGE_SIZE*STATE2_PAGE);
         flash_erase_page(STATE2_PAGE);
 
         flash_write(flash_addr(STATE2_PAGE), (uint8_t*)a, sizeof(AuthenticatorState));
     }
 }
+
+uint32_t ctap_atomic_count(int sel)
+{
+    int offset = 0;
+    uint32_t count;
+    uint32_t zero = 0;
+    uint32_t * ptr = (uint32_t *)flash_addr(COUNTER_PAGE);
+
+    if (sel != 0)
+    {
+        printf2(TAG_ERR,"counter2 not imple\n");
+        exit(1);
+    }
+
+    for (offset = 0; offset < PAGE_SIZE/4; offset += 1) // wear-level the flash
+    {
+        count = *(ptr+offset);
+        if (count != 0)
+        {
+            count++;
+            offset++;
+            if (offset == PAGE_SIZE/4)
+            {
+                offset = 0;
+                flash_erase_page(COUNTER_PAGE);
+            }
+            else
+            {
+                flash_write(flash_addr(COUNTER_PAGE)+offset-1,(uint8_t*)&zero,4);
+            }
+            flash_write(flash_addr(COUNTER_PAGE)+offset,(uint8_t*)&count,4);
+
+            break;
+        }
+    }
+
+    return count;
+}
+
 
 void device_manage()
 {
@@ -257,11 +294,6 @@ int ctap_generate_rng(uint8_t * dst, size_t num)
     return 1;
 }
 
-uint32_t ctap_atomic_count(int sel)
-{
-    static uint32_t c = 4;
-    return c++;
-}
 
 int ctap_user_verification(uint8_t arg)
 {
