@@ -28,6 +28,7 @@
 #include "util.h"
 #include "fifo.h"
 
+#ifdef TEST_SOLO_STM32
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
 
 int main(void)
@@ -101,3 +102,4 @@ void _Error_Handler(char *file, int line)
     {
     }
 }
+#endif

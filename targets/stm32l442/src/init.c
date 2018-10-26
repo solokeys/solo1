@@ -20,6 +20,7 @@
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_hid.h"
+#include "device.h"
 
 /* USER CODE BEGIN Includes */
 

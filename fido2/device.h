@@ -53,6 +53,8 @@ int authenticator_is_backup_initialized();
 
 void authenticator_write_state(AuthenticatorState *, int backup);
 
+// Called each main loop.  Doesn't need to do anything.
+void device_manage();
 
 // Test for user presence
 // Return 1 for user is present, 0 user not present

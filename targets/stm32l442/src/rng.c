@@ -5,6 +5,7 @@
 #include "stm32l4xx_ll_rng.h"
 
 #include "rng.h"
+#include "log.h"
 
 int __errno = 0;
 
@@ -20,7 +21,7 @@ void rng_get_bytes(uint8_t * dst, size_t sz)
 
         if (RNG->SR & 0x66)
         {
-            printf("Error RNG: %02lx\r\n", RNG->SR);
+            printf2(TAG_ERR,"Error RNG: %02lx\r\n", RNG->SR);
             exit(1);
         }
 
@@ -54,7 +55,7 @@ float shannon_entropy(float * p, size_t sz)
     return entropy;
 }
 
-// Measure shannon entropy of RNG 
+// Measure shannon entropy of RNG
 float rng_test(size_t n)
 {
     unsigned int i;

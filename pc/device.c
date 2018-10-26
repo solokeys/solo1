@@ -398,7 +398,7 @@ void authenticator_initialize()
     }
 }
 
-
-
-
-
+void manage_device()
+{
+    
+}

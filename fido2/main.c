@@ -85,6 +85,8 @@ int main(int argc, char * argv[])
             t1 = millis();
         }
 
+        device_manage();
+
         if (usbhid_recv(hidmsg) > 0)
         {
             printf1(TAG_DUMP,"%d>> ",count++); dump_hex1(TAG_DUMP, hidmsg,sizeof(hidmsg));
@@ -110,5 +112,3 @@ int main(int argc, char * argv[])
 }
 
 #endif
-
-

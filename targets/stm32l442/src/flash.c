@@ -5,6 +5,7 @@
 
 #include "app.h"
 #include "flash.h"
+#include "log.h"
 
 static void flash_unlock()
 {
@@ -33,7 +34,7 @@ void flash_erase_page(uint8_t page)
 
     if(FLASH->SR & (1<<1))
     {
-        printf("erase NOT successful %lx\r\n", FLASH->SR);
+        printf2(TAG_ERR,"erase NOT successful %lx\r\n", FLASH->SR);
     }
 
     FLASH->CR &= ~(0x7);
@@ -58,7 +59,7 @@ void flash_write_dword(uint32_t addr, uint64_t data)
 
     if(FLASH->SR & (1<<1))
     {
-        printf("program NOT successful %lx\r\n", FLASH->SR);
+        printf2(TAG_ERR,"program NOT successful %lx\r\n", FLASH->SR);
     }
 
     FLASH->SR = (1<<0);

@@ -51,6 +51,8 @@ uint32_t fifo_##NAME##_size();\
 
 FIFO_CREATE_H(hidmsg,10,64)
 
+FIFO_CREATE_H(debug,1024,1)
+
 FIFO_CREATE_H(test,100,100)
 
 void fifo_test();

@@ -95,6 +95,9 @@ static uint8_t  *USBD_HID_GetDeviceQualifierDesc (uint16_t *length);
 
 static uint8_t  USBD_HID_DataIn (USBD_HandleTypeDef *pdev, uint8_t epnum);
 
+static uint8_t  USBD_HID_DataOut (USBD_HandleTypeDef *pdev,
+                              uint8_t epnum);
+
 
 USBD_ClassTypeDef  USBD_HID =
 {
@@ -104,7 +107,7 @@ USBD_ClassTypeDef  USBD_HID =
   NULL, /*EP0_TxSent*/
   NULL, /*EP0_RxReady*/
   USBD_HID_DataIn, /*DataIn*/
-  NULL, /*DataOut*/
+  USBD_HID_DataOut, /*DataOut*/
   NULL, /*SOF */
   NULL,
   NULL,
@@ -223,8 +226,7 @@ __ALIGN_BEGIN static uint8_t HID_MOUSE_ReportDesc[HID_FIDO_REPORT_DESC_SIZE]  __
         0x95, HID_PACKET_SIZE,                   //   REPORT_COUNT (64)
         0x91, 0x02,                   //   OUTPUT (Data,Var,Abs)
 
-
-        0xc0,// END_COLLECTION
+    0xc0,// END_COLLECTION
 
 };
 
@@ -233,10 +235,44 @@ static uint8_t hidmsg_buf[64];
 void usb_hid_recieve_callback(uint8_t ep)
 {
     fifo_hidmsg_add(hidmsg_buf);
+    memset(hidmsg_buf,0,64);
     USBD_LL_PrepareReceive(&Solo_USBD_Device,
             HID_ENDPOINT,
             hidmsg_buf,
             HID_PACKET_SIZE);
+}
+
+static void dump_pma()
+{
+
+    register uint32_t _wRegBase = (uint32_t)USB;
+    _wRegBase += (uint32_t)(USB)->BTABLE + 0x400;
+
+    uint16_t * pma_ptr = (uint16_t *)_wRegBase;
+    uint16_t val;
+    uint32_t offset = (uint32_t)(USB)->BTABLE;
+
+    printf("btable: %02lx\r\n",offset);
+
+    for (int i = 0; i < 2; i++)
+    {
+        uint16_t addr_tx = pma_ptr[i * 4 + 0];
+        uint16_t cnt_tx = pma_ptr[i * 4 + 1];
+        uint16_t addr_rx = pma_ptr[i * 4 + 2];
+        uint16_t cnt_rx = pma_ptr[i * 4 + 3];
+
+        printf("EP%d addr_tx == %02x, count_tx == %02x\r\n", i, addr_tx,cnt_tx );
+        printf("EP%d addr_rx == %02x, count_rx == %02x\r\n", i, addr_rx,cnt_rx );
+    }
+
+    uint16_t ep1_tx = pma_ptr[1 * 4 + 0];
+
+    for (int i  = 0; i < 32; i++)
+    {
+        val = pma_ptr[ep1_tx + i];
+        printf("%04x ",val);
+    }
+    printf("\r\n");
 }
 
 /**
@@ -252,16 +288,11 @@ static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   /* Open EP IN */
   USBD_LL_OpenEP(pdev, HID_EPIN_ADDR, USBD_EP_TYPE_INTR, HID_EPIN_SIZE);
   USBD_LL_OpenEP(pdev, HID_EPOUT_ADDR, USBD_EP_TYPE_INTR, HID_EPOUT_SIZE);
-  static uint8_t mem[4];
+  static uint8_t mem[sizeof (USBD_HID_HandleTypeDef)];
   pdev->ep_in[HID_EPIN_ADDR & 0xFU].is_used = 1U;
   pdev->ep_out[HID_EPOUT_ADDR & 0xFU].is_used = 1U;
 
   pdev->pClassData = mem;
-
-  if (pdev->pClassData == NULL)
-  {
-    return USBD_FAIL;
-  }
 
   ((USBD_HID_HandleTypeDef *)pdev->pClassData)->state = HID_IDLE;
 
@@ -411,60 +442,8 @@ static uint8_t  USBD_HID_Setup (USBD_HandleTypeDef *pdev,
   return ret;
 }
 
-/**
-  * @brief  USBD_HID_SendReport
-  *         Send HID Report
-  * @param  pdev: device instance
-  * @param  buff: pointer to report
-  * @retval status
-  */
-uint8_t USBD_HID_SendReport     (USBD_HandleTypeDef  *pdev,
-                                 uint8_t *report,
-                                 uint16_t len)
-{
-  USBD_HID_HandleTypeDef     *hhid = (USBD_HID_HandleTypeDef*)pdev->pClassData;
 
-  if (pdev->dev_state == USBD_STATE_CONFIGURED )
-  {
-    if(hhid->state == HID_IDLE)
-    {
-      hhid->state = HID_BUSY;
-      USBD_LL_Transmit (pdev,
-                        HID_EPIN_ADDR,
-                        report,
-                        len);
-    }
-  }
-  return USBD_OK;
-}
 
-/**
-  * @brief  USBD_HID_GetPollingInterval
-  *         return polling interval from endpoint descriptor
-  * @param  pdev: device instance
-  * @retval polling interval
-  */
-uint32_t USBD_HID_GetPollingInterval (USBD_HandleTypeDef *pdev)
-{
-  uint32_t polling_interval = 0U;
-
-  /* HIGH-speed endpoints */
-  if(pdev->dev_speed == USBD_SPEED_HIGH)
-  {
-   /* Sets the data transfer polling interval for high speed transfers.
-    Values between 1..16 are allowed. Values correspond to interval
-    of 2 ^ (bInterval-1). This option (8 ms, corresponds to HID_HS_BINTERVAL */
-    polling_interval = (((1U <<(HID_BINTERVAL - 1U))) / 8U);
-  }
-  else   /* LOW and FULL-speed endpoints */
-  {
-    /* Sets the data transfer polling interval for low and full
-    speed transfers */
-    polling_interval =  HID_BINTERVAL;
-  }
-
-  return ((uint32_t)(polling_interval));
-}
 
 /**
   * @brief  USBD_HID_GetCfgFSDesc
@@ -495,6 +474,14 @@ static uint8_t  USBD_HID_DataIn (USBD_HandleTypeDef *pdev,
   return USBD_OK;
 }
 
+static uint8_t  USBD_HID_DataOut (USBD_HandleTypeDef *pdev,
+                              uint8_t epnum)
+{
+  /* Ensure that the FIFO is empty before a new transfer, this condition could
+  be caused by a new transfer before the end of the previous transfer */
+  ((USBD_HID_HandleTypeDef *)pdev->pClassData)->state = HID_IDLE;
+  return USBD_OK;
+}
 
 /**
 * @brief  DeviceQualifierDescriptor
