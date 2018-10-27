@@ -19,8 +19,9 @@
 
 #define PAGE_SIZE		2048
 #define PAGES			128
-// Pages 120-127 are data
-#define	COUNTER_PAGE	(PAGES - 3)
+// Pages 119-127 are data
+#define	COUNTER2_PAGE	(PAGES - 4)
+#define	COUNTER1_PAGE	(PAGES - 3)
 #define	STATE2_PAGE		(PAGES - 2)
 #define	STATE1_PAGE		(PAGES - 1)
 
@@ -28,7 +29,7 @@
 #define APPLICATION_START_PAGE	(0)
 #define APPLICATION_START_ADDR	flash_addr(APPLICATION_START_PAGE)
 
-#define APPLICATION_END_PAGE	((PAGES - 8))					         // 120 is NOT included in application
+#define APPLICATION_END_PAGE	((PAGES - 9))					         // 119 is NOT included in application
 #define APPLICATION_END_ADDR	(flash_addr(APPLICATION_END_PAGE)-4)     // NOT included in application
 
 #define AUTH_WORD_ADDR          (flash_addr(APPLICATION_END_PAGE)-4)
@@ -74,6 +75,7 @@ void device_init()
     LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
 
     printf1(TAG_GEN,"hello solo\r\n");
+
 }
 
 void usbhid_init()
@@ -167,7 +169,6 @@ int authenticator_is_backup_initialized()
 
 void authenticator_write_state(AuthenticatorState * a, int backup)
 {
-    uint32_t * ptr;
     if (! backup)
     {
         flash_erase_page(STATE1_PAGE);
@@ -185,9 +186,15 @@ void authenticator_write_state(AuthenticatorState * a, int backup)
 uint32_t ctap_atomic_count(int sel)
 {
     int offset = 0;
-    uint32_t count;
-    uint32_t zero = 0;
-    uint32_t * ptr = (uint32_t *)flash_addr(COUNTER_PAGE);
+    uint32_t * ptr = (uint32_t *)flash_addr(COUNTER1_PAGE);
+    uint32_t erases = *(uint32_t *)flash_addr(COUNTER2_PAGE);
+    if (erases == 0xffffffff)
+    {
+        erases = 1;
+        flash_write(flash_addr(COUNTER2_PAGE), (uint8_t*)&erases, 4);
+    }
+
+    uint32_t lastc = 0;
 
     if (sel != 0)
     {
@@ -195,29 +202,63 @@ uint32_t ctap_atomic_count(int sel)
         exit(1);
     }
 
-    for (offset = 0; offset < PAGE_SIZE/4; offset += 1) // wear-level the flash
+    for (offset = 0; offset < PAGE_SIZE/4; offset += 2) // wear-level the flash
     {
-        count = *(ptr+offset);
-        if (count != 0)
+        if (ptr[offset] != 0xffffffff)
         {
-            count++;
-            offset++;
-            if (offset == PAGE_SIZE/4)
+            if (ptr[offset] < lastc)
             {
-                offset = 0;
-                flash_erase_page(COUNTER_PAGE);
+                printf2(TAG_ERR,"Error, count went down!\r\n");
             }
-            else
-            {
-                flash_write(flash_addr(COUNTER_PAGE)+offset-1,(uint8_t*)&zero,4);
-            }
-            flash_write(flash_addr(COUNTER_PAGE)+offset,(uint8_t*)&count,4);
-
+            lastc = ptr[offset];
+        }
+        else
+        {
             break;
         }
     }
 
-    return count;
+    if (!lastc) // Happens on initialization as well.
+    {
+        printf("warning, power interrupted during previous count.  Restoring.\r\n");
+        // there are 32 counts per page
+        lastc =  erases * 32;
+        flash_erase_page(COUNTER1_PAGE);
+        flash_write(flash_addr(COUNTER1_PAGE), (uint8_t*)&lastc, 4);
+
+        erases++;
+        flash_erase_page(COUNTER2_PAGE);
+        flash_write(flash_addr(COUNTER2_PAGE), (uint8_t*)&erases, 4);
+    }
+
+    lastc++;
+
+    if (lastc/32 > erases)
+    {
+        printf("warning, power interrupted, erases mark, restoring\r\n");
+        erases = lastc/32 + 1;
+        flash_erase_page(COUNTER2_PAGE);
+        flash_write(flash_addr(COUNTER2_PAGE), (uint8_t*)&erases, 4);
+    }
+
+    if (offset == PAGE_SIZE/4)
+    {
+        if (lastc/32 > erases)
+        {
+            printf("warning, power interrupted, erases mark, restoring\r\n");
+        }
+        erases = lastc/32 + 1;
+        flash_erase_page(COUNTER2_PAGE);
+        flash_write(flash_addr(COUNTER2_PAGE), (uint8_t*)&erases, 4);
+
+        flash_erase_page(COUNTER1_PAGE);
+    }
+    else
+    {
+        flash_write(flash_addr(COUNTER1_PAGE) + offset * 4, (uint8_t*)&lastc, 4);
+    }
+
+    return lastc;
 }
 
 
