@@ -39,7 +39,11 @@ Try reading and writing to the device node you identified in the previous step. 
 * write: try `echo "hello, Solo" > /dev/hidraw0`. Again, if you don't get denied permission, you're OK.
 
 ## Which rule should I use, and how do I do it?
-Simplest is probably to copy [Yubico's rule file](https://github.com/Yubico/libu2f-host/blob/master/70-u2f.rules) to `/etc/udev/rules.d/fido.rules` on your system. This contains rules for Yubico's keys, the U2F Zero, and many others. The relevant line for U2F Zero is:
+Simplest is probably to copy [Yubico's rule file](https://github.com/Yubico/libu2f-host/blob/master/70-u2f.rules) to `/etc/udev/rules.d/fido.rules` on your system, for instance:
+```
+$ (cd /etc/udev/rules.d/ && sudo curl https://raw.githubusercontent.com/Yubico/libu2f-host/master/70-u2f.rules -O)
+```
+This contains rules for Yubico's keys, the U2F Zero, and many others. The relevant line for U2F Zero is:
 ```
 KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="8acf", TAG+="uaccess"
 ```
