@@ -5,7 +5,7 @@ AR=arm-none-eabi-ar
 
 # ST related
 SRC = src/main.c src/init.c src/redirect.c src/flash.c src/rng.c src/led.c src/device.c
-SRC += src/fifo.c src/crypto.c
+SRC += src/fifo.c src/crypto.c src/attestation.c
 SRC += src/startup_stm32l432xx.s src/system_stm32l4xx.c
 SRC += $(wildcard lib/*.c) $(wildcard lib/usbd/*.c)
 
