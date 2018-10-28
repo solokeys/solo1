@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+import base64
 """
     cbytes.py
 
@@ -39,4 +40,6 @@ print()
 print('code uint8_t __attest[] = \n%s;' % c_str)
 print('const uint16_t __attest_size = sizeof(__attest)-1;')
 
-
+b = base64.b64encode(buf)
+print('b64: ')
+print(b)

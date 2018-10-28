@@ -18,6 +18,7 @@ static void flash_unlock()
 void flash_erase_page(uint8_t page)
 {
     __disable_irq();
+    flash_unlock();
     // Wait if flash is busy
     while (FLASH->SR & (1<<16))
         ;
@@ -71,9 +72,10 @@ void flash_write(uint32_t addr, uint8_t * data, size_t sz)
 {
     int i;
     uint8_t buf[8];
+    flash_unlock();
 
     // dword align
-    addr &= ~(0x7);
+    addr &= ~(0x07);
 
     for(i = 0; i < sz; i+=8)
     {

@@ -15,6 +15,7 @@
 #include "util.h"
 #include "fifo.h"
 #include "log.h"
+#include "ctaphid.h"
 
 
 #define PAGE_SIZE		2048
@@ -34,18 +35,28 @@
 
 #define AUTH_WORD_ADDR          (flash_addr(APPLICATION_END_PAGE)-4)
 
-uint32_t __65_seconds = 0;
+uint32_t __90_ms = CTAPHID_STATUS_IDLE;
+uint32_t __device_status = 0;
+uint32_t __last_update = 0;
 extern PCD_HandleTypeDef hpcd;
 
 #define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
 
-// Timer6 overflow handler
+// Timer6 overflow handler.  happens every ~90ms.
 void TIM6_DAC_IRQHandler()
 {
     // timer is only 16 bits, so roll it over here
     TIM6->SR = 0;
-    __65_seconds += 1;
+    __90_ms += 1;
+    if ((millis() - __last_update) > 5)
+    {
+        if (__device_status != CTAPHID_STATUS_IDLE)
+        {
+            ctaphid_update_status(__device_status);
+        }
+    }
 }
+
 // Global USB interrupt handler
 void USB_IRQHandler(void)
 {
@@ -55,10 +66,21 @@ void USB_IRQHandler(void)
 
 uint32_t millis()
 {
-    return (((uint32_t)TIM6->CNT) | (__65_seconds<<16));
+    return (((uint32_t)TIM6->CNT) + (__90_ms * 90));
 }
 
+void device_set_status(int status)
+{
+    __disable_irq();
+    __last_update = millis();
+    __enable_irq();
 
+    if (status != CTAPHID_STATUS_IDLE && __device_status != status)
+    {
+        ctaphid_update_status(status);
+    }
+    __device_status = status;
+}
 
 
 void delay(uint32_t ms)
@@ -75,7 +97,6 @@ void device_init()
     LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
 
     printf1(TAG_GEN,"hello solo\r\n");
-
 }
 
 void usbhid_init()
@@ -86,7 +107,6 @@ int usbhid_recv(uint8_t * msg)
 {
     if (fifo_hidmsg_size())
     {
-
         fifo_hidmsg_take(msg);
         printf1(TAG_DUMP,">> ");
         dump_hex1(TAG_DUMP,msg, HID_PACKET_SIZE);
@@ -188,9 +208,11 @@ uint32_t ctap_atomic_count(int sel)
     int offset = 0;
     uint32_t * ptr = (uint32_t *)flash_addr(COUNTER1_PAGE);
     uint32_t erases = *(uint32_t *)flash_addr(COUNTER2_PAGE);
+    static uint32_t sc = 0;
     if (erases == 0xffffffff)
     {
         erases = 1;
+        flash_erase_page(COUNTER2_PAGE);
         flash_write(flash_addr(COUNTER2_PAGE), (uint8_t*)&erases, 4);
     }
 
@@ -220,43 +242,53 @@ uint32_t ctap_atomic_count(int sel)
 
     if (!lastc) // Happens on initialization as well.
     {
-        printf("warning, power interrupted during previous count.  Restoring.\r\n");
+        printf2(TAG_ERR,"warning, power interrupted during previous count.  Restoring. lastc==%lu, erases=%lu, offset=%d\r\n", lastc,erases,offset);
         // there are 32 counts per page
-        lastc =  erases * 32;
+        lastc =  erases * 256 + 1;
         flash_erase_page(COUNTER1_PAGE);
         flash_write(flash_addr(COUNTER1_PAGE), (uint8_t*)&lastc, 4);
 
         erases++;
         flash_erase_page(COUNTER2_PAGE);
         flash_write(flash_addr(COUNTER2_PAGE), (uint8_t*)&erases, 4);
+        return lastc;
     }
 
     lastc++;
 
-    if (lastc/32 > erases)
+    if (lastc/256 > erases)
     {
-        printf("warning, power interrupted, erases mark, restoring\r\n");
-        erases = lastc/32 + 1;
+        printf2(TAG_ERR,"warning, power interrupted, erases mark, restoring. lastc==%lu, erases=%lu\r\n", lastc,erases);
+        erases = lastc/256;
         flash_erase_page(COUNTER2_PAGE);
         flash_write(flash_addr(COUNTER2_PAGE), (uint8_t*)&erases, 4);
     }
 
     if (offset == PAGE_SIZE/4)
     {
-        if (lastc/32 > erases)
+        if (lastc/256 > erases)
         {
-            printf("warning, power interrupted, erases mark, restoring\r\n");
+            printf2(TAG_ERR,"warning, power interrupted, erases mark, restoring lastc==%lu, erases=%lu\r\n", lastc,erases);
         }
-        erases = lastc/32 + 1;
+        erases = lastc/256 + 1;
         flash_erase_page(COUNTER2_PAGE);
         flash_write(flash_addr(COUNTER2_PAGE), (uint8_t*)&erases, 4);
 
         flash_erase_page(COUNTER1_PAGE);
+        offset = 0;
     }
-    else
+
+
+    flash_write(flash_addr(COUNTER1_PAGE) + offset * 4, (uint8_t*)&lastc, 4);
+
+    if (lastc == sc)
     {
-        flash_write(flash_addr(COUNTER1_PAGE) + offset * 4, (uint8_t*)&lastc, 4);
+        printf1(TAG_RED,"no count detected:  lastc==%lu, erases=%lu, offset=%d\r\n", lastc,erases,offset);
+        while(1)
+            ;
     }
+
+    sc = lastc;
 
     return lastc;
 }
@@ -284,10 +316,38 @@ void device_manage()
 #endif
 }
 
+static int handle_packets()
+{
+    static uint8_t hidmsg[HID_PACKET_SIZE];
+    memset(hidmsg,0, sizeof(hidmsg));
+    if (usbhid_recv(hidmsg) > 0)
+    {
+        if ( ctaphid_handle_packet(hidmsg) ==  CTAPHID_CANCEL)
+        {
+            printf1(TAG_GREEN, "CANCEL!\r\n");
+            return -1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    return 0;
+}
+
 int ctap_user_presence_test()
 {
+    int oldstatus = __device_status;
+    int ret;
 #if SKIP_BUTTON_CHECK
-    return 1;
+    int i=500;
+    while(i--)
+    {
+        delay(1);
+        ret = handle_packets();
+        if (ret) return ret;
+    }
+    goto done;
 #endif
 
     uint32_t t1 = millis();
@@ -297,15 +357,17 @@ int ctap_user_presence_test()
     delay(3000);
     led_rgb(0x001040);
     delay(50);
-    return 1;
+    goto done;
 #endif
 while (IS_BUTTON_PRESSED())
 {
     if (t1 + 5000 < millis())
     {
         printf1(TAG_GEN,"Button not pressed\n");
-        return 0;
+        goto fail;
     }
+    ret = handle_packets();
+    if (ret) return ret;
 }
 
 t1 = millis();
@@ -314,11 +376,13 @@ do
 {
     if (t1 + 5000 < millis())
     {
-        return 0;
+        goto fail;
     }
     if (! IS_BUTTON_PRESSED())
         continue;
     delay(1);
+    ret = handle_packets();
+    if (ret) return ret;
 }
 while (! IS_BUTTON_PRESSED());
 
@@ -326,7 +390,11 @@ led_rgb(0x001040);
 
 delay(50);
 
+done:
 return 1;
+
+fail:
+return 0;
 }
 
 int ctap_generate_rng(uint8_t * dst, size_t num)

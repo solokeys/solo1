@@ -42,7 +42,7 @@ uint8_t parse_pub_key_cred_params(CTAP_makeCredential * MC, CborValue * val);
 uint8_t parse_fixed_byte_string(CborValue * map, uint8_t * dst, int len);
 uint8_t parse_rp_id(struct rpId * rp, CborValue * val);
 uint8_t parse_rp(struct rpId * rp, CborValue * val);
-uint8_t parse_options(CborValue * val, uint8_t * rk, uint8_t * uv);
+uint8_t parse_options(CborValue * val, uint8_t * rk, uint8_t * uv, uint8_t * up);
 
 uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it);
 uint8_t parse_cose_key(CborValue * it, uint8_t * x, uint8_t * y, int * kty, int * crv);

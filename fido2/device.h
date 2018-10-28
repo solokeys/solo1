@@ -56,8 +56,12 @@ void authenticator_write_state(AuthenticatorState *, int backup);
 // Called each main loop.  Doesn't need to do anything.
 void device_manage();
 
+// sets status that's uses for sending status updates ~100ms.
+// A timer should be set up to call `ctaphid_update_status`
+void device_set_status(int status);
+
 // Test for user presence
-// Return 1 for user is present, 0 user not present
+// Return 1 for user is present, 0 user not present, -1 if cancel is requested.
 extern int ctap_user_presence_test();
 
 // Generate @num bytes of random numbers to @dest

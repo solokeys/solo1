@@ -387,13 +387,13 @@ class Tester():
     def test_u2f(self,):
         pass
 
-    def test_fido2_simple(self):
+    def test_fido2_simple(self, pin_token=None):
         creds = []
         exclude_list = []
         rp = {'id': 'examplo.org', 'name': 'ExaRP'}
         user = {'id': b'usee_od', 'name': 'AB User'}
         challenge = 'Y2hhbGxlbmdl'
-        PIN = None
+        PIN = pin_token
 
         fake_id1 = array.array('B',[randint(0,255) for i in range(0,150)]).tostring()
         fake_id2 = array.array('B',[randint(0,255) for i in range(0,73)]).tostring()
@@ -488,6 +488,7 @@ class Tester():
                 attest.verify(data.hash)
                 cred = attest.auth_data.credential_data
                 creds.append(cred)
+                print(cred)
             print('PASS')
 
             if PIN is not None:
@@ -511,15 +512,19 @@ class Tester():
             real_excl = [{'id': cred.credential_id, 'type': 'public-key'}]
             try:
                 attest, data = self.client.make_credential(rp, user, challenge, pin = PIN, exclude_list = exclude_list + real_excl)
+                raise RuntimeError('Exclude list did not return expected error')
             except CtapError as e:
                 assert(e.code == CtapError.ERR.CREDENTIAL_EXCLUDED)
+            except ClientError as e:
+                assert(e.cause.code == CtapError.ERR.CREDENTIAL_EXCLUDED)
             print('PASS')
 
-            print('get assertion')
-            allow_list = [{'id':creds[0].credential_id, 'type': 'public-key'}]
-            assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
-            assertions[0].verify(client_data.hash, creds[0].public_key)
-            print('PASS')
+            for i, x in enumerate(creds):
+                print('get assertion %d' % i)
+                allow_list = [{'id':x.credential_id, 'type': 'public-key'}]
+                assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
+                assertions[0].verify(client_data.hash, x.public_key)
+                print('PASS')
 
             if PIN is not None:
                 print('get assertion with wrong pin code')
@@ -531,11 +536,16 @@ class Tester():
                     assert(e.cause.code == CtapError.ERR.PIN_INVALID)
                 print('PASS')
 
+
             print('get multiple assertions')
             allow_list = [{'id': x.credential_id, 'type': 'public-key'} for x in creds]
             assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
+
             for ass,cred in zip(assertions, creds):
+                i += 1
+
                 ass.verify(client_data.hash, cred.public_key)
+                print('%d verified' % i)
             print('PASS')
 
         print('Reset device')
@@ -573,6 +583,20 @@ class Tester():
             assert(e.code == CtapError.ERR.PIN_INVALID)
         print('PASS')
 
+        print('MC using wrong pin')
+        try:
+            self.test_fido2_simple('abcd3');
+        except CtapError as e:
+            assert(e.code == CtapError.ERR.PIN_INVALID)
+        except ClientError as e:
+            assert(e.cause.code == CtapError.ERR.PIN_INVALID)
+        print('PASS')
+
+        print('Reboot device and hit enter')
+        input()
+        self.find_device()
+        self.test_fido2_simple(PIN);
+
         print('Re-run make_credential and get_assertion tests with pin code')
         test(self, PIN)
 
@@ -582,7 +606,6 @@ class Tester():
         except CtapError as e:
             print('Warning, reset failed: ', e)
         print('PASS')
-
 
 def test_find_brute_force():
     i = 0
@@ -602,6 +625,6 @@ if __name__ == '__main__':
     # t.test_hid()
     # t.test_long_ping()
     t.test_fido2()
-    #test_find_brute_force()
+    # test_find_brute_force()
     #t.test_fido2_simple()
     #t.test_fido2_brute_force()

@@ -39,8 +39,9 @@ typedef struct
     // Pin information
     uint8_t is_initialized;
     uint8_t is_pin_set;
-    uint8_t pin_code[NEW_PIN_ENC_MAX_SIZE];
-    uint8_t remaining_tries;
+    uint8_t pin_code[NEW_PIN_ENC_MIN_SIZE];
+    int pin_code_length;
+    int8_t remaining_tries;
 
     uint16_t key_lens[MAX_KEYS];
     uint8_t key_space[KEY_SPACE_BYTES];

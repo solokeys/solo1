@@ -40,6 +40,7 @@ HW=-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb
 CHIP=STM32L442xx
 
 DEFINES = -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER
+# DEFINES += -DTEST_SOLO_STM32 -DTEST -DTEST_FIFO=1
 
 CFLAGS=$(INC) -c $(DEFINES)  -Os  -Wall -fdata-sections -ffunction-sections $(HW)
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -u _printf_float -lnosys
@@ -68,7 +69,8 @@ clean:
 	rm -f *.o src/*.o src/*.elf *.elf *.hex $(OBJ)
 
 flash: $(TARGET).hex
-	STM32_Programmer_CLI -c port=SWD -halt -d $(TARGET).hex -rst
+	STM32_Programmer_CLI -c port=SWD -halt -e all
+	STM32_Programmer_CLI -c port=SWD -halt  -d $(TARGET).hex -rst
 	sleep 0.5
 	python dfuse-tool/dfuse-tool.py --leave
 

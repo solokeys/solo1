@@ -27,9 +27,126 @@
 #include "device.h"
 #include "util.h"
 #include "fifo.h"
+#include "log.h"
 
 #ifdef TEST_SOLO_STM32
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
+#define PAGE_SIZE		2048
+#define PAGES			128
+// Pages 119-127 are data
+#define	COUNTER2_PAGE	(PAGES - 4)
+#define	COUNTER1_PAGE	(PAGES - 3)
+#define	STATE2_PAGE		(PAGES - 2)
+#define	STATE1_PAGE		(PAGES - 1)
+
+void test_atomic_counter()
+{
+    // flash_erase_page(COUNTER1_PAGE);
+    // flash_erase_page(COUNTER2_PAGE);
+    int i;
+    uint32_t c0 = ctap_atomic_count(0);
+    for (i = 0; i < 128; i++)
+    {
+        uint32_t c1 = ctap_atomic_count(0);
+        if (c1 <= (c0 ))
+        {
+            printf("error, count failed  %lu <= %lu\r\n",c1,c0);
+            while(1)
+            ;
+        }
+        printf("%lu\r\n", c1);
+        c0 = c1;
+    }
+
+    printf("test faults\r\n");
+
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+
+    flash_erase_page(COUNTER1_PAGE);
+
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+
+    flash_erase_page(COUNTER1_PAGE);
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+
+    flash_erase_page(COUNTER1_PAGE);
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+
+    flash_erase_page(COUNTER1_PAGE);
+
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+
+    flash_erase_page(COUNTER2_PAGE);
+
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+
+    flash_erase_page(COUNTER2_PAGE);
+
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+
+    flash_erase_page(COUNTER2_PAGE);
+
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+
+    flash_erase_page(COUNTER2_PAGE);
+
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+
+    flash_erase_page(COUNTER1_PAGE);
+
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+
+    flash_erase_page(COUNTER1_PAGE);
+
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+    printf("%lu\r\n", ctap_atomic_count(0));
+
+    flash_erase_page(COUNTER1_PAGE);
+
+}
 
 int main(void)
 {
@@ -41,7 +158,24 @@ int main(void)
     uint8_t hidbuf[HID_PACKET_SIZE];
 
     hw_init();
-
+    set_logging_mask(
+            /*0*/
+           // TAG_GEN|
+            TAG_MC |
+            TAG_GA |
+            // TAG_WALLET |
+            TAG_STOR |
+            TAG_CP |
+            TAG_CTAP|
+//            TAG_HID|
+            /*TAG_U2F|*/
+            TAG_PARSE |
+           //TAG_TIME|
+            // TAG_DUMP|
+            TAG_GREEN|
+            TAG_RED|
+            TAG_ERR
+            );
     printf("hello solo\r\n");
 
     // Test flash
@@ -49,6 +183,24 @@ int main(void)
     flash_write(flash_addr(60), str, sizeof(str));
     memmove(buf,(uint8_t*)flash_addr(60),sizeof(str));
     printf("flash: \"%s\"\r\n", buf);
+
+    // test_atomic_counter();
+
+
+    // Note that 4 byte aligned addresses won't get written correctly.
+    flash_erase_page(60);
+    uint32_t count = 0;
+    flash_write(flash_addr(60) + 0,(uint8_t*)&count,4);
+    count += 1;
+    flash_write(flash_addr(60) + 4,(uint8_t*)&count,4);
+    count += 1;
+    flash_write(flash_addr(60) + 8,(uint8_t*)&count,4);
+    count += 1;
+    flash_write(flash_addr(60) + 12,(uint8_t*)&count,4);
+    count += 1;
+    flash_write(flash_addr(60) + 16,(uint8_t*)&count,4);
+    dump_hex((uint8_t *)flash_addr(60), 20);
+
 
     // test timer
     uint32_t t1 = millis();
@@ -63,7 +215,7 @@ int main(void)
 
     /*// Test PWM + weighting of RGB*/
     /*led_test_colors();*/
-
+    fifo_test();
 
 
     uint32_t t0 = millis();
@@ -91,15 +243,9 @@ int main(void)
             fifo_hidmsg_take(hidbuf);
             dump_hex(hidbuf, HID_PACKET_SIZE);
         }
+        while(1)
+        ;
     }
 }
 
-
-void _Error_Handler(char *file, int line)
-{
-    printf("Error: %s: %d\r\n", file, line);
-    while(1)
-    {
-    }
-}
 #endif
