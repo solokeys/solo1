@@ -25,10 +25,12 @@ void flash_option_bytes_init(int boot_from_dfu)
 #else
     uint32_t val = 0xfffff8b9;
 #endif
-    if (!boot_from_dfu)
+
+    if (boot_from_dfu)
     {
-        val &= ~(1<<26); // nSWBOOT0 = 0  (boot from nBoot0)
+        val &= ~(1<<27); // nBOOT0 = 0  (boot from system rom)
     }
+    val &= ~(1<<26); // nSWBOOT0 = 0  (boot from nBoot0)
     val &= ~(1<<25); // SRAM2_RST = 1 (erase sram on reset)
     val &= ~(1<<24); // SRAM2_PE = 1 (parity check en)
 

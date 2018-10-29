@@ -73,9 +73,9 @@ clean:
 flash: $(TARGET).hex
 	STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
 	STM32_Programmer_CLI -c port=SWD -halt  -d $(TARGET).hex -rst
-	STM32_Programmer_CLI -c port=SWD  -rst
-	sleep 0.5
-	python dfuse-tool/dfuse-tool.py --leave
+
+detach:
+	STM32_Programmer_CLI -c port=usb1 -ob nBOOT0=1
 
 cbor:
 	cd ../../tinycbor/ && make clean
