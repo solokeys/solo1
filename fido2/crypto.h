@@ -49,8 +49,8 @@ void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, ui
 void crypto_ecc256_make_key_pair(uint8_t * pubkey, uint8_t * privkey);
 void crypto_ecc256_shared_secret(const uint8_t * pubkey, const uint8_t * privkey, uint8_t * shared_secret);
 
-#define CRYPTO_TRANSPORT_KEY            NULL
-#define CRYPTO_MASTER_KEY               NULL
+#define CRYPTO_TRANSPORT_KEY            ((uint8_t*)1)
+#define CRYPTO_MASTER_KEY               ((uint8_t*)0)
 
 void crypto_aes256_init(uint8_t * key, uint8_t * nonce);
 void crypto_aes256_reset_iv(uint8_t * nonce);
@@ -66,6 +66,7 @@ void crypto_load_master_secret(uint8_t * key);
 extern const uint8_t attestation_cert_der[];
 extern const uint16_t attestation_cert_der_size;
 
-
+extern const uint8_t attestation_key[];
+extern const uint16_t attestation_key_size;
 
 #endif

@@ -28,6 +28,8 @@ void device_init();
 
 uint32_t millis();
 
+void delay(uint32_t ms);
+
 // HID message size in bytes
 #define HID_MESSAGE_SIZE        64
 

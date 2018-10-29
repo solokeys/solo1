@@ -4,7 +4,7 @@
 #include "fifo.h"
 
 
-FIFO_CREATE(debug,1024,1)
+FIFO_CREATE(debug,4096,1)
 
 FIFO_CREATE(hidmsg,100,64)
 

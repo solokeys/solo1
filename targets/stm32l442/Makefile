@@ -42,7 +42,7 @@ CHIP=STM32L442xx
 DEFINES = -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER
 # DEFINES += -DTEST_SOLO_STM32 -DTEST -DTEST_FIFO=1
 
-CFLAGS=$(INC) -c $(DEFINES)  -Os  -Wall -fdata-sections -ffunction-sections $(HW)
+CFLAGS=$(INC) -c $(DEFINES)   -Wall -fdata-sections -ffunction-sections $(HW)
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -u _printf_float -lnosys
 LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -ltinycbor
 
@@ -53,11 +53,13 @@ all: $(TARGET).elf
 	$(SZ) $^
 
 %.o: %.c
-	$(CC) $^ $(HW) $(CFLAGS) -o $@
+	$(CC) $^ $(HW)  -Os $(CFLAGS) -o $@
 
+../../crypto/micro-ecc/uECC.o: ../../crypto/micro-ecc/uECC.c
+	$(CC) $^ $(HW)  -O3 $(CFLAGS) -o $@
 
 %.o: %.s
-	$(CC) $^ $(HW) $(CFLAGS) -o $@
+	$(CC) $^ $(HW)  -Os $(CFLAGS) -o $@
 
 %.elf: $(OBJ)
 	$(CC) $^ $(HW) $(LDFLAGS) -o $@
@@ -69,8 +71,9 @@ clean:
 	rm -f *.o src/*.o src/*.elf *.elf *.hex $(OBJ)
 
 flash: $(TARGET).hex
-	STM32_Programmer_CLI -c port=SWD -halt -e all
+	STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
 	STM32_Programmer_CLI -c port=SWD -halt  -d $(TARGET).hex -rst
+	STM32_Programmer_CLI -c port=SWD  -rst
 	sleep 0.5
 	python dfuse-tool/dfuse-tool.py --leave
 

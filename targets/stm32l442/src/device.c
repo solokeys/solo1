@@ -95,6 +95,7 @@ void device_init()
     hw_init();
     LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
     LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
+    flash_option_bytes_init(0);
 
     printf1(TAG_GEN,"hello solo\r\n");
 }
@@ -337,9 +338,8 @@ static int handle_packets()
 
 int ctap_user_presence_test()
 {
-    int oldstatus = __device_status;
     int ret;
-#if SKIP_BUTTON_CHECK
+#if SKIP_BUTTON_CHECK_WITH_DELAY
     int i=500;
     while(i--)
     {
@@ -348,17 +348,15 @@ int ctap_user_presence_test()
         if (ret) return ret;
     }
     goto done;
+#elif SKIP_BUTTON_CHECK_FAST
+    delay(2);
+    ret = handle_packets();
+    if (ret) return ret;
+    goto done;
 #endif
-
     uint32_t t1 = millis();
     led_rgb(0xff3520);
 
-#if USE_BUTTON_DELAY
-    delay(3000);
-    led_rgb(0x001040);
-    delay(50);
-    goto done;
-#endif
 while (IS_BUTTON_PRESSED())
 {
     if (t1 + 5000 < millis())

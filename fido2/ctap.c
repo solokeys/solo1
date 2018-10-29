@@ -269,12 +269,12 @@ static int ctap_generate_cose_key(CborEncoder * cose_key, uint8_t * hmac_input, 
 void make_auth_tag(uint8_t * nonce, CTAP_userEntity * user, uint32_t count, uint8_t * tag)
 {
     uint8_t hashbuf[32];
-    crypto_sha256_hmac_init(NULL, 0, hashbuf);
+    crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY, 0, hashbuf);
     crypto_sha256_update(nonce, CREDENTIAL_NONCE_SIZE);
     crypto_sha256_update(user->id, user->id_size);
     crypto_sha256_update(user->name, strnlen((const char*)user->name, USER_NAME_LIMIT));
     crypto_sha256_update((uint8_t*)&count, 4);
-    crypto_sha256_hmac_final(NULL,0,hashbuf);
+    crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY,0,hashbuf);
 
     memmove(tag, hashbuf, CREDENTIAL_TAG_SIZE);
 }

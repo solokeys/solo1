@@ -3,7 +3,7 @@
 #include "app.h"
 #include "fifo.h"
 
-
+#if DEBUG_LEVEL>0
 
 void _putchar(char c)
 {
@@ -16,6 +16,8 @@ void _putchar(char c)
 #endif
 }
 
+
+
 int _write (int fd, const void *buf, long int len)
 {
     uint8_t * data = (uint8_t *) buf;
@@ -26,3 +28,4 @@ int _write (int fd, const void *buf, long int len)
     return 0;
 
 }
+#endif

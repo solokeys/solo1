@@ -6,6 +6,7 @@
 #include "app.h"
 #include "flash.h"
 #include "log.h"
+#include "device.h"
 
 static void flash_unlock()
 {
@@ -15,13 +16,57 @@ static void flash_unlock()
         FLASH->KEYR = 0xCDEF89AB;
     }
 }
+
+// Locks flash and turns off DFU
+void flash_option_bytes_init(int boot_from_dfu)
+{
+#if DEBUG_LEVEL
+    uint32_t val = 0xfffff8aa;
+#else
+    uint32_t val = 0xfffff8b9;
+#endif
+    if (!boot_from_dfu)
+    {
+        val &= ~(1<<26); // nSWBOOT0 = 0  (boot from nBoot0)
+    }
+    val &= ~(1<<25); // SRAM2_RST = 1 (erase sram on reset)
+    val &= ~(1<<24); // SRAM2_PE = 1 (parity check en)
+
+    if (FLASH->OPTR == val)
+    {
+        return;
+    }
+
+    __disable_irq();
+    while (FLASH->SR & (1<<16))
+        ;
+    flash_unlock();
+    if (FLASH->CR & (1<<30))
+    {
+        FLASH->OPTKEYR = 0x08192A3B;
+        FLASH->OPTKEYR = 0x4C5D6E7F;
+    }
+
+    FLASH->OPTR =val;
+    FLASH->CR |= (1<<17);
+
+    while (FLASH->SR & (1<<16))
+        ;
+
+    flash_lock();
+
+    __enable_irq();
+}
+
 void flash_erase_page(uint8_t page)
 {
     __disable_irq();
-    flash_unlock();
+
     // Wait if flash is busy
     while (FLASH->SR & (1<<16))
         ;
+    flash_unlock();
+
     FLASH->SR = FLASH->SR;
 
     // enable flash erase and select page
@@ -72,6 +117,8 @@ void flash_write(uint32_t addr, uint8_t * data, size_t sz)
 {
     int i;
     uint8_t buf[8];
+    while (FLASH->SR & (1<<16))
+        ;
     flash_unlock();
 
     // dword align

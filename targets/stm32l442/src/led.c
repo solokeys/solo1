@@ -6,6 +6,7 @@
 
 #include "led.h"
 #include "device.h"
+#include "log.h"
 
 void led_rgb(uint32_t hex)
 {
@@ -46,9 +47,9 @@ void led_test_colors()
     while(1)
     {
 
-        printf("%d: %lu\r\n", j++, millis());
+        printf1(TAG_GREEN, "%d: %lu\r\n", j++, millis());
 
-        printf("white pulse\r\n");
+        printf1(TAG_GREEN,"white pulse\r\n");
         time = millis();
         while((millis() - time) < 5000)
         {
@@ -56,7 +57,7 @@ void led_test_colors()
             led_rgb(i | (i << 8) | (i << 16));
         }
 
-        printf("blue pulse\r\n");
+        printf1(TAG_GREEN,"blue pulse\r\n");
         time = millis();
         while((millis() - time) < 5000)
         {
@@ -64,7 +65,7 @@ void led_test_colors()
             led_rgb(i);
         }
 
-        printf("green pulse\r\n");
+        printf1(TAG_GREEN,"green pulse\r\n");
         time = millis();
         while((millis() - time) < 5000)
         {
@@ -72,7 +73,7 @@ void led_test_colors()
             led_rgb(i<<8);
         }
 
-        printf("red pulse\r\n");
+        printf1(TAG_GREEN,"red pulse\r\n");
         time = millis();
         while((millis() - time) < 5000)
         {
@@ -80,7 +81,7 @@ void led_test_colors()
             led_rgb(i<<16);
         }
 
-        printf("purple pulse\r\n");
+        printf1(TAG_GREEN,"purple pulse\r\n");
         time = millis();
         while((millis() - time) < 5000)
         {
@@ -88,7 +89,7 @@ void led_test_colors()
             led_rgb((i<<16) | i);
         }
 
-        printf("orange pulse\r\n");
+        printf1(TAG_GREEN,"orange pulse\r\n");
         time = millis();
         while((millis() - time) < 5000)
         {
@@ -96,7 +97,7 @@ void led_test_colors()
             led_rgb((i<<16) | (i<<8));
         }
 
-        printf("yellow pulse\r\n");
+        printf1(TAG_GREEN,"yellow pulse\r\n");
         time = millis();
         while((millis() - time) < 5000)
         {
@@ -105,5 +106,3 @@ void led_test_colors()
         }
     }
 }
-
-
