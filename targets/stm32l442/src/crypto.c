@@ -68,7 +68,9 @@ void crypto_load_master_secret(uint8_t * key)
 void crypto_reset_master_secret()
 {
     memset(master_secret, 0, 64);
+    memset(transport_secret, 0, 64);
     ctap_generate_rng(master_secret, 64);
+    ctap_generate_rng(transport_secret, 32);
 }
 
 
