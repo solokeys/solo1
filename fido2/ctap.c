@@ -354,7 +354,7 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
 
         ctap_generate_rng(authData->attest.credential.nonce, CREDENTIAL_NONCE_SIZE);
 
-        memmove(&authData->attest.credential.enc.user, user, sizeof(CTAP_userEntity)); //TODO encrypt this
+        memmove(&authData->attest.credential.enc.user, user, sizeof(CTAP_userEntity));
         authData->attest.credential.enc.count = count;
 
         // Make a tag we can later check to make sure this is a token we made
@@ -1550,7 +1550,6 @@ int8_t ctap_store_key(uint8_t index, uint8_t * key, uint16_t len)
 
     memmove(STATE.key_space + offset, key, len);
 
-    ctap_flush_state(0);
     ctap_flush_state(1);
 
     return 0;
@@ -1602,5 +1601,5 @@ void ctap_reset()
     memset(PIN_CODE_HASH,0,sizeof(PIN_CODE_HASH));
     crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
 
-    crypto_reset_master_secret();   // Not sure what the significance of this is??
+    crypto_reset_master_secret();
 }

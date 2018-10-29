@@ -233,6 +233,9 @@ void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, ui
     crypto_sha256_update(data2, len2);
     crypto_sha256_update(master_secret, 32);    // TODO AES
     crypto_sha256_hmac_final(CRYPTO_MASTER_KEY, 0, privkey);
+
+    crypto_aes256_init(master_secret + 32, NULL);
+    crypto_aes256_encrypt(privkey, 32);
 }
 
 
