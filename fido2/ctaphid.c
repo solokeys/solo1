@@ -223,7 +223,6 @@ static int buffer_packet(CTAPHID_PACKET * pkt)
 
 static void buffer_reset()
 {
-
     ctap_buffer_bcnt = 0;
     ctap_buffer_offset = 0;
     ctap_packet_seq = 0;
@@ -363,7 +362,12 @@ void ctaphid_check_timeouts()
         {
             printf1(TAG_HID, "TIMEOUT CID: %08x\n", CIDS[i].cid);
             ctaphid_send_error(CIDS[i].cid, CTAP1_ERR_TIMEOUT);
-            memset(CIDS + i, 0, sizeof(struct CID));
+            CIDS[i].busy = 0;
+            if (CIDS[i].cid == buffer_cid())
+            {
+                buffer_reset();
+            }
+            // memset(CIDS + i, 0, sizeof(struct CID));
         }
     }
 
@@ -447,12 +451,20 @@ static int ctaphid_buffer_packet(uint8_t * pkt_raw, uint8_t * cmd, uint32_t * ci
     }
     else
     {
-        // Check if matches existing CID
         if (pkt->cid == CTAPHID_BROADCAST_CID)
         {
             *cmd = CTAP1_ERR_INVALID_CHANNEL;
             return HID_ERROR;
         }
+
+        if (! cid_exists(pkt->cid) && ! is_cont_pkt(pkt))
+        {
+            if (buffer_status() == EMPTY)
+            {
+                add_cid(pkt->cid);
+            }
+        }
+
         if (cid_exists(pkt->cid))
         {
             if (buffer_status() == BUFFERING)
@@ -466,9 +478,17 @@ static int ctaphid_buffer_packet(uint8_t * pkt_raw, uint8_t * cmd, uint32_t * ci
                 }
                 else if (pkt->cid != buffer_cid())
                 {
-                    printf2(TAG_ERR,"BUSY with %08x\n", buffer_cid());
-                    *cmd = CTAP1_ERR_CHANNEL_BUSY;
-                    return HID_ERROR;
+                    if (! is_cont_pkt(pkt))
+                    {
+                        printf2(TAG_ERR,"BUSY with %08x\n", buffer_cid());
+                        *cmd = CTAP1_ERR_CHANNEL_BUSY;
+                        return HID_ERROR;
+                    }
+                    else
+                    {
+                        printf2(TAG_ERR,"ignoring random cont packet from %04x\n",pkt->cid);
+                        return HID_IGNORE;
+                    }
                 }
             }
             if (! is_cont_pkt(pkt))
@@ -484,10 +504,11 @@ static int ctaphid_buffer_packet(uint8_t * pkt_raw, uint8_t * cmd, uint32_t * ci
             {
                 if (buffer_status() == EMPTY || pkt->cid != buffer_cid())
                 {
-                    printf2(TAG_ERR,"ignoring random cont packet\n");
+                    printf2(TAG_ERR,"ignoring random cont packet from %04x\n",pkt->cid);
                     return HID_IGNORE;
                 }
             }
+
             if (buffer_packet(pkt) == SEQUENCE_ERROR)
             {
                 printf2(TAG_ERR,"Buffering sequence error\n");
@@ -544,7 +565,10 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
     if (bufstatus == HID_ERROR)
     {
         cid_del(cid);
-        buffer_reset();
+        if (cmd == CTAP1_ERR_INVALID_SEQ)
+        {
+            buffer_reset();
+        }
         ctaphid_send_error(cid, cmd);
         return 0;
     }

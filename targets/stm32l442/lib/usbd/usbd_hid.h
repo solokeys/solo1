@@ -66,7 +66,7 @@
 #define HID_DESCRIPTOR_TYPE             0x21U
 #define HID_REPORT_DESC                 0x22U
 
-#define HID_BINTERVAL                   10
+#define HID_BINTERVAL                   5
 
 #define HID_REQ_SET_PROTOCOL            0x0BU
 #define HID_REQ_GET_PROTOCOL            0x03U

@@ -48,7 +48,7 @@ void TIM6_DAC_IRQHandler()
     // timer is only 16 bits, so roll it over here
     TIM6->SR = 0;
     __90_ms += 1;
-    if ((millis() - __last_update) > 5)
+    if ((millis() - __last_update) > 8)
     {
         if (__device_status != CTAPHID_STATUS_IDLE)
         {
@@ -376,8 +376,6 @@ do
     {
         goto fail;
     }
-    if (! IS_BUTTON_PRESSED())
-        continue;
     delay(1);
     ret = handle_packets();
     if (ret) return ret;
