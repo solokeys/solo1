@@ -36,6 +36,7 @@
 #define CTAPHID_CBOR         (TYPE_INIT | 0x10)
 #define CTAPHID_CANCEL       (TYPE_INIT | 0x11)
 #define CTAPHID_ERROR        (TYPE_INIT | 0x3f)
+#define CTAPHID_KEEPALIVE    (TYPE_INIT | 0x3b)
 
     #define ERR_INVALID_CMD         0x01
     #define ERR_INVALID_PAR         0x02
@@ -43,6 +44,11 @@
     #define ERR_MSG_TIMEOUT         0x05
     #define ERR_CHANNEL_BUSY        0x06
 
+#define CTAPHID_PROTOCOL_VERSION    2
+
+#define CTAPHID_STATUS_IDLE         0
+#define CTAPHID_STATUS_PROCESSING   1
+#define CTAPHID_STATUS_UPNEEDED     2
 
 #define CTAPHID_INIT_PAYLOAD_SIZE  (HID_MESSAGE_SIZE-7)
 #define CTAPHID_CONT_PAYLOAD_SIZE  (HID_MESSAGE_SIZE-5)
@@ -91,9 +97,11 @@ typedef struct
 
 void ctaphid_init();
 
-void ctaphid_handle_packet(uint8_t * pkt_raw);
+uint8_t ctaphid_handle_packet(uint8_t * pkt_raw);
 
 void ctaphid_check_timeouts();
+
+void ctaphid_update_status(int8_t status);
 
 
 #define ctaphid_packet_len(pkt)     ((uint16_t)((pkt)->pkt.init.bcnth << 8) | ((pkt)->pkt.init.bcntl))

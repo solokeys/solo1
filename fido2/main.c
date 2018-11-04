@@ -36,29 +36,25 @@
 
 int main(int argc, char * argv[])
 {
-    int count = 0;
-    uint32_t t1 = 0;
-    uint32_t t2 = 0;
-    uint32_t accum = 0;
-    uint32_t dt = 0;
     uint8_t hidmsg[64];
+    uint32_t t1 = 0;
 
     set_logging_mask(
             /*0*/
-           TAG_GEN|
-            /*TAG_MC |*/
-            /*TAG_GA |*/
-            TAG_WALLET |
+           // TAG_GEN|
+            // TAG_MC |
+            // TAG_GA |
+            // TAG_WALLET |
             TAG_STOR |
-            /*TAG_CP |*/
-            TAG_CTAP|
-//            TAG_HID|
+            // TAG_CP |
+            // TAG_CTAP|
+           // TAG_HID|
             /*TAG_U2F|*/
-            /*TAG_PARSE |*/
-//            TAG_TIME|
-            /*TAG_DUMP|*/
-            /*TAG_GREEN|*/
-            /*TAG_RED|*/
+            // TAG_PARSE |
+           // TAG_TIME|
+            // TAG_DUMP|
+            TAG_GREEN|
+            TAG_RED|
             TAG_ERR
             );
 
@@ -85,30 +81,23 @@ int main(int argc, char * argv[])
             t1 = millis();
         }
 
+        device_manage();
+
         if (usbhid_recv(hidmsg) > 0)
         {
-            printf1(TAG_DUMP,"%d>> ",count++); dump_hex1(TAG_DUMP, hidmsg,sizeof(hidmsg));
-            t2 = millis();
             ctaphid_handle_packet(hidmsg);
-            accum += millis() - t2;
-            printf1(TAG_TIME,"accum: %d\n", (uint32_t)accum);
-            printf1(TAG_TIME,"dt: %d\n", t2 - dt);
-            dt = t2;
             memset(hidmsg, 0, sizeof(hidmsg));
         }
         else
         {
-            /*main_loop_delay();*/
         }
         ctaphid_check_timeouts();
     }
 
     // Should never get here
     usbhid_close();
-    printf("done\n");
+    printf1(TAG_GREEN, "done\n");
     return 0;
 }
 
 #endif
-
-

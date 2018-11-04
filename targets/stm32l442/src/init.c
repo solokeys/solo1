@@ -20,6 +20,7 @@
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_hid.h"
+#include "device.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -336,10 +337,10 @@ static void MX_TIM6_Init(void)
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM6);
 
   // 48 MHz sys clock --> 6 MHz timer clock
-  // 6 MHz / 6000 == 1000 Hz
+  // 48 MHz / 48000 == 1000 Hz
   TIM_InitStruct.Prescaler = 48000;
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-  TIM_InitStruct.Autoreload = 0xffff;
+  TIM_InitStruct.Autoreload = 90;
   LL_TIM_Init(TIM6, &TIM_InitStruct);
 
   LL_TIM_DisableARRPreload(TIM6);
@@ -354,6 +355,35 @@ static void MX_TIM6_Init(void)
   // Start immediately
   LL_TIM_EnableCounter(TIM6);
 }
+
+/* TIM7 init function */
+// static void MX_TIM7_Init(void)
+// {
+//
+//   LL_TIM_InitTypeDef TIM_InitStruct;
+//
+//   /* Peripheral clock enable */
+//   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM7);
+//
+//   // 48 MHz sys clock --> 6 MHz timer clock
+//   // 6 MHz / 6000 == 1000 Hz
+//   TIM_InitStruct.Prescaler = 48000;
+//   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
+//   TIM_InitStruct.Autoreload = 0xffff;
+//   LL_TIM_Init(TIM6, &TIM_InitStruct);
+//
+//   LL_TIM_DisableARRPreload(TIM7);
+//
+//   LL_TIM_SetTriggerOutput(TIM7, LL_TIM_TRGO_RESET);
+//
+//   LL_TIM_DisableMasterSlaveMode(TIM7);
+//
+//   // enable interrupt
+//   TIM7->DIER |= 1;
+//
+//   // Start immediately
+//   LL_TIM_EnableCounter(TIM7);
+// }
 
 /* RNG init function */
 static void MX_RNG_Init(void)

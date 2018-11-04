@@ -64,23 +64,19 @@ PCD_HandleTypeDef hpcd;
   */
 void HAL_PCD_MspInit(PCD_HandleTypeDef *hpcd)
 {
+  SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
 
+  if(hpcd->Init.low_power_enable == 1)
+  {
+    /* Enable EXTI Line 17 for USB wakeup */
+    __HAL_USB_WAKEUP_EXTI_ENABLE_IT();
+  }
 
-  /*LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);*/
-  // SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
-  //
-  // if(hpcd->Init.low_power_enable == 1)
-  // {
-  //   /* Enable EXTI Line 17 for USB wakeup */
-  //   __HAL_USB_WAKEUP_EXTI_ENABLE_IT();
-  // }
-  //
-  // /*[> Set USB FS Interrupt priority <]*/
-  // /*HAL_NVIC_SetPriority(USB_IRQn, 0x0F, 0);*/
-  // NVIC_SetPriority(USB_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0x0f, 0));
-  //
-  // /*[> Enable USB FS Interrupt <]*/
-  // NVIC_EnableIRQ(USB_IRQn);
+  /* Set USB FS Interrupt priority */
+  NVIC_SetPriority(USB_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 0x0f, 0));
+
+  /* Enable USB FS Interrupt */
+  NVIC_EnableIRQ(USB_IRQn);
 }
 
 /**
@@ -223,35 +219,38 @@ void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef *hpcd)
   USBD_LL_DevDisconnected((USBD_HandleTypeDef*)hpcd->pData);
 }
 
-/*******************************************************************************
-                       LL Driver Interface (USB Device Library --> PCD)
-*******************************************************************************/
-
 /**
-  * @brief  Initializes the Low Level portion of the Device driver.
+  * @brief  Initializes the low level portion of the device driver.
   * @param  pdev: Device handle
-  * @retval USBD Status
+  * @retval USBD status
   */
+  extern void _Error_Handler(char *file, int line);
 USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
 {
-  /* Set LL Driver parameters */
-  hpcd.Instance = USB;
-  hpcd.Init.dev_endpoints = 8;
-  hpcd.Init.ep0_mps = 0x40;
-  hpcd.Init.phy_itface = PCD_PHY_EMBEDDED;
-  hpcd.Init.speed = PCD_SPEED_FULL;
-  hpcd.Init.low_power_enable = 1;
-  /* Link The driver to the stack */
+  /* Enable USB power on Pwrctrl CR2 register. */
+  SET_BIT(PWR->CR2, PWR_CR2_USV);
+  /* Link the driver to the stack. */
   hpcd.pData = pdev;
   pdev->pData = &hpcd;
 
-  /* Initialize LL Driver */
-  HAL_PCD_Init(&hpcd);
+  hpcd.Instance = USB;
+  hpcd.Init.dev_endpoints = 8;
+  hpcd.Init.speed = PCD_SPEED_FULL;
+  hpcd.Init.ep0_mps = DEP0CTL_MPS_64;
+  hpcd.Init.phy_itface = PCD_PHY_EMBEDDED;
+  hpcd.Init.Sof_enable = DISABLE;
+  hpcd.Init.low_power_enable = DISABLE;
+  hpcd.Init.lpm_enable = DISABLE;
+  hpcd.Init.battery_charging_enable = DISABLE;
+  if (HAL_PCD_Init(&hpcd) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
 
-  HAL_PCDEx_PMAConfig(&hpcd , 0x00 , PCD_SNG_BUF, 0x18);
-  HAL_PCDEx_PMAConfig(&hpcd , 0x80 , PCD_SNG_BUF, 0x58);
-  HAL_PCDEx_PMAConfig(&hpcd , 0x81 , PCD_SNG_BUF, 0x100);
-
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x00 , PCD_SNG_BUF, 0x18);
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x80 , PCD_SNG_BUF, 0x58);
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x01 , PCD_SNG_BUF, 0x98);
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x81 , PCD_SNG_BUF, 0xd8);
   return USBD_OK;
 }
 

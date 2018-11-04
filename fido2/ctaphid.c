@@ -43,6 +43,8 @@ typedef enum
     EMPTY = 0,
     BUFFERING,
     BUFFERED,
+    HID_ERROR,
+    HID_IGNORE,
 } CTAP_BUFFER_STATE;
 
 
@@ -221,7 +223,6 @@ static int buffer_packet(CTAPHID_PACKET * pkt)
 
 static void buffer_reset()
 {
-
     ctap_buffer_bcnt = 0;
     ctap_buffer_offset = 0;
     ctap_packet_seq = 0;
@@ -341,7 +342,7 @@ static void send_init_response(uint32_t oldcid, uint32_t newcid, uint8_t * nonce
 
     memmove(init_resp.nonce, nonce, 8);
     init_resp.cid = newcid;
-    init_resp.protocol_version = 0;//?
+    init_resp.protocol_version = CTAPHID_PROTOCOL_VERSION;
     init_resp.version_major = 0;//?
     init_resp.version_minor = 0;//?
     init_resp.build_version = 0;//?
@@ -361,14 +362,32 @@ void ctaphid_check_timeouts()
         {
             printf1(TAG_HID, "TIMEOUT CID: %08x\n", CIDS[i].cid);
             ctaphid_send_error(CIDS[i].cid, CTAP1_ERR_TIMEOUT);
-            memset(CIDS + i, 0, sizeof(struct CID));
+            CIDS[i].busy = 0;
+            if (CIDS[i].cid == buffer_cid())
+            {
+                buffer_reset();
+            }
+            // memset(CIDS + i, 0, sizeof(struct CID));
         }
     }
 
 }
 
+void ctaphid_update_status(int8_t status)
+{
+    CTAPHID_WRITE_BUFFER wb;
+    printf1(TAG_HID, "Send device update %d!\n",status);
+    ctaphid_write_buffer_init(&wb);
 
-void ctaphid_handle_packet(uint8_t * pkt_raw)
+    wb.cid = buffer_cid();
+    wb.cmd = CTAPHID_KEEPALIVE;
+    wb.bcnt = 1;
+
+    ctaphid_write(&wb, &status, 1);
+    ctaphid_write(&wb, NULL, 0);
+}
+
+static int ctaphid_buffer_packet(uint8_t * pkt_raw, uint8_t * cmd, uint32_t * cid, int * len)
 {
     CTAPHID_PACKET * pkt = (CTAPHID_PACKET *)(pkt_raw);
 
@@ -378,29 +397,25 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
     if (!is_cont_pkt(pkt)) printf1(TAG_HID, "  length: %d\n", ctaphid_packet_len(pkt));
 
     int ret;
-    uint8_t status;
     uint32_t oldcid;
     uint32_t newcid;
-    static CTAPHID_WRITE_BUFFER wb;
-    uint32_t active_cid;
-    uint32_t t1,t2;
 
-    CTAP_RESPONSE ctap_resp;
 
+    *cid = pkt->cid;
 
     if (is_init_pkt(pkt))
     {
         if (ctaphid_packet_len(pkt) != 8)
         {
             printf2(TAG_ERR, "Error,invalid length field for init packet\n");
-            ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
-            return;
+            *cmd = CTAP1_ERR_INVALID_LENGTH;
+            return HID_ERROR;
         }
         if (pkt->cid == 0)
         {
             printf2(TAG_ERR,"Error, invalid cid 0\n");
-            ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_CHANNEL);
-            return;
+            *cmd = CTAP1_ERR_INVALID_CHANNEL;
+            return HID_ERROR;
         }
 
         ctaphid_init();
@@ -426,22 +441,30 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
         if (ret == -1)
         {
             printf2(TAG_ERR, "Error, not enough memory for new CID.  return BUSY.\n");
-            ctaphid_send_error(pkt->cid, CTAP1_ERR_CHANNEL_BUSY);
-            return;
+            *cmd = CTAP1_ERR_CHANNEL_BUSY;
+            return HID_ERROR;
         }
         send_init_response(oldcid, newcid, pkt->pkt.init.payload);
         cid_del(newcid);
 
-        return;
+        return HID_IGNORE;
     }
     else
     {
-        // Check if matches existing CID
         if (pkt->cid == CTAPHID_BROADCAST_CID)
         {
-            ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_CHANNEL);
-            return;
+            *cmd = CTAP1_ERR_INVALID_CHANNEL;
+            return HID_ERROR;
         }
+
+        if (! cid_exists(pkt->cid) && ! is_cont_pkt(pkt))
+        {
+            if (buffer_status() == EMPTY)
+            {
+                add_cid(pkt->cid);
+            }
+        }
+
         if (cid_exists(pkt->cid))
         {
             if (buffer_status() == BUFFERING)
@@ -450,14 +473,22 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
                 {
                     printf2(TAG_ERR,"INVALID_SEQ\n");
                     printf2(TAG_ERR,"Have %d/%d bytes\n", ctap_buffer_offset, ctap_buffer_bcnt);
-                    ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_SEQ);
-                    return;
+                    *cmd = CTAP1_ERR_INVALID_SEQ;
+                    return HID_ERROR;
                 }
                 else if (pkt->cid != buffer_cid())
                 {
-                    printf2(TAG_ERR,"BUSY with %08x\n", buffer_cid());
-                    ctaphid_send_error(pkt->cid, CTAP1_ERR_CHANNEL_BUSY);
-                    return;
+                    if (! is_cont_pkt(pkt))
+                    {
+                        printf2(TAG_ERR,"BUSY with %08x\n", buffer_cid());
+                        *cmd = CTAP1_ERR_CHANNEL_BUSY;
+                        return HID_ERROR;
+                    }
+                    else
+                    {
+                        printf2(TAG_ERR,"ignoring random cont packet from %04x\n",pkt->cid);
+                        return HID_IGNORE;
+                    }
                 }
             }
             if (! is_cont_pkt(pkt))
@@ -465,23 +496,24 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
 
                 if (ctaphid_packet_len(pkt) > CTAPHID_BUFFER_SIZE)
                 {
-                    ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
-                    return;
+                    *cmd = CTAP1_ERR_INVALID_LENGTH;
+                    return HID_ERROR;
                 }
             }
             else
             {
                 if (buffer_status() == EMPTY || pkt->cid != buffer_cid())
                 {
-                    printf2(TAG_ERR,"ignoring random cont packet\n");
-                    return;
+                    printf2(TAG_ERR,"ignoring random cont packet from %04x\n",pkt->cid);
+                    return HID_IGNORE;
                 }
             }
+
             if (buffer_packet(pkt) == SEQUENCE_ERROR)
             {
                 printf2(TAG_ERR,"Buffering sequence error\n");
-                ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_SEQ);
-                return;
+                *cmd = CTAP1_ERR_INVALID_SEQ;
+                return HID_ERROR;
             }
             ret = cid_refresh(pkt->cid);
             if (ret != 0)
@@ -489,133 +521,177 @@ void ctaphid_handle_packet(uint8_t * pkt_raw)
                 printf2(TAG_ERR,"Error, refresh cid failed\n");
                 exit(1);
             }
-            active_cid = pkt->cid;
         }
         else if (is_cont_pkt(pkt))
         {
             printf2(TAG_ERR,"ignoring unwarranted cont packet\n");
+
             // Ignore
-            return;
+            return HID_IGNORE;
         }
         else
         {
             printf2(TAG_ERR,"BUSY\n");
-            ctaphid_send_error(pkt->cid, CTAP1_ERR_CHANNEL_BUSY);
-            return;
+            *cmd = CTAP1_ERR_CHANNEL_BUSY;
+            return HID_ERROR;
         }
     }
 
-
-
-    switch(buffer_status())
-    {
-        case BUFFERING:
-            printf1(TAG_HID,"BUFFERING\n");
-            active_cid_timestamp = millis();
-            break;
-
-        case EMPTY:
-            printf1(TAG_HID,"empty buffer!\n");
-        case BUFFERED:
-            switch(buffer_cmd())
-            {
-
-                case CTAPHID_INIT:
-                    printf2(TAG_ERR,"CTAPHID_INIT, error this should already be handled\n");
-                    exit(1);
-                    break;
-#ifndef DISABLE_CTAPHID_PING
-                case CTAPHID_PING:
-                    printf1(TAG_HID,"CTAPHID_PING\n");
-
-                    ctaphid_write_buffer_init(&wb);
-                    wb.cid = active_cid;
-                    wb.cmd = CTAPHID_PING;
-                    wb.bcnt = buffer_len();
-                    t1 = millis();
-                    ctaphid_write(&wb, ctap_buffer, buffer_len());
-                    ctaphid_write(&wb, NULL,0);
-                    t2 = millis();
-                    printf1(TAG_TIME,"PING writeback: %d ms\n",(uint32_t)(t2-t1));
-                    break;
-#endif
-#ifndef DISABLE_CTAPHID_WINK
-                case CTAPHID_WINK:
-                    printf1(TAG_HID,"CTAPHID_WINK\n");
-
-                    ctaphid_write_buffer_init(&wb);
-
-                    wb.cid = active_cid;
-                    wb.cmd = CTAPHID_WINK;
-
-                    ctaphid_write(&wb,NULL,0);
-
-                    break;
-#endif
-#ifndef DISABLE_CTAPHID_CBOR
-                case CTAPHID_CBOR:
-                    printf1(TAG_HID,"CTAPHID_CBOR\n");
-                    if (buffer_len() == 0)
-                    {
-                        printf2(TAG_ERR,"Error,invalid 0 length field for cbor packet\n");
-                        ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
-                        return;
-                    }
-
-                    ctap_response_init(&ctap_resp);
-                    status = ctap_request(ctap_buffer, buffer_len(), &ctap_resp);
-
-                    ctaphid_write_buffer_init(&wb);
-                    wb.cid = active_cid;
-                    wb.cmd = CTAPHID_CBOR;
-                    wb.bcnt = (ctap_resp.length+1);
-
-
-                    t1 = millis();
-                    ctaphid_write(&wb, &status, 1);
-                    ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
-                    ctaphid_write(&wb, NULL, 0);
-                    t2 = millis();
-                    printf1(TAG_TIME,"CBOR writeback: %d ms\n",(uint32_t)(t2-t1));
-                    break;
-#endif
-                case CTAPHID_MSG:
-                    printf1(TAG_HID,"CTAPHID_MSG\n");
-                    if (buffer_len() == 0)
-                    {
-                        printf2(TAG_ERR,"Error,invalid 0 length field for MSG/U2F packet\n");
-                        ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_LENGTH);
-                        return;
-                    }
-
-                    ctap_response_init(&ctap_resp);
-                    u2f_request((struct u2f_request_apdu*)ctap_buffer, &ctap_resp);
-
-                    ctaphid_write_buffer_init(&wb);
-                    wb.cid = active_cid;
-                    wb.cmd = CTAPHID_MSG;
-                    wb.bcnt = (ctap_resp.length);
-
-                    ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
-                    ctaphid_write(&wb, NULL, 0);
-                    break;
-
-                default:
-                    printf2(TAG_ERR,"error, unimplemented HID cmd: %02x\r\n", buffer_cmd());
-                    ctaphid_send_error(pkt->cid, CTAP1_ERR_INVALID_COMMAND);
-                    break;
-            }
-            cid_del(buffer_cid());
-            buffer_reset();
-            break;
-
-        default:
-            printf2(TAG_ERR,"invalid buffer state; abort\n");
-            exit(1);
-            break;
-    }
-    
-    printf1(TAG_HID,"\n");
-
+    *len = buffer_len();
+    *cmd = buffer_cmd();
+    return buffer_status();
 }
 
+uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
+{
+    uint8_t cmd;
+    uint32_t cid;
+    int len;
+    int status;
+
+    static uint8_t is_busy = 0;
+    static CTAPHID_WRITE_BUFFER wb;
+    CTAP_RESPONSE ctap_resp;
+
+    uint32_t t1,t2;
+
+    int bufstatus = ctaphid_buffer_packet(pkt_raw, &cmd, &cid, &len);
+
+    if (bufstatus == HID_IGNORE)
+    {
+        return 0;
+    }
+
+    if (bufstatus == HID_ERROR)
+    {
+        cid_del(cid);
+        if (cmd == CTAP1_ERR_INVALID_SEQ)
+        {
+            buffer_reset();
+        }
+        ctaphid_send_error(cid, cmd);
+        return 0;
+    }
+
+    if (bufstatus == BUFFERING)
+    {
+        active_cid_timestamp = millis();
+        return 0;
+    }
+
+
+    switch(cmd)
+    {
+
+        case CTAPHID_INIT:
+            printf2(TAG_ERR,"CTAPHID_INIT, error this should already be handled\n");
+            exit(1);
+            break;
+#ifndef DISABLE_CTAPHID_PING
+        case CTAPHID_PING:
+            printf1(TAG_HID,"CTAPHID_PING\n");
+
+            ctaphid_write_buffer_init(&wb);
+            wb.cid = cid;
+            wb.cmd = CTAPHID_PING;
+            wb.bcnt = len;
+            t1 = millis();
+            ctaphid_write(&wb, ctap_buffer, len);
+            ctaphid_write(&wb, NULL,0);
+            t2 = millis();
+            printf1(TAG_TIME,"PING writeback: %d ms\n",(uint32_t)(t2-t1));
+            break;
+#endif
+#ifndef DISABLE_CTAPHID_WINK
+        case CTAPHID_WINK:
+            printf1(TAG_HID,"CTAPHID_WINK\n");
+
+            ctaphid_write_buffer_init(&wb);
+
+            wb.cid = cid;
+            wb.cmd = CTAPHID_WINK;
+
+            ctaphid_write(&wb,NULL,0);
+
+            break;
+#endif
+#ifndef DISABLE_CTAPHID_CBOR
+        case CTAPHID_CBOR:
+            printf1(TAG_HID,"CTAPHID_CBOR\n");
+
+            if (len == 0)
+            {
+                printf2(TAG_ERR,"Error,invalid 0 length field for cbor packet\n");
+                ctaphid_send_error(cid, CTAP1_ERR_INVALID_LENGTH);
+                return 0;
+            }
+            if (is_busy)
+            {
+                printf1(TAG_HID,"Channel busy for CBOR\n");
+                ctaphid_send_error(cid, CTAP1_ERR_CHANNEL_BUSY);
+                return 0;
+            }
+            is_busy = 1;
+            ctap_response_init(&ctap_resp);
+            status = ctap_request(ctap_buffer, len, &ctap_resp);
+
+            ctaphid_write_buffer_init(&wb);
+            wb.cid = cid;
+            wb.cmd = CTAPHID_CBOR;
+            wb.bcnt = (ctap_resp.length+1);
+
+
+            t1 = millis();
+            ctaphid_write(&wb, &status, 1);
+            ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
+            ctaphid_write(&wb, NULL, 0);
+            t2 = millis();
+            printf1(TAG_TIME,"CBOR writeback: %d ms\n",(uint32_t)(t2-t1));
+            is_busy = 0;
+            break;
+#endif
+        case CTAPHID_MSG:
+
+            printf1(TAG_HID,"CTAPHID_MSG\n");
+            if (len == 0)
+            {
+                printf2(TAG_ERR,"Error,invalid 0 length field for MSG/U2F packet\n");
+                ctaphid_send_error(cid, CTAP1_ERR_INVALID_LENGTH);
+                return 0;
+            }
+            if (is_busy)
+            {
+                printf1(TAG_HID,"Channel busy for MSG\n");
+                ctaphid_send_error(cid, CTAP1_ERR_CHANNEL_BUSY);
+                return 0;
+            }
+            is_busy = 1;
+            ctap_response_init(&ctap_resp);
+            u2f_request((struct u2f_request_apdu*)ctap_buffer, &ctap_resp);
+
+            ctaphid_write_buffer_init(&wb);
+            wb.cid = cid;
+            wb.cmd = CTAPHID_MSG;
+            wb.bcnt = (ctap_resp.length);
+
+            ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
+            ctaphid_write(&wb, NULL, 0);
+            is_busy = 0;
+            break;
+        case CTAPHID_CANCEL:
+            printf1(TAG_HID,"CTAPHID_CANCEL\n");
+            is_busy = 0;
+            break;
+        default:
+            printf2(TAG_ERR,"error, unimplemented HID cmd: %02x\r\n", buffer_cmd());
+            ctaphid_send_error(cid, CTAP1_ERR_INVALID_COMMAND);
+            break;
+    }
+    cid_del(cid);
+    buffer_reset();
+
+    printf1(TAG_HID,"\n");
+    if (!is_busy) return cmd;
+    else return 0;
+
+}
