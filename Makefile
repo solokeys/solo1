@@ -18,6 +18,7 @@ obj = $(src:.c=.o) uECC.o
 LIBCBOR = tinycbor/lib/libtinycbor.a
 LDFLAGS = -Wl,--gc-sections $(LIBCBOR)
 CFLAGS = -O2 -fdata-sections -ffunction-sections
+CFLAGS += -Wall -Werror
 
 INCLUDES = -I./tinycbor/src -I./crypto/sha256 -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/ -I./fido2/ -I./pc -I./fido2/extensions
 
