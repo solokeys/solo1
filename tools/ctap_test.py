@@ -61,6 +61,7 @@ class Tester():
         self.origin = 'https://examplo.org'
 
     def find_device(self,):
+        print (list(CtapHidDevice.list_devices()))
         dev = next(CtapHidDevice.list_devices(), None)
         if not dev:
             raise RuntimeError('No FIDO device found')
@@ -118,34 +119,34 @@ class Tester():
 
     def test_long_ping(self):
         amt = 1000
-        while 1 :
-            pingdata = os.urandom(amt)
+        pingdata = os.urandom(amt)
+        try:
+            t1 = time.time() * 1000
+            r = self.send_data(CTAPHID.PING, pingdata)
+            t2 = time.time() * 1000
+            delt = t2 - t1
+            #if (delt < 140 ):
+                #raise RuntimeError('Fob is too fast (%d ms)' % delt)
+            if (delt > 555 * (amt/1000)):
+                raise RuntimeError('Fob is too slow (%d ms)' % delt)
+            if (r != pingdata):
+                raise ValueError('Ping data not echo\'d')
+            print('1000 byte ping time: %s ms' % delt)
+        except CtapError as e:
+            print('7609 byte Ping failed:', e)
+            raise RuntimeError('ping failed')
+        print('PASS: 7609 byte ping')
+        #sys.flush(sys.sto)
+        sys.stdout.flush()
+
+
+    def test_hid(self,check_timeouts = False):
+        if check_timeouts:
+            print('Test idle')
             try:
-                t1 = time.time() * 1000
-                r = self.send_data(CTAPHID.PING, pingdata)
-                t2 = time.time() * 1000
-                delt = t2 - t1
-                #if (delt < 140 ):
-                    #raise RuntimeError('Fob is too fast (%d ms)' % delt)
-                if (delt > 555 * (amt/1000)):
-                    raise RuntimeError('Fob is too slow (%d ms)' % delt)
-                if (r != pingdata):
-                    raise ValueError('Ping data not echo\'d')
-                print('1000 byte ping time: %s ms' % delt)
-            except CtapError as e:
-                print('7609 byte Ping failed:', e)
-                raise RuntimeError('ping failed')
-            print('PASS: 7609 byte ping')
-            #sys.flush(sys.sto)
-            sys.stdout.flush()
-
-
-    def test_hid(self,):
-        #print('Test idle')
-        #try:
-            #cmd,resp = self.recv_raw()
-        #except socket.timeout:
-            #print('Pass: Idle')
+                cmd,resp = self.recv_raw()
+            except socket.timeout:
+                print('Pass: Idle')
 
         print('Test init')
         r = self.send_data(CTAPHID.INIT, '\x11\x11\x11\x11\x11\x11\x11\x11')
@@ -216,18 +217,19 @@ class Tester():
         self.check_error(resp, CtapError.ERR.INVALID_LENGTH)
         print('PASS: invalid length')
 
-        #r = self.send_data(CTAPHID.PING, '\x44'*200)
-        #print('Sending packets that skip a sequence number.')
-        #self.send_raw('\x81\x04\x90')
-        #self.send_raw('\x00')
-        #self.send_raw('\x01')
-        ## skip 2
-        #self.send_raw('\x03')
-        #cmd,resp = self.recv_raw()
-        #self.check_error(resp, CtapError.ERR.INVALID_SEQ)
-        #cmd,resp = self.recv_raw()
-        #assert(cmd == 0xbf) # timeout
-        #print('PASS: invalid sequence')
+        r = self.send_data(CTAPHID.PING, '\x44'*200)
+        print('Sending packets that skip a sequence number.')
+        self.send_raw('\x81\x04\x90')
+        self.send_raw('\x00')
+        self.send_raw('\x01')
+        # skip 2
+        self.send_raw('\x03')
+        cmd,resp = self.recv_raw()
+        self.check_error(resp, CtapError.ERR.INVALID_SEQ)
+        if check_timeouts:
+            cmd,resp = self.recv_raw()
+            assert(cmd == 0xbf) # timeout
+        print('PASS: invalid sequence')
 
         print('Resync and send ping')
         try:
@@ -262,12 +264,12 @@ class Tester():
         cmd,r = self.recv_raw()  # init response
         assert(cmd == 0x86)
         self.set_cid(oldcid)
-        #print('wait for timeout')
-        #cmd,r = self.recv_raw()  # timeout response
-        #assert(cmd == 0xbf)
+        if check_timeouts:
+            #print('wait for timeout')
+            cmd,r = self.recv_raw()  # timeout response
+            assert(cmd == 0xbf)
 
         print('PASS: resync and timeout')
-
 
         print('Test timeout')
         self.send_data(CTAPHID.INIT, '\x11\x22\x33\x44\x55\x66\x77\x88')
@@ -294,14 +296,15 @@ class Tester():
         assert(r[0] == CtapError.ERR.INVALID_SEQ)
         print('PASS: Test not cont')
 
-        print('Check random cont ignored')
-        #self.send_data(CTAPHID.INIT, '\x11\x22\x33\x44\x55\x66\x77\x88')
-        #self.send_raw('\x01\x10\x00')
-        #try:
-            #cmd,r = self.recv_raw()  # timeout response
-        #except socket.timeout:
-            #pass
-        print('PASS: random cont')
+        if check_timeouts:
+            print('Check random cont ignored')
+            self.send_data(CTAPHID.INIT, '\x11\x22\x33\x44\x55\x66\x77\x88')
+            self.send_raw('\x01\x10\x00')
+            try:
+                cmd,r = self.recv_raw()  # timeout response
+            except socket.timeout:
+                pass
+            print('PASS: random cont')
 
         print('Check busy')
         t1 = time.time() * 1000
@@ -336,11 +339,13 @@ class Tester():
         self.send_raw('\x81\x00\x63')
         self.send_raw('\x00')
 
+        cmd,r = self.recv_raw()  # busy response
+
         self.set_cid(cid1)              # finish 1st channel ping
         self.send_raw('\x00')
 
         self.set_cid(cid2)
-        cmd,r = self.recv_raw()  # busy response
+
         assert(cmd == 0xbf)
         assert(r[0] == CtapError.ERR.CHANNEL_BUSY)
 
@@ -349,18 +354,19 @@ class Tester():
         assert(cmd == 0x81)
         assert(len(r) == 0x63)
 
-        #cmd,r = self.recv_raw()  # timeout
-        #assert(cmd == 0xbf)
-        #assert(r[0] == CtapError.ERR.TIMEOUT)
+        if check_timeouts:
+            cmd,r = self.recv_raw()  # timeout
+            assert(cmd == 0xbf)
+            assert(r[0] == CtapError.ERR.TIMEOUT)
         print('PASS: busy interleaved')
 
-
-        print('Test idle, wait for timeout')
-        sys.stdout.flush()
-        try:
-            cmd,resp = self.recv_raw()
-        except socket.timeout:
-            print('Pass: Idle')
+        if check_timeouts:
+            print('Test idle, wait for timeout')
+            sys.stdout.flush()
+            try:
+                cmd,resp = self.recv_raw()
+            except socket.timeout:
+                print('Pass: Idle')
 
         print('Test cid 0 is invalid')
         self.set_cid('\x00\x00\x00\x00')
@@ -381,13 +387,13 @@ class Tester():
     def test_u2f(self,):
         pass
 
-    def test_fido2_simple(self):
+    def test_fido2_simple(self, pin_token=None):
         creds = []
         exclude_list = []
         rp = {'id': 'examplo.org', 'name': 'ExaRP'}
         user = {'id': b'usee_od', 'name': 'AB User'}
         challenge = 'Y2hhbGxlbmdl'
-        PIN = None
+        PIN = pin_token
 
         fake_id1 = array.array('B',[randint(0,255) for i in range(0,150)]).tostring()
         fake_id2 = array.array('B',[randint(0,255) for i in range(0,73)]).tostring()
@@ -482,6 +488,7 @@ class Tester():
                 attest.verify(data.hash)
                 cred = attest.auth_data.credential_data
                 creds.append(cred)
+                print(cred)
             print('PASS')
 
             if PIN is not None:
@@ -505,15 +512,19 @@ class Tester():
             real_excl = [{'id': cred.credential_id, 'type': 'public-key'}]
             try:
                 attest, data = self.client.make_credential(rp, user, challenge, pin = PIN, exclude_list = exclude_list + real_excl)
+                raise RuntimeError('Exclude list did not return expected error')
             except CtapError as e:
                 assert(e.code == CtapError.ERR.CREDENTIAL_EXCLUDED)
+            except ClientError as e:
+                assert(e.cause.code == CtapError.ERR.CREDENTIAL_EXCLUDED)
             print('PASS')
 
-            print('get assertion')
-            allow_list = [{'id':creds[0].credential_id, 'type': 'public-key'}]
-            assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
-            assertions[0].verify(client_data.hash, creds[0].public_key)
-            print('PASS')
+            for i, x in enumerate(creds):
+                print('get assertion %d' % i)
+                allow_list = [{'id':x.credential_id, 'type': 'public-key'}]
+                assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
+                assertions[0].verify(client_data.hash, x.public_key)
+                print('PASS')
 
             if PIN is not None:
                 print('get assertion with wrong pin code')
@@ -525,11 +536,16 @@ class Tester():
                     assert(e.cause.code == CtapError.ERR.PIN_INVALID)
                 print('PASS')
 
+
             print('get multiple assertions')
             allow_list = [{'id': x.credential_id, 'type': 'public-key'} for x in creds]
             assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
+
             for ass,cred in zip(assertions, creds):
+                i += 1
+
                 ass.verify(client_data.hash, cred.public_key)
+                print('%d verified' % i)
             print('PASS')
 
         print('Reset device')
@@ -567,6 +583,20 @@ class Tester():
             assert(e.code == CtapError.ERR.PIN_INVALID)
         print('PASS')
 
+        print('MC using wrong pin')
+        try:
+            self.test_fido2_simple('abcd3');
+        except CtapError as e:
+            assert(e.code == CtapError.ERR.PIN_INVALID)
+        except ClientError as e:
+            assert(e.cause.code == CtapError.ERR.PIN_INVALID)
+        print('PASS')
+
+        print('Reboot device and hit enter')
+        input()
+        self.find_device()
+        self.test_fido2_simple(PIN);
+
         print('Re-run make_credential and get_assertion tests with pin code')
         test(self, PIN)
 
@@ -576,7 +606,6 @@ class Tester():
         except CtapError as e:
             print('Warning, reset failed: ', e)
         print('PASS')
-
 
 def test_find_brute_force():
     i = 0
@@ -593,12 +622,9 @@ def test_find_brute_force():
 if __name__ == '__main__':
     t = Tester()
     t.find_device()
-    #t.test_hid()
-    #t.test_long_ping()
+    # t.test_hid()
+    # t.test_long_ping()
     t.test_fido2()
-    #test_find_brute_force()
+    # test_find_brute_force()
     #t.test_fido2_simple()
-    t.test_fido2_brute_force()
-
-
-
+    #t.test_fido2_brute_force()

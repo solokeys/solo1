@@ -16,6 +16,7 @@ src = $(wildcard pc/*.c) $(wildcard fido2/*.c) $(wildcard crypto/sha256/*.c) cry
 obj = $(src:.c=.o) uECC.o
 
 LIBCBOR = tinycbor/lib/libtinycbor.a
+
 ifeq ($(shell uname -s),Darwin)
   export LDFLAGS = -Wl,-dead_strip
 else
@@ -36,7 +37,7 @@ name = main
 all: python-fido2 main
 
 .PHONY: test
-test: 
+test:
 	$(MAKE) -C . main
 	$(MAKE) -C . testgcm
 	./testgcm
@@ -60,7 +61,7 @@ efm8prog:
 efm32com:
 	cd './targets/efm32/GNU ARM v7.2.1 - Debug' && $(MAKE) all
 efm32prog: efm32com
-	commander flash './targets/efm32/GNU ARM v7.2.1 - Debug/EFM32.hex' $(EFM32_DEBUGGER)  -p "0x1E7FC:0x00000000:4" 
+	commander flash './targets/efm32/GNU ARM v7.2.1 - Debug/EFM32.hex' $(EFM32_DEBUGGER)  -p "0x1E7FC:0x00000000:4"
 efm32read: efm32com
 	commander swo read $(EFM32_DEBUGGER)
 efm32bootprog: efm32com
@@ -69,10 +70,10 @@ efm32bootprog: efm32com
 $(name): $(obj) $(LIBCBOR)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
 
-crypto/aes-gcm/aes_gcm.o: 
+crypto/aes-gcm/aes_gcm.o:
 	$(CC) -c crypto/aes-gcm/aes_gcm.c $(CFLAGS) -DTEST -o crypto/aes-gcm/aes_gcm.o
 
-testgcm: $(obj) $(LIBCBOR) crypto/aes-gcm/aes_gcm.o             
+testgcm: $(obj) $(LIBCBOR) crypto/aes-gcm/aes_gcm.o
 	$(CC) -c fido2/main.c $(CFLAGS) -DTEST -o fido2/main.o
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDFLAGS)
 
@@ -91,11 +92,11 @@ venv:
 	    echo "   pip install virtualenv" ;\
 	fi
 	virtualenv venv
-	./venv/bin/pip install wheel 
+	./venv/bin/pip install wheel
 
 .PHONY: python-fido2
 python-fido2: venv
-	cd python-fido2/ && ../venv/bin/python setup.py install 
+	cd python-fido2/ && ../venv/bin/python setup.py install
 
 venv/bin/mkdocs: venv
 	./venv/bin/pip install mkdocs mkdocs-material
@@ -116,4 +117,3 @@ clean:
 	    fi ;\
 	done
 	rm -rf venv
-

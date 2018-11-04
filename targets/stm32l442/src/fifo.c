@@ -4,9 +4,9 @@
 #include "fifo.h"
 
 
+FIFO_CREATE(debug,4096,1)
 
-
-FIFO_CREATE(hidmsg,100,100)
+FIFO_CREATE(hidmsg,100,64)
 
 #if TEST_FIFO
 FIFO_CREATE(test,10,100)
@@ -24,23 +24,25 @@ void fifo_test()
 
     for (int i = 0; i < 10; i++)
     {
+        printf("rhead: %d, whead: %d\r\n", fifo_test_rhead(), fifo_test_whead());
         ret = fifo_test_add(data[i]);
         printf("%d\r\n",i);
         if (ret != 0)
         {
             printf("fifo_test_add fail\r\n");
-            goto end;
+            goto fail;
         }
     }
 
     for (int i = 0; i < 10; i++)
     {
+        printf("rhead: %d, whead: %d\r\n", fifo_test_rhead(), fifo_test_whead());
         ret = fifo_test_take(verif[i]);
         printf("%d\r\n",i );
         if (ret != 0)
         {
             printf("fifo_test_take fail\r\n");
-            goto end;
+            goto fail;
         }
 
         if (memcmp(verif[i], data[i], 100) != 0)
@@ -48,17 +50,18 @@ void fifo_test()
             printf("fifo_test_take result fail\r\n");
             dump_hex(data[i],100);
             dump_hex(verif[i],100);
-            goto end;
+            goto fail;
         }
     }
 
     for (int i = 0; i < 10; i++)
     {
+        printf("rhead: %d, whead: %d\r\n", fifo_test_rhead(), fifo_test_whead());
         ret = fifo_test_add(data[i]);
         if (ret != 0)
         {
             printf("fifo_test_add 2 fail\r\n");
-            goto end;
+            goto fail;
         }
     }
 
@@ -66,22 +69,25 @@ void fifo_test()
     if (ret == 0)
     {
         printf("fifo_test_add should have failed\r\n");
-        goto end;
+        goto fail;
     }
+
+
 
     for (int i = 0; i < 10; i++)
     {
+        printf("rhead: %d, whead: %d\r\n", fifo_test_rhead(), fifo_test_whead());
         ret = fifo_test_take(verif[i]);
         if (ret != 0)
         {
             printf("fifo_test_take fail\r\n");
-            goto end;
+            goto fail;
         }
 
         if (memcmp(verif[i], data[i], 100) != 0)
         {
             printf("fifo_test_take result fail\r\n");
-            goto end;
+            goto fail;
         }
     }
 
@@ -89,12 +95,12 @@ void fifo_test()
     if (ret == 0)
     {
         printf("fifo_test_take should have failed\r\n");
-        goto end;
+        goto fail;
     }
 
     printf("test pass!\r\n");
-
-    end:
+    return ;
+    fail:
     while(1)
         ;
 }

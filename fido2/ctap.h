@@ -34,7 +34,8 @@
 #define CTAP_VENDOR_FIRST           0x40
 #define CTAP_VENDOR_LAST            0xBF
 
-#define CTAP_AAGUID                 ((uint8_t*)"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff")
+// AAGUID For Solo
+#define CTAP_AAGUID                 ((uint8_t*)"\x88\x76\x63\x1b\xd4\xa0\x42\x7f\x57\x73\x0e\xc7\x1c\x9e\x02\x79")
 
 #define MC_clientDataHash         0x01
 #define MC_rp                     0x02
@@ -126,10 +127,14 @@
 #define ALLOW_LIST_MAX_SIZE         20
 
 #define NEW_PIN_ENC_MAX_SIZE        256     // includes NULL terminator
+#define NEW_PIN_ENC_MIN_SIZE        64
+#define NEW_PIN_MAX_SIZE            64
+#define NEW_PIN_MIN_SIZE            4
 
-#define CTAP_RESPONSE_BUFFER_SIZE   1024
+#define CTAP_RESPONSE_BUFFER_SIZE   4096
 
-#define PIN_LOCKOUT_ATTEMPTS        8
+#define PIN_LOCKOUT_ATTEMPTS        8       // Number of attempts total
+#define PIN_BOOT_ATTEMPTS           3       // number of attempts per boot
 
 typedef struct
 {
@@ -198,6 +203,7 @@ typedef struct
 
     uint8_t rk;
     uint8_t uv;
+    uint8_t up;
 
     uint8_t pinAuth[16];
     uint8_t pinAuthPresent;
@@ -215,6 +221,7 @@ typedef struct
 {
     uint32_t paramsParsed;
     uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
+    uint8_t clientDataHashPresent;
 
     struct rpId rp;
 
@@ -222,12 +229,14 @@ typedef struct
 
     uint8_t rk;
     uint8_t uv;
+    uint8_t up;
 
     uint8_t pinAuth[16];
     uint8_t pinAuthPresent;
     int pinProtocol;
 
     CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
+    uint8_t allowListPresent;
 } CTAP_getAssertion;
 
 typedef struct
@@ -281,6 +290,7 @@ uint8_t ctap_is_pin_set();
 uint8_t ctap_pin_matches(uint8_t * pin, int len);
 void ctap_reset();
 int8_t ctap_device_locked();
+int8_t ctap_device_boot_locked();
 
 // Key storage API
 

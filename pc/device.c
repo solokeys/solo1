@@ -8,6 +8,7 @@
 #include <time.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "device.h"
 #include "cbor.h"
@@ -136,13 +137,20 @@ void usbhid_close()
     udp_close(serverfd);
 }
 
+void int_handler(int i)
+{
+    usbhid_close();
+    printf("SIGINT... exiting.\n");
+    exit(0);
+}
 
 void device_init()
 {
+    signal(SIGINT, int_handler);
+
     usbhid_init();
 
     authenticator_initialize();
-
 }
 
 
@@ -181,7 +189,6 @@ int ctap_user_verification(uint8_t arg)
 uint32_t ctap_atomic_count(int sel)
 {
     static uint32_t counter1 = 25;
-    static uint32_t counter2 = 25;
     /*return 713;*/
     if (sel == 0)
     {
@@ -197,15 +204,21 @@ uint32_t ctap_atomic_count(int sel)
 
 int ctap_generate_rng(uint8_t * dst, size_t num)
 {
+    int ret;
     FILE * urand = fopen("/dev/urandom","r");
     if (urand == NULL)
     {
         perror("fopen");
         exit(1);
     }
-    fread(dst, 1, num, urand);
+    ret = fread(dst, 1, num, urand);
     fclose(urand);
 
+    if (ret != num)
+    {
+        perror("fwrite");
+        exit(1);
+    }
     /*memset(dst,0xaa,num);*/
 
     return 1;
@@ -305,7 +318,6 @@ int authenticator_is_backup_initialized()
     AuthenticatorState * state = (AuthenticatorState*) header;
     FILE * f;
     int ret;
-    uint8_t * mem;
 
     printf("state file exists\n");
     f = fopen(backup_file, "rb");
@@ -398,7 +410,7 @@ void authenticator_initialize()
     }
 }
 
-
-
-
-
+void manage_device()
+{
+    
+}
