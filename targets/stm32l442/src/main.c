@@ -29,6 +29,8 @@
 #include "fifo.h"
 #include "log.h"
 
+#define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
+
 #ifdef TEST_SOLO_STM32
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
 #define PAGE_SIZE		2048
@@ -148,34 +150,11 @@ void test_atomic_counter()
 
 }
 
-int main(void)
+void test_peripherals()
 {
     uint8_t str[] = "YouCompleteMe: a code-completion engine for Vim";
     uint8_t buf[sizeof(str)];
-    uint32_t i = 100;
-    int inc = 1;
     float ent;
-    uint8_t hidbuf[HID_PACKET_SIZE];
-
-    hw_init();
-    set_logging_mask(
-            /*0*/
-           // TAG_GEN|
-            TAG_MC |
-            TAG_GA |
-            // TAG_WALLET |
-            TAG_STOR |
-            TAG_CP |
-            TAG_CTAP|
-//            TAG_HID|
-            /*TAG_U2F|*/
-            TAG_PARSE |
-           //TAG_TIME|
-            // TAG_DUMP|
-            TAG_GREEN|
-            TAG_RED|
-            TAG_ERR
-            );
     printf("hello solo\r\n");
 
     // Test flash
@@ -183,7 +162,6 @@ int main(void)
     flash_write(flash_addr(60), str, sizeof(str));
     memmove(buf,(uint8_t*)flash_addr(60),sizeof(str));
     printf("flash: \"%s\"\r\n", buf);
-
     // test_atomic_counter();
 
 
@@ -216,35 +194,62 @@ int main(void)
     /*// Test PWM + weighting of RGB*/
     /*led_test_colors();*/
     fifo_test();
+}
 
+int main(void)
+{
+    uint32_t i = 5;
 
-    uint32_t t0 = millis();
+    hw_init();
 
-    memset(hidbuf,0,sizeof(hidbuf));
+    LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
+    LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
+    flash_option_bytes_init(1);
+
+    set_logging_mask(
+            /*0*/
+           // TAG_GEN|
+            TAG_MC |
+            TAG_GA |
+            // TAG_WALLET |
+            TAG_STOR |
+            TAG_CP |
+            TAG_CTAP|
+//            TAG_HID|
+            /*TAG_U2F|*/
+            TAG_PARSE |
+           //TAG_TIME|
+            // TAG_DUMP|
+            TAG_GREEN|
+            TAG_RED|
+            TAG_ERR
+            );
+
 
     while (1)
     {
-        led_rgb(i | (i << 8) | (i << 16));
-
-        if (i > 250 || i ==0)
+        uint32_t t0 = millis() % 750;
+        if (! IS_BUTTON_PRESSED())
         {
-            inc *= -1;
+            if (t0 < 750*1/3)
+            {
+                led_rgb(0 | (0 << 8) | (i << 17));
+            }
+            else if (t0 < 750*2/3)
+            {
+                led_rgb(0 | (i << 8) | (0 << 16));
+            }
+            else
+            {
+                led_rgb(i | (0 << 8) | (0 << 16));
+            }
+        }
+        else
+        {
+            led_rgb(0x151515);
         }
 
-        if (millis() - t0 > 500)
-        {
-            t0 = millis();
-            printf("%lu\r\n", millis());
-        }
 
-        if (fifo_hidmsg_size())
-        {
-            printf("got message:\r\n");
-            fifo_hidmsg_take(hidbuf);
-            dump_hex(hidbuf, HID_PACKET_SIZE);
-        }
-        while(1)
-        ;
     }
 }
 
