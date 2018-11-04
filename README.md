@@ -53,8 +53,11 @@ Clone solo and build it
 ```bash
 git clone --recurse-submodules https://github.com/SoloKeysSec/solo
 cd solo/
-make all
 
+git submodules init
+git submodules update
+
+make all
 ```
 
 This builds our FIDO 2.0 and the U2F authenticator, as well as making a virtualenv in venv/
