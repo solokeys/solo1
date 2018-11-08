@@ -29,8 +29,6 @@
 #include "fifo.h"
 #include "log.h"
 
-#define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
-
 #ifdef TEST_SOLO_STM32
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
 #define PAGE_SIZE		2048
@@ -41,159 +39,27 @@
 #define	STATE2_PAGE		(PAGES - 2)
 #define	STATE1_PAGE		(PAGES - 1)
 
-void test_atomic_counter()
+
+uint32_t __90_ms = 0;
+#define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
+
+// Timer6 overflow handler.  happens every ~90ms.
+void TIM6_DAC_IRQHandler()
 {
-    // flash_erase_page(COUNTER1_PAGE);
-    // flash_erase_page(COUNTER2_PAGE);
-    int i;
-    uint32_t c0 = ctap_atomic_count(0);
-    for (i = 0; i < 128; i++)
-    {
-        uint32_t c1 = ctap_atomic_count(0);
-        if (c1 <= (c0 ))
-        {
-            printf("error, count failed  %lu <= %lu\r\n",c1,c0);
-            while(1)
-            ;
-        }
-        printf("%lu\r\n", c1);
-        c0 = c1;
-    }
-
-    printf("test faults\r\n");
-
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-
-    flash_erase_page(COUNTER1_PAGE);
-
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-
-    flash_erase_page(COUNTER1_PAGE);
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-
-    flash_erase_page(COUNTER1_PAGE);
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-
-    flash_erase_page(COUNTER1_PAGE);
-
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-
-    flash_erase_page(COUNTER2_PAGE);
-
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-
-    flash_erase_page(COUNTER2_PAGE);
-
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-
-    flash_erase_page(COUNTER2_PAGE);
-
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-
-    flash_erase_page(COUNTER2_PAGE);
-
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-
-    flash_erase_page(COUNTER1_PAGE);
-
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-
-    flash_erase_page(COUNTER1_PAGE);
-
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-    printf("%lu\r\n", ctap_atomic_count(0));
-
-    flash_erase_page(COUNTER1_PAGE);
-
+    // timer is only 16 bits, so roll it over here
+    TIM6->SR = 0;
+    __90_ms += 1;
 }
 
-void test_peripherals()
+uint32_t millis()
 {
-    uint8_t str[] = "YouCompleteMe: a code-completion engine for Vim";
-    uint8_t buf[sizeof(str)];
-    float ent;
-    printf("hello solo\r\n");
-
-    // Test flash
-    flash_erase_page(60);
-    flash_write(flash_addr(60), str, sizeof(str));
-    memmove(buf,(uint8_t*)flash_addr(60),sizeof(str));
-    printf("flash: \"%s\"\r\n", buf);
-    // test_atomic_counter();
-
-
-    // Note that 4 byte aligned addresses won't get written correctly.
-    flash_erase_page(60);
-    uint32_t count = 0;
-    flash_write(flash_addr(60) + 0,(uint8_t*)&count,4);
-    count += 1;
-    flash_write(flash_addr(60) + 4,(uint8_t*)&count,4);
-    count += 1;
-    flash_write(flash_addr(60) + 8,(uint8_t*)&count,4);
-    count += 1;
-    flash_write(flash_addr(60) + 12,(uint8_t*)&count,4);
-    count += 1;
-    flash_write(flash_addr(60) + 16,(uint8_t*)&count,4);
-    dump_hex((uint8_t *)flash_addr(60), 20);
-
-
-    // test timer
-    uint32_t t1 = millis();
-    delay(100);
-    uint32_t t2 = millis();
-    printf("100 ms delay (%lu)\r\n",t2-t1);
-
-    // test rng
-    ent = rng_test(64 * 1024);
-
-    printf("entropy of 64KB from RNG: %.6f\r\n", ent);
-
-    /*// Test PWM + weighting of RGB*/
-    /*led_test_colors();*/
-    fifo_test();
+    return (((uint32_t)TIM6->CNT) + (__90_ms * 90));
+}
+void _Error_Handler(char *file, int line)
+{
+    while(1)
+    {
+    }
 }
 
 int main(void)
@@ -205,26 +71,6 @@ int main(void)
     LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
     LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
     flash_option_bytes_init(1);
-
-    set_logging_mask(
-            /*0*/
-           // TAG_GEN|
-            TAG_MC |
-            TAG_GA |
-            // TAG_WALLET |
-            TAG_STOR |
-            TAG_CP |
-            TAG_CTAP|
-//            TAG_HID|
-            /*TAG_U2F|*/
-            TAG_PARSE |
-           //TAG_TIME|
-            // TAG_DUMP|
-            TAG_GREEN|
-            TAG_RED|
-            TAG_ERR
-            );
-
 
     while (1)
     {
@@ -248,7 +94,6 @@ int main(void)
         {
             led_rgb(0x151515);
         }
-
 
     }
 }

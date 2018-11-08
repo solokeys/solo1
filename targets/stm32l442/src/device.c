@@ -35,7 +35,7 @@
 
 #define AUTH_WORD_ADDR          (flash_addr(APPLICATION_END_PAGE)-4)
 
-uint32_t __90_ms = CTAPHID_STATUS_IDLE;
+uint32_t __90_ms = 0;
 uint32_t __device_status = 0;
 uint32_t __last_update = 0;
 extern PCD_HandleTypeDef hpcd;
@@ -62,7 +62,6 @@ void USB_IRQHandler(void)
 {
   HAL_PCD_IRQHandler(&hpcd);
 }
-
 
 uint32_t millis()
 {
@@ -95,7 +94,12 @@ void device_init()
     hw_init();
     LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
     LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
+
+#if BOOT_TO_DFU
+    flash_option_bytes_init(1);
+#else
     flash_option_bytes_init(0);
+#endif
 
     printf1(TAG_GEN,"hello solo\r\n");
 }
@@ -118,11 +122,13 @@ int usbhid_recv(uint8_t * msg)
 
 void usbhid_send(uint8_t * msg)
 {
+
     printf1(TAG_DUMP,"<< ");
     dump_hex1(TAG_DUMP, msg, HID_PACKET_SIZE);
     while (PCD_GET_EP_TX_STATUS(USB, HID_EPIN_ADDR & 0x0f) == USB_EP_TX_VALID)
         ;
     USBD_LL_Transmit(&Solo_USBD_Device, HID_EPIN_ADDR, msg, HID_PACKET_SIZE);
+
 
 }
 
