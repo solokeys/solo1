@@ -165,16 +165,19 @@ uint8_t ctap_get_info(CborEncoder * encoder)
                     check_ret(ret);
                 }
 
-                ret = cbor_encode_text_string(&options, "uv", 2);
-                check_ret(ret);
-                {
-                    ret = cbor_encode_boolean(&options, 0);     // NOT [yet] capable of verifying user
-                    check_ret(ret);
-                }
+                // NOT [yet] capable of verifying user
+                // Do not add option if UV isn't supported.
+                //
+                // ret = cbor_encode_text_string(&options, "uv", 2);
+                // check_ret(ret);
+                // {
+                //     ret = cbor_encode_boolean(&options, 0);
+                //     check_ret(ret);
+                // }
                 ret = cbor_encode_text_string(&options, "clientPin", 9);
                 check_ret(ret);
                 {
-                    ret = cbor_encode_boolean(&options, ctap_is_pin_set());     // NOT [yet] capable of verifying user
+                    ret = cbor_encode_boolean(&options, ctap_is_pin_set());
                     check_ret(ret);
                 }
 

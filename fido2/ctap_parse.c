@@ -678,12 +678,13 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
                 if (CTAP1_ERR_INVALID_LENGTH != ret)    // damn microsoft
                 {
                     check_retr(ret);
-                    MC->pinAuthPresent = 1;
+
                 }
                 else
                 {
                     ret = 0;
                 }
+                MC->pinAuthPresent = 1;
                 break;
             case MC_pinProtocol:
                 printf1(TAG_MC,"CTAP_pinProtocol\n");
