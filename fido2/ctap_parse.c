@@ -329,11 +329,13 @@ uint8_t parse_fixed_byte_string(CborValue * map, uint8_t * dst, int len)
         check_ret(ret);
         if (sz != len)
         {
-            return CTAP1_ERR_OTHER;
+            printf2(TAG_ERR, "error byte string is different length (%d vs %d)\r\n", len, sz);
+            return CTAP1_ERR_INVALID_LENGTH;
         }
     }
     else
     {
+        printf2(TAG_ERR, "error, CborByteStringType expected\r\n");
         return CTAP2_ERR_INVALID_CBOR_TYPE;
     }
     return 0;
@@ -482,7 +484,6 @@ uint8_t parse_options(CborValue * val, uint8_t * rk, uint8_t * uv, uint8_t * up)
     _Bool b;
     CborValue map;
 
-
     if (cbor_value_get_type(val) != CborMapType)
     {
         printf2(TAG_ERR,"error, wrong type\n");
@@ -527,27 +528,29 @@ uint8_t parse_options(CborValue * val, uint8_t * rk, uint8_t * uv, uint8_t * up)
         {
             ret = cbor_value_get_boolean(&map, &b);
             check_ret(ret);
+            printf1(TAG_GA, "rk: %d\r\n",b);
             *rk = b;
         }
         else if (strncmp(key, "uv",2) == 0)
         {
             ret = cbor_value_get_boolean(&map, &b);
             check_ret(ret);
+            printf1(TAG_GA, "uv: %d\r\n",b);
             *uv = b;
         }
         else if (strncmp(key, "up",2) == 0)
         {
             ret = cbor_value_get_boolean(&map, &b);
             check_ret(ret);
+            printf1(TAG_GA, "up: %d\r\n",b);
             *up = b;
         }
         else
         {
             printf2(TAG_PARSE,"ignoring option specified %s\n", key);
         }
-
-
-
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
     }
     return 0;
 }
@@ -672,9 +675,15 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
                 printf1(TAG_MC,"CTAP_pinAuth\n");
 
                 ret = parse_fixed_byte_string(&map, MC->pinAuth, 16);
-                check_retr(ret);
-                MC->pinAuthPresent = 1;
-
+                if (CTAP1_ERR_INVALID_LENGTH != ret)    // damn microsoft
+                {
+                    check_retr(ret);
+                    MC->pinAuthPresent = 1;
+                }
+                else
+                {
+                    ret = 0;
+                }
                 break;
             case MC_pinProtocol:
                 printf1(TAG_MC,"CTAP_pinProtocol\n");
@@ -682,6 +691,7 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
                 {
                     ret = cbor_value_get_int_checked(&map, &MC->pinProtocol);
                     check_ret(ret);
+                    printf1(TAG_MC," == %d\n",MC->pinProtocol);
                 }
                 else
                 {
