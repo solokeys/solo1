@@ -78,17 +78,21 @@ void hw_init(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USART1_UART_Init();
   MX_TIM2_Init();
 
   MX_TIM6_Init();
+  #ifndef TEST_SOLO_STM32
+  MX_USART1_UART_Init();
+
   MX_RNG_Init();
+   #endif
 
   TIM6->SR = 0;
   __enable_irq();
   NVIC_EnableIRQ(TIM6_IRQn);
-
+#ifndef TEST_SOLO_STM32
   usb_init();
+ #endif
 
 }
 static void LL_Init(void)
