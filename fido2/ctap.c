@@ -610,7 +610,7 @@ static uint8_t ctap_add_credential_descriptor(CborEncoder * map, CTAP_credential
         ret = cbor_encode_text_string(&desc, "type", 4);
         check_ret(ret);
 
-        ret = cbor_encode_int(&desc, cred->type);
+        ret = cbor_encode_text_string(&desc, "public-key", 10);
         check_ret(ret);
     }
     {
@@ -1227,9 +1227,9 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             t2 = millis();
             printf1(TAG_TIME,"make_credential time: %d ms\n", t2-t1);
 
-            dump_hex1(TAG_DUMP, buf, cbor_encoder_get_buffer_size(&encoder, buf));
-
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
+            dump_hex1(TAG_DUMP, buf, resp->length);
+
             break;
         case CTAP_GET_ASSERTION:
             device_set_status(CTAPHID_STATUS_PROCESSING);
@@ -1241,8 +1241,8 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
 
-            printf1(TAG_DUMP,"cbor [%d]: \n",  cbor_encoder_get_buffer_size(&encoder, buf));
-                dump_hex1(TAG_DUMP,buf, cbor_encoder_get_buffer_size(&encoder, buf));
+            printf1(TAG_DUMP,"cbor [%d]: \n",  resp->length);
+                dump_hex1(TAG_DUMP,buf, resp->length);
             break;
         case CTAP_CANCEL:
             printf1(TAG_CTAP,"CTAP_CANCEL\n");
@@ -1253,7 +1253,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
 
-            dump_hex1(TAG_DUMP, buf, cbor_encoder_get_buffer_size(&encoder, buf));
+            dump_hex1(TAG_DUMP, buf, resp->length);
 
             break;
         case CTAP_CLIENT_PIN:
@@ -1261,7 +1261,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             status = ctap_client_pin(&encoder, pkt_raw, length);
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
-            dump_hex1(TAG_DUMP, buf, cbor_encoder_get_buffer_size(&encoder, buf));
+            dump_hex1(TAG_DUMP, buf, resp->length);
             break;
         case CTAP_RESET:
             printf1(TAG_CTAP,"CTAP_RESET\n");
@@ -1280,7 +1280,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             {
                 status = ctap_get_next_assertion(&encoder);
                 resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
-                dump_hex1(TAG_DUMP, buf, cbor_encoder_get_buffer_size(&encoder, buf));
+                dump_hex1(TAG_DUMP, buf, resp->length);
                 if (status == 0)
                 {
                     cmd = CTAP_GET_ASSERTION;       // allow for next assertion
