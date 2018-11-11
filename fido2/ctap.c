@@ -141,7 +141,7 @@ uint8_t ctap_get_info(CborEncoder * encoder)
         ret = cbor_encode_uint(&map, RESP_options);
         check_ret(ret);
         {
-            ret = cbor_encoder_create_map(&map, &options,5);
+            ret = cbor_encoder_create_map(&map, &options,4);
             check_ret(ret);
             {
                 ret = cbor_encode_text_string(&options, "plat", 4);
@@ -292,10 +292,10 @@ static uint32_t auth_data_update_count(CTAP_authDataHeader * authData)
     }
     uint8_t * byte = (uint8_t*) &authData->signCount;
 
-    *byte++ = (count >> 0) & 0xff;
-    *byte++ = (count >> 8) & 0xff;
-    *byte++ = (count >> 16) & 0xff;
     *byte++ = (count >> 24) & 0xff;
+    *byte++ = (count >> 16) & 0xff;
+    *byte++ = (count >> 8) & 0xff;
+    *byte++ = (count >> 0) & 0xff;
 
     return count;
 }
@@ -335,7 +335,8 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     device_set_status(CTAPHID_STATUS_PROCESSING);
 
     authData->head.flags = (but << 0);
-    authData->head.flags |= (ctap_user_verification(0) << 2);
+    // not [yet] doing user verification
+    // authData->head.flags |= (ctap_user_verification(0) << 2);
 
 
 
@@ -524,7 +525,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     }
     else
     {
-        if (ctap_is_pin_set())
+        if (ctap_is_pin_set() || (MC.pinAuthPresent))
         {
             ret = verify_pin_auth(MC.pinAuth, MC.clientDataHash);
             check_retr(ret);
@@ -812,7 +813,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     }
     else
     {
-        if (ctap_is_pin_set())
+        if (ctap_is_pin_set() || (GA.pinAuthPresent))
         {
             ret = verify_pin_auth(GA.pinAuth, GA.clientDataHash);
             check_retr(ret);
