@@ -109,7 +109,7 @@
 #define RP_NAME_LIMIT               32  // application limit, name parameter isn't needed.
 #define USER_ID_MAX_SIZE            64
 #define USER_NAME_LIMIT             65  // Must be minimum of 64 bytes but can be more.
-#define CTAP_MAX_MESSAGE_SIZE       1024
+#define CTAP_MAX_MESSAGE_SIZE       1200
 
 #define CREDENTIAL_TAG_SIZE         16
 #define CREDENTIAL_NONCE_SIZE       8
