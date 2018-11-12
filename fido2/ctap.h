@@ -111,12 +111,11 @@
 #define USER_NAME_LIMIT             65  // Must be minimum of 64 bytes but can be more.
 #define CTAP_MAX_MESSAGE_SIZE       1200
 
+#define CREDENTIAL_RK_FLASH_PAD     2   // size of RK should be 8-byte aligned to store in flash easily.
 #define CREDENTIAL_TAG_SIZE         16
-#define CREDENTIAL_NONCE_SIZE       8
+#define CREDENTIAL_NONCE_SIZE       (16 + CREDENTIAL_RK_FLASH_PAD)
 #define CREDENTIAL_COUNTER_SIZE     (4)
-#define CREDENTIAL_ENC_SIZE         144  // pad to multiple of 16 bytes
-#define CREDENTIAL_PAD_SIZE         (CREDENTIAL_ENC_SIZE - (USER_ID_MAX_SIZE + USER_NAME_LIMIT + CREDENTIAL_COUNTER_SIZE + 1))
-#define CREDENTIAL_ID_SIZE          (CREDENTIAL_TAG_SIZE + CREDENTIAL_NONCE_SIZE + CREDENTIAL_ENC_SIZE)
+#define CREDENTIAL_ENC_SIZE         176  // pad to multiple of 16 bytes
 
 #define PUB_KEY_CRED_PUB_KEY        0x01
 #define PUB_KEY_CRED_UNKNOWN        0x3F
@@ -143,22 +142,27 @@ typedef struct
     uint8_t name[USER_NAME_LIMIT];
 }__attribute__((packed)) CTAP_userEntity;
 
-struct Credential {
+typedef struct {
     uint8_t tag[CREDENTIAL_TAG_SIZE];
     uint8_t nonce[CREDENTIAL_NONCE_SIZE];
-    struct {
-        CTAP_userEntity user;
-        uint32_t count;
-        uint8_t _pad[CREDENTIAL_PAD_SIZE];
-    } __attribute__((packed)) enc;
+    uint8_t rpIdHash[32];
+    uint32_t count;
+}__attribute__((packed)) CredentialId;
+
+struct Credential {
+    CredentialId id;
+    CTAP_userEntity user;
 };
+
+typedef struct Credential CTAP_residentKey;
+
 
 typedef struct
 {
     uint8_t aaguid[16];
     uint8_t credLenH;
     uint8_t credLenL;
-    struct Credential credential;
+    CredentialId id;
 } __attribute__((packed)) CTAP_attestHeader;
 
 typedef struct

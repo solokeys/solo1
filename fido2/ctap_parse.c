@@ -150,6 +150,7 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
                 return CTAP2_ERR_LIMIT_EXCEEDED;
             }
             MC->user.id_size = sz;
+            printf1(TAG_GREEN,"parsed id_size: %d\r\n", MC->user.id_size);
             check_ret(ret);
         }
         else if (strcmp((const char *)key, "name") == 0)
@@ -737,9 +738,9 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
         return CTAP2_ERR_MISSING_PARAMETER;
     }
 
-    buflen = sizeof(struct Credential);
-    cbor_value_copy_byte_string(&val, (uint8_t*)&cred->credential, &buflen, NULL);
-    if (buflen != CREDENTIAL_ID_SIZE)
+    buflen = sizeof(CredentialId);
+    cbor_value_copy_byte_string(&val, (uint8_t*)&cred->credential.id, &buflen, NULL);
+    if (buflen != sizeof(CredentialId))
     {
         printf2(TAG_ERR,"Ignoring credential is incorrect length\n");
         //return CTAP2_ERR_CBOR_UNEXPECTED_TYPE; // maybe just skip it instead of fail?

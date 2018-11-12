@@ -82,4 +82,12 @@ extern int ctap_user_verification(uint8_t arg);
 // data is HID_MESSAGE_SIZE long in bytes
 extern void ctaphid_write_block(uint8_t * data);
 
+
+// Resident key
+void ctap_reset_rk();
+uint32_t ctap_rk_size();
+void ctap_store_rk(int index,CTAP_residentKey * rk);
+void ctap_load_rk(int index,CTAP_residentKey * rk);
+void ctap_overwrite_rk(int index,CTAP_residentKey * rk);
+
 #endif

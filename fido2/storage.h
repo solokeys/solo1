@@ -43,6 +43,8 @@ typedef struct
     int pin_code_length;
     int8_t remaining_tries;
 
+    uint16_t rk_stored;
+
     uint16_t key_lens[MAX_KEYS];
     uint8_t key_space[KEY_SPACE_BYTES];
 } AuthenticatorState;

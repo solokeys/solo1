@@ -47,6 +47,7 @@ struct logtag tagtable[] = {
     {TAG_CTAP,"CTAP"},
     {TAG_U2F,"U2F"},
     {TAG_DUMP,"DUMP"},
+    {TAG_DUMP2,"DUMP2"},
     {TAG_HID,"HID"},
     {TAG_USB,"USB"},
     {TAG_GREEN,"[1;32mDEBUG[0m"},
