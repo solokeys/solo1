@@ -895,6 +895,16 @@ uint8_t ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int 
                 printf1(TAG_GA,"CTAP_pinAuth\n");
 
                 ret = parse_fixed_byte_string(&map, GA->pinAuth, 16);
+                if (CTAP1_ERR_INVALID_LENGTH != ret)    // damn microsoft
+                {
+                    check_retr(ret);
+
+                }
+                else
+                {
+                    ret = 0;
+                }
+
                 check_retr(ret);
                 GA->pinAuthPresent = 1;
 

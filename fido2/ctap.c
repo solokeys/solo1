@@ -335,8 +335,7 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     device_set_status(CTAPHID_STATUS_PROCESSING);
 
     authData->head.flags = (but << 0);
-    // not [yet] doing user verification
-    // authData->head.flags |= (ctap_user_verification(0) << 2);
+    authData->head.flags |= (ctap_is_pin_set() << 2);
 
 
 
@@ -735,8 +734,8 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
     uint8_t sigbuf[64];
     uint8_t sigder[72];
 
-    ret = ctap_add_user_entity(map, &cred->credential.enc.user);
-    check_retr(ret);
+    //ret = ctap_add_user_entity(map, &cred->credential.enc.user);
+    //check_retr(ret);
 
     // Re-encrypt the credential
     crypto_aes256_init(CRYPTO_TRANSPORT_KEY, NULL);
@@ -775,7 +774,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
     auth_data_update_count(authData);
 
 
-    ret = cbor_encoder_create_map(encoder, &map, 4);
+    ret = cbor_encoder_create_map(encoder, &map, 3);
     check_ret(ret);
 
     {
@@ -825,7 +824,10 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
         return CTAP2_ERR_MISSING_PARAMETER;
     }
     CborEncoder map;
-    ret = cbor_encoder_create_map(encoder, &map, 5);
+    if (GA.credLen > 1)
+        ret = cbor_encoder_create_map(encoder, &map, 4);
+    else
+        ret = cbor_encoder_create_map(encoder, &map, 3);
     check_ret(ret);
 
     ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, sizeof(auth_data_buf), NULL, 0,0,NULL);
@@ -867,10 +869,13 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     }
 
     {
-        ret = cbor_encode_int(&map, RESP_numberOfCredentials);
-        check_ret(ret);
-        ret = cbor_encode_int(&map, validCredCount);
-        check_ret(ret);
+        if (GA.credLen > 1)
+        {
+            ret = cbor_encode_int(&map, RESP_numberOfCredentials);
+            check_ret(ret);
+            ret = cbor_encode_int(&map, validCredCount);
+            check_ret(ret);
+        }
     }
 
     CTAP_credentialDescriptor * cred = &GA.creds[validCredCount - 1];
