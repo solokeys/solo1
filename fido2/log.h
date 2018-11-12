@@ -54,6 +54,7 @@ typedef enum
     TAG_USB = (1 << 13),
     TAG_WALLET = (1 << 14),
     TAG_STOR = (1 << 15),
+    TAG_DUMP2 = (1 << 16),
 
     TAG_FILENO = (1<<31)
 } LOG_TAG;

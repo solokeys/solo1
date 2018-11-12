@@ -33,7 +33,7 @@ void hw_init(void);
 #define SOLO_BUTTON_PORT        GPIOA
 #define SOLO_BUTTON_PIN         LL_GPIO_PIN_0
 
-#define SKIP_BUTTON_CHECK_WITH_DELAY        0
+#define SKIP_BUTTON_CHECK_WITH_DELAY        1
 #define SKIP_BUTTON_CHECK_FAST              0
 
 #endif

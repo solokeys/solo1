@@ -16,6 +16,7 @@
 #include "fifo.h"
 #include "log.h"
 #include "ctaphid.h"
+#include "ctap.h"
 
 
 #define PAGE_SIZE		2048
@@ -26,11 +27,15 @@
 #define	STATE2_PAGE		(PAGES - 2)
 #define	STATE1_PAGE		(PAGES - 1)
 
+#define RK_NUM_PAGES    10
+#define RK_START_PAGE   (PAGES - 14)
+#define RK_END_PAGE     (PAGES - 14 + RK_NUM_PAGES)
+
 
 #define APPLICATION_START_PAGE	(0)
 #define APPLICATION_START_ADDR	flash_addr(APPLICATION_START_PAGE)
 
-#define APPLICATION_END_PAGE	((PAGES - 9))					         // 119 is NOT included in application
+#define APPLICATION_END_PAGE	((PAGES - 19))					         // 119 is NOT included in application
 #define APPLICATION_END_ADDR	(flash_addr(APPLICATION_END_PAGE)-4)     // NOT included in application
 
 #define AUTH_WORD_ADDR          (flash_addr(APPLICATION_END_PAGE)-4)
@@ -113,8 +118,8 @@ int usbhid_recv(uint8_t * msg)
     if (fifo_hidmsg_size())
     {
         fifo_hidmsg_take(msg);
-        printf1(TAG_DUMP,">> ");
-        dump_hex1(TAG_DUMP,msg, HID_PACKET_SIZE);
+        printf1(TAG_DUMP2,">> ");
+        dump_hex1(TAG_DUMP2,msg, HID_PACKET_SIZE);
         return HID_PACKET_SIZE;
     }
     return 0;
@@ -123,8 +128,8 @@ int usbhid_recv(uint8_t * msg)
 void usbhid_send(uint8_t * msg)
 {
 
-    printf1(TAG_DUMP,"<< ");
-    dump_hex1(TAG_DUMP, msg, HID_PACKET_SIZE);
+    printf1(TAG_DUMP2,"<< ");
+    dump_hex1(TAG_DUMP2, msg, HID_PACKET_SIZE);
     while (PCD_GET_EP_TX_STATUS(USB, HID_EPIN_ADDR & 0x0f) == USB_EP_TX_VALID)
         ;
     USBD_LL_Transmit(&Solo_USBD_Device, HID_EPIN_ADDR, msg, HID_PACKET_SIZE);
@@ -410,6 +415,79 @@ int ctap_user_verification(uint8_t arg)
 {
     return 1;
 }
+
+void ctap_reset_rk()
+{
+    int i;
+    printf1(TAG_GREEN, "resetting RK \r\n");
+    for(i = 0; i < RK_NUM_PAGES; i++)
+    {
+        flash_erase_page(RK_START_PAGE + i);
+    }
+}
+
+uint32_t ctap_rk_size()
+{
+    return RK_NUM_PAGES * (PAGE_SIZE / sizeof(CTAP_residentKey));
+}
+
+void ctap_store_rk(int index,CTAP_residentKey * rk)
+{
+    int page_offset = (sizeof(CTAP_residentKey) * index) / PAGE_SIZE;
+    uint32_t addr = flash_addr(page_offset + RK_START_PAGE) + ((sizeof(CTAP_residentKey)*index) % PAGE_SIZE);
+
+    printf1(TAG_GREEN, "storing RK %d @ %04x\r\n", index,addr);
+
+    if (page_offset < RK_NUM_PAGES)
+    {
+        flash_write(addr, (uint8_t*)rk, sizeof(CTAP_residentKey));
+        //dump_hex1(TAG_GREEN,rk,sizeof(CTAP_residentKey));
+    }
+    else
+    {
+        printf2(TAG_ERR,"Out of bounds reading index %d for rk\n", index);
+    }
+}
+
+void ctap_load_rk(int index,CTAP_residentKey * rk)
+{
+    int page_offset = (sizeof(CTAP_residentKey) * index) / PAGE_SIZE;
+    uint32_t addr = flash_addr(page_offset + RK_START_PAGE) + ((sizeof(CTAP_residentKey)*index) % PAGE_SIZE);
+
+    printf1(TAG_GREEN, "reading RK %d @ %04x\r\n", index, addr);
+    if (page_offset < RK_NUM_PAGES)
+    {
+        uint32_t * ptr = (uint32_t *)addr;
+        memmove((uint8_t*)rk,ptr,sizeof(CTAP_residentKey));
+        //dump_hex1(TAG_GREEN,rk,sizeof(CTAP_residentKey));
+    }
+    else
+    {
+        printf2(TAG_ERR,"Out of bounds reading index %d for rk\n", index);
+    }
+}
+
+void ctap_overwrite_rk(int index,CTAP_residentKey * rk)
+{
+    uint8_t tmppage[PAGE_SIZE];
+    int page_offset = (sizeof(CTAP_residentKey) * index) / PAGE_SIZE;
+    int page = page_offset + RK_START_PAGE;
+
+    printf1(TAG_GREEN, "overwriting RK %d\r\n", index);
+    if (page_offset < RK_NUM_PAGES)
+    {
+        memmove(tmppage, (uint8_t*)flash_addr(page), PAGE_SIZE);
+
+        memmove(tmppage + (sizeof(CTAP_residentKey) * index) % PAGE_SIZE, rk, sizeof(CTAP_residentKey));
+        flash_erase_page(page);
+        flash_write(flash_addr(page), tmppage, ((sizeof(CTAP_residentKey) * (index + 1)) % PAGE_SIZE) );
+    }
+    else
+    {
+        printf2(TAG_ERR,"Out of bounds reading index %d for rk\n", index);
+    }
+}
+
 
 
 void _Error_Handler(char *file, int line)
