@@ -109,6 +109,8 @@
 #define RP_NAME_LIMIT               32  // application limit, name parameter isn't needed.
 #define USER_ID_MAX_SIZE            64
 #define USER_NAME_LIMIT             65  // Must be minimum of 64 bytes but can be more.
+#define DISPLAY_NAME_LIMIT          32  // Must be minimum of 64 bytes but can be more.
+#define ICON_LIMIT                  128 // Must be minimum of 64 bytes but can be more.
 #define CTAP_MAX_MESSAGE_SIZE       1200
 
 #define CREDENTIAL_RK_FLASH_PAD     2   // size of RK should be 8-byte aligned to store in flash easily.
@@ -140,6 +142,8 @@ typedef struct
     uint8_t id[USER_ID_MAX_SIZE];
     uint8_t id_size;
     uint8_t name[USER_NAME_LIMIT];
+    uint8_t displayName[DISPLAY_NAME_LIMIT];
+    uint8_t icon[ICON_LIMIT];
 }__attribute__((packed)) CTAP_userEntity;
 
 typedef struct {

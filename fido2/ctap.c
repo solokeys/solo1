@@ -302,10 +302,10 @@ static uint32_t auth_data_update_count(CTAP_authDataHeader * authData)
     }
     uint8_t * byte = (uint8_t*) &authData->signCount;
 
-    *byte++ = (count >> 0) & 0xff;
-    *byte++ = (count >> 8) & 0xff;
-    *byte++ = (count >> 16) & 0xff;
     *byte++ = (count >> 24) & 0xff;
+    *byte++ = (count >> 16) & 0xff;
+    *byte++ = (count >> 8) & 0xff;
+    *byte++ = (count >> 0) & 0xff;
 
     return count;
 }
@@ -343,6 +343,9 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     crypto_sha256_init();
     crypto_sha256_update(rp->id, rp->size);
     crypto_sha256_final(authData->head.rpIdHash);
+
+    printf1(TAG_RED, "rpId: "); dump_hex1(TAG_RED, rp->id, rp->size);
+    printf1(TAG_RED, "hash: "); dump_hex1(TAG_RED, authData->head.rpIdHash, 32);
 
     count = auth_data_update_count(&authData->head);
 
@@ -691,10 +694,10 @@ uint8_t ctap_add_user_entity(CborEncoder * map, CTAP_userEntity * user)
     int ret = cbor_encode_int(map, RESP_publicKeyCredentialUserEntity);
     check_ret(ret);
 
-    int dispname = (user->name[0] != 0);
+    int dispname = (user->name[0] != 0) && getAssertionState.user_verified;
 
     if (dispname)
-        ret = cbor_encoder_create_map(map, &entity, 2);
+        ret = cbor_encoder_create_map(map, &entity, 4);
     else
         ret = cbor_encoder_create_map(map, &entity, 1);
     check_ret(ret);
@@ -715,6 +718,20 @@ uint8_t ctap_add_user_entity(CborEncoder * map, CTAP_userEntity * user)
 
         ret = cbor_encode_text_stringz(&entity, (const char *)user->name);
         check_ret(ret);
+
+        ret = cbor_encode_text_string(&entity, "displayName", 11);
+        check_ret(ret);
+
+        ret = cbor_encode_text_stringz(&entity, (const char *)user->displayName);
+        check_ret(ret);
+
+        ret = cbor_encode_text_string(&entity, "icon", 4);
+        check_ret(ret);
+
+        ret = cbor_encode_text_stringz(&entity, (const char *)user->icon);
+        check_ret(ret);
+
+
     }
 
     ret = cbor_encoder_close_container(map, &entity);
@@ -871,7 +888,9 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
 {
     int ret;
     CborEncoder map;
-    CTAP_authDataHeader * authData = &getAssertionState.authData;
+    CTAP_authDataHeader authData;
+    memmove(&authData, &getAssertionState.authData, sizeof(CTAP_authDataHeader));
+    // CTAP_authDataHeader * authData = &getAssertionState.authData;
 
     CTAP_credentialDescriptor * cred = pop_credential();
 
@@ -880,10 +899,10 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
         return CTAP2_ERR_NOT_ALLOWED;
     }
 
-    auth_data_update_count(authData);
-    int add_user_info = cred->credential.user.id_size && getAssertionState.user_verified;
+    auth_data_update_count(&authData);
+    int add_user_info = cred->credential.user.id_size;
 
-    if (getAssertionState.user_verified)
+    if (add_user_info)
     {
         printf1(TAG_GREEN, "adding user info to assertion response\r\n");
         ret = cbor_encoder_create_map(encoder, &map, 4);
@@ -895,15 +914,24 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
     }
 
     check_ret(ret);
+    printf1(TAG_RED, "RPID hash: "); dump_hex1(TAG_RED, authData.rpIdHash, 32);
 
     {
         ret = cbor_encode_int(&map,RESP_authData);
         check_ret(ret);
-        ret = cbor_encode_byte_string(&map, (uint8_t *)authData, sizeof(CTAP_authDataHeader));
+        ret = cbor_encode_byte_string(&map, (uint8_t *)&authData, sizeof(CTAP_authDataHeader));
         check_ret(ret);
     }
 
-    ret = ctap_end_get_assertion(&map, cred, (uint8_t *)authData, getAssertionState.clientDataHash, add_user_info);
+    // if only one account for this RP, null out the user details
+    if (!getAssertionState.user_verified)
+    {
+        printf1(TAG_GREEN, "Not verified, nulling out user details on response\r\n");
+        memset(cred->credential.user.name, 0, USER_NAME_LIMIT);
+    }
+
+
+    ret = ctap_end_get_assertion(&map, cred, (uint8_t *)&authData, getAssertionState.clientDataHash, add_user_info);
     check_retr(ret);
 
     ret = cbor_encoder_close_container(encoder, &map);
@@ -950,7 +978,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     printf1(TAG_GA, "ALLOW_LIST has %d creds\n", GA.credLen);
     int validCredCount = ctap_filter_invalid_credentials(&GA);
 
-    int add_user_info = GA.creds[validCredCount - 1].credential.user.id_size && getAssertionState.user_verified;
+    int add_user_info = GA.creds[validCredCount - 1].credential.user.id_size;
     if (validCredCount > 1)
     {
        map_size += 1;
@@ -995,7 +1023,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     }
 
     // if only one account for this RP, null out the user details
-    if (validCredCount < 2)
+    if (validCredCount < 2 || !getAssertionState.user_verified)
     {
         printf1(TAG_GREEN, "Only one account, nulling out user details on response\r\n");
         memset(&GA.creds[0].credential.user.name, 0, USER_NAME_LIMIT);
@@ -1340,11 +1368,13 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     length--;
 
     uint8_t * buf = resp->data;
+    printf1(TAG_GREEN, "lastcmd0 = 0x%02x\r\n", getAssertionState.lastcmd);
 
     cbor_encoder_init(&encoder, buf, resp->data_size, 0);
 
     printf1(TAG_CTAP,"cbor input structure: %d bytes\n", length);
     printf1(TAG_DUMP,"cbor req: "); dump_hex1(TAG_DUMP, pkt_raw, length);
+    printf1(TAG_GREEN, "lastcmd1 = 0x%02x\r\n", getAssertionState.lastcmd);
 
     switch(cmd)
     {
@@ -1434,7 +1464,8 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             }
             else
             {
-                printf2(TAG_ERR, "unwanted GET_NEXT_ASSERTION\n");
+                printf2(TAG_ERR, "unwanted GET_NEXT_ASSERTION.  lastcmd == 0x%02x\n", getAssertionState.lastcmd);
+                dump_hex1(TAG_GREEN, &getAssertionState, sizeof(getAssertionState));
                 status = CTAP2_ERR_NOT_ALLOWED;
             }
             break;
@@ -1446,6 +1477,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
 done:
     device_set_status(CTAPHID_STATUS_IDLE);
     getAssertionState.lastcmd = cmd;
+    printf1(TAG_GREEN, "lastcmd = 0x%02x\r\n", getAssertionState.lastcmd);
 
     if (status != CTAP1_ERR_SUCCESS)
     {
