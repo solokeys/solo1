@@ -175,6 +175,13 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
                 printf2(TAG_ERR,"Error, expecting text string type for user.displayName value\n");
                 return CTAP2_ERR_INVALID_CBOR_TYPE;
             }
+            sz = DISPLAY_NAME_LIMIT;
+            ret = cbor_value_copy_text_string(&map, (char *)MC->user.displayName, &sz, NULL);
+            if (ret != CborErrorOutOfMemory)
+            {   // Just truncate the name it's okay
+                check_ret(ret);
+            }
+            MC->user.displayName[DISPLAY_NAME_LIMIT - 1] = 0;
         }
         else if (strcmp((const char *)key, "icon") == 0)
         {
@@ -183,6 +190,14 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
                 printf2(TAG_ERR,"Error, expecting text string type for user.icon value\n");
                 return CTAP2_ERR_INVALID_CBOR_TYPE;
             }
+            sz = ICON_LIMIT;
+            ret = cbor_value_copy_text_string(&map, (char *)MC->user.icon, &sz, NULL);
+            if (ret != CborErrorOutOfMemory)
+            {   // Just truncate the name it's okay
+                check_ret(ret);
+            }
+            MC->user.icon[ICON_LIMIT - 1] = 0;
+
         }
         else
         {

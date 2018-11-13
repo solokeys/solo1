@@ -4,7 +4,7 @@
 
 #define DEBUG_UART      USART1
 
-#define DEBUG_LEVEL        1
+#define DEBUG_LEVEL        0
 
 #define NON_BLOCK_PRINTING 0
 
@@ -33,7 +33,7 @@ void hw_init(void);
 #define SOLO_BUTTON_PORT        GPIOA
 #define SOLO_BUTTON_PIN         LL_GPIO_PIN_0
 
-#define SKIP_BUTTON_CHECK_WITH_DELAY        1
+#define SKIP_BUTTON_CHECK_WITH_DELAY        0
 #define SKIP_BUTTON_CHECK_FAST              0
 
 #endif

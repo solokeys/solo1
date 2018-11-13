@@ -97,7 +97,7 @@ void ctaphid_init()
 {
     state = IDLE;
     buffer_reset();
-    ctap_reset_state();
+    //ctap_reset_state();
 }
 
 static uint32_t get_new_cid()

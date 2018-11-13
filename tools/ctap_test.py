@@ -390,7 +390,7 @@ class Tester():
     def test_fido2_simple(self, pin_token=None):
         creds = []
         exclude_list = []
-        rp = {'id': 'examplo.org', 'name': 'ExaRP'}
+        rp = {'id': self.origin, 'name': 'ExaRP'}
         user = {'id': b'usee_od', 'name': 'AB User'}
         challenge = 'Y2hhbGxlbmdl'
         PIN = pin_token
@@ -432,7 +432,6 @@ class Tester():
         for i in range(0,2048**2):
             creds = []
 
-            print(i)
             challenge = ''.join([abc[randint(0,len(abc)-1)] for x in range(0,32)])
 
             fake_id1 = array.array('B',[randint(0,255) for i in range(0,150)]).tostring()
@@ -445,6 +444,7 @@ class Tester():
             for i in range(0,1):
                 t1 = time.time() * 1000
                 attest, data = self.client.make_credential(rp, user, challenge, pin = PIN, exclude_list = [])
+                print(attest.auth_data.counter)
                 t2 = time.time() * 1000
                 attest.verify(data.hash)
                 print('Register valid (%d ms)' % (t2-t1))
@@ -460,6 +460,7 @@ class Tester():
                 assertions, client_data = self.client.get_assertion(rp['id'], challenge, allow_list, pin = PIN)
                 t2 = time.time() * 1000
                 assertions[0].verify(client_data.hash, creds[0].public_key)
+                print(assertions[0].auth_data.counter)
 
                 print('Assertion valid (%d ms)' % (t2-t1))
                 sys.stdout.flush()
@@ -607,6 +608,160 @@ class Tester():
             print('Warning, reset failed: ', e)
         print('PASS')
 
+    def test_rk(self, ):
+        creds = []
+        rp = {'id': 'examplo.org', 'name': 'ExaRP'}
+        user0 = {'id': b'first one', 'name': 'single User'}
+
+        users = [{'id': b'user' + os.urandom(16), 'name': 'AB User'} for i in range(0,2)]
+        challenge = 'Y2hhbGxlbmdl'
+        PIN = None
+        print('reset')
+        self.ctap.reset()
+        #if PIN: self.client.pin_protocol.set_pin(PIN)
+
+        print('registering 1 user with RK')
+        t1 = time.time() * 1000
+        attest, data = self.client.make_credential(rp, user0, challenge, pin = PIN, exclude_list = [], rk = True)
+        t2 = time.time() * 1000
+        attest.verify(data.hash)
+        creds.append(attest.auth_data.credential_data)
+        print('Register valid (%d ms)' % (t2-t1))
+
+        print('1 assertion')
+        t1 = time.time() * 1000
+        assertions, client_data = self.client.get_assertion(rp['id'], challenge, pin = PIN)
+        t2 = time.time() * 1000
+        assertions[0].verify(client_data.hash, creds[0].public_key)
+        print('Assertion valid (%d ms)' % (t2-t1))
+
+        print(assertions[0], client_data)
+
+
+        print('registering %d users with RK' % len(users))
+        for i in range(0,len(users)):
+            t1 = time.time() * 1000
+            attest, data = self.client.make_credential(rp, users[i], challenge, pin = PIN, exclude_list = [], rk = True)
+            t2 = time.time() * 1000
+            attest.verify(data.hash)
+            print('Register valid (%d ms)' % (t2-t1))
+
+            creds.append(attest.auth_data.credential_data)
+
+
+        t1 = time.time() * 1000
+        assertions, client_data = self.client.get_assertion(rp['id'], challenge, pin = PIN)
+        t2 = time.time() * 1000
+
+        for x,y in zip(assertions, creds):
+            x.verify(client_data.hash,y.public_key)
+
+        print('Assertion(s) valid (%d ms)' % (t2-t1))
+
+
+        print('registering a duplicate user ')
+
+        t1 = time.time() * 1000
+        attest, data = self.client.make_credential(rp, users[1], challenge, pin = PIN, exclude_list = [], rk = True)
+        t2 = time.time() * 1000
+        attest.verify(data.hash)
+        creds = creds[:2] + creds[3:]  + [attest.auth_data.credential_data]
+        print('Register valid (%d ms)' % (t2-t1))
+
+
+        t1 = time.time() * 1000
+        assertions, client_data = self.client.get_assertion(rp['id'], challenge, pin = PIN)
+        t2 = time.time() * 1000
+        assert(len(assertions) == len(users) +1)
+        for x,y in zip(assertions, creds):
+            x.verify(client_data.hash,y.public_key)
+
+        print('Assertion(s) valid (%d ms)' % (t2-t1))
+
+
+    def test_responses(self,):
+        PIN = '1234'
+        RPID = 'examplo2.org'
+        for dev in (CtapHidDevice.list_devices()):
+            print('dev',dev)
+            client = Fido2Client(dev, RPID)
+            ctap = client.ctap2
+            # ctap.reset()
+            try:
+                if PIN: client.pin_protocol.set_pin(PIN)
+            except:pass
+
+            inf = ctap.get_info()
+            #print (inf)
+            print('versions: ',inf.versions)
+            print('aaguid: ',inf.aaguid)
+            print('rk: ',inf.options['rk'])
+            print('clientPin: ',inf.options['clientPin'])
+            print('max_message_size: ',inf.max_msg_size)
+
+            #rp = {'id': 'SelectDevice', 'name': 'SelectDevice'}
+            rp = {'id': RPID, 'name': 'ExaRP'}
+            user = {'id': os.urandom(10), 'name': 'SelectDevice'}
+            user = {'id': b'21first one', 'name': 'single User'}
+            challenge = 'Y2hhbGxlbmdl'
+
+            if 1:
+                attest, data = client.make_credential(rp,
+                        user, challenge, exclude_list = [], pin = PIN, rk=True)
+
+                cred = attest.auth_data.credential_data
+                creds = [cred]
+
+                allow_list = [{'id':creds[0].credential_id, 'type': 'public-key'}]
+                allow_list = []
+                assertions, client_data = client.get_assertion(rp['id'], challenge, pin = PIN)
+                assertions[0].verify(client_data.hash, creds[0].public_key)
+
+            if 0:
+                print('registering 1 user with RK')
+                t1 = time.time() * 1000
+                attest, data = client.make_credential(rp, user, challenge, pin = PIN, exclude_list = [], rk = True)
+                t2 = time.time() * 1000
+                attest.verify(data.hash)
+                creds = [attest.auth_data.credential_data]
+                print('Register valid (%d ms)' % (t2-t1))
+
+                print('1 assertion')
+                t1 = time.time() * 1000
+                assertions, client_data = client.get_assertion(rp['id'], challenge, pin = PIN)
+                t2 = time.time() * 1000
+                assertions[0].verify(client_data.hash, creds[0].public_key)
+                print('Assertion valid (%d ms)' % (t2-t1))
+
+
+
+
+
+            #print('fmt:',attest.fmt)
+            #print('rp_id_hash',attest.auth_data.rp_id_hash)
+            #print('flags:', hex(attest.auth_data.flags))
+            #print('count:', hex(attest.auth_data.counter))
+            print('flags MC:',attest.auth_data)
+            print('flags GA:',assertions[0].auth_data)
+            #print('cred_id:',attest.auth_data.credential_data.credential_id)
+            #print('pubkey:',attest.auth_data.credential_data.public_key)
+            #print('aaguid:',attest.auth_data.credential_data.aaguid)
+            # print('cred data:',attest.auth_data.credential_data)
+            # print('auth_data:',attest.auth_data)
+            #print('auth_data:',attest.auth_data)
+            #print('alg:',attest.att_statement['alg'])
+            #print('sig:',attest.att_statement['sig'])
+            #print('x5c:',attest.att_statement['x5c'])
+            #print('data:',data)
+
+            print('assertion:', assertions[0])
+            print('clientData:', client_data)
+
+            print()
+            #break
+
+
+
 def test_find_brute_force():
     i = 0
     while 1:
@@ -621,10 +776,12 @@ def test_find_brute_force():
 
 if __name__ == '__main__':
     t = Tester()
-    t.find_device()
+    #t.find_device()
     # t.test_hid()
     # t.test_long_ping()
-    t.test_fido2()
+    #t.test_fido2()
+    #t.test_rk()
+    t.test_responses()
     # test_find_brute_force()
     #t.test_fido2_simple()
     #t.test_fido2_brute_force()
