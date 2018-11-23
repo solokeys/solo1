@@ -1368,13 +1368,11 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     length--;
 
     uint8_t * buf = resp->data;
-    printf1(TAG_GREEN, "lastcmd0 = 0x%02x\r\n", getAssertionState.lastcmd);
 
     cbor_encoder_init(&encoder, buf, resp->data_size, 0);
 
     printf1(TAG_CTAP,"cbor input structure: %d bytes\n", length);
     printf1(TAG_DUMP,"cbor req: "); dump_hex1(TAG_DUMP, pkt_raw, length);
-    printf1(TAG_GREEN, "lastcmd1 = 0x%02x\r\n", getAssertionState.lastcmd);
 
     switch(cmd)
     {
@@ -1477,7 +1475,6 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
 done:
     device_set_status(CTAPHID_STATUS_IDLE);
     getAssertionState.lastcmd = cmd;
-    printf1(TAG_GREEN, "lastcmd = 0x%02x\r\n", getAssertionState.lastcmd);
 
     if (status != CTAP1_ERR_SUCCESS)
     {
