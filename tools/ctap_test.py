@@ -59,6 +59,7 @@ class Packet(object):
 class Tester():
     def __init__(self,):
         self.origin = 'https://examplo.org'
+        self.host = 'examplo.org'
 
     def find_device(self,):
         print (list(CtapHidDevice.list_devices()))
@@ -390,17 +391,18 @@ class Tester():
     def test_fido2_simple(self, pin_token=None):
         creds = []
         exclude_list = []
-        rp = {'id': self.origin, 'name': 'ExaRP'}
+        rp = {'id':  self.host, 'name': 'ExaRP'}
         user = {'id': b'usee_od', 'name': 'AB User'}
         challenge = 'Y2hhbGxlbmdl'
         PIN = pin_token
 
-        fake_id1 = array.array('B',[randint(0,255) for i in range(0,150)]).tostring()
-        fake_id2 = array.array('B',[randint(0,255) for i in range(0,73)]).tostring()
+        fake_id1 = array.array('B',[randint(0,255) for i in range(0,150)]).tobytes()
+        fake_id2 = array.array('B',[randint(0,255) for i in range(0,73)]).tobytes()
 
         exclude_list.append({'id': fake_id1, 'type': 'public-key'})
         exclude_list.append({'id': fake_id2, 'type': 'public-key'})
 
+        print('MC')
         t1 = time.time() * 1000
         attest, data = self.client.make_credential(rp, user, challenge, pin = PIN, exclude_list = [])
         t2 = time.time() * 1000
@@ -421,7 +423,7 @@ class Tester():
     def test_fido2_brute_force(self):
         creds = []
         exclude_list = []
-        rp = {'id': 'examplo.org', 'name': 'ExaRP'}
+        rp = {'id': self.host, 'name': 'ExaRP'}
         user = {'id': b'usee_od', 'name': 'AB User'}
         PIN = None
         abc = 'abcdefghijklnmopqrstuvwxyz'
@@ -471,7 +473,7 @@ class Tester():
         def test(self,pincode=None):
             creds = []
             exclude_list = []
-            rp = {'id': 'examplo.org', 'name': 'ExaRP'}
+            rp = {'id': self.host, 'name': 'ExaRP'}
             user = {'id': b'usee_od', 'name': 'AB User'}
             challenge = 'Y2hhbGxlbmdl'
             PIN = pincode
@@ -587,15 +589,14 @@ class Tester():
         print('MC using wrong pin')
         try:
             self.test_fido2_simple('abcd3');
-        except CtapError as e:
-            assert(e.code == CtapError.ERR.PIN_INVALID)
         except ClientError as e:
             assert(e.cause.code == CtapError.ERR.PIN_INVALID)
         print('PASS')
 
-        print('Reboot device and hit enter')
-        input()
-        self.find_device()
+        print('get info')
+        inf = self.ctap.get_info()
+        print('PASS')
+
         self.test_fido2_simple(PIN);
 
         print('Re-run make_credential and get_assertion tests with pin code')
@@ -610,7 +611,7 @@ class Tester():
 
     def test_rk(self, ):
         creds = []
-        rp = {'id': 'examplo.org', 'name': 'ExaRP'}
+        rp = {'id': self.host, 'name': 'ExaRP'}
         user0 = {'id': b'first one', 'name': 'single User'}
 
         users = [{'id': b'user' + os.urandom(16), 'name': 'AB User'} for i in range(0,2)]
@@ -681,7 +682,7 @@ class Tester():
 
     def test_responses(self,):
         PIN = '1234'
-        RPID = 'examplo2.org'
+        RPID = self.host
         for dev in (CtapHidDevice.list_devices()):
             print('dev',dev)
             client = Fido2Client(dev, RPID)
@@ -776,12 +777,12 @@ def test_find_brute_force():
 
 if __name__ == '__main__':
     t = Tester()
-    #t.find_device()
+    t.find_device()
     # t.test_hid()
     # t.test_long_ping()
-    #t.test_fido2()
+    t.test_fido2()
     #t.test_rk()
-    t.test_responses()
+    #t.test_responses()
     # test_find_brute_force()
     #t.test_fido2_simple()
     #t.test_fido2_brute_force()

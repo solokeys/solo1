@@ -43,8 +43,6 @@ us by [signing up for our Kickstarter](https://solokeys.com/kickstarter).  Our a
 bulk order and provide open source security tokens for everyone that is interested.  We will offer 
 "hackable" tokens that come with USB bootloaders and are reprogrammable.
 
-[Sign up here](https://solokeys.com/kickstarter)!
-
 
 # Setting up
 
@@ -53,10 +51,8 @@ Clone solo and build it
 ```bash
 git clone --recurse-submodules https://github.com/SoloKeysSec/solo
 cd solo/
-
 git submodules init
 git submodules update
-
 make all
 ```
 
@@ -72,7 +68,7 @@ not a hardware authenticator.  Install Yubico's fork to do that.
 The application is set up to send and recv USB HID messages over UDP to ease
 development and reduce need for hardware.
 
-Testing can be done using our fork of Yubico's client software, `python-fido2`.  
+Testing can be done using our fork of Yubico's client software, `python-fido2`.
 Our fork of `python-fido2` has small changes to make it send
 USB HID over UDP to the authenticator application.
 
@@ -85,13 +81,13 @@ Run FIDO 2 / U2F application.
 Run example client software.  This runs through a registration and authentication.
 
 ```
-./venv/bin/python python-fido2/examples/credential.py
+python python-fido2/examples/credential.py
 ```
 
-Run the FIDO2 tests.
+Run our FIDO2 tests.
 
 ```
-make fido2-test
+python tools/ctap_test.py
 ```
 
 Follow specifications to really dig in.
