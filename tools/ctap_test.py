@@ -777,7 +777,7 @@ def test_find_brute_force():
 
 if __name__ == '__main__':
     t = Tester()
-    t.find_device()
+    #t.find_device()
     # t.test_hid()
     # t.test_long_ping()
     t.test_fido2()

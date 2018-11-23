@@ -14,6 +14,8 @@
 
 #define DEBUG_LEVEL 1
 
+#define ENABLE_U2F
+
 //#define BRIDGE_TO_WALLET
 
 void printing_init();
