@@ -39,6 +39,9 @@ cbor: $(LIBCBOR)
 $(LIBCBOR): tinycbor/Makefile
 	cd tinycbor/ && $(MAKE) clean && $(MAKE) -j8
 
+test:
+	$(MAKE) -C . main
+
 .PHONY: efm8prog
 efm8prog:
 	cd './targets/efm8\Keil 8051 v9.53 - Debug' && $(MAKE) all
