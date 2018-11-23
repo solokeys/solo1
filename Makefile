@@ -28,13 +28,7 @@ CFLAGS += -DAES256=1
 name = main
 
 .PHONY: all
-all: python-fido2 main
-
-.PHONY: test
-test:
-	$(MAKE) -C . main
-	$(MAKE) -C . testgcm
-	./testgcm
+all: main
 
 tinycbor/Makefile crypto/tiny-AES-c/aes.c:
 	git submodule update --init
@@ -64,13 +58,6 @@ efm32bootprog: efm32com
 $(name): $(obj) $(LIBCBOR)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
 
-crypto/aes-gcm/aes_gcm.o:
-	$(CC) -c crypto/aes-gcm/aes_gcm.c $(CFLAGS) -DTEST -o crypto/aes-gcm/aes_gcm.o
-
-testgcm: $(obj) $(LIBCBOR) crypto/aes-gcm/aes_gcm.o
-	$(CC) -c fido2/main.c $(CFLAGS) -DTEST -o fido2/main.o
-	$(CC) $(LDFLAGS) -o $@ $^ $(LDFLAGS)
-
 uECC.o: ./crypto/micro-ecc/uECC.c
 	$(CC) -c -o $@ $^ -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(platform) -I./crypto/micro-ecc/
 
@@ -88,10 +75,6 @@ venv:
 	virtualenv venv
 	./venv/bin/pip install wheel
 
-.PHONY: python-fido2
-python-fido2: venv
-	cd python-fido2/ && ../venv/bin/python setup.py install
-
 venv/bin/mkdocs: venv
 	./venv/bin/pip install mkdocs mkdocs-material
 
@@ -104,10 +87,9 @@ fido2-test:
 	./venv/bin/python tools/ctap_test.py
 
 clean:
-	rm -f *.o main.exe main testgcm $(obj)
+	rm -f *.o main.exe main $(obj)
 	for f in crypto/tiny-AES-c/Makefile tinycbor/Makefile ; do \
 	    if [ -f "$$f" ]; then \
 	    	(cd `dirname $$f` ; git checkout -- .) ;\
 	    fi ;\
 	done
-	rm -rf venv
