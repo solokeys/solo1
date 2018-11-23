@@ -13,9 +13,22 @@
 #include "cbor.h"
 #include "util.h"
 #include "log.h"
+#include "ctaphid.h"
 
 
 void authenticator_initialize();
+
+uint32_t __device_status = 0;
+void device_set_status(int status)
+{
+    if (status != CTAPHID_STATUS_IDLE && __device_status != status)
+    {
+        ctaphid_update_status(status);
+    }
+    __device_status = status;
+}
+
+
 
 int udp_server()
 {
@@ -203,7 +216,10 @@ int ctap_generate_rng(uint8_t * dst, size_t num)
         perror("fopen");
         exit(1);
     }
-    fread(dst, 1, num, urand);
+    if (fread(dst, 1, num, urand) != num)
+    {
+        perror("fread");
+    }
     fclose(urand);
 
     /*memset(dst,0xaa,num);*/
@@ -398,7 +414,31 @@ void authenticator_initialize()
     }
 }
 
-void manage_device()
+void device_manage()
 {
-    
+
 }
+
+void ctap_reset_rk()
+{
+}
+
+uint32_t ctap_rk_size()
+{
+    printf("Warning: rk not implemented\n");
+    return 0;
+}
+void ctap_store_rk(int index,CTAP_residentKey * rk)
+{
+    printf("Warning: rk not implemented\n");
+}
+void ctap_load_rk(int index,CTAP_residentKey * rk)
+{
+    printf("Warning: rk not implemented\n");
+}
+void ctap_overwrite_rk(int index,CTAP_residentKey * rk)
+{
+    printf("Warning: rk not implemented\n");
+}
+
+
