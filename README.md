@@ -49,8 +49,10 @@ bulk order and provide open source security tokens for everyone that is interest
 Clone solo and build it
 
 ```bash
-git clone https://github.com/SoloKeysSec/solo
+git clone --recurse-submodules https://github.com/SoloKeysSec/solo
 cd solo/
+git submodules init
+git submodules update
 make all
 ```
 

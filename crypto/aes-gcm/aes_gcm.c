@@ -29,7 +29,7 @@ int main(int argc, char * argv[])
     uint8_t key[32];
     uint8_t authtag[BLOCK_SIZE];
 
-    uint8_t * authtag1 = "\x53\x0f\x8a\xfb\xc7\x45\x36\xb9\xa9\x63\xb4\xf1\xc4\xcb\x73\x8b";
+    // uint8_t * authtag1 = (uint8_t *)"\x53\x0f\x8a\xfb\xc7\x45\x36\xb9\xa9\x63\xb4\xf1\xc4\xcb\x73\x8b";
 
     memset(nonce,0,16);
     memset(key,0,16);
