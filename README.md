@@ -70,7 +70,11 @@ development and reduce need for hardware.
 
 Testing can be done using our fork of Yubico's client software, `python-fido2`.
 Our fork of `python-fido2` has small changes to make it send
-USB HID over UDP to the authenticator application.
+USB HID over UDP to the authenticator application.  You can install our fork by running the following:
+
+```bash
+cd python-fido2/ && python setup.py install
+```
 
 Run FIDO 2 / U2F application.
 
