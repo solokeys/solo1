@@ -51,8 +51,8 @@ Clone solo and build it
 ```bash
 git clone --recurse-submodules https://github.com/SoloKeysSec/solo
 cd solo/
-git submodules init
-git submodules update
+git submodule init
+git submodule update
 make all
 ```
 
