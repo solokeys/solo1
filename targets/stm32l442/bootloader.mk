@@ -24,11 +24,11 @@ INC = -Ibootloader/ -Isrc/ -Isrc/cmsis/ -Ilib/ -Ilib/usbd/ -I../../fido2/ -I../.
 INC += -I../../tinycbor/src -I../../crypto/sha256 -I../../crypto/micro-ecc
 INC += -I../../crypto/tiny-AES-c
 
-LDSCRIPT=stm32l432xx.ld
+LDSCRIPT=bootloader_stm32l4xx.ld
 
 CFLAGS= $(INC)
 
-TARGET=solo
+TARGET=bootloader
 HW=-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb
 
 # Nucleo board
@@ -39,7 +39,7 @@ CHIP=STM32L442xx
 DEFINES = -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAPP_CONFIG=\"bootloader.h\"
 # DEFINES += -DTEST_SOLO_STM32 -DTEST -DTEST_FIFO=1
 
-CFLAGS=$(INC) -c $(DEFINES)   -Wall -fdata-sections -ffunction-sections $(HW)
+CFLAGS=$(INC) -c $(DEFINES)   -Wall -fdata-sections -ffunction-sections $(HW) -g
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections  -lnosys
 LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref
 
@@ -65,7 +65,7 @@ all: $(TARGET).elf
 	$(CP) -O ihex $^ $(TARGET).hex
 
 clean:
-	rm -f *.o src/*.o src/*.elf *.elf *.hex $(OBJ)
+	rm -f *.o src/*.o bootloader/*.o src/*.elf  $(OBJ)
 
 flash: $(TARGET).hex
 	STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect

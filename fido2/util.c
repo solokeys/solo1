@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#if DEBUG_LEVEL
 void dump_hex(uint8_t * buf, int size)
 {
     while(size--)
@@ -30,5 +31,9 @@ void dump_hex(uint8_t * buf, int size)
     }
     printf("\n");
 }
+#else
+void dump_hex(uint8_t * buf, int size)
+{
+}
 
-
+#endif

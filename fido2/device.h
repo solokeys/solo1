@@ -44,6 +44,7 @@ void usbhid_close();
 void main_loop_delay();
 
 void heartbeat();
+void bootloader_heartbeat();
 
 void authenticator_read_state(AuthenticatorState * );
 
@@ -61,6 +62,9 @@ void device_manage();
 // sets status that's uses for sending status updates ~100ms.
 // A timer should be set up to call `ctaphid_update_status`
 void device_set_status(int status);
+
+// Returns if button is currently pressed
+int device_is_button_pressed();
 
 // Test for user presence
 // Return 1 for user is present, 0 user not present, -1 if cancel is requested.
@@ -92,5 +96,11 @@ void ctap_overwrite_rk(int index,CTAP_residentKey * rk);
 
 // Boot laoder application
 int bootloader_bridge(uint8_t klen, uint8_t * keyh);
+
+// Trigger software reset
+void device_reboot();
+
+// for bootloader
+int is_authorized_to_boot();
 
 #endif

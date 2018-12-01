@@ -616,7 +616,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             break;
 #endif
 #ifndef DISABLE_CTAPHID_CBOR
-#error rere
         case CTAPHID_CBOR:
             printf1(TAG_HID,"CTAPHID_CBOR\n");
 

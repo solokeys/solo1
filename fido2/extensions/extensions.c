@@ -100,7 +100,7 @@ int16_t extend_u2f(struct u2f_request_apdu* req, uint32_t len)
             }
             else
             {
-                rcode =  U2F_SW_WRONG_DATA;
+                rcode =  U2F_SW_WRONG_DATA; 
             }
             printf1(TAG_WALLET,"Ignoring U2F request\n");
             goto end;

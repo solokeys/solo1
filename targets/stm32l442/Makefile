@@ -71,11 +71,15 @@ bootloader:
 	make -f bootloader.mk
 
 clean:
-	rm -f *.o src/*.o src/*.elf *.elf *.hex $(OBJ)
+	rm -f *.o src/*.o src/*.elf  bootloader/*.o $(OBJ)
 
 flash: $(TARGET).hex
-	STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
+	# STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
 	STM32_Programmer_CLI -c port=SWD -halt  -d $(TARGET).hex -rst
+
+flashall:
+	# STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
+	STM32_Programmer_CLI -c port=SWD -halt  -d all.hex -rst
 
 detach:
 	STM32_Programmer_CLI -c port=usb1 -ob nBOOT0=1

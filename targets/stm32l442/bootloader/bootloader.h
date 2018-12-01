@@ -4,7 +4,7 @@
 
 #define DEBUG_UART      USART1
 
-#define DEBUG_LEVEL        0
+#define DEBUG_LEVEL        1
 
 #define NON_BLOCK_PRINTING 0
 
@@ -16,6 +16,8 @@
 #define ENABLE_U2F_EXTENSIONS
 // #define ENABLE_U2F
 
+#define APPLICATION_JUMP_ADDR               (0x08000000 + 32 * 2048)
+
 #define DISABLE_CTAPHID_PING
 #define DISABLE_CTAPHID_WINK
 #define DISABLE_CTAPHID_CBOR
@@ -26,7 +28,7 @@ void hw_init(void);
 //#define TEST
 //#define TEST_POWER
 
-#define LED_INIT_VALUE			0x001000
+#define LED_INIT_VALUE			0x101000
 
 // Button
 #define SOLO_BUTTON_PORT        GPIOA

@@ -312,8 +312,6 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             memmove(chksum, args[0] + lens[0] - 4, 4);
             lens[0] -= 4;
 
-            /*printf("chksum: "); dump_hex1(TAG_WALLET, chksum, 4);*/
-
             // perform integrity check
             /*printf1(TAG_WALLET,"shasum on [%d]: ",lens[0]); dump_hex1(TAG_WALLET, args[0], lens[0]);*/
             crypto_sha256_init();

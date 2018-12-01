@@ -76,7 +76,7 @@ int main(int argc, char * argv[])
     {
         if (millis() - t1 > 100)
         {
-            /*printf("heartbeat %ld\n", beat++);*/
+            /*printf1(TAG_GEN,"heartbeat %ld\n", beat++);*/
             heartbeat();
             t1 = millis();
         }

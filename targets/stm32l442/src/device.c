@@ -88,6 +88,10 @@ void device_set_status(int status)
     __device_status = status;
 }
 
+int device_is_button_pressed()
+{
+    return IS_BUTTON_PRESSED();
+}
 
 void delay(uint32_t ms)
 {
@@ -95,7 +99,10 @@ void delay(uint32_t ms)
     while ((millis() - time) < ms)
         ;
 }
+void device_reboot()
+{
 
+}
 void device_init()
 {
     hw_init();
@@ -111,8 +118,10 @@ void device_init()
     printf1(TAG_GEN,"hello solo\r\n");
 }
 
+void usb_init(void);
 void usbhid_init()
 {
+    usb_init();
     printf1(TAG_GEN,"hello solo\r\n");
 }
 int usbhid_recv(uint8_t * msg)
@@ -543,7 +552,7 @@ static void authorize_application()
     ptr = (uint32_t *)AUTH_WORD_ADDR;
     flash_write((uint32_t)ptr, (uint8_t *)&zero, 4);
 }
-static int is_authorized_to_boot()
+int is_authorized_to_boot()
 {
     uint32_t * auth = (uint32_t *)AUTH_WORD_ADDR;
     return *auth == 0;
@@ -558,7 +567,6 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
     uint8_t * pubkey = (uint8_t*)"\x57\xe6\x80\x39\x56\x46\x2f\x0c\x95\xac\x72\x71\xf0\xbc\xe8\x2d\x67\xd0\x59\x29\x2e\x15\x22\x89\x6a\xbd\x3f\x7f\x27\xf3\xc0\xc6\xe2\xd7\x7d\x8a\x9f\xcc\x53\xc5\x91\xb2\x0c\x9c\x3b\x4e\xa4\x87\x31\x67\xb4\xa9\x4b\x0e\x8d\x06\x67\xd8\xc5\xef\x2c\x50\x4a\x55";
     const struct uECC_Curve_t * curve = NULL;
 
-    /*printf("bootloader_bridge\n");*/
     if (req->len > 255-9)
     {
         return CTAP1_ERR_INVALID_LENGTH;
@@ -573,7 +581,6 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
 
     switch(req->op){
         case BootWrite:
-            /*printf("BootWrite 0x%08x\n", addr);*/
             if ((uint32_t)ptr < APPLICATION_START_ADDR || (uint32_t)ptr >= APPLICATION_END_ADDR)
             {
                 return CTAP2_ERR_NOT_ALLOWED;
@@ -592,13 +599,10 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
             flash_write((uint32_t)ptr,payload, req->len + (req->len%4));
             break;
         case BootDone:
-            //            printf("BootDone\n");
             ptr = (uint32_t *)APPLICATION_START_ADDR;
             crypto_sha256_init();
             crypto_sha256_update(ptr, APPLICATION_END_ADDR-APPLICATION_START_ADDR);
             crypto_sha256_final(hash);
-            //            printf("hash: "); dump_hex(hash, 32);
-            //            printf("sig: "); dump_hex(payload, 64);
             curve = uECC_secp256r1();
 
             if (! uECC_verify(pubkey,
@@ -613,11 +617,9 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
             REBOOT_FLAG = 1;
             break;
         case BootCheck:
-            /*printf("BootCheck\n");*/
             return 0;
             break;
         case BootErase:
-            /*printf("BootErase\n");*/
             erase_application();
             return 0;
             break;
@@ -627,6 +629,26 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
     return 0;
 }
 
+void bootloader_heartbeat()
+{
+    static int state = 0;
+    static uint32_t val = 0x10;
+    int but = IS_BUTTON_PRESSED();
 
+    if (state)
+    {
+        val--;
+    }
+    else
+    {
+        val++;
+    }
+
+    if (val > 30 || val < 1)
+    {
+        state = !state;
+    }
+    led_rgb((val * 3)<<8 | (val*10) << 16);
+}
 
 #endif

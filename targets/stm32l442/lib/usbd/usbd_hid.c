@@ -76,6 +76,7 @@
 #include "usbd_core.h"
 
 #include "fifo.h"
+#include "log.h"
 
 extern int usbhid_rdy ;
 
@@ -252,7 +253,7 @@ static void dump_pma()
     uint16_t val;
     uint32_t offset = (uint32_t)(USB)->BTABLE;
 
-    printf("btable: %02lx\r\n",offset);
+    printf1(TAG_GREEN,"btable: %02lx\r\n",offset);
 
     for (int i = 0; i < 2; i++)
     {
@@ -261,8 +262,8 @@ static void dump_pma()
         uint16_t addr_rx = pma_ptr[i * 4 + 2];
         uint16_t cnt_rx = pma_ptr[i * 4 + 3];
 
-        printf("EP%d addr_tx == %02x, count_tx == %02x\r\n", i, addr_tx,cnt_tx );
-        printf("EP%d addr_rx == %02x, count_rx == %02x\r\n", i, addr_rx,cnt_rx );
+        printf1(TAG_GREEN,"EP%d addr_tx == %02x, count_tx == %02x\r\n", i, addr_tx,cnt_tx );
+        printf1(TAG_GREEN,"EP%d addr_rx == %02x, count_rx == %02x\r\n", i, addr_rx,cnt_rx );
     }
 
     uint16_t ep1_tx = pma_ptr[1 * 4 + 0];
@@ -270,9 +271,9 @@ static void dump_pma()
     for (int i  = 0; i < 32; i++)
     {
         val = pma_ptr[ep1_tx + i];
-        printf("%04x ",val);
+        printf1(TAG_GREEN,"%04x ",val);
     }
-    printf("\r\n");
+    printf1(TAG_GREEN,"\r\n");
 }
 
 /**

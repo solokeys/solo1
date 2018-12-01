@@ -32,18 +32,62 @@
 #include "ctap.h"
 #include "app.h"
 
+#include "stm32l4xx.h"
+
 uint8_t REBOOT_FLAG = 0;
 
-#if !defined(TEST)
+
+#if defined ( __CC_ARM   )
+__asm void BOOT_jump(uint32_t sp, uint32_t pc)
+{
+  /* Set new MSP, PSP based on SP (r0)*/
+  msr msp, r0
+  msr psp, r0
+
+  /* Jump to PC (r1)*/
+  bx r1
+}
+#else
+void __attribute__((optimize("O0"))) BOOT_jump(uint32_t sp, uint32_t pc)
+{
+  (void) sp;
+  (void) pc;
+  /* Set new MSP, PSP based on SP (r0)*/
+  __asm("msr msp, r0");
+  __asm("msr psp, r0");
+
+  /* Jump to PC (r1)*/
+  __asm("mov pc, r1");
+}
+#endif
+
+
+void __attribute__((optimize("O0"))) BOOT_boot(void)
+{
+  uint32_t pc, sp;
+
+  uint32_t *bootAddress = (uint32_t *)(APPLICATION_JUMP_ADDR);
+
+  /* Set new vector table */
+  SCB->VTOR = (uint32_t)bootAddress;
+
+  /* Read new SP and PC from vector table */
+  sp = bootAddress[0];
+  pc = bootAddress[1];
+
+  /* Do a jump by loading the PC and SP into the CPU registers */
+  BOOT_jump(sp, pc);
+}
 
 int main(int argc, char * argv[])
 {
     uint8_t hidmsg[64];
     uint32_t t1 = 0;
+    uint32_t boot = 1;
 
     set_logging_mask(
             /*0*/
-           // TAG_GEN|
+            TAG_GEN|
             // TAG_MC |
             // TAG_GA |
             // TAG_WALLET |
@@ -63,11 +107,28 @@ int main(int argc, char * argv[])
     device_init();
     printf1(TAG_GEN,"init device\n");
 
+    t1 = millis();
+    while(device_is_button_pressed())
+    {
+        if ((millis() - t1) > 2000)
+        {
+            boot = 0;
+            break;
+        }
+    }
+
+    if (boot && is_authorized_to_boot())
+    {
+        BOOT_boot();
+    }
+    else
+    {
+        printf1(TAG_RED,"Not authorized to boot\r\n");
+    }
+
     printf1(TAG_GEN,"init ctaphid\n");
     ctaphid_init();
 
-    printf1(TAG_GEN,"init ctap\n");
-    ctap_init();
 
     memset(hidmsg,0,sizeof(hidmsg));
 
@@ -76,10 +137,9 @@ int main(int argc, char * argv[])
 
     while(1)
     {
-        if (millis() - t1 > 100)
+        if (millis() - t1 > 8)
         {
-            /*printf("heartbeat %ld\n", beat++);*/
-            heartbeat();
+            bootloader_heartbeat();
             t1 = millis();
         }
 
@@ -94,6 +154,11 @@ int main(int argc, char * argv[])
         {
         }
         ctaphid_check_timeouts();
+
+        if (REBOOT_FLAG)
+        {
+            device_reboot();
+        }
     }
 
     // Should never get here
@@ -101,5 +166,3 @@ int main(int argc, char * argv[])
     printf1(TAG_GREEN, "done\n");
     return 0;
 }
-
-#endif

@@ -38,7 +38,6 @@ static void MX_USART1_UART_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_RNG_Init(void);
-static void usb_init();
 
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
 void _Error_Handler(char *file, int line);
@@ -91,7 +90,7 @@ void hw_init(void)
   __enable_irq();
   NVIC_EnableIRQ(TIM6_IRQn);
 #ifndef TEST_SOLO_STM32
-  usb_init();
+
  #endif
 
 }
@@ -202,7 +201,7 @@ void SystemClock_Config(void)
   NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
 }
 
-static void usb_init()
+void usb_init()
 {
     USBD_Init(&Solo_USBD_Device, &Solo_Desc, 0);
     USBD_RegisterClass(&Solo_USBD_Device, &USBD_HID);
