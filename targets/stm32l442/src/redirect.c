@@ -1,6 +1,6 @@
 #include "stm32l4xx_ll_usart.h"
 
-#include "app.h"
+#include APP_CONFIG
 #include "fifo.h"
 
 #if DEBUG_LEVEL>0

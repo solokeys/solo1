@@ -3,7 +3,7 @@
 #include <string.h>
 #include "stm32l4xx.h"
 
-#include "app.h"
+#include APP_CONFIG
 #include "flash.h"
 #include "log.h"
 #include "device.h"

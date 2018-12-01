@@ -34,7 +34,7 @@
 #include "util.h"
 #include "log.h"
 #include "device.h"
-#include "app.h"
+#include APP_CONFIG
 #include "wallet.h"
 
 #include "device.h"

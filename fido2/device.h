@@ -90,4 +90,7 @@ void ctap_store_rk(int index,CTAP_residentKey * rk);
 void ctap_load_rk(int index,CTAP_residentKey * rk);
 void ctap_overwrite_rk(int index,CTAP_residentKey * rk);
 
+// Boot laoder application
+int bootloader_bridge(uint8_t klen, uint8_t * keyh);
+
 #endif

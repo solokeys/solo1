@@ -26,7 +26,7 @@
 #include "log.h"
 #include "device.h"
 #include "wallet.h"
-#include "app.h"
+#include APP_CONFIG
 
 // void u2f_response_writeback(uint8_t * buf, uint8_t len);
 static int16_t u2f_register(struct u2f_register_request * req);
@@ -283,8 +283,6 @@ static int16_t u2f_register(struct u2f_register_request * req)
     crypto_sha256_final(hash);
 
     crypto_ecc256_load_attestation_key();
-
-    /*printf("check key handle size: %d vs %d\n", U2F_KEY_HANDLE_SIZE, sizeof(struct u2f_key_handle));*/
 
     printf1(TAG_U2F, "sha256: "); dump_hex1(TAG_U2F,hash,32);
     crypto_ecc256_sign(hash, 32, sig);

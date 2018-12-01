@@ -18,7 +18,7 @@
 #include "aes.h"
 #include "ctap.h"
 #include "device.h"
-#include "app.h"
+#include APP_CONFIG
 
 #ifdef USING_PC
 typedef enum

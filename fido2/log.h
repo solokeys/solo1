@@ -22,7 +22,7 @@
 #ifndef _LOG_H
 #define _LOG_H
 
-#include "app.h"
+#include APP_CONFIG 
 #include <stdint.h>
 
 #ifndef DEBUG_LEVEL

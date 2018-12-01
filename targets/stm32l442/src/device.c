@@ -7,7 +7,7 @@
 #include "stm32l4xx_ll_usart.h"
 #include "usbd_hid.h"
 
-#include "app.h"
+#include APP_CONFIG
 #include "flash.h"
 #include "rng.h"
 #include "led.h"
@@ -17,6 +17,8 @@
 #include "log.h"
 #include "ctaphid.h"
 #include "ctap.h"
+#include "crypto.h"
+#include "uECC.h"
 
 
 #define PAGE_SIZE		2048
@@ -36,9 +38,9 @@
 #define APPLICATION_START_ADDR	flash_addr(APPLICATION_START_PAGE)
 
 #define APPLICATION_END_PAGE	((PAGES - 19))					         // 119 is NOT included in application
-#define APPLICATION_END_ADDR	(flash_addr(APPLICATION_END_PAGE)-4)     // NOT included in application
+#define APPLICATION_END_ADDR	(flash_addr(APPLICATION_END_PAGE)-8)     // NOT included in application
 
-#define AUTH_WORD_ADDR          (flash_addr(APPLICATION_END_PAGE)-4)
+#define AUTH_WORD_ADDR          (flash_addr(APPLICATION_END_PAGE)-8)
 
 uint32_t __90_ms = 0;
 uint32_t __device_status = 0;
@@ -497,3 +499,134 @@ void _Error_Handler(char *file, int line)
     {
     }
 }
+
+
+#ifdef IS_BOOTLOADER
+
+extern uint8_t REBOOT_FLAG;
+
+typedef enum
+{
+    BootWrite = 0x40,
+    BootDone = 0x41,
+    BootCheck = 0x42,
+    BootErase = 0x43,
+} WalletOperation;
+
+
+typedef struct {
+    uint8_t op;
+    uint8_t addr[3];
+    uint8_t tag[4];
+    uint8_t len;
+    uint8_t payload[255 - 9];
+} __attribute__((packed)) BootloaderReq;
+
+//#define APPLICATION_START_ADDR	0x8000
+//#define APPLICATION_START_PAGE	(0x8000/PAGE_SIZE)
+
+//#define APPLICATION_END_ADDR	(PAGE_SIZE*125-4)		// NOT included in application
+
+static void erase_application()
+{
+    int page;
+    for(page = APPLICATION_START_PAGE; page < APPLICATION_END_PAGE; page++)
+    {
+        flash_erase_page(page);
+    }
+}
+
+static void authorize_application()
+{
+    uint32_t zero = 0;
+    uint32_t * ptr;
+    ptr = (uint32_t *)AUTH_WORD_ADDR;
+    flash_write((uint32_t)ptr, (uint8_t *)&zero, 4);
+}
+static int is_authorized_to_boot()
+{
+    uint32_t * auth = (uint32_t *)AUTH_WORD_ADDR;
+    return *auth == 0;
+}
+
+int bootloader_bridge(uint8_t klen, uint8_t * keyh)
+{
+    static int has_erased = 0;
+    BootloaderReq * req =  (BootloaderReq *  )keyh;
+    uint8_t payload[256];
+    uint8_t hash[32];
+    uint8_t * pubkey = (uint8_t*)"\x57\xe6\x80\x39\x56\x46\x2f\x0c\x95\xac\x72\x71\xf0\xbc\xe8\x2d\x67\xd0\x59\x29\x2e\x15\x22\x89\x6a\xbd\x3f\x7f\x27\xf3\xc0\xc6\xe2\xd7\x7d\x8a\x9f\xcc\x53\xc5\x91\xb2\x0c\x9c\x3b\x4e\xa4\x87\x31\x67\xb4\xa9\x4b\x0e\x8d\x06\x67\xd8\xc5\xef\x2c\x50\x4a\x55";
+    const struct uECC_Curve_t * curve = NULL;
+
+    /*printf("bootloader_bridge\n");*/
+    if (req->len > 255-9)
+    {
+        return CTAP1_ERR_INVALID_LENGTH;
+    }
+
+    memset(payload, 0xff, sizeof(payload));
+    memmove(payload, req->payload, req->len);
+
+    uint32_t addr = (*((uint32_t*)req->addr)) & 0xffffff;
+
+    uint32_t * ptr = (uint32_t *)addr;
+
+    switch(req->op){
+        case BootWrite:
+            /*printf("BootWrite 0x%08x\n", addr);*/
+            if ((uint32_t)ptr < APPLICATION_START_ADDR || (uint32_t)ptr >= APPLICATION_END_ADDR)
+            {
+                return CTAP2_ERR_NOT_ALLOWED;
+            }
+
+            if (!has_erased)
+            {
+                erase_application();
+                has_erased = 1;
+            }
+            if (is_authorized_to_boot())
+            {
+                printf2(TAG_ERR, "Error, boot check bypassed\n");
+                exit(1);
+            }
+            flash_write((uint32_t)ptr,payload, req->len + (req->len%4));
+            break;
+        case BootDone:
+            //            printf("BootDone\n");
+            ptr = (uint32_t *)APPLICATION_START_ADDR;
+            crypto_sha256_init();
+            crypto_sha256_update(ptr, APPLICATION_END_ADDR-APPLICATION_START_ADDR);
+            crypto_sha256_final(hash);
+            //            printf("hash: "); dump_hex(hash, 32);
+            //            printf("sig: "); dump_hex(payload, 64);
+            curve = uECC_secp256r1();
+
+            if (! uECC_verify(pubkey,
+                        hash,
+                        32,
+                        payload,
+                        curve))
+            {
+                return CTAP2_ERR_OPERATION_DENIED;
+            }
+            authorize_application();
+            REBOOT_FLAG = 1;
+            break;
+        case BootCheck:
+            /*printf("BootCheck\n");*/
+            return 0;
+            break;
+        case BootErase:
+            /*printf("BootErase\n");*/
+            erase_application();
+            return 0;
+            break;
+        default:
+            return CTAP1_ERR_INVALID_COMMAND;
+    }
+    return 0;
+}
+
+
+
+#endif

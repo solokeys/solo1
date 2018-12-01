@@ -30,7 +30,9 @@
 #include "util.h"
 #include "log.h"
 #include "ctap.h"
-#include APP_CONFIG
+#include "app.h"
+
+uint8_t REBOOT_FLAG = 0;
 
 #if !defined(TEST)
 

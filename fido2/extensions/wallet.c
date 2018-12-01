@@ -20,7 +20,7 @@
    SOFTWARE.
 */
 #include "wallet.h"
-#include "app.h"
+#include APP_CONFIG
 #include "ctap.h"
 #include "ctap_errors.h"
 #include "crypto.h"
@@ -51,26 +51,6 @@ typedef enum
 #include "ecp.h"
 #endif
 
-
-typedef enum
-{
-    WalletSign = 0x10,
-    WalletRegister = 0x11,
-    WalletPin = 0x12,
-    WalletReset= 0x13,
-    WalletVersion= 0x14,
-    WalletRng = 0x15,
-} WalletOperation;
-
-int is_wallet_device(uint8_t * kh, int len)
-{
-    wallet_request * req = (wallet_request *) kh;
-
-    if (len < WALLET_MIN_LENGTH)
-        return 0;
-
-    return memcmp(req->tag, WALLET_TAG, sizeof(WALLET_TAG)-1) == 0;
-}
 
 // return 1 if hash is valid, 0 otherwise
 int check_pinhash(uint8_t * pinAuth, uint8_t * msg, uint8_t len)
@@ -200,8 +180,7 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
     int reqlen = klen;
     int i;
     int8_t ret = 0;
-    uint32_t count;
-    uint8_t up = 1;
+
     uint8_t sig[200];
 
     uint8_t * args[5] = {NULL,NULL,NULL,NULL,NULL};
@@ -221,21 +200,6 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
     memmove(msg_buf, keyh, klen);
 
     printf1(TAG_WALLET, "u2f2wallet [%d]: ",reqlen); dump_hex1(TAG_WALLET, msg_buf,reqlen);
-
-    if (req->operation == WalletRegister || req->operation == WalletSign)
-    {
-        count = ctap_atomic_count(0);
-    }
-    else
-    {
-        count = 10;
-    }
-
-    u2f_response_writeback(&up,1);
-    u2f_response_writeback((uint8_t *)&count,4);
-    u2f_response_writeback((uint8_t *)&ret,1);
-
-#ifndef IS_BOOTLOADER
 
     int offset = 0;
     for (i = 0; i < MIN(5,req->numArgs); i++)
@@ -466,24 +430,8 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             ret = CTAP1_ERR_INVALID_COMMAND;
             break;
     }
-#else
-    ret = bootloader_bridge(klen, keyh);
-#endif
 
 cleanup:
-    if (ret != 0)
-    {
-        u2f_reset_response();
-        u2f_response_writeback(&up,1);
-        u2f_response_writeback((uint8_t *)&count,4);
 
-        memset(sig,0,sizeof(sig));
-        sig[0] = ret;
-        u2f_response_writeback(sig,72);
-    }
-    else
-    {
-        /*u2f_response_writeback(sig,sizeof(sig));*/
-    }
-    return U2F_SW_NO_ERROR;
+    return ret;
 }
