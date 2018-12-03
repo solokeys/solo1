@@ -65,7 +65,7 @@ int16_t bridge_u2f_to_extensions(uint8_t * _chal, uint8_t * _appid, uint8_t klen
     u2f_response_writeback((uint8_t *)&ret,1);
 #ifdef IS_BOOTLOADER
     ret = bootloader_bridge(klen, keyh);
-#else
+#elif  defined(WALLET_EXTENSION)
     ret = bridge_u2f_to_wallet(_chal, _appid, klen, keyh);
 #endif
 

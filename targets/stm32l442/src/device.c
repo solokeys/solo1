@@ -102,7 +102,7 @@ void delay(uint32_t ms)
 }
 void device_reboot()
 {
-
+    NVIC_SystemReset();
 }
 void device_init()
 {
@@ -586,7 +586,8 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
     switch(req->op){
         case BootWrite:
             printf1(TAG_BOOT, "BootWrite: %08lx\r\n",(uint32_t)ptr);
-            if ((uint32_t)ptr < APPLICATION_START_ADDR || (uint32_t)ptr >= APPLICATION_END_ADDR)
+            if ((uint32_t)ptr < APPLICATION_START_ADDR || (uint32_t)ptr >= APPLICATION_END_ADDR
+                || ((uint32_t)ptr+req->len) > APPLICATION_END_ADDR)
             {
                 printf1(TAG_BOOT,"Bound exceeded [%08lx, %08lx]\r\n",APPLICATION_START_ADDR,APPLICATION_END_ADDR);
                 return CTAP2_ERR_NOT_ALLOWED;
@@ -603,7 +604,7 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
                 exit(1);
             }
 
-            flash_write((uint32_t)ptr,payload, req->len + (req->len%4));
+            flash_write((uint32_t)ptr,payload, req->len);
             break;
         case BootDone:
             printf1(TAG_BOOT, "BootDone: ");

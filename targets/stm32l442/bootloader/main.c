@@ -166,6 +166,7 @@ int main(int argc, char * argv[])
 
         if (REBOOT_FLAG)
         {
+            delay(250);
             device_reboot();
         }
     }

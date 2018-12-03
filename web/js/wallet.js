@@ -386,9 +386,7 @@ function send_msg_u2f(data, func, timeout) {
         appId: appid
     };
 
-    console.log('sign attempt');
     window.u2f.sign(appid,chal,[key], function(res){
-        console.log('res',res);
         var d2 = new Date();
         t2 = d2.getTime();
         if (!res.signatureData)
@@ -1087,7 +1085,6 @@ async function handleFirmware(files)
                 console.log('addr ',addr.value + i);
                 p = await dev.bootloader_write(addr.value + i, chunk);
 
-                console.log('writing',p);
                 TEST(p.status == 'CTAP1_SUCCESS', 'Device wrote data');
                 var progress = (((i/data.length) * 100 * 100) | 0)/100;
                 document.getElementById('progress').textContent = ''+progress+' %';
@@ -1427,7 +1424,8 @@ async function run_tests() {
 
     async function test_bootloader()
     {
-        var addr = 0x4000;
+        var start = 0x8000;
+        var size = 186 * 1024 - 8;
         var num_pages = 64;
 
         var p = await dev.is_bootloader();
@@ -1438,63 +1436,46 @@ async function run_tests() {
         p = await dev.bootloader_write(0, randdata);
         TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
 
-        p = await dev.bootloader_write(addr-4, randdata);
+        p = await dev.bootloader_write(start-4, randdata);
         TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
 
-        p = await dev.bootloader_write(2048 * (num_pages-3)-4, randdata);
+        p = await dev.bootloader_write(start, randdata);
+        TEST(p.status == 'CTAP1_SUCCESS', 'Allows write to beginning');
+
+        p = await dev.bootloader_write(start + size-16, randdata);
+        TEST(p.status == 'CTAP1_SUCCESS', 'Allows write to end');
+
+        p = await dev.bootloader_write(start + size-8, randdata);
+        TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies overflow');
+
+        p = await dev.bootloader_write(start + size, randdata);
         TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
 
-        p = await dev.bootloader_write(2048 * (num_pages-2), randdata);
+        p = await dev.bootloader_write(start + size + 1024, randdata);
         TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
 
-        p = await dev.bootloader_write(2048 * (num_pages+1), randdata);
+        p = await dev.bootloader_write(start + size + 1024*10, randdata);
         TEST(p.status == 'CTAP2_ERR_NOT_ALLOWED', 'Denies accessing invalid address');
 
-
-        p = await get_firmware_http();
-        var sig = websafe2array(p.signature);
-        var badsig = websafe2array(p.signature);
+        var badsig = new Uint8Array(64);
         badsig[40] = badsig[40] ^ 1;
-
-        var blocks = MemoryMap.fromHex(p.firmware);
-        var addresses = blocks.keys();
-
-        var addr = addresses.next();
-        var chunk_size = 244;
-        while(!addr.done) {
-            var data = blocks.get(addr.value);
-            var i;
-            for (i = 0; i < data.length; i += chunk_size) {
-                var chunk = data.slice(i,i+chunk_size);
-                p = await dev.bootloader_write(addr.value + i, chunk);
-                TEST(p.status == 'CTAP1_SUCCESS', 'Device wrote data');
-                var progress = (((i/data.length) * 100 * 100) | 0)/100;
-                document.getElementById('progress').textContent = ''+progress+' %';
-            }
-
-            addr = addresses.next();
-        }
 
         p = await dev.bootloader_finish(badsig);
         TEST(p.status == 'CTAP2_ERR_OPERATION_DENIED', 'Device rejected new image with bad signature');
 
-        p = await dev.bootloader_finish(sig);
-        TEST(p.status == 'CTAP1_SUCCESS', 'Device booted new image with correct signature');
-
-        document.getElementById('progress').textContent = ''+100+' %';
     }
 
     //while(1)
     {
-        await device_start_over();
+        // await device_start_over();
         //await test_pin();
-        await test_crypto();
+        // await test_crypto();
         //await test_rng();
     }
     //await benchmark();
     //await test_persistence();
 
-    //await test_bootloader();
+    await test_bootloader();
 
 
 }

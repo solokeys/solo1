@@ -4,7 +4,7 @@
 
 #define DEBUG_UART      USART1
 
-#define DEBUG_LEVEL        1
+#define DEBUG_LEVEL        0
 
 #define NON_BLOCK_PRINTING 0
 
