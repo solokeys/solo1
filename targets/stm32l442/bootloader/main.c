@@ -37,52 +37,18 @@
 uint8_t REBOOT_FLAG = 0;
 
 
-
-
-// void __attribute__((optimize("O0"))) BOOT_boot(void)
 void  BOOT_boot(void)
 {
-  uint32_t sp;
   typedef void (*pFunction)(void);
-  pFunction jump;
-
-
-  /* Reset the RCC clock configuration to the default reset state ------------*/
-  /* Set MSION bit */
-  RCC->CR |= RCC_CR_MSION;
-
-  /* Reset CFGR register */
-  RCC->CFGR = 0x00000000U;
-
-  /* Reset HSEON, CSSON , HSION, and PLLON bits */
-  RCC->CR &= 0xEAF6FFFFU;
-
-  /* Reset PLLCFGR register */
-  RCC->PLLCFGR = 0x00001000U;
-
-  /* Reset HSEBYP bit */
-  RCC->CR &= 0xFFFBFFFFU;
-
-  /* Disable all interrupts */
-  RCC->CIER = 0x00000000U;
-
 
   uint32_t *bootAddress = (uint32_t *)(APPLICATION_JUMP_ADDR);
-
-  printf("stack addr: %02lx\r\n",bootAddress[0]);
-  printf("jmp addr: %02lx\r\n",bootAddress[1]);
 
   /* Set new vector table */
   SCB->VTOR = APPLICATION_JUMP_ADDR;
 
   /* Read new SP and PC from vector table */
-  sp = bootAddress[0];
-  jump = (pFunction)bootAddress[1];
-
-  /* Do a jump by loading the PC and SP into the CPU registers */
-  __set_MSP(sp);
-  jump();
-  //jmp();
+  __set_MSP(bootAddress[0]);
+  ((pFunction)bootAddress[1])();
 }
 
 int main(int argc, char * argv[])
