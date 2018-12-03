@@ -105,6 +105,7 @@ int main(int argc, char * argv[])
             // TAG_PARSE |
            // TAG_TIME|
             // TAG_DUMP|
+            TAG_BOOT|
             TAG_GREEN|
             TAG_RED|
             TAG_ERR
@@ -134,7 +135,7 @@ int main(int argc, char * argv[])
 
     usbhid_init();
     printf1(TAG_GEN,"init usb\n");
-    
+
     ctaphid_init();
     printf1(TAG_GEN,"init ctaphid\n");
 

@@ -174,12 +174,12 @@ function toUTF8Array(str) {
         var charcode = str.charCodeAt(i);
         if (charcode < 0x80) utf8.push(charcode);
         else if (charcode < 0x800) {
-            utf8.push(0xc0 | (charcode >> 6), 
+            utf8.push(0xc0 | (charcode >> 6),
                       0x80 | (charcode & 0x3f));
         }
         else if (charcode < 0xd800 || charcode >= 0xe000) {
-            utf8.push(0xe0 | (charcode >> 12), 
-                      0x80 | ((charcode>>6) & 0x3f), 
+            utf8.push(0xe0 | (charcode >> 12),
+                      0x80 | ((charcode>>6) & 0x3f),
                       0x80 | (charcode & 0x3f));
         }
         // surrogate pair
@@ -190,9 +190,9 @@ function toUTF8Array(str) {
             // 20 bits of 0x0-0xFFFFF into two halves
             charcode = 0x10000 + (((charcode & 0x3ff)<<10)
                       | (str.charCodeAt(i) & 0x3ff));
-            utf8.push(0xf0 | (charcode >>18), 
-                      0x80 | ((charcode>>12) & 0x3f), 
-                      0x80 | ((charcode>>6) & 0x3f), 
+            utf8.push(0xf0 | (charcode >>18),
+                      0x80 | ((charcode>>12) & 0x3f),
+                      0x80 | ((charcode>>6) & 0x3f),
                       0x80 | (charcode & 0x3f));
         }
     }
@@ -386,9 +386,9 @@ function send_msg_u2f(data, func, timeout) {
         appId: appid
     };
 
-
+    console.log('sign attempt');
     window.u2f.sign(appid,chal,[key], function(res){
-
+        console.log('res',res);
         var d2 = new Date();
         t2 = d2.getTime();
         if (!res.signatureData)
@@ -409,9 +409,6 @@ if (DEVELOPMENT) {
 
 function formatBootRequest(cmd, addr, data) {
     var array = new Uint8Array(255);
-
-    if (addr == undefined)
-        addr = 0x8000;
 
     data = data || new Uint8Array(1);
 
@@ -1078,14 +1075,19 @@ async function handleFirmware(files)
         var blocks = MemoryMap.fromHex(resp.firmware);
         var addresses = blocks.keys();
 
+        console.log(blocks);
+        console.log(addresses);
         var addr = addresses.next();
-        var chunk_size = 244;
+        var chunk_size = 240;
         while(!addr.done) {
             var data = blocks.get(addr.value);
             var i;
             for (i = 0; i < data.length; i += chunk_size) {
                 var chunk = data.slice(i,i+chunk_size);
+                console.log('addr ',addr.value + i);
                 p = await dev.bootloader_write(addr.value + i, chunk);
+
+                console.log('writing',p);
                 TEST(p.status == 'CTAP1_SUCCESS', 'Device wrote data');
                 var progress = (((i/data.length) * 100 * 100) | 0)/100;
                 document.getElementById('progress').textContent = ''+progress+' %';
@@ -1501,4 +1503,3 @@ var test;
 EC = elliptic.ec
 
 //run_tests()
-

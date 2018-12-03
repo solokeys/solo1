@@ -22,7 +22,7 @@
 #ifndef _LOG_H
 #define _LOG_H
 
-#include APP_CONFIG 
+#include APP_CONFIG
 #include <stdint.h>
 
 #ifndef DEBUG_LEVEL
@@ -55,6 +55,7 @@ typedef enum
     TAG_WALLET = (1 << 14),
     TAG_STOR = (1 << 15),
     TAG_DUMP2 = (1 << 16),
+    TAG_BOOT = (1 << 17),
 
     TAG_FILENO = (1<<31)
 } LOG_TAG;
