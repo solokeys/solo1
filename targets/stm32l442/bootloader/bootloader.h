@@ -16,7 +16,7 @@
 #define ENABLE_U2F_EXTENSIONS
 // #define ENABLE_U2F
 
-#define APPLICATION_JUMP_ADDR               (0x08000000 + 32 * 2048)
+#define APPLICATION_JUMP_ADDR               (0x08000000 + 32 * 1024)
 
 #define DISABLE_CTAPHID_PING
 #define DISABLE_CTAPHID_WINK

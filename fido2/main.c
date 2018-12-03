@@ -61,11 +61,15 @@ int main(int argc, char * argv[])
     device_init();
     printf1(TAG_GEN,"init device\n");
 
-    printf1(TAG_GEN,"init ctaphid\n");
-    ctaphid_init();
+    usbhid_init();
+    printf1(TAG_GEN,"init usb\n");
 
-    printf1(TAG_GEN,"init ctap\n");
+
+    ctaphid_init();
+    printf1(TAG_GEN,"init ctaphid\n");
+
     ctap_init();
+    printf1(TAG_GEN,"init ctap\n");
 
     memset(hidmsg,0,sizeof(hidmsg));
 
@@ -76,7 +80,6 @@ int main(int argc, char * argv[])
     {
         if (millis() - t1 > 100)
         {
-            /*printf1(TAG_GEN,"heartbeat %ld\n", beat++);*/
             heartbeat();
             t1 = millis();
         }

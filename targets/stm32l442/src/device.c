@@ -34,7 +34,7 @@
 #define RK_END_PAGE     (PAGES - 14 + RK_NUM_PAGES)
 
 
-#define APPLICATION_START_PAGE	(0)
+#define APPLICATION_START_PAGE	(16)
 #define APPLICATION_START_ADDR	flash_addr(APPLICATION_START_PAGE)
 
 #define APPLICATION_END_PAGE	((PAGES - 19))					         // 119 is NOT included in application
@@ -122,8 +122,8 @@ void usb_init(void);
 void usbhid_init()
 {
     usb_init();
-    printf1(TAG_GEN,"hello solo\r\n");
 }
+
 int usbhid_recv(uint8_t * msg)
 {
     if (fifo_hidmsg_size())

@@ -37,46 +37,52 @@
 uint8_t REBOOT_FLAG = 0;
 
 
-#if defined ( __CC_ARM   )
-__asm void BOOT_jump(uint32_t sp, uint32_t pc)
+
+
+// void __attribute__((optimize("O0"))) BOOT_boot(void)
+void  BOOT_boot(void)
 {
-  /* Set new MSP, PSP based on SP (r0)*/
-  msr msp, r0
-  msr psp, r0
-
-  /* Jump to PC (r1)*/
-  bx r1
-}
-#else
-void __attribute__((optimize("O0"))) BOOT_jump(uint32_t sp, uint32_t pc)
-{
-  (void) sp;
-  (void) pc;
-  /* Set new MSP, PSP based on SP (r0)*/
-  __asm("msr msp, r0");
-  __asm("msr psp, r0");
-
-  /* Jump to PC (r1)*/
-  __asm("mov pc, r1");
-}
-#endif
+  uint32_t sp;
+  typedef void (*pFunction)(void);
+  pFunction jump;
 
 
-void __attribute__((optimize("O0"))) BOOT_boot(void)
-{
-  uint32_t pc, sp;
+  /* Reset the RCC clock configuration to the default reset state ------------*/
+  /* Set MSION bit */
+  RCC->CR |= RCC_CR_MSION;
+
+  /* Reset CFGR register */
+  RCC->CFGR = 0x00000000U;
+
+  /* Reset HSEON, CSSON , HSION, and PLLON bits */
+  RCC->CR &= 0xEAF6FFFFU;
+
+  /* Reset PLLCFGR register */
+  RCC->PLLCFGR = 0x00001000U;
+
+  /* Reset HSEBYP bit */
+  RCC->CR &= 0xFFFBFFFFU;
+
+  /* Disable all interrupts */
+  RCC->CIER = 0x00000000U;
+
 
   uint32_t *bootAddress = (uint32_t *)(APPLICATION_JUMP_ADDR);
 
+  printf("stack addr: %02lx\r\n",bootAddress[0]);
+  printf("jmp addr: %02lx\r\n",bootAddress[1]);
+
   /* Set new vector table */
-  SCB->VTOR = (uint32_t)bootAddress;
+  SCB->VTOR = APPLICATION_JUMP_ADDR;
 
   /* Read new SP and PC from vector table */
   sp = bootAddress[0];
-  pc = bootAddress[1];
+  jump = (pFunction)bootAddress[1];
 
   /* Do a jump by loading the PC and SP into the CPU registers */
-  BOOT_jump(sp, pc);
+  __set_MSP(sp);
+  jump();
+  //jmp();
 }
 
 int main(int argc, char * argv[])
@@ -126,9 +132,11 @@ int main(int argc, char * argv[])
         printf1(TAG_RED,"Not authorized to boot\r\n");
     }
 
-    printf1(TAG_GEN,"init ctaphid\n");
+    usbhid_init();
+    printf1(TAG_GEN,"init usb\n");
+    
     ctaphid_init();
-
+    printf1(TAG_GEN,"init ctaphid\n");
 
     memset(hidmsg,0,sizeof(hidmsg));
 

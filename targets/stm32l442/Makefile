@@ -42,7 +42,7 @@ CHIP=STM32L442xx
 DEFINES = -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAPP_CONFIG=\"app.h\"
 # DEFINES += -DTEST_SOLO_STM32 -DTEST -DTEST_FIFO=1
 
-CFLAGS=$(INC) -c $(DEFINES)   -Wall -fdata-sections -ffunction-sections $(HW)
+CFLAGS=$(INC) -c $(DEFINES)   -Wall -fdata-sections -ffunction-sections $(HW) -g
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -u _printf_float -lnosys
 LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -ltinycbor
 
@@ -68,7 +68,7 @@ all: $(TARGET).elf
 	$(CP) -O ihex $^ $(TARGET).hex
 
 bootloader:
-	make -f bootloader.mk
+	$(MAKE) -f bootloader.mk
 
 clean:
 	rm -f *.o src/*.o src/*.elf  bootloader/*.o $(OBJ)
@@ -78,7 +78,9 @@ flash: $(TARGET).hex
 	STM32_Programmer_CLI -c port=SWD -halt  -d $(TARGET).hex -rst
 
 flashall:
-	# STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
+	#$(MAKE) -f bootloader.mk -j8
+	python .\merge_hex.py .\solo.hex .\bootloader.hex all.hex
+	STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
 	STM32_Programmer_CLI -c port=SWD -halt  -d all.hex -rst
 
 detach:

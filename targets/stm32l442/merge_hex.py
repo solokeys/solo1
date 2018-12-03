@@ -20,9 +20,9 @@ first = IntelHex(sys.argv[1])
 for i in range(2, len(sys.argv)-1):
     first.merge(IntelHex( sys.argv[i] ), overlap = 'replace')
 
-first[AUTH_WORD_ADDR]   = 4
-first[AUTH_WORD_ADDR+1] = 5
-first[AUTH_WORD_ADDR+2] = 6
-first[AUTH_WORD_ADDR+3] = 7
+first[AUTH_WORD_ADDR]   = 0
+first[AUTH_WORD_ADDR+1] = 0
+first[AUTH_WORD_ADDR+2] = 0
+first[AUTH_WORD_ADDR+3] = 0
 
 first.tofile(sys.argv[len(sys.argv)-1], format='hex')

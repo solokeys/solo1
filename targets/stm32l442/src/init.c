@@ -21,6 +21,7 @@
 #include "usbd_desc.h"
 #include "usbd_hid.h"
 #include "device.h"
+#include APP_CONFIG
 
 /* USER CODE BEGIN Includes */
 
@@ -45,79 +46,54 @@ void _Error_Handler(char *file, int line);
 
 void hw_init(void)
 {
-  /* USER CODE BEGIN 1 */
+#ifdef IS_BOOTLOADER
+    SCB->VTOR = FLASH_BASE;
+#else
+#endif
+    LL_Init();
 
-  /* USER CODE END 1 */
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
 
-  /* MCU Configuration----------------------------------------------------------*/
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  LL_Init();
+    SystemClock_Config(); // TODO bootloader should not change clk freq.
 
-  // enable power clock
-  SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
+    MX_GPIO_Init();
+    MX_TIM2_Init();       // PWM for LEDs
 
-  // enable USB power
-  SET_BIT(PWR->CR2, PWR_CR2_USV);
+    MX_TIM6_Init();       // ~1 ms timer
 
-  // Enable USB Clock
-  SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
+#if DEBUG_LEVEL > 0
+    MX_USART1_UART_Init();// debug uart
+#endif
 
+    MX_RNG_Init();
 
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
-  SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_TIM2_Init();
-
-  MX_TIM6_Init();
-  #ifndef TEST_SOLO_STM32
-  MX_USART1_UART_Init();
-
-  MX_RNG_Init();
-   #endif
-
-  TIM6->SR = 0;
-  __enable_irq();
-  NVIC_EnableIRQ(TIM6_IRQn);
-#ifndef TEST_SOLO_STM32
-
- #endif
-
+    TIM6->SR = 0;
+    __enable_irq();
+    NVIC_EnableIRQ(TIM6_IRQn);
 }
+
 static void LL_Init(void)
 {
+    LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
+    LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
 
+    NVIC_SetPriorityGrouping(4);
 
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
-
-  NVIC_SetPriorityGrouping(4);
-
-  /* System interrupt init*/
-  /* MemoryManagement_IRQn interrupt configuration */
-  NVIC_SetPriority(MemoryManagement_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  /* BusFault_IRQn interrupt configuration */
-  NVIC_SetPriority(BusFault_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  /* UsageFault_IRQn interrupt configuration */
-  NVIC_SetPriority(UsageFault_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  /* SVCall_IRQn interrupt configuration */
-  NVIC_SetPriority(SVCall_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  /* DebugMonitor_IRQn interrupt configuration */
-  NVIC_SetPriority(DebugMonitor_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  /* PendSV_IRQn interrupt configuration */
-  NVIC_SetPriority(PendSV_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  /* SysTick_IRQn interrupt configuration */
-  NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+    /* System interrupt init*/
+    /* MemoryManagement_IRQn interrupt configuration */
+    NVIC_SetPriority(MemoryManagement_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+    /* BusFault_IRQn interrupt configuration */
+    NVIC_SetPriority(BusFault_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+    /* UsageFault_IRQn interrupt configuration */
+    NVIC_SetPriority(UsageFault_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+    /* SVCall_IRQn interrupt configuration */
+    NVIC_SetPriority(SVCall_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+    /* DebugMonitor_IRQn interrupt configuration */
+    NVIC_SetPriority(DebugMonitor_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+    /* PendSV_IRQn interrupt configuration */
+    NVIC_SetPriority(PendSV_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+    /* SysTick_IRQn interrupt configuration */
+    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
 
 }
 
@@ -203,6 +179,12 @@ void SystemClock_Config(void)
 
 void usb_init()
 {
+    // enable USB power
+    SET_BIT(PWR->CR2, PWR_CR2_USV);
+
+    // Enable USB Clock
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
+
     USBD_Init(&Solo_USBD_Device, &Solo_Desc, 0);
     USBD_RegisterClass(&Solo_USBD_Device, &USBD_HID);
     USBD_Start(&Solo_USBD_Device);
