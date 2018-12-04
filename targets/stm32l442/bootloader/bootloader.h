@@ -22,11 +22,6 @@
 #define DISABLE_CTAPHID_WINK
 #define DISABLE_CTAPHID_CBOR
 
-void printing_init();
-void hw_init(void);
-
-//#define TEST
-//#define TEST_POWER
 
 #define LED_INIT_VALUE			0x101000
 
@@ -36,5 +31,14 @@ void hw_init(void);
 
 #define SKIP_BUTTON_CHECK_WITH_DELAY        0
 #define SKIP_BUTTON_CHECK_FAST              1
+
+void printing_init();
+void hw_init(void);
+
+// Trigger software reset
+void device_reboot();
+
+int is_authorized_to_boot();
+void bootloader_heartbeat();
 
 #endif

@@ -44,7 +44,7 @@ void usbhid_close();
 void main_loop_delay();
 
 void heartbeat();
-void bootloader_heartbeat();
+
 
 void authenticator_read_state(AuthenticatorState * );
 
@@ -94,13 +94,10 @@ void ctap_store_rk(int index,CTAP_residentKey * rk);
 void ctap_load_rk(int index,CTAP_residentKey * rk);
 void ctap_overwrite_rk(int index,CTAP_residentKey * rk);
 
-// Boot laoder application
-int bootloader_bridge(uint8_t klen, uint8_t * keyh);
 
-// Trigger software reset
-void device_reboot();
 
-// for bootloader
-int is_authorized_to_boot();
+
+
+
 
 #endif
