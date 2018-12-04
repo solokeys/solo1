@@ -34,6 +34,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
 void u2f_reset_response();
 
+
 static CTAP_RESPONSE * _u2f_resp = NULL;
 
 void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
@@ -43,7 +44,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
     uint32_t len = ((req->LC3) | ((uint32_t)req->LC2 << 8) | ((uint32_t)req->LC1 << 16));
     uint8_t byte;
 
-    _u2f_resp = resp;
+    u2f_set_writeback_buffer(resp);
 
     if (req->cla != 0)
     {
@@ -137,6 +138,10 @@ void u2f_reset_response()
     ctap_response_init(_u2f_resp);
 }
 
+void u2f_set_writeback_buffer(CTAP_RESPONSE * resp)
+{
+    _u2f_resp = resp;
+}
 
 static void dump_signature_der(uint8_t * sig)
 {

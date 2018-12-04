@@ -74,7 +74,6 @@ class Tester():
         #cmd,resp = self.recv_raw()
 
     def send_data(self, cmd, data):
-        #print('<<', hexlify(data))
         if type(data) != type(b''):
             data = struct.pack('%dB' % len(data), *[ord(x) for x in data])
         with Timeout(1.0) as event:

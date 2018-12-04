@@ -70,7 +70,8 @@ int main(int argc, char * argv[])
             /*TAG_U2F|*/
             // TAG_PARSE |
            // TAG_TIME|
-            // TAG_DUMP|
+           // TAG_DUMP|
+           // TAG_DUMP2|
             TAG_BOOT|
             TAG_EXT|
             TAG_GREEN|

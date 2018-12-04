@@ -425,9 +425,10 @@ function formatBootRequest(cmd, addr, data) {
     array[6] = 0x90;
     array[7] = 0xf6;
 
-    array[8] = data.length & 0xff;
+    array[8] = 0;
+    array[9] = data.length & 0xff;
 
-    var offset = 9;
+    var offset = 10;
 
     var i;
     for (i = 0; i < data.length; i++){

@@ -1,7 +1,7 @@
 # Programs solo using the Solo bootloader
 # Requires python-fido2, intelhex
 
-import sys,os,time,struct
+import sys,os,time,struct,argparse
 import array,struct,socket,json,base64
 import tempfile
 from binascii import hexlify
@@ -10,6 +10,7 @@ from fido2.hid import CtapHidDevice, CTAPHID
 from fido2.client import Fido2Client, ClientError
 from fido2.ctap import CtapError
 from fido2.ctap1 import CTAP1
+from fido2.utils import Timeout
 
 from intelhex import IntelHex
 
@@ -22,12 +23,26 @@ class SoloBootloader:
     erase = 0x43
     version = 0x44
 
+    HIDCommand = 0x50
+
     TAG = b'\x8C\x27\x90\xf6'
 
 class Programmer():
 
     def __init__(self,):
         self.origin = 'https://example.org'
+        self.exchange = self.exchange_hid
+        self.reboot = True
+
+    def use_u2f(self,):
+        self.exchange = self.exchange_u2f
+
+    def use_hid(self,):
+        self.exchange = self.exchange_hid
+
+    def set_reboot(self,val):
+        """ option to reboot after programming """
+        self.reboot = val
 
     def find_device(self,):
         dev = next(CtapHidDevice.list_devices(), None)
@@ -36,16 +51,36 @@ class Programmer():
         self.dev = dev
         self.ctap1 = CTAP1(dev)
 
+        if self.exchange == self.exchange_hid:
+            self.send_data_hid(CTAPHID.INIT, '\x11\x11\x11\x11\x11\x11\x11\x11')
+
     @staticmethod
     def format_request(cmd,addr = 0,data = b'A'*16):
         arr = b'\x00'*9
         addr = struct.pack('<L', addr)
         cmd = struct.pack('B', cmd)
-        length = struct.pack('B', len(data))
+        length = struct.pack('>H', len(data))
 
         return cmd + addr[:3] + SoloBootloader.TAG + length + data
 
-    def exchange(self,cmd,addr=0,data=b'A'*16):
+    def send_data_hid(self, cmd, data):
+        if type(data) != type(b''):
+            data = struct.pack('%dB' % len(data), *[ord(x) for x in data])
+        with Timeout(1.0) as event:
+            return self.dev.call(cmd, data,event)
+
+    def exchange_hid(self,cmd,addr=0,data=b'A'*16):
+        req = Programmer.format_request(cmd,addr,data)
+
+        data = self.send_data_hid(SoloBootloader.HIDCommand, req)
+
+        ret = data[0]
+        if ret != CtapError.ERR.SUCCESS:
+            raise RuntimeError('Device returned non-success code %02x' % ret)
+
+        return data[1:]
+
+    def exchange_u2f(self,cmd,addr=0,data=b'A'*16):
         appid = b'A'*32
         chal = b'B'*32
 
@@ -77,21 +112,32 @@ class Programmer():
 
     def program_file(self,name):
         data = json.loads(open(name,'r').read())
-        fw = base64.b64decode(from_websafe(data['firmware']).encode())
-        sig = base64.b64decode(from_websafe(data['signature']).encode())
+        if name.lower().endswith('.json'):
+            fw = base64.b64decode(from_websafe(data['firmware']).encode())
+            sig = base64.b64decode(from_websafe(data['signature']).encode())
+            ih = IntelHex()
+            tmp = tempfile.NamedTemporaryFile(delete=False)
+            tmp.write(fw)
+            tmp.seek(0)
+            tmp.close()
+            ih.fromfile(tmp.name, format='hex')
+        else:
+            if not name.lower().endswith('.hex'):
+                print('Warning, assuming "%s" is an Intel Hex file.' % name)
+            sig = None
+            ih = IntelHex()
+            ih.fromfile(tmp.name, format='hex')
 
-        ih = IntelHex()
-        tmp = tempfile.NamedTemporaryFile(delete=False)
-        tmp.write(fw)
-        tmp.seek(0)
-        tmp.close()
-        ih.fromfile(tmp.name, format='hex')
+        if self.exchange == self.exchange_hid:
+            chunk = 2048
+        else:
+            chunk = 240
 
-        chunk = 240
         seg = ih.segments()[0]
         size = seg[1] - seg[0]
         total = 0
         t1 = time.time()*1000
+        print('erasing...')
         for i in range(seg[0], seg[1], chunk):
             s = i
             e = min(i+chunk,seg[1])
@@ -100,23 +146,41 @@ class Programmer():
             total += chunk
             progress = total/float(size)*100
             sys.stdout.write('downloading %.2f%%...\r' % progress)
-        sys.stdout.write('downloading 100%           \r\n')
+        sys.stdout.write('downloaded 100%             \r\n')
         t2 = time.time()*1000
         print('time: %.2f s' % ((t2-t1)/1000.0))
 
         print('Verifying...')
-        self.verify_flash(sig)
+        if sig is not None:
+            self.verify_flash(sig)
+        else:
+            self.verify_flash(b'A'*64)
 
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print('usage: %s <firmware.json>' % sys.argv[0])
-        sys.exit(1)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("<firmware>", help = 'firmware file.  Either a JSON or hex file.  JSON file contains signature while hex does not.')
+    parser.add_argument("--use-hid", action="store_true", help = 'Programs using custom HID command (default).  Quicker than using U2F authenticate which is what a browser has to use.')
+    parser.add_argument("--use-u2f", action="store_true", help = 'Programs using U2F authenticate. This is what a web application will use.')
+    parser.add_argument("--no-reset", action="store_true", help = 'Don\'t reset after writing firmware.  Stay in bootloader mode.')
+    parser.add_argument("--reset-only", action="store_true", help = 'Don\'t write anything, try to boot without a signature.')
+    args = parser.parse_args()
+    print()
 
     p = Programmer()
     p.find_device()
 
+    if args.use_u2f:
+        p.use_u2f()
+
+    if args.no_reset:
+        p.set_reboot(False)
+
     print('version is ', p.version())
 
-    p.program_file(sys.argv[1])
+    if not args.reset_only:
+        p.program_file(args.__dict__['<firmware>'])
+    else:
+        p.exchange(SoloBootloader.done,0,b'A'*64)

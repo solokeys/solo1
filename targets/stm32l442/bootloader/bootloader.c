@@ -28,8 +28,9 @@ typedef struct {
     uint8_t op;
     uint8_t addr[3];
     uint8_t tag[4];
-    uint8_t len;
-    uint8_t payload[255 - 9];
+    uint8_t lenh;
+    uint8_t lenl;
+    uint8_t payload[255 - 10];
 } __attribute__((packed)) BootloaderReq;
 
 
@@ -49,30 +50,29 @@ static void authorize_application()
     ptr = (uint32_t *)AUTH_WORD_ADDR;
     flash_write((uint32_t)ptr, (uint8_t *)&zero, 4);
 }
+
 int is_authorized_to_boot()
 {
     uint32_t * auth = (uint32_t *)AUTH_WORD_ADDR;
     return *auth == 0;
 }
 
-int bootloader_bridge(uint8_t klen, uint8_t * keyh)
+int bootloader_bridge(int klen, uint8_t * keyh)
 {
     static int has_erased = 0;
     BootloaderReq * req =  (BootloaderReq *  )keyh;
-    uint8_t payload[256];
     uint8_t hash[32];
     uint8_t version = 1;
+    uint16_t len = (req->lenh << 8) | (req->lenl);
 
-    uint8_t * pubkey = (uint8_t*)"\x85\xaa\xce\xda\xd4\xb4\xd8\x0d\xf7\x0e\xe8\x91\x6d\x69\x8e\x00\x7a\x27\x40\x76\x93\x7a\x1d\x63\xb1\xcf\xe8\x22\xdd\x9f\xbc\x43\x3e\x34\x0a\x05\x9d\x8a\x9d\x72\xdc\xc2\x4b\x56\x9c\x64\x3d\xc1\x0d\x14\x64\x69\x52\x31\xd7\x54\xa3\xb6\x69\xa7\x6f\x6b\x81\x8d";
-    const struct uECC_Curve_t * curve = NULL;
-
-    if (req->len > 255-9)
+    if (len > klen-10)
     {
+        printf1(TAG_BOOT,"Invalid length %d / %d\r\n", len, klen-9);
         return CTAP1_ERR_INVALID_LENGTH;
     }
 
-    memset(payload, 0xff, sizeof(payload));
-    memmove(payload, req->payload, req->len);
+    uint8_t * pubkey = (uint8_t*)"\x85\xaa\xce\xda\xd4\xb4\xd8\x0d\xf7\x0e\xe8\x91\x6d\x69\x8e\x00\x7a\x27\x40\x76\x93\x7a\x1d\x63\xb1\xcf\xe8\x22\xdd\x9f\xbc\x43\x3e\x34\x0a\x05\x9d\x8a\x9d\x72\xdc\xc2\x4b\x56\x9c\x64\x3d\xc1\x0d\x14\x64\x69\x52\x31\xd7\x54\xa3\xb6\x69\xa7\x6f\x6b\x81\x8d";
+    const struct uECC_Curve_t * curve = NULL;
 
     uint32_t addr = ((*((uint32_t*)req->addr)) & 0xffffff) | 0x8000000;
 
@@ -82,7 +82,7 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
         case BootWrite:
             printf1(TAG_BOOT, "BootWrite: %08lx\r\n",(uint32_t)ptr);
             if ((uint32_t)ptr < APPLICATION_START_ADDR || (uint32_t)ptr >= APPLICATION_END_ADDR
-                || ((uint32_t)ptr+req->len) > APPLICATION_END_ADDR)
+                || ((uint32_t)ptr+len) > APPLICATION_END_ADDR)
             {
                 printf1(TAG_BOOT,"Bound exceeded [%08lx, %08lx]\r\n",APPLICATION_START_ADDR,APPLICATION_END_ADDR);
                 return CTAP2_ERR_NOT_ALLOWED;
@@ -99,11 +99,17 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
                 exit(1);
             }
 
-            flash_write((uint32_t)ptr,payload, req->len);
+            flash_write((uint32_t)ptr,req->payload, len);
             break;
         case BootDone:
             printf1(TAG_BOOT, "BootDone: ");
-            dump_hex1(TAG_BOOT, payload, 32);
+#ifndef SOLO_HACKER
+            if (len != 64)
+            {
+                printf1(TAG_BOOT,"Invalid length for signature\r\n");
+                return CTAP1_ERR_INVALID_LENGTH;
+            }
+            dump_hex1(TAG_BOOT, req->payload, 32);
             ptr = (uint32_t *)APPLICATION_START_ADDR;
             crypto_sha256_init();
             crypto_sha256_update((uint8_t*)ptr, APPLICATION_END_ADDR-APPLICATION_START_ADDR);
@@ -113,11 +119,12 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
             if (! uECC_verify(pubkey,
                         hash,
                         32,
-                        payload,
+                        req->payload,
                         curve))
             {
                 return CTAP2_ERR_OPERATION_DENIED;
             }
+#endif
             authorize_application();
             REBOOT_FLAG = 1;
             break;

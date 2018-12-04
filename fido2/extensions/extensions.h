@@ -25,6 +25,6 @@
 
 int16_t extend_u2f(struct u2f_request_apdu* req, uint32_t len);
 
-int bootloader_bridge(uint8_t klen, uint8_t * keyh);
+int bootloader_bridge(int klen, uint8_t * keyh);
 
 #endif /* EXTENSIONS_H_ */
