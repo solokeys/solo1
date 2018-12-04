@@ -22,6 +22,8 @@ def get_firmware_object(sk_name, hex_file):
     fw = base64.b64encode(fw.encode())
     fw = to_websafe(fw.decode())
 
+    # start of firmware and the size of the flash region allocated for it.
+    # TODO put this somewhere else.
     START = 0x08008000
     END = START + 1024 * 186 - 8
 
@@ -58,5 +60,3 @@ if __name__ == '__main__':
     wfile = open(sys.argv[3],'wb+')
     wfile.write(json.dumps(msg).encode())
     wfile.close()
-
-

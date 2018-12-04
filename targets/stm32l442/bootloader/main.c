@@ -72,6 +72,7 @@ int main(int argc, char * argv[])
            // TAG_TIME|
             // TAG_DUMP|
             TAG_BOOT|
+            TAG_EXT|
             TAG_GREEN|
             TAG_RED|
             TAG_ERR
@@ -107,7 +108,7 @@ int main(int argc, char * argv[])
 
     memset(hidmsg,0,sizeof(hidmsg));
 
-    printf1(TAG_GEN,"recv'ing hid msg \n"); 
+    printf1(TAG_GEN,"recv'ing hid msg \n");
 
 
     while(1)

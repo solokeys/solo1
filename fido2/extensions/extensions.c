@@ -27,6 +27,8 @@
 
 #include "log.h"
 
+#define htonl(x)    (((x & 0xff) << 24) | ((x & 0xff00) << 8) \
+                    | ((x & 0xff0000) >> 8) | ((x & 0xff000000) >> 24) )
 
 int is_extension_request(uint8_t * kh, int len)
 {
@@ -53,11 +55,11 @@ int16_t bridge_u2f_to_extensions(uint8_t * _chal, uint8_t * _appid, uint8_t klen
     uint8_t sig[72];
     if (extension_needs_atomic_count(klen, keyh))
     {
-        count = ctap_atomic_count(0);
+        count = htonl(ctap_atomic_count(0));
     }
     else
     {
-        count = 10;
+        count = htonl(10);
     }
 
     u2f_response_writeback(&up,1);
@@ -102,7 +104,8 @@ int16_t extend_u2f(struct u2f_request_apdu* req, uint32_t len)
             {
                 rcode =  U2F_SW_WRONG_DATA;
             }
-            printf1(TAG_WALLET,"Ignoring U2F request\n");
+            printf1(TAG_EXT,"Ignoring U2F request\n");
+            dump_hex1(TAG_EXT, (uint8_t *) &auth->kh, auth->khl);
             goto end;
         }
         else
@@ -110,7 +113,8 @@ int16_t extend_u2f(struct u2f_request_apdu* req, uint32_t len)
             if ( ! is_extension_request((uint8_t *) &auth->kh, auth->khl))     // Pin requests
             {
                 rcode = U2F_SW_WRONG_PAYLOAD;
-                printf1(TAG_WALLET,"Ignoring U2F request\n");
+                printf1(TAG_EXT, "Ignoring U2F request\n");
+                dump_hex1(TAG_EXT, (uint8_t *) &auth->kh, auth->khl);
                 goto end;
             }
             rcode = bridge_u2f_to_extensions(auth->chal, auth->app, auth->khl, (uint8_t*)&auth->kh);
@@ -118,7 +122,7 @@ int16_t extend_u2f(struct u2f_request_apdu* req, uint32_t len)
     }
     else if (req->ins == U2F_VERSION)
     {
-        printf1(TAG_U2F, "U2F_VERSION\n");
+        printf1(TAG_EXT, "U2F_VERSION\n");
         if (len)
         {
             rcode = U2F_SW_WRONG_LENGTH;

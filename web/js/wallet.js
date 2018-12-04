@@ -262,6 +262,7 @@ var CMD = {
     boot_done: 0x41,
     boot_check: 0x42,
     boot_erase: 0x43,
+    boot_version: 0x44,
 };
 
 var PIN = {

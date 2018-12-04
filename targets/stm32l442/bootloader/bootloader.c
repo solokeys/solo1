@@ -130,6 +130,7 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
             return 0;
             break;
         case BootVersion:
+            has_erased = 0;
             printf1(TAG_BOOT, "BootVersion.\r\n");
             u2f_response_writeback(&version,1);
             return 0;

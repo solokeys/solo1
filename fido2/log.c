@@ -61,6 +61,7 @@ struct logtag tagtable[] = {
     {TAG_WALLET,"[1;34mWALLET[0m"},
     {TAG_STOR,"[1;35mSTOR[0m"},
     {TAG_BOOT,"[1;36mBOOT[0m"},
+    {TAG_BOOT,"[1;37mEXT[0m"},
 };
 
 
