@@ -12,6 +12,7 @@
 #include "ctap_errors.h"
 #include "log.h"
 
+
 extern uint8_t REBOOT_FLAG;
 
 typedef enum

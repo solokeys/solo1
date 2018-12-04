@@ -9,7 +9,7 @@ from binascii import hexlify
 from fido2.hid import CtapHidDevice, CTAPHID
 from fido2.client import Fido2Client, ClientError
 from fido2.ctap import CtapError
-from fido2.ctap1 import CTAP1
+from fido2.ctap1 import CTAP1, ApduError
 from fido2.utils import Timeout
 
 from intelhex import IntelHex
@@ -23,7 +23,8 @@ class SoloBootloader:
     erase = 0x43
     version = 0x44
 
-    HIDCommand = 0x50
+    HIDCommandBoot = 0x50
+    HIDCommandEnterBoot = 0x51
 
     TAG = b'\x8C\x27\x90\xf6'
 
@@ -72,7 +73,7 @@ class Programmer():
     def exchange_hid(self,cmd,addr=0,data=b'A'*16):
         req = Programmer.format_request(cmd,addr,data)
 
-        data = self.send_data_hid(SoloBootloader.HIDCommand, req)
+        data = self.send_data_hid(SoloBootloader.HIDCommandBoot, req)
 
         ret = data[0]
         if ret != CtapError.ERR.SUCCESS:
@@ -110,9 +111,20 @@ class Programmer():
         """
         self.exchange(SoloBootloader.done,0,sig)
 
+    def enter_solo_bootloader(self,):
+        """
+        If solo is configured as solo hacker or something similar,
+        this command will tell the token to boot directly to the bootloader
+        so it can be reprogrammed
+        """
+        if self.exchange != self.exchange_hid:
+            self.send_data_hid(CTAPHID.INIT, '\x11\x11\x11\x11\x11\x11\x11\x11')
+        self.send_data_hid(SoloBootloader.HIDCommandEnterBoot, '')
+
     def program_file(self,name):
-        data = json.loads(open(name,'r').read())
+
         if name.lower().endswith('.json'):
+            data = json.loads(open(name,'r').read())
             fw = base64.b64decode(from_websafe(data['firmware']).encode())
             sig = base64.b64decode(from_websafe(data['signature']).encode())
             ih = IntelHex()
@@ -126,7 +138,7 @@ class Programmer():
                 print('Warning, assuming "%s" is an Intel Hex file.' % name)
             sig = None
             ih = IntelHex()
-            ih.fromfile(tmp.name, format='hex')
+            ih.fromfile(name, format='hex')
 
         if self.exchange == self.exchange_hid:
             chunk = 2048
@@ -151,12 +163,40 @@ class Programmer():
         print('time: %.2f s' % ((t2-t1)/1000.0))
 
         print('Verifying...')
-        if sig is not None:
-            self.verify_flash(sig)
+        if self.reboot:
+            if sig is not None:
+                self.verify_flash(sig)
+            else:
+                self.verify_flash(b'A'*64)
+
+def attempt_to_find_device(p):
+    found = False
+    for i in range(0,5):
+        try:
+            p.find_device()
+            found = True
+            break
+        except RuntimeError:
+            time.sleep(0.2)
+    return found
+
+def attempt_to_boot_bootloader(p):
+    print('Bootloader not active.  Attempting to boot into bootloader mode...')
+    try:
+        p.enter_solo_bootloader()
+    except OSError:
+        pass
+    except CtapError as e:
+        if e.code == CtapError.ERR.INVALID_COMMAND:
+            print('Solo appears to not be a solo hacker.  Try holding down the button for 2 while you plug token in.')
+            sys.exit(1)
         else:
-            self.verify_flash(b'A'*64)
-
-
+            raise(e)
+    print('Solo rebooted.  Reconnecting...')
+    time.sleep(.500)
+    if not attempt_to_find_device(p):
+        print('Failed to reconnect!')
+        sys.exit(1)
 
 if __name__ == '__main__':
 
@@ -166,6 +206,7 @@ if __name__ == '__main__':
     parser.add_argument("--use-u2f", action="store_true", help = 'Programs using U2F authenticate. This is what a web application will use.')
     parser.add_argument("--no-reset", action="store_true", help = 'Don\'t reset after writing firmware.  Stay in bootloader mode.')
     parser.add_argument("--reset-only", action="store_true", help = 'Don\'t write anything, try to boot without a signature.')
+    parser.add_argument("--enter-bootloader", action="store_true", help = 'Don\'t write anything, try to enter bootloader.  Typically only supported by Solo Hacker builds.')
     args = parser.parse_args()
     print()
 
@@ -178,7 +219,19 @@ if __name__ == '__main__':
     if args.no_reset:
         p.set_reboot(False)
 
-    print('version is ', p.version())
+    if args.enter_bootloader:
+        attempt_to_boot_bootloader(p)
+        sys.exit(0)
+
+    try:
+        print('version is ', p.version())
+    except CtapError as e:
+        if e.code == CtapError.ERR.INVALID_COMMAND:
+            attempt_to_boot_bootloader(p)
+        else:
+            raise(e)
+    except ApduError:
+        attempt_to_boot_bootloader(p)
 
     if not args.reset_only:
         p.program_file(args.__dict__['<firmware>'])

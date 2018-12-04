@@ -94,7 +94,8 @@ void ctap_store_rk(int index,CTAP_residentKey * rk);
 void ctap_load_rk(int index,CTAP_residentKey * rk);
 void ctap_overwrite_rk(int index,CTAP_residentKey * rk);
 
-
+// For Solo hacker
+void boot_solo_bootloader();
 
 
 

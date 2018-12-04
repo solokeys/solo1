@@ -13,6 +13,9 @@
 
 
 #define IS_BOOTLOADER       1
+
+#define SOLO_HACKER
+
 #define ENABLE_U2F_EXTENSIONS
 // #define ENABLE_U2F
 

@@ -40,6 +40,7 @@
 
 // Custom commands between 0x40-0x7f
 #define CTAPHID_BOOT         (TYPE_INIT | 0x50)
+#define CTAPHID_ENTERBOOT    (TYPE_INIT | 0x51)
 
     #define ERR_INVALID_CMD         0x01
     #define ERR_INVALID_PAR         0x02

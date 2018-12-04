@@ -19,7 +19,7 @@
 #include "ctap.h"
 #include "crypto.h"
 #include "memory_layout.h"
-
+#include "stm32l4xx_ll_iwdg.h"
 
 
 
@@ -393,8 +393,10 @@ led_rgb(0x001040);
 
 delay(50);
 
+#if SKIP_BUTTON_CHECK_FAST
 done:
 return 1;
+#endif
 
 fail:
 return 0;
@@ -484,7 +486,25 @@ void ctap_overwrite_rk(int index,CTAP_residentKey * rk)
     }
 }
 
+void boot_solo_bootloader()
+{
+    LL_IWDG_Enable(IWDG);
 
+    LL_IWDG_EnableWriteAccess(IWDG);
+
+    LL_IWDG_SetPrescaler(IWDG, LL_IWDG_PRESCALER_4);
+
+    LL_IWDG_SetWindow(IWDG, 4095);
+
+    LL_IWDG_SetReloadCounter(IWDG, 2000); // ~0.25s
+
+    while (LL_IWDG_IsReady(IWDG) != 1)
+    {
+    }
+
+    LL_IWDG_ReloadCounter(IWDG);
+
+}
 
 void _Error_Handler(char *file, int line)
 {

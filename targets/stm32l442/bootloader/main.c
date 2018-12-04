@@ -31,6 +31,7 @@
 #include "log.h"
 #include "ctap.h"
 #include "app.h"
+#include "stm32l4xx_ll_rcc.h"
 
 #include "stm32l4xx.h"
 
@@ -92,6 +93,14 @@ int main(int argc, char * argv[])
         }
     }
 
+#ifdef SOLO_HACKER
+    if ( RCC->CSR & (1<<29) )// check if there was independent watchdog reset
+    {
+        RCC->CSR |= (1<<23); // clear reset flags
+        goto start_bootloader;
+    }
+#endif
+
     if (boot && is_authorized_to_boot())
     {
         BOOT_boot();
@@ -100,6 +109,7 @@ int main(int argc, char * argv[])
     {
         printf1(TAG_RED,"Not authorized to boot\r\n");
     }
+    start_bootloader:
 
     usbhid_init();
     printf1(TAG_GEN,"init usb\n");
