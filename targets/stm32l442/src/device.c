@@ -149,7 +149,10 @@ void main_loop_delay()
 void heartbeat()
 {
     static int state = 0;
-    static uint32_t val = (LED_INIT_VALUE >> 8) & 0xff;
+    static uint32_t val = (LED_MAX_SCALER - LED_MIN_SCALER)/2;
+    uint8_t r = (LED_INIT_VALUE >> 16) & 0xff;
+    uint8_t g = (LED_INIT_VALUE >> 8) & 0xff;
+    uint8_t b = (LED_INIT_VALUE >> 0) & 0xff;
     int but = IS_BUTTON_PRESSED();
 
     if (state)
@@ -161,13 +164,13 @@ void heartbeat()
         val++;
     }
 
-    if (val > 30 || val < 1)
+    if (val > LED_MAX_SCALER || val < LED_MIN_SCALER)
     {
         state = !state;
     }
-    if (but) led_rgb(val * 2);
+    if (but) led_rgb((val*b));
     else
-        led_rgb((val << 16) | (val*2 << 8));
+        led_rgb(((val * g)<<8) | ((val*r) << 16) | (val*b));
 }
 
 void authenticator_read_state(AuthenticatorState * a)

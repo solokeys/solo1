@@ -22,8 +22,20 @@
 #define DISABLE_CTAPHID_WINK
 #define DISABLE_CTAPHID_CBOR
 
-
-#define LED_INIT_VALUE			0x101000
+//                              0xRRGGBB
+#define LED_INIT_VALUE			0x0a0300
+#define LED_MAX_SCALER          40
+#define LED_MIN_SCALER          1
+// # of ms between each change in LED
+#define HEARTBEAT_PERIOD        5
+// Each LED channel will be multiplied by a integer between LED_MAX_SCALER
+// and LED_MIN_SCALER to cause the slow pulse.  E.g.
+// #define LED_INIT_VALUE			0x301000
+// #define LED_MAX_SCALER          30
+// #define LED_MIN_SCALER          1
+// #define HEARTBEAT_PERIOD        8
+// Will pulse from 0x301000 to 0x903000 to 0x301000 ...
+// Which will take ~8 * (30)*2 ms
 
 // Button
 #define SOLO_BUTTON_PORT        GPIOA

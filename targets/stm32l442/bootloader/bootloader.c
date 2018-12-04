@@ -143,7 +143,10 @@ int bootloader_bridge(uint8_t klen, uint8_t * keyh)
 void bootloader_heartbeat()
 {
     static int state = 0;
-    static uint32_t val = 0x10;
+    static uint32_t val = (LED_MAX_SCALER - LED_MIN_SCALER)/2;
+    uint8_t r = (LED_INIT_VALUE >> 16) & 0xff;
+    uint8_t g = (LED_INIT_VALUE >> 8) & 0xff;
+    uint8_t b = (LED_INIT_VALUE >> 0) & 0xff;
 
     if (state)
     {
@@ -154,9 +157,10 @@ void bootloader_heartbeat()
         val++;
     }
 
-    if (val > 30 || val < 1)
+    if (val > LED_MAX_SCALER || val < LED_MIN_SCALER)
     {
         state = !state;
     }
-    led_rgb((val * 3)<<8 | (val*10) << 16);
+
+    led_rgb(((val * g)<<8) | ((val*r) << 16) | (val*b));
 }

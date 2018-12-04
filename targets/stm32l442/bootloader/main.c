@@ -107,12 +107,12 @@ int main(int argc, char * argv[])
 
     memset(hidmsg,0,sizeof(hidmsg));
 
-    printf1(TAG_GEN,"recv'ing hid msg \n");
+    printf1(TAG_GEN,"recv'ing hid msg \n"); 
 
 
     while(1)
     {
-        if (millis() - t1 > 8)
+        if (millis() - t1 > HEARTBEAT_PERIOD)
         {
             bootloader_heartbeat();
             t1 = millis();

@@ -78,7 +78,7 @@ int main(int argc, char * argv[])
 
     while(1)
     {
-        if (millis() - t1 > 100)
+        if (millis() - t1 > HEARTBEAT_PERIOD)
         {
             heartbeat();
             t1 = millis();
