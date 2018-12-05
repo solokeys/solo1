@@ -50,7 +50,7 @@
 
 
 #define USBD_VID                        0x0483
-#define USBD_PID                        0x5710
+#define USBD_PID                        0xA2CA
 #define USBD_LANGID_STRING              0x409
 #define USBD_MANUFACTURER_STRING        "Solo Keys"
 #define USBD_PRODUCT_FS_STRING          "Solo"
