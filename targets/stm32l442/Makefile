@@ -1,20 +1,26 @@
+ifndef DEBUG
+DEBUG=0
+endif
 
 all:
-	$(MAKE) -f application.mk -j8 solo.hex
+	$(MAKE) -f application.mk -j8 solo.hex DEBUG=$(DEBUG)
 
-debug:
-	$(MAKE) -f application.mk -j8 solo.hex DEBUG=1
+all-hacker:
+	$(MAKE) -f application.mk -j8 solo.hex EXTRA_DEFINES='-DSOLO_HACKER'
 
 debugboot-app:
 	$(MAKE) -f application.mk -j8 solo.hex DEBUG=1 \
-	LDSCRIPT=linker/stm32l4xx_extra.ld EXTRA_DEFINES='-DAPPLICATION_START_PAGE=16'
+	LDSCRIPT=linker/stm32l4xx_extra.ld EXTRA_DEFINES='-DAPPLICATION_START_PAGE=16 -DSOLO_HACKER'
 
 debugboot-boot:
 	$(MAKE) -f bootloader.mk -j8 bootloader.hex DEBUG=1 \
-	LDSCRIPT=linker/bootloader_stm32l4xx_extra.ld EXTRA_DEFINES='-DAPPLICATION_START_PAGE=16'
+	LDSCRIPT=linker/bootloader_stm32l4xx_extra.ld EXTRA_DEFINES='-DAPPLICATION_START_PAGE=16 -DSOLO_HACKER'
 
 boot:
-	$(MAKE) -f bootloader.mk -j8 bootloader.hex
+	$(MAKE) -f bootloader.mk -j8 bootloader.hex DEBUG=$(DEBUG)
+
+boot-hacker:
+	$(MAKE) -f bootloader.mk -j8 bootloader.hex EXTRA_DEFINES='-DSOLO_HACKER'
 
 clean:
 	$(MAKE) -f application.mk clean
@@ -28,7 +34,7 @@ flash: solo.hex bootloader.hex
 flash_dfu: solo.hex bootloader.hex
 	python merge_hex.py solo.hex bootloader.hex all.hex
 	# STM32_Programmer_CLI -c port=usb1 -halt -e all --readunprotect
-	STM32_Programmer_CLI -c port=usb1 -halt  -d all.hex
+	STM32_Programmer_CLI -c port=usb1 -halt -rdu  -d all.hex
 
 flashboot: solo.hex bootloader.hex
 	python merge_hex.py solo.hex bootloader.hex all.hex

@@ -13,11 +13,6 @@
 
 #define BOOT_TO_DFU         0
 
-// Uncomment SOLO_HACKKER to Only use level 1 read-out-protection,
-// allows booting to ST bootloader or Solo bootloader without any button press,
-// Disables signature check in Solo bootloader.
-#define SOLO_HACKER
-
 //#define USING_DEV_BOARD
 
 //#define ENABLE_U2F_EXTENSIONS

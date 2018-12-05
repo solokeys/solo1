@@ -15,8 +15,6 @@
 
 #define IS_BOOTLOADER       1
 
-#define SOLO_HACKER
-
 #define ENABLE_U2F_EXTENSIONS
 // #define ENABLE_U2F
 
@@ -53,6 +51,7 @@ void hw_init(void);
 void device_reboot();
 
 int is_authorized_to_boot();
+int is_bootloader_disabled();
 void bootloader_heartbeat();
 
 #endif
