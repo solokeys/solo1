@@ -22,6 +22,8 @@ typedef enum
     BootCheck = 0x42,
     BootErase = 0x43,
     BootVersion = 0x44,
+    BootReboot = 0x45,
+    BootBootloader = 0x46,
 } BootOperation;
 
 
@@ -143,6 +145,17 @@ int bootloader_bridge(int klen, uint8_t * keyh)
             u2f_response_writeback(&version,1);
             return 0;
             break;
+        case BootReboot:
+            printf1(TAG_BOOT, "BootReboot.\r\n");
+            device_reboot();
+            break;
+#ifndef SOLO_HACKER
+        case BootBootloader:
+            printf1(TAG_BOOT, "BootBootloader.\r\n");
+            flash_option_bytes_init(1);
+            boot_st_bootloader();
+            break;
+#endif
         default:
             return CTAP1_ERR_INVALID_COMMAND;
     }

@@ -56,6 +56,7 @@ int main(int argc, char * argv[])
 {
     uint8_t hidmsg[64];
     uint32_t t1 = 0;
+    uint32_t stboot_time = 0;
     uint32_t boot = 1;
 
     set_logging_mask(
@@ -94,6 +95,7 @@ int main(int argc, char * argv[])
     }
 
 #ifdef SOLO_HACKER
+    stboot_time = millis();
     if ( RCC->CSR & (1<<29) )// check if there was independent watchdog reset
     {
         RCC->CSR |= (1<<23); // clear reset flags
@@ -147,6 +149,17 @@ int main(int argc, char * argv[])
             delay(250);
             device_reboot();
         }
+#ifdef SOLO_HACKER
+        // Boot ST bootloader if button is held for 2s
+        if (!device_is_button_pressed())
+        {
+            stboot_time = millis();
+        }
+        if ((millis() - stboot_time) > 2000)
+        {
+            boot_st_bootloader();
+        }
+#endif
     }
 
     // Should never get here

@@ -96,7 +96,7 @@ void ctap_overwrite_rk(int index,CTAP_residentKey * rk);
 
 // For Solo hacker
 void boot_solo_bootloader();
-
+void boot_st_bootloader();
 
 
 

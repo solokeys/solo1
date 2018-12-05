@@ -711,7 +711,12 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             ctaphid_write(&wb, NULL, 0);
             is_busy = 0;
         break;
+        case CTAPHID_ENTERSTBOOT:
+            printf1(TAG_HID,"CTAPHID_ENTERBOOT\n");
+            boot_st_bootloader();
+        break;
 #endif
+
         default:
             printf2(TAG_ERR,"error, unimplemented HID cmd: %02x\r\n", buffer_cmd());
             ctaphid_send_error(cid, CTAP1_ERR_INVALID_COMMAND);

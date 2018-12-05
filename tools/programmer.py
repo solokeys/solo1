@@ -22,9 +22,12 @@ class SoloBootloader:
     check = 0x42
     erase = 0x43
     version = 0x44
+    reboot = 0x45
+    st_dfu = 0x46
 
     HIDCommandBoot = 0x50
     HIDCommandEnterBoot = 0x51
+    HIDCommandEnterSTBoot = 0x52
 
     TAG = b'\x8C\x27\x90\xf6'
 
@@ -45,6 +48,13 @@ class Programmer():
         """ option to reboot after programming """
         self.reboot = val
 
+    def reboot(self,val):
+        """ option to reboot after programming """
+        try:
+            self.exchange(SoloBootloader.reboot)
+        except OSError:
+            pass
+
     def find_device(self,):
         dev = next(CtapHidDevice.list_devices(), None)
         if not dev:
@@ -63,6 +73,11 @@ class Programmer():
         length = struct.pack('>H', len(data))
 
         return cmd + addr[:3] + SoloBootloader.TAG + length + data
+
+    def send_only_hid(self, cmd, data):
+        if type(data) != type(b''):
+            data = struct.pack('%dB' % len(data), *[ord(x) for x in data])
+        self.dev._dev.InternalSend(0x80 | cmd, bytearray(data))
 
     def send_data_hid(self, cmd, data):
         if type(data) != type(b''):
@@ -120,6 +135,18 @@ class Programmer():
         if self.exchange != self.exchange_hid:
             self.send_data_hid(CTAPHID.INIT, '\x11\x11\x11\x11\x11\x11\x11\x11')
         self.send_data_hid(SoloBootloader.HIDCommandEnterBoot, '')
+
+    def enter_st_dfu(self,):
+        """
+        If solo is configured as solo hacker or something similar,
+        this command will tell the token to boot directly to the st DFU
+        so it can be reprogrammed.  Warning, you could brick your device.
+        """
+        if self.exchange == self.exchange_hid:
+            self.send_only_hid(SoloBootloader.HIDCommandEnterSTBoot, '')
+        else:
+            req = Programmer.format_request(SoloBootloader.st_dfu)
+            self.send_only_hid(SoloBootloader.HIDCommandBoot, req)
 
     def program_file(self,name):
 
@@ -201,12 +228,14 @@ def attempt_to_boot_bootloader(p):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("<firmware>", help = 'firmware file.  Either a JSON or hex file.  JSON file contains signature while hex does not.')
+    parser.add_argument("[firmware]", nargs='?', default='', help = 'firmware file.  Either a JSON or hex file.  JSON file contains signature while hex does not.')
     parser.add_argument("--use-hid", action="store_true", help = 'Programs using custom HID command (default).  Quicker than using U2F authenticate which is what a browser has to use.')
     parser.add_argument("--use-u2f", action="store_true", help = 'Programs using U2F authenticate. This is what a web application will use.')
     parser.add_argument("--no-reset", action="store_true", help = 'Don\'t reset after writing firmware.  Stay in bootloader mode.')
     parser.add_argument("--reset-only", action="store_true", help = 'Don\'t write anything, try to boot without a signature.')
+    parser.add_argument("--reboot", action="store_true", help = 'Tell bootloader to reboot.')
     parser.add_argument("--enter-bootloader", action="store_true", help = 'Don\'t write anything, try to enter bootloader.  Typically only supported by Solo Hacker builds.')
+    parser.add_argument("--st-dfu", action="store_true", help = 'Don\'t write anything, try to enter ST DFU.  Warning, you could brick your Solo if you overwrite everything.  Make sure to reprogram the option bytes just to be safe.')
     args = parser.parse_args()
     print()
 
@@ -223,6 +252,15 @@ if __name__ == '__main__':
         attempt_to_boot_bootloader(p)
         sys.exit(0)
 
+    if args.reboot:
+        p.reboot()
+        sys.exit(0)
+
+    if args.st_dfu:
+        print('Sending command to boot into ST DFU...')
+        p.enter_st_dfu()
+        sys.exit(0)
+
     try:
         print('version is ', p.version())
     except CtapError as e:
@@ -234,6 +272,11 @@ if __name__ == '__main__':
         attempt_to_boot_bootloader(p)
 
     if not args.reset_only:
-        p.program_file(args.__dict__['<firmware>'])
+        fw = args.__dict__['[firmware]']
+        if fw == '':
+            print('Need to supply firmware filename.')
+            args.print_help()
+            sys.exit(1)
+        p.program_file(fw)
     else:
         p.exchange(SoloBootloader.done,0,b'A'*64)

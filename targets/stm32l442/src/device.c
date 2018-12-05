@@ -486,6 +486,18 @@ void ctap_overwrite_rk(int index,CTAP_residentKey * rk)
     }
 }
 
+void boot_st_bootloader()
+{
+    __disable_irq();
+
+    __set_MSP(*((uint32_t *)0x1fff0000));
+
+    ((void (*)(void)) (*((uint32_t *)0x1fff0004)))();
+
+    while(1)
+    ;
+}
+
 void boot_solo_bootloader()
 {
     LL_IWDG_Enable(IWDG);
