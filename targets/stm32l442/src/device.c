@@ -91,10 +91,12 @@ void device_init()
     LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
     LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
 
+#ifndef IS_BOOTLOADER
 #if BOOT_TO_DFU
     flash_option_bytes_init(1);
 #else
     flash_option_bytes_init(0);
+#endif
 #endif
 
     printf1(TAG_GEN,"hello solo\r\n");
