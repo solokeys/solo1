@@ -27,7 +27,9 @@ INC += -I../../crypto/tiny-AES-c
 
 SEARCH=-L../../tinycbor/lib
 
-LDSCRIPT=stm32l432xx.ld
+ifndef LDSCRIPT
+LDSCRIPT=linker/stm32l4xx.ld
+endif
 
 CFLAGS= $(INC)
 
@@ -39,7 +41,11 @@ HW=-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb
 # Solo
 CHIP=STM32L442xx
 
-DEFINES = -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAPP_CONFIG=\"app.h\"
+ifndef DEBUG
+DEBUG=0
+endif
+
+DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAPP_CONFIG=\"app.h\" $(EXTRA_DEFINES)
 # DEFINES += -DTEST_SOLO_STM32 -DTEST -DTEST_FIFO=1
 
 CFLAGS=$(INC) -c $(DEFINES)   -Wall -fdata-sections -ffunction-sections $(HW) -g

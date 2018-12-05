@@ -20,14 +20,17 @@
 #define RK_END_PAGE     (PAGES - 14 + RK_NUM_PAGES)
 
 // Start of application code
-#define APPLICATION_START_PAGE	(16)
-#define APPLICATION_START_ADDR	flash_addr(APPLICATION_START_PAGE)
+#ifndef APPLICATION_START_PAGE
+#define APPLICATION_START_PAGE	(7)
+#endif
+#define APPLICATION_START_ADDR	(0x08000000 + ((APPLICATION_START_PAGE)*PAGE_SIZE))
 
 // End of application code.  Leave some extra room for future data storage.
-#define APPLICATION_END_PAGE	((PAGES - 19))					         // 119 is NOT included in application
-#define APPLICATION_END_ADDR	(flash_addr(APPLICATION_END_PAGE)-8)     // NOT included in application
+// NOT included in application
+#define APPLICATION_END_PAGE	((PAGES - 19))
+#define APPLICATION_END_ADDR	((0x08000000 + ((APPLICATION_END_PAGE)*PAGE_SIZE))-8)
 
 // Bootloader state.
-#define AUTH_WORD_ADDR          (flash_addr(APPLICATION_END_PAGE)-8)
+#define AUTH_WORD_ADDR          ((0x08000000 + ((APPLICATION_END_PAGE)*PAGE_SIZE))-8)
 
 #endif

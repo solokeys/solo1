@@ -25,7 +25,9 @@ INC = -Ibootloader/ -Isrc/ -Isrc/cmsis/ -Ilib/ -Ilib/usbd/ -I../../fido2/ -I../.
 INC += -I../../tinycbor/src -I../../crypto/sha256 -I../../crypto/micro-ecc
 INC += -I../../crypto/tiny-AES-c
 
-LDSCRIPT=bootloader_stm32l4xx.ld
+ifndef LDSCRIPT
+LDSCRIPT=linker/bootloader_stm32l4xx.ld
+endif
 
 CFLAGS= $(INC)
 
@@ -37,7 +39,11 @@ HW=-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb
 # Solo
 CHIP=STM32L442xx
 
-DEFINES = -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAPP_CONFIG=\"bootloader.h\"
+ifndef DEBUG
+DEBUG=0
+endif
+
+DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAPP_CONFIG=\"bootloader.h\" $(EXTRA_DEFINES)
 # DEFINES += -DTEST_SOLO_STM32 -DTEST -DTEST_FIFO=1
 
 CFLAGS=$(INC) -c $(DEFINES)   -Wall -fdata-sections -ffunction-sections $(HW) -g

@@ -2,6 +2,17 @@
 all:
 	$(MAKE) -f application.mk -j8 solo.hex
 
+debug:
+	$(MAKE) -f application.mk -j8 solo.hex DEBUG=1
+
+debugboot-app:
+	$(MAKE) -f application.mk -j8 solo.hex DEBUG=1 \
+	LDSCRIPT=linker/stm32l4xx_extra.ld EXTRA_DEFINES='-DAPPLICATION_START_PAGE=16'
+
+debugboot-boot:
+	$(MAKE) -f bootloader.mk -j8 bootloader.hex DEBUG=1 \
+	LDSCRIPT=linker/bootloader_stm32l4xx_extra.ld EXTRA_DEFINES='-DAPPLICATION_START_PAGE=16'
+
 boot:
 	$(MAKE) -f bootloader.mk -j8 bootloader.hex
 

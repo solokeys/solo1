@@ -4,10 +4,11 @@
 
 #define DEBUG_UART      USART1
 
-#define DEBUG_LEVEL        0
+#ifndef DEBUG_LEVEL
+#define DEBUG_LEVEL     0
+#endif
 
 #define NON_BLOCK_PRINTING 0
-
 
 #define BOOT_TO_DFU         0
 
@@ -18,8 +19,6 @@
 
 #define ENABLE_U2F_EXTENSIONS
 // #define ENABLE_U2F
-
-#define APPLICATION_JUMP_ADDR               (0x08000000 + 32 * 1024)
 
 #define DISABLE_CTAPHID_PING
 #define DISABLE_CTAPHID_WINK

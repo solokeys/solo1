@@ -31,6 +31,7 @@
 #include "log.h"
 #include "ctap.h"
 #include "app.h"
+#include "memory_layout.h"
 #include "stm32l4xx_ll_rcc.h"
 
 #include "stm32l4xx.h"
@@ -42,10 +43,10 @@ void  BOOT_boot(void)
 {
   typedef void (*pFunction)(void);
 
-  uint32_t *bootAddress = (uint32_t *)(APPLICATION_JUMP_ADDR);
+  uint32_t *bootAddress = (uint32_t *)(APPLICATION_START_ADDR);
 
   /* Set new vector table */
-  SCB->VTOR = APPLICATION_JUMP_ADDR;
+  SCB->VTOR = APPLICATION_START_ADDR;
 
   /* Read new SP and PC from vector table */
   __set_MSP(bootAddress[0]);

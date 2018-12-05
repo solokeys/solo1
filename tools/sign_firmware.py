@@ -24,8 +24,8 @@ def get_firmware_object(sk_name, hex_file):
 
     # start of firmware and the size of the flash region allocated for it.
     # TODO put this somewhere else.
-    START = 0x08008000
-    END = START + 1024 * 186 - 8
+    START = ih.segments()[0][0]
+    END = ((0x08000000 + ((128-19)*2024))-8)
 
     ih = IntelHex(hex_file)
     segs = ih.segments()
