@@ -63,6 +63,7 @@ int is_authorized_to_boot()
 int bootloader_bridge(int klen, uint8_t * keyh)
 {
     static int has_erased = 0;
+    int i;
     BootloaderReq * req =  (BootloaderReq *  )keyh;
     uint8_t hash[32];
     uint8_t version = 1;
@@ -103,6 +104,8 @@ int bootloader_bridge(int klen, uint8_t * keyh)
             }
 
             flash_write((uint32_t)ptr,req->payload, len);
+
+
             break;
         case BootDone:
             printf1(TAG_BOOT, "BootDone: ");
@@ -149,7 +152,7 @@ int bootloader_bridge(int klen, uint8_t * keyh)
             printf1(TAG_BOOT, "BootReboot.\r\n");
             device_reboot();
             break;
-#ifndef SOLO_HACKER
+#ifdef SOLO_HACKER
         case BootBootloader:
             printf1(TAG_BOOT, "BootBootloader.\r\n");
             flash_option_bytes_init(1);

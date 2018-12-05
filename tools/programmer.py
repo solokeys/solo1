@@ -142,11 +142,21 @@ class Programmer():
         this command will tell the token to boot directly to the st DFU
         so it can be reprogrammed.  Warning, you could brick your device.
         """
-        if self.exchange == self.exchange_hid:
-            self.send_only_hid(SoloBootloader.HIDCommandEnterSTBoot, '')
-        else:
+        soloboot = False
+        try:
+            p.version()
+            soloboot = True
+        except CtapError as e:
+            if e.code == CtapError.ERR.INVALID_COMMAND:
+                pass
+            else:
+                raise (e)
+
+        if soloboot or self.exchange == self.exchange_u2f:
             req = Programmer.format_request(SoloBootloader.st_dfu)
             self.send_only_hid(SoloBootloader.HIDCommandBoot, req)
+        else:
+            self.send_only_hid(SoloBootloader.HIDCommandEnterSTBoot, '')
 
     def program_file(self,name):
 
@@ -235,7 +245,7 @@ if __name__ == '__main__':
     parser.add_argument("--reset-only", action="store_true", help = 'Don\'t write anything, try to boot without a signature.')
     parser.add_argument("--reboot", action="store_true", help = 'Tell bootloader to reboot.')
     parser.add_argument("--enter-bootloader", action="store_true", help = 'Don\'t write anything, try to enter bootloader.  Typically only supported by Solo Hacker builds.')
-    parser.add_argument("--st-dfu", action="store_true", help = 'Don\'t write anything, try to enter ST DFU.  Warning, you could brick your Solo if you overwrite everything.  Make sure to reprogram the option bytes just to be safe.')
+    parser.add_argument("--st-dfu", action="store_true", help = 'Don\'t write anything, try to enter ST DFU.  Warning, you could brick your Solo if you overwrite everything.  You should reprogram the option bytes just to be safe (boot to Solo bootloader first, then run this command).')
     args = parser.parse_args()
     print()
 

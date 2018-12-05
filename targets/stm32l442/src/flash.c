@@ -139,6 +139,39 @@ void flash_write(uint32_t addr, uint8_t * data, size_t sz)
 
 }
 
+// NOT YET working
+void flash_write_fast(uint32_t addr, uint32_t * data)
+{
+    __disable_irq();
+    while (FLASH->SR & (1<<16))
+        ;
+    FLASH->SR = FLASH->SR;
+
+    // Select fast program action
+    FLASH->CR |= (1<<18);
+
+    int i;
+    for(i = 0; i < 64; i++)
+    {
+        *(volatile uint32_t*)addr = (*data);
+        addr+=4;
+        data++;
+    }
+
+    while (FLASH->SR & (1<<16))
+        ;
+
+    if(FLASH->SR & (1<<1))
+    {
+        printf2(TAG_ERR,"program NOT successful %lx\r\n", FLASH->SR);
+    }
+
+    FLASH->SR = (1<<0);
+    FLASH->CR &= ~(1<<18);
+    __enable_irq();
+
+}
+
 void flash_lock()
 {
     FLASH->CR |= (1U<<31);

@@ -70,8 +70,6 @@ all: $(TARGET).elf
 clean:
 	rm -f *.o src/*.o src/*.elf  bootloader/*.o $(OBJ)
 
-detach:
-	STM32_Programmer_CLI -c port=usb1 -ob nBOOT0=1
 
 cbor:
 	cd ../../tinycbor/ && make clean
