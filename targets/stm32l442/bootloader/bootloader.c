@@ -24,6 +24,7 @@ typedef enum
     BootVersion = 0x44,
     BootReboot = 0x45,
     BootBootloader = 0x46,
+    BootDisable = 0x47,
 } BootOperation;
 
 
@@ -46,17 +47,41 @@ static void erase_application()
     }
 }
 
+#define LAST_ADDR       (APPLICATION_END_ADDR-2048 + 8)
+#define LAST_PAGE       (APPLICATION_END_PAGE-1)
+static void disable_bootloader()
+{
+    uint8_t page[PAGE_SIZE];
+    memmove(page, (uint8_t*)LAST_ADDR, PAGE_SIZE);
+    memset(page+PAGE_SIZE -4, 0, 4);
+    flash_erase_page(LAST_PAGE);
+    flash_write(LAST_ADDR, page, PAGE_SIZE);
+}
+
 static void authorize_application()
 {
-    uint32_t zero = 0;
-    uint32_t * ptr;
-    ptr = (uint32_t *)AUTH_WORD_ADDR;
-    flash_write((uint32_t)ptr, (uint8_t *)&zero, 4);
+    // uint32_t zero = 0;
+    // uint32_t * ptr;
+    // ptr = (uint32_t *)AUTH_WORD_ADDR;
+    // flash_write((uint32_t)ptr, (uint8_t *)&zero, 4);
+    uint8_t page[PAGE_SIZE];
+    if (is_authorized_to_boot())
+        return;
+    memmove(page, (uint8_t*)LAST_ADDR, PAGE_SIZE);
+    memset(page+PAGE_SIZE -8, 0, 4);
+    flash_erase_page(LAST_PAGE);
+    flash_write(LAST_ADDR, page, PAGE_SIZE);
 }
 
 int is_authorized_to_boot()
 {
     uint32_t * auth = (uint32_t *)AUTH_WORD_ADDR;
+    return *auth == 0;
+}
+
+int is_bootloader_disabled()
+{
+    uint32_t * auth = (uint32_t *)(AUTH_WORD_ADDR+4);
     return *auth == 0;
 }
 
@@ -150,7 +175,22 @@ int bootloader_bridge(int klen, uint8_t * keyh)
             break;
         case BootReboot:
             printf1(TAG_BOOT, "BootReboot.\r\n");
-            device_reboot();
+            REBOOT_FLAG = 1;
+            break;
+        case BootDisable:
+            printf1(TAG_BOOT, "BootDisable %08lx.\r\n", *(uint32_t *)(AUTH_WORD_ADDR+4));
+            if (req->payload[0] == 0xcd && req->payload[1] == 0xde
+               && req->payload[2] == 0xba && req->payload[3] == 0xaa)
+            {
+                disable_bootloader();
+                version = 0;
+                u2f_response_writeback(&version,1);
+            }
+            else
+            {
+                version = CTAP2_ERR_OPERATION_DENIED;
+                u2f_response_writeback(&version,1);
+            }
             break;
 #ifdef SOLO_HACKER
         case BootBootloader:

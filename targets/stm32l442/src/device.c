@@ -170,7 +170,7 @@ void heartbeat()
     {
         state = !state;
     }
-    if (but) led_rgb((val*b));
+    if (but) led_rgb(((val * r)<<8) | ((val*b) << 16) | (val*g));
     else
         led_rgb(((val * g)<<8) | ((val*r) << 16) | (val*b));
 }

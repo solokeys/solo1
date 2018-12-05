@@ -25,4 +25,9 @@ first[AUTH_WORD_ADDR+1] = 0
 first[AUTH_WORD_ADDR+2] = 0
 first[AUTH_WORD_ADDR+3] = 0
 
+first[AUTH_WORD_ADDR+4] = 0xff
+first[AUTH_WORD_ADDR+5] = 0xff
+first[AUTH_WORD_ADDR+6] = 0xff
+first[AUTH_WORD_ADDR+7] = 0xff
+
 first.tofile(sys.argv[len(sys.argv)-1], format='hex')

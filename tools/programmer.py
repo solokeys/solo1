@@ -24,6 +24,7 @@ class SoloBootloader:
     version = 0x44
     reboot = 0x45
     st_dfu = 0x46
+    disable = 0x47
 
     HIDCommandBoot = 0x50
     HIDCommandEnterBoot = 0x51
@@ -136,27 +137,45 @@ class Programmer():
             self.send_data_hid(CTAPHID.INIT, '\x11\x11\x11\x11\x11\x11\x11\x11')
         self.send_data_hid(SoloBootloader.HIDCommandEnterBoot, '')
 
+    def is_solo_bootloader(self,):
+        try:
+            p.version()
+            return True
+        except CtapError as e:
+            if e.code == CtapError.ERR.INVALID_COMMAND:
+                pass
+            else:
+                raise (e)
+        return False
+
     def enter_st_dfu(self,):
         """
         If solo is configured as solo hacker or something similar,
         this command will tell the token to boot directly to the st DFU
         so it can be reprogrammed.  Warning, you could brick your device.
         """
-        soloboot = False
-        try:
-            p.version()
-            soloboot = True
-        except CtapError as e:
-            if e.code == CtapError.ERR.INVALID_COMMAND:
-                pass
-            else:
-                raise (e)
+        soloboot = self.is_solo_bootloader()
 
         if soloboot or self.exchange == self.exchange_u2f:
             req = Programmer.format_request(SoloBootloader.st_dfu)
             self.send_only_hid(SoloBootloader.HIDCommandBoot, req)
         else:
             self.send_only_hid(SoloBootloader.HIDCommandEnterSTBoot, '')
+
+    def disable_solo_bootloader(self,):
+        """
+        Disables the Solo bootloader.  Only do this if you want to void the possibility
+        of any updates.
+        If you've started from a solo hacker, make you you've programmed a final/production build!
+        """
+        ret = self.exchange(SoloBootloader.disable, 0, b'\xcd\xde\xba\xaa') # magic number
+        if ret[0] != CtapError.ERR.SUCCESS:
+            print('Failed to disable bootloader')
+            return False
+        time.sleep(0.1)
+        self.exchange(SoloBootloader.reboot)
+        return True
+
 
     def program_file(self,name):
 
@@ -246,6 +265,7 @@ if __name__ == '__main__':
     parser.add_argument("--reboot", action="store_true", help = 'Tell bootloader to reboot.')
     parser.add_argument("--enter-bootloader", action="store_true", help = 'Don\'t write anything, try to enter bootloader.  Typically only supported by Solo Hacker builds.')
     parser.add_argument("--st-dfu", action="store_true", help = 'Don\'t write anything, try to enter ST DFU.  Warning, you could brick your Solo if you overwrite everything.  You should reprogram the option bytes just to be safe (boot to Solo bootloader first, then run this command).')
+    parser.add_argument("--disable", action="store_true", help = 'Disable the Solo bootloader.  Cannot be undone.  No future updates can be applied.')
     args = parser.parse_args()
     print()
 
@@ -269,6 +289,10 @@ if __name__ == '__main__':
     if args.st_dfu:
         print('Sending command to boot into ST DFU...')
         p.enter_st_dfu()
+        sys.exit(0)
+
+    if args.disable:
+        p.disable_solo_bootloader()
         sys.exit(0)
 
     try:

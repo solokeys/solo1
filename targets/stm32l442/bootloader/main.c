@@ -95,22 +95,26 @@ int main(int argc, char * argv[])
         }
     }
 
+
 #ifdef SOLO_HACKER
-    stboot_time = millis();
-    if ( RCC->CSR & (1<<29) )// check if there was independent watchdog reset
+    if (!is_bootloader_disabled())
     {
-        RCC->CSR |= (1<<23); // clear reset flags
-        goto start_bootloader;
+        stboot_time = millis();
+        if ( RCC->CSR & (1<<29) )// check if there was independent watchdog reset
+        {
+            RCC->CSR |= (1<<23); // clear reset flags
+            goto start_bootloader;
+        }
     }
 #endif
 
-    if (boot && is_authorized_to_boot())
+    if (is_authorized_to_boot() && (boot || is_bootloader_disabled()))
     {
         BOOT_boot();
     }
     else
     {
-        printf1(TAG_RED,"Not authorized to boot\r\n");
+        printf1(TAG_RED,"Not authorized to boot (%08x == %08lx)\r\n", AUTH_WORD_ADDR, *(uint32_t*)AUTH_WORD_ADDR);
     }
     start_bootloader:
 
@@ -156,7 +160,7 @@ int main(int argc, char * argv[])
         {
             stboot_time = millis();
         }
-        if ((millis() - stboot_time) > 2000)
+        if ((millis() - stboot_time) > 5000)
         {
             boot_st_bootloader();
         }

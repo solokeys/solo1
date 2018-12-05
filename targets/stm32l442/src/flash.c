@@ -20,8 +20,13 @@ static void flash_unlock()
 // Locks flash and turns off DFU
 void flash_option_bytes_init(int boot_from_dfu)
 {
-#if DEBUG_LEVEL
+#ifndef FLASH_ROP
+#define FLASH_ROP 0
+#endif
+#if FLASH_ROP == 0
     uint32_t val = 0xfffff8aa;
+#elif FLASH_ROP == 2
+    uint32_t val = 0xfffff8cc;
 #else
     uint32_t val = 0xfffff8b9;
 #endif
