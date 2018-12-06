@@ -29,6 +29,7 @@ class SoloBootloader:
     HIDCommandBoot = 0x50
     HIDCommandEnterBoot = 0x51
     HIDCommandEnterSTBoot = 0x52
+    HIDCommandRNG = 0x60
 
     TAG = b'\x8C\x27\x90\xf6'
 
@@ -118,6 +119,9 @@ class Programmer():
     def write_flash(self,addr,data):
         self.exchange(SoloBootloader.write,addr,data)
 
+    def get_rng(self,num=0):
+        ret = self.send_data_hid(SoloBootloader.HIDCommandRNG,struct.pack('B', num))
+        return ret
 
     def verify_flash(self,sig):
         """
@@ -266,6 +270,7 @@ if __name__ == '__main__':
     parser.add_argument("--enter-bootloader", action="store_true", help = 'Don\'t write anything, try to enter bootloader.  Typically only supported by Solo Hacker builds.')
     parser.add_argument("--st-dfu", action="store_true", help = 'Don\'t write anything, try to enter ST DFU.  Warning, you could brick your Solo if you overwrite everything.  You should reprogram the option bytes just to be safe (boot to Solo bootloader first, then run this command).')
     parser.add_argument("--disable", action="store_true", help = 'Disable the Solo bootloader.  Cannot be undone.  No future updates can be applied.')
+    parser.add_argument("--rng", action="store_true", help = 'Continuously dump random numbers generated from Solo.')
     args = parser.parse_args()
     print()
 
@@ -286,6 +291,12 @@ if __name__ == '__main__':
         p.reboot()
         sys.exit(0)
 
+    if args.rng:
+        while True:
+            r = p.get_rng(255)
+            sys.stdout.buffer.write(r)
+        sys.exit(0)
+
     if args.st_dfu:
         print('Sending command to boot into ST DFU...')
         p.enter_st_dfu()
@@ -296,7 +307,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     try:
-        print('version is ', p.version())
+        p.version()
     except CtapError as e:
         if e.code == CtapError.ERR.INVALID_COMMAND:
             attempt_to_boot_bootloader(p)

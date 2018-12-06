@@ -42,6 +42,7 @@
 #define CTAPHID_BOOT            (TYPE_INIT | 0x50)
 #define CTAPHID_ENTERBOOT       (TYPE_INIT | 0x51)
 #define CTAPHID_ENTERSTBOOT     (TYPE_INIT | 0x52)
+#define CTAPHID_GETRNG          (TYPE_INIT | 0x60)
 
     #define ERR_INVALID_CMD         0x01
     #define ERR_INVALID_PAR         0x02

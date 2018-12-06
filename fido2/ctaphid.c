@@ -716,7 +716,23 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             boot_st_bootloader();
         break;
 #endif
-
+#if !defined(IS_BOOTLOADER)
+        case CTAPHID_GETRNG:
+            printf1(TAG_HID,"CTAPHID_GETRNG\n");
+            ctap_response_init(&ctap_resp);
+            ctaphid_write_buffer_init(&wb);
+            wb.cid = cid;
+            wb.cmd = CTAPHID_GETRNG;
+            wb.bcnt = ctap_buffer[0];
+            if (!wb.bcnt)
+                wb.bcnt = 57;
+            memset(ctap_buffer,0,wb.bcnt);
+            ctap_generate_rng(ctap_buffer, wb.bcnt);
+            ctaphid_write(&wb, &ctap_buffer, wb.bcnt);
+            ctaphid_write(&wb, NULL, 0);
+            is_busy = 0;
+        break;
+#endif
         default:
             printf2(TAG_ERR,"error, unimplemented HID cmd: %02x\r\n", buffer_cmd());
             ctaphid_send_error(cid, CTAP1_ERR_INVALID_COMMAND);
