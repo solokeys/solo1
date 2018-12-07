@@ -3,10 +3,13 @@ DEBUG=0
 endif
 
 all:
-	$(MAKE) -f application.mk -j8 solo.hex DEBUG=$(DEBUG)
+	$(MAKE) -f application.mk -j8 solo.hex DEBUG=$(DEBUG) EXTRA_DEFINES='-DFLASH_ROP=1'
 
 all-hacker:
-	$(MAKE) -f application.mk -j8 solo.hex EXTRA_DEFINES='-DSOLO_HACKER'
+	$(MAKE) -f application.mk -j8 solo.hex DEBUG=$(DEBUG) EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0'
+
+all-locked:
+	$(MAKE) -f application.mk -j8 solo.hex EXTRA_DEFINES='-DFLASH_ROP=2'
 
 debugboot-app:
 	$(MAKE) -f application.mk -j8 solo.hex DEBUG=1 \
