@@ -18,6 +18,7 @@
 #include "aes.h"
 #include "ctap.h"
 #include "device.h"
+#include "log.h"
 #include APP_CONFIG
 
 #ifdef USING_PC

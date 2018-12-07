@@ -29,7 +29,7 @@ INCLUDES = -I./tinycbor/src -I./crypto/sha256 -I./crypto/micro-ecc/ -Icrypto/tin
 
 CFLAGS += $(INCLUDES)
 # for crypto/tiny-AES-c
-CFLAGS += -DAES256=1
+CFLAGS += -DAES256=1 -DAPP_CONFIG=\"app.h\" 
 
 name = main
 
