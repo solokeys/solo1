@@ -84,12 +84,6 @@ venv:
 	virtualenv venv
 	./venv/bin/pip install wheel
 
-venv/bin/mkdocs: venv
-	./venv/bin/pip install mkdocs mkdocs-material
-
-.PHONY: docsrv
-docsrv:	venv/bin/mkdocs
-	./venv/bin/mkdocs serve
 
 .PHONY: fido2-test
 fido2-test:
