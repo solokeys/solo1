@@ -30,18 +30,39 @@
 #include "util.h"
 #include "log.h"
 #include "ctap.h"
-#include APP_CONFIG
+#include "app.h"
+#include "memory_layout.h"
+#include "stm32l4xx_ll_rcc.h"
 
-#if !defined(TEST)
+#include "stm32l4xx.h"
+
+uint8_t REBOOT_FLAG = 0;
+
+
+void  BOOT_boot(void)
+{
+  typedef void (*pFunction)(void);
+
+  uint32_t *bootAddress = (uint32_t *)(APPLICATION_START_ADDR);
+
+  /* Set new vector table */
+  SCB->VTOR = APPLICATION_START_ADDR;
+
+  /* Read new SP and PC from vector table */
+  __set_MSP(bootAddress[0]);
+  ((pFunction)bootAddress[1])();
+}
 
 int main(int argc, char * argv[])
 {
     uint8_t hidmsg[64];
     uint32_t t1 = 0;
+    uint32_t stboot_time = 0;
+    uint32_t boot = 1;
 
     set_logging_mask(
             /*0*/
-           // TAG_GEN|
+            TAG_GEN|
             // TAG_MC |
             // TAG_GA |
             // TAG_WALLET |
@@ -52,7 +73,10 @@ int main(int argc, char * argv[])
             /*TAG_U2F|*/
             // TAG_PARSE |
            // TAG_TIME|
-            // TAG_DUMP|
+           // TAG_DUMP|
+           // TAG_DUMP2|
+            TAG_BOOT|
+            TAG_EXT|
             TAG_GREEN|
             TAG_RED|
             TAG_ERR
@@ -61,15 +85,44 @@ int main(int argc, char * argv[])
     device_init();
     printf1(TAG_GEN,"init device\n");
 
+    t1 = millis();
+    while(device_is_button_pressed())
+    {
+        if ((millis() - t1) > 2000)
+        {
+            boot = 0;
+            break;
+        }
+    }
+
+
+#ifdef SOLO_HACKER
+    if (!is_bootloader_disabled())
+    {
+        stboot_time = millis();
+        if ( RCC->CSR & (1<<29) )// check if there was independent watchdog reset
+        {
+            RCC->CSR |= (1<<23); // clear reset flags
+            goto start_bootloader;
+        }
+    }
+#endif
+
+    if (is_authorized_to_boot() && (boot || is_bootloader_disabled()))
+    {
+        BOOT_boot();
+    }
+    else
+    {
+        printf1(TAG_RED,"Not authorized to boot (%08x == %08lx)\r\n", AUTH_WORD_ADDR, *(uint32_t*)AUTH_WORD_ADDR);
+    }
+    start_bootloader:
+
     usbhid_init();
     printf1(TAG_GEN,"init usb\n");
 
-
     ctaphid_init();
     printf1(TAG_GEN,"init ctaphid\n");
-
-    ctap_init();
-    printf1(TAG_GEN,"init ctap\n");
 
     memset(hidmsg,0,sizeof(hidmsg));
 
@@ -80,7 +133,7 @@ int main(int argc, char * argv[])
     {
         if (millis() - t1 > HEARTBEAT_PERIOD)
         {
-            heartbeat();
+            bootloader_heartbeat();
             t1 = millis();
         }
 
@@ -95,6 +148,23 @@ int main(int argc, char * argv[])
         {
         }
         ctaphid_check_timeouts();
+
+        if (REBOOT_FLAG)
+        {
+            delay(250);
+            device_reboot();
+        }
+#ifdef SOLO_HACKER
+        // Boot ST bootloader if button is held for 2s
+        if (!device_is_button_pressed())
+        {
+            stboot_time = millis();
+        }
+        if ((millis() - stboot_time) > 5000)
+        {
+            boot_st_bootloader();
+        }
+#endif
     }
 
     // Should never get here
@@ -102,5 +172,3 @@ int main(int argc, char * argv[])
     printf1(TAG_GREEN, "done\n");
     return 0;
 }
-
-#endif

@@ -23,13 +23,13 @@ else
   export LDFLAGS = -Wl,--gc-sections
 endif
 LDFLAGS += $(LIBCBOR)
-CFLAGS = -O2 -fdata-sections -ffunction-sections 
+CFLAGS = -O2 -fdata-sections -ffunction-sections
 
 INCLUDES = -I./tinycbor/src -I./crypto/sha256 -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/ -I./fido2/ -I./pc -I./fido2/extensions
 
 CFLAGS += $(INCLUDES)
 # for crypto/tiny-AES-c
-CFLAGS += -DAES256=1
+CFLAGS += -DAES256=1 -DAPP_CONFIG=\"app.h\" 
 
 name = main
 
@@ -84,12 +84,6 @@ venv:
 	virtualenv venv
 	./venv/bin/pip install wheel
 
-venv/bin/mkdocs: venv
-	./venv/bin/pip install mkdocs mkdocs-material
-
-.PHONY: docsrv
-docsrv:	venv/bin/mkdocs
-	./venv/bin/mkdocs serve
 
 .PHONY: fido2-test
 fido2-test:

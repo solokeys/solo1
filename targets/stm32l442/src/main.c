@@ -20,7 +20,7 @@
 #include "usbd_hid.h"
 /*#include "usbd_hid.h"*/
 
-#include "app.h"
+#include APP_CONFIG
 #include "flash.h"
 #include "rng.h"
 #include "led.h"

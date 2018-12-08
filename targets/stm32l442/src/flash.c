@@ -3,7 +3,7 @@
 #include <string.h>
 #include "stm32l4xx.h"
 
-#include "app.h"
+#include APP_CONFIG
 #include "flash.h"
 #include "log.h"
 #include "device.h"
@@ -20,8 +20,13 @@ static void flash_unlock()
 // Locks flash and turns off DFU
 void flash_option_bytes_init(int boot_from_dfu)
 {
-#if DEBUG_LEVEL
+#ifndef FLASH_ROP
+#define FLASH_ROP 0
+#endif
+#if FLASH_ROP == 0
     uint32_t val = 0xfffff8aa;
+#elif FLASH_ROP == 2
+    uint32_t val = 0xfffff8cc;
 #else
     uint32_t val = 0xfffff8b9;
 #endif
@@ -136,6 +141,39 @@ void flash_write(uint32_t addr, uint8_t * data, size_t sz)
         flash_write_dword(addr, *(uint64_t*)buf);
         addr += 8;
     }
+
+}
+
+// NOT YET working
+void flash_write_fast(uint32_t addr, uint32_t * data)
+{
+    __disable_irq();
+    while (FLASH->SR & (1<<16))
+        ;
+    FLASH->SR = FLASH->SR;
+
+    // Select fast program action
+    FLASH->CR |= (1<<18);
+
+    int i;
+    for(i = 0; i < 64; i++)
+    {
+        *(volatile uint32_t*)addr = (*data);
+        addr+=4;
+        data++;
+    }
+
+    while (FLASH->SR & (1<<16))
+        ;
+
+    if(FLASH->SR & (1<<1))
+    {
+        printf2(TAG_ERR,"program NOT successful %lx\r\n", FLASH->SR);
+    }
+
+    FLASH->SR = (1<<0);
+    FLASH->CR &= ~(1<<18);
+    __enable_irq();
 
 }
 

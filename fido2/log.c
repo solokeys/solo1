@@ -25,12 +25,17 @@
 #include "log.h"
 #include "util.h"
 
+#if DEBUG_LEVEL > 0
+
 static uint32_t LOGMASK = TAG_FILENO;
+
 
 void set_logging_mask(uint32_t mask)
 {
     LOGMASK = mask;
 }
+
+
 struct logtag
 {
     uint32_t tagn;
@@ -55,6 +60,8 @@ struct logtag tagtable[] = {
     {TAG_TIME,"[1;33mTIME[0m"},
     {TAG_WALLET,"[1;34mWALLET[0m"},
     {TAG_STOR,"[1;35mSTOR[0m"},
+    {TAG_BOOT,"[1;36mBOOT[0m"},
+    {TAG_BOOT,"[1;37mEXT[0m"},
 };
 
 
@@ -107,3 +114,4 @@ void LOG_HEX(uint32_t tag, uint8_t * data, int length)
     set_logging_tag(tag);
     dump_hex(data,length);
 }
+#endif

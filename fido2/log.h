@@ -22,7 +22,7 @@
 #ifndef _LOG_H
 #define _LOG_H
 
-#include "app.h"
+#include APP_CONFIG
 #include <stdint.h>
 
 #ifndef DEBUG_LEVEL
@@ -33,7 +33,7 @@
 
 void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...);
 void LOG_HEX(uint32_t tag, uint8_t * data, int length);
-void set_logging_mask(uint32_t mask);
+
 void set_logging_tag(uint32_t tag);
 
 typedef enum
@@ -55,12 +55,15 @@ typedef enum
     TAG_WALLET = (1 << 14),
     TAG_STOR = (1 << 15),
     TAG_DUMP2 = (1 << 16),
+    TAG_BOOT = (1 << 17),
+    TAG_EXT = (1 << 17),
 
     TAG_FILENO = (1<<31)
 } LOG_TAG;
 
-#if DEBUG_LEVEL == 1
+#if DEBUG_LEVEL > 0
 
+void set_logging_mask(uint32_t mask);
 #define printf1(tag,fmt, ...) LOG(tag & ~(TAG_FILENO), NULL, 0, fmt, ##__VA_ARGS__)
 #define printf2(tag,fmt, ...) LOG(tag | TAG_FILENO,__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define printf3(tag,fmt, ...) LOG(tag | TAG_FILENO,__FILE__, __LINE__, fmt, ##__VA_ARGS__)
@@ -69,6 +72,7 @@ typedef enum
 
 #else
 
+#define set_logging_mask(mask)
 #define printf1(fmt, ...)
 #define printf2(fmt, ...)
 #define printf3(fmt, ...)

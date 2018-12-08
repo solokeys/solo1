@@ -92,10 +92,21 @@ typedef struct
 }__attribute__((packed)) wallet_request;
 
 
-int16_t bridge_u2f_to_wallet(uint8_t * chal, uint8_t * appid, uint8_t klen, uint8_t * keyh);
+typedef enum
+{
+    WalletSign = 0x10,
+    WalletRegister = 0x11,
+    WalletPin = 0x12,
+    WalletReset= 0x13,
+    WalletVersion= 0x14,
+    WalletRng = 0x15,
+} WalletOperation;
+
+
+int16_t bridge_u2f_to_extensions(uint8_t * chal, uint8_t * appid, uint8_t klen, uint8_t * keyh);
 
 // return 1 if request is a wallet request
-int is_wallet_device(uint8_t * req, int len);
+int is_extension_request(uint8_t * req, int len);
 
 void wallet_init();
 

@@ -30,5 +30,3 @@ void dump_hex(uint8_t * buf, int size)
     }
     printf("\n");
 }
-
-

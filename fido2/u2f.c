@@ -26,13 +26,14 @@
 #include "log.h"
 #include "device.h"
 #include "wallet.h"
-#include "app.h"
+#include APP_CONFIG
 
 // void u2f_response_writeback(uint8_t * buf, uint8_t len);
 static int16_t u2f_register(struct u2f_register_request * req);
 static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control);
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
 void u2f_reset_response();
+
 
 static CTAP_RESPONSE * _u2f_resp = NULL;
 
@@ -43,7 +44,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
     uint32_t len = ((req->LC3) | ((uint32_t)req->LC2 << 8) | ((uint32_t)req->LC1 << 16));
     uint8_t byte;
 
-    _u2f_resp = resp;
+    u2f_set_writeback_buffer(resp);
 
     if (req->cla != 0)
     {
@@ -137,6 +138,10 @@ void u2f_reset_response()
     ctap_response_init(_u2f_resp);
 }
 
+void u2f_set_writeback_buffer(CTAP_RESPONSE * resp)
+{
+    _u2f_resp = resp;
+}
 
 static void dump_signature_der(uint8_t * sig)
 {
@@ -283,8 +288,6 @@ static int16_t u2f_register(struct u2f_register_request * req)
     crypto_sha256_final(hash);
 
     crypto_ecc256_load_attestation_key();
-
-    /*printf("check key handle size: %d vs %d\n", U2F_KEY_HANDLE_SIZE, sizeof(struct u2f_key_handle));*/
 
     printf1(TAG_U2F, "sha256: "); dump_hex1(TAG_U2F,hash,32);
     crypto_ecc256_sign(hash, 32, sig);

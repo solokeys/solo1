@@ -7,7 +7,7 @@
 #include "stm32l4xx_ll_usart.h"
 #include "usbd_hid.h"
 
-#include "app.h"
+#include APP_CONFIG
 #include "flash.h"
 #include "rng.h"
 #include "led.h"
@@ -17,28 +17,12 @@
 #include "log.h"
 #include "ctaphid.h"
 #include "ctap.h"
+#include "crypto.h"
+#include "memory_layout.h"
+#include "stm32l4xx_ll_iwdg.h"
 
 
-#define PAGE_SIZE		2048
-#define PAGES			128
-// Pages 119-127 are data
-#define	COUNTER2_PAGE	(PAGES - 4)
-#define	COUNTER1_PAGE	(PAGES - 3)
-#define	STATE2_PAGE		(PAGES - 2)
-#define	STATE1_PAGE		(PAGES - 1)
 
-#define RK_NUM_PAGES    10
-#define RK_START_PAGE   (PAGES - 14)
-#define RK_END_PAGE     (PAGES - 14 + RK_NUM_PAGES)
-
-
-#define APPLICATION_START_PAGE	(0)
-#define APPLICATION_START_ADDR	flash_addr(APPLICATION_START_PAGE)
-
-#define APPLICATION_END_PAGE	((PAGES - 19))					         // 119 is NOT included in application
-#define APPLICATION_END_ADDR	(flash_addr(APPLICATION_END_PAGE)-4)     // NOT included in application
-
-#define AUTH_WORD_ADDR          (flash_addr(APPLICATION_END_PAGE)-4)
 
 uint32_t __90_ms = 0;
 uint32_t __device_status = 0;
@@ -86,6 +70,10 @@ void device_set_status(int status)
     __device_status = status;
 }
 
+int device_is_button_pressed()
+{
+    return IS_BUTTON_PRESSED();
+}
 
 void delay(uint32_t ms)
 {
@@ -93,26 +81,33 @@ void delay(uint32_t ms)
     while ((millis() - time) < ms)
         ;
 }
-
+void device_reboot()
+{
+    NVIC_SystemReset();
+}
 void device_init()
 {
     hw_init();
     LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
     LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
 
+#ifndef IS_BOOTLOADER
 #if BOOT_TO_DFU
     flash_option_bytes_init(1);
 #else
     flash_option_bytes_init(0);
 #endif
+#endif
 
     printf1(TAG_GEN,"hello solo\r\n");
 }
 
+void usb_init(void);
 void usbhid_init()
 {
-    printf1(TAG_GEN,"hello solo\r\n");
+    usb_init();
 }
+
 int usbhid_recv(uint8_t * msg)
 {
     if (fifo_hidmsg_size())
@@ -156,7 +151,10 @@ void main_loop_delay()
 void heartbeat()
 {
     static int state = 0;
-    static uint32_t val = (LED_INIT_VALUE >> 8) & 0xff;
+    static uint32_t val = (LED_MAX_SCALER - LED_MIN_SCALER)/2;
+    uint8_t r = (LED_INIT_VALUE >> 16) & 0xff;
+    uint8_t g = (LED_INIT_VALUE >> 8) & 0xff;
+    uint8_t b = (LED_INIT_VALUE >> 0) & 0xff;
     int but = IS_BUTTON_PRESSED();
 
     if (state)
@@ -168,13 +166,13 @@ void heartbeat()
         val++;
     }
 
-    if (val > 30 || val < 1)
+    if (val > LED_MAX_SCALER || val < LED_MIN_SCALER)
     {
         state = !state;
     }
-    if (but) led_rgb(val * 2);
+    if (but) led_rgb(((val * r)<<8) | ((val*b) << 16) | (val*g));
     else
-        led_rgb((val << 16) | (val*2 << 8));
+        led_rgb(((val * g)<<8) | ((val*r) << 16) | (val*b));
 }
 
 void authenticator_read_state(AuthenticatorState * a)
@@ -397,8 +395,10 @@ led_rgb(0x001040);
 
 delay(50);
 
+#if SKIP_BUTTON_CHECK_FAST
 done:
 return 1;
+#endif
 
 fail:
 return 0;
@@ -488,7 +488,37 @@ void ctap_overwrite_rk(int index,CTAP_residentKey * rk)
     }
 }
 
+void boot_st_bootloader()
+{
+    __disable_irq();
 
+    __set_MSP(*((uint32_t *)0x1fff0000));
+
+    ((void (*)(void)) (*((uint32_t *)0x1fff0004)))();
+
+    while(1)
+    ;
+}
+
+void boot_solo_bootloader()
+{
+    LL_IWDG_Enable(IWDG);
+
+    LL_IWDG_EnableWriteAccess(IWDG);
+
+    LL_IWDG_SetPrescaler(IWDG, LL_IWDG_PRESCALER_4);
+
+    LL_IWDG_SetWindow(IWDG, 4095);
+
+    LL_IWDG_SetReloadCounter(IWDG, 2000); // ~0.25s
+
+    while (LL_IWDG_IsReady(IWDG) != 1)
+    {
+    }
+
+    LL_IWDG_ReloadCounter(IWDG);
+
+}
 
 void _Error_Handler(char *file, int line)
 {

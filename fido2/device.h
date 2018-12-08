@@ -45,6 +45,7 @@ void main_loop_delay();
 
 void heartbeat();
 
+
 void authenticator_read_state(AuthenticatorState * );
 
 void authenticator_read_backup_state(AuthenticatorState * );
@@ -61,6 +62,9 @@ void device_manage();
 // sets status that's uses for sending status updates ~100ms.
 // A timer should be set up to call `ctaphid_update_status`
 void device_set_status(int status);
+
+// Returns if button is currently pressed
+int device_is_button_pressed();
 
 // Test for user presence
 // Return 1 for user is present, 0 user not present, -1 if cancel is requested.
@@ -89,5 +93,12 @@ uint32_t ctap_rk_size();
 void ctap_store_rk(int index,CTAP_residentKey * rk);
 void ctap_load_rk(int index,CTAP_residentKey * rk);
 void ctap_overwrite_rk(int index,CTAP_residentKey * rk);
+
+// For Solo hacker
+void boot_solo_bootloader();
+void boot_st_bootloader();
+
+
+
 
 #endif

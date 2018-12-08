@@ -30,7 +30,8 @@
 #include "time.h"
 #include "util.h"
 #include "log.h"
-#include "app.h"
+#include "extensions.h"
+#include APP_CONFIG
 
 typedef enum
 {
@@ -682,6 +683,56 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             printf1(TAG_HID,"CTAPHID_CANCEL\n");
             is_busy = 0;
             break;
+#if defined(IS_BOOTLOADER)
+        case CTAPHID_BOOT:
+            printf1(TAG_HID,"CTAPHID_BOOT\n");
+            ctap_response_init(&ctap_resp);
+            u2f_set_writeback_buffer(&ctap_resp);
+            is_busy = bootloader_bridge(len, ctap_buffer);
+
+            ctaphid_write_buffer_init(&wb);
+            wb.cid = cid;
+            wb.cmd = CTAPHID_BOOT;
+            wb.bcnt = (ctap_resp.length + 1);
+            ctaphid_write(&wb, &is_busy, 1);
+            ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
+            ctaphid_write(&wb, NULL, 0);
+            is_busy = 0;
+        break;
+#endif
+#if defined(SOLO_HACKER)
+        case CTAPHID_ENTERBOOT:
+            printf1(TAG_HID,"CTAPHID_ENTERBOOT\n");
+            boot_solo_bootloader();
+            ctaphid_write_buffer_init(&wb);
+            wb.cid = cid;
+            wb.cmd = CTAPHID_ENTERBOOT;
+            wb.bcnt = 0;
+            ctaphid_write(&wb, NULL, 0);
+            is_busy = 0;
+        break;
+        case CTAPHID_ENTERSTBOOT:
+            printf1(TAG_HID,"CTAPHID_ENTERBOOT\n");
+            boot_st_bootloader();
+        break;
+#endif
+#if !defined(IS_BOOTLOADER)
+        case CTAPHID_GETRNG:
+            printf1(TAG_HID,"CTAPHID_GETRNG\n");
+            ctap_response_init(&ctap_resp);
+            ctaphid_write_buffer_init(&wb);
+            wb.cid = cid;
+            wb.cmd = CTAPHID_GETRNG;
+            wb.bcnt = ctap_buffer[0];
+            if (!wb.bcnt)
+                wb.bcnt = 57;
+            memset(ctap_buffer,0,wb.bcnt);
+            ctap_generate_rng(ctap_buffer, wb.bcnt);
+            ctaphid_write(&wb, &ctap_buffer, wb.bcnt);
+            ctaphid_write(&wb, NULL, 0);
+            is_busy = 0;
+        break;
+#endif
         default:
             printf2(TAG_ERR,"error, unimplemented HID cmd: %02x\r\n", buffer_cmd());
             ctaphid_send_error(cid, CTAP1_ERR_INVALID_COMMAND);

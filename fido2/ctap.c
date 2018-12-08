@@ -34,7 +34,7 @@
 #include "util.h"
 #include "log.h"
 #include "device.h"
-#include "app.h"
+#include APP_CONFIG
 #include "wallet.h"
 
 #include "device.h"
@@ -1463,7 +1463,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             else
             {
                 printf2(TAG_ERR, "unwanted GET_NEXT_ASSERTION.  lastcmd == 0x%02x\n", getAssertionState.lastcmd);
-                dump_hex1(TAG_GREEN, &getAssertionState, sizeof(getAssertionState));
+                dump_hex1(TAG_GREEN, (uint8_t*)&getAssertionState, sizeof(getAssertionState));
                 status = CTAP2_ERR_NOT_ALLOWED;
             }
             break;
