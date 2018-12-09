@@ -31,6 +31,7 @@ void hw_init(void);
 
 //                              0xRRGGBB
 #define LED_INIT_VALUE			0x000800
+#define LED_WINK_VALUE			0x000010
 #define LED_MAX_SCALER          30
 #define LED_MIN_SCALER          1
 // # of ms between each change in LED
