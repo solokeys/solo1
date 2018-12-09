@@ -1426,8 +1426,8 @@ async function run_tests() {
 
     async function test_bootloader()
     {
-        var start = 0x8000;
-        var size = 186 * 1024 - 8;
+        var start = 10 * 2048;
+        var size = 198 * 1024 - 8;
         var num_pages = 64;
 
         var p = await dev.is_bootloader();

@@ -21,11 +21,12 @@ def get_firmware_object(sk_name, hex_file):
     fw = open(hex_file,'r').read()
     fw = base64.b64encode(fw.encode())
     fw = to_websafe(fw.decode())
-
+    ih = IntelHex()
+    ih.fromfile(hex_file, format='hex')
     # start of firmware and the size of the flash region allocated for it.
     # TODO put this somewhere else.
     START = ih.segments()[0][0]
-    END = ((0x08000000 + ((128-19)*2024))-8)
+    END = ((0x08000000 + ((128-19)*2048))-8)
 
     ih = IntelHex(hex_file)
     segs = ih.segments()
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     if len(sys.argv) != 4:
         print('usage: %s <signing-key.pem> <app.hex> <output.json>' % sys.argv[0])
     msg = get_firmware_object(sys.argv[1],sys.argv[2])
-    print('Saving signed firmware to firmware.json')
+    print('Saving signed firmware to', sys.argv[3])
     wfile = open(sys.argv[3],'wb+')
     wfile.write(json.dumps(msg).encode())
     wfile.close()

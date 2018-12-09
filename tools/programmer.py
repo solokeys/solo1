@@ -132,11 +132,6 @@ class Programmer():
         self.exchange(SoloBootloader.done,0,sig)
 
     def wink(self,):
-        """
-        If solo is configured as solo hacker or something similar,
-        this command will tell the token to boot directly to the bootloader
-        so it can be reprogrammed
-        """
         self.send_data_hid(CTAPHID.WINK,b'')
 
     def enter_solo_bootloader(self,):

@@ -177,6 +177,8 @@ void heartbeat()
     {
         state = !state;
     }
+
+#ifdef LED_WINK_VALUE
     if (wink_time)
     {
         if (millis() - winkt1 > 120)
@@ -184,7 +186,7 @@ void heartbeat()
             winkt1 = millis();
             if (winkt2++ & 1)
             {
-                led_rgb(LED_WINK_VALUE * (LED_MAX_SCALER - LED_MIN_SCALER)/2); 
+                led_rgb(LED_WINK_VALUE * (LED_MAX_SCALER - LED_MIN_SCALER)/2);
             }
             else
             {
@@ -194,6 +196,7 @@ void heartbeat()
         }
     }
     else
+#endif
     {
         if (but)
             led_rgb(((val * r)<<8) | ((val*b) << 16) | (val*g));
@@ -423,10 +426,9 @@ led_rgb(0x001040);
 
 delay(50);
 
-#if SKIP_BUTTON_CHECK_FAST
+
 done:
 return 1;
-#endif
 
 fail:
 return 0;
