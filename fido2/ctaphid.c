@@ -609,6 +609,8 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
 
             ctaphid_write_buffer_init(&wb);
 
+            device_wink();
+
             wb.cid = cid;
             wb.cmd = CTAPHID_WINK;
 

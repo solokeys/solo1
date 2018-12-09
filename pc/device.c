@@ -447,4 +447,7 @@ void ctap_overwrite_rk(int index,CTAP_residentKey * rk)
     printf("Warning: rk not implemented\n");
 }
 
-
+void device_wink()
+{
+    printf("*WINK*\n");
+}

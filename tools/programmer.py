@@ -131,6 +131,14 @@ class Programmer():
         """
         self.exchange(SoloBootloader.done,0,sig)
 
+    def wink(self,):
+        """
+        If solo is configured as solo hacker or something similar,
+        this command will tell the token to boot directly to the bootloader
+        so it can be reprogrammed
+        """
+        self.send_data_hid(CTAPHID.WINK,b'')
+
     def enter_solo_bootloader(self,):
         """
         If solo is configured as solo hacker or something similar,
@@ -271,6 +279,7 @@ if __name__ == '__main__':
     parser.add_argument("--st-dfu", action="store_true", help = 'Don\'t write anything, try to enter ST DFU.  Warning, you could brick your Solo if you overwrite everything.  You should reprogram the option bytes just to be safe (boot to Solo bootloader first, then run this command).')
     parser.add_argument("--disable", action="store_true", help = 'Disable the Solo bootloader.  Cannot be undone.  No future updates can be applied.')
     parser.add_argument("--rng", action="store_true", help = 'Continuously dump random numbers generated from Solo.')
+    parser.add_argument("--wink", action="store_true", help = 'HID Wink command.')
     args = parser.parse_args()
     print()
 
@@ -295,6 +304,10 @@ if __name__ == '__main__':
         while True:
             r = p.get_rng(255)
             sys.stdout.buffer.write(r)
+        sys.exit(0)
+
+    if args.wink:
+        p.wink()
         sys.exit(0)
 
     if args.st_dfu:

@@ -22,8 +22,6 @@
 #include "stm32l4xx_ll_iwdg.h"
 
 
-
-
 uint32_t __90_ms = 0;
 uint32_t __device_status = 0;
 uint32_t __last_update = 0;
@@ -148,6 +146,15 @@ void main_loop_delay()
 
 }
 
+static int wink_time = 0;
+static uint32_t winkt1 = 0;
+static uint32_t winkt2 = 0;
+void device_wink()
+{
+    wink_time = 10;
+    winkt1 = 0;
+}
+
 void heartbeat()
 {
     static int state = 0;
@@ -170,9 +177,30 @@ void heartbeat()
     {
         state = !state;
     }
-    if (but) led_rgb(((val * r)<<8) | ((val*b) << 16) | (val*g));
+    if (wink_time)
+    {
+        if (millis() - winkt1 > 120)
+        {
+            winkt1 = millis();
+            if (winkt2++ & 1)
+            {
+                led_rgb(LED_WINK_VALUE * (LED_MAX_SCALER - LED_MIN_SCALER)/2); 
+            }
+            else
+            {
+                led_rgb(0);
+            }
+            wink_time--;
+        }
+    }
     else
-        led_rgb(((val * g)<<8) | ((val*r) << 16) | (val*b));
+    {
+        if (but)
+            led_rgb(((val * r)<<8) | ((val*b) << 16) | (val*g));
+        else
+            led_rgb(((val * g)<<8) | ((val*r) << 16) | (val*b));
+    }
+
 }
 
 void authenticator_read_state(AuthenticatorState * a)
@@ -519,6 +547,8 @@ void boot_solo_bootloader()
     LL_IWDG_ReloadCounter(IWDG);
 
 }
+
+
 
 void _Error_Handler(char *file, int line)
 {

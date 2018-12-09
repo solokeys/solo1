@@ -98,7 +98,8 @@ void ctap_overwrite_rk(int index,CTAP_residentKey * rk);
 void boot_solo_bootloader();
 void boot_st_bootloader();
 
-
+// HID wink command
+void device_wink();
 
 
 #endif
