@@ -20,6 +20,7 @@
 #include "device.h"
 #include APP_CONFIG
 #include "log.h"
+#include "memory_layout.h"
 
 
 typedef enum
@@ -164,7 +165,9 @@ void crypto_ecc256_init()
 
 void crypto_ecc256_load_attestation_key()
 {
-    _signing_key = attestation_key;
+    static uint8_t _key [32];
+    memmove(_key, (uint8_t*)ATTESTATION_KEY_ADDR, 32);
+    _signing_key = _key;
     _key_len = 32;
 }
 

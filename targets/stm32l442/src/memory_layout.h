@@ -17,13 +17,17 @@
 // Storage of FIDO2 resident keys
 #define RK_NUM_PAGES    10
 #define RK_START_PAGE   (PAGES - 14)
-#define RK_END_PAGE     (PAGES - 14 + RK_NUM_PAGES)
+#define RK_END_PAGE     (PAGES - 14 + RK_NUM_PAGES)     // not included
 
 // Start of application code
 #ifndef APPLICATION_START_PAGE
 #define APPLICATION_START_PAGE	(10)
 #endif
 #define APPLICATION_START_ADDR	(0x08000000 + ((APPLICATION_START_PAGE)*PAGE_SIZE))
+
+// where attestation key is located
+#define ATTESTATION_KEY_PAGE    (PAGES - 15)
+#define ATTESTATION_KEY_ADDR    (0x08000000 + ATTESTATION_KEY_PAGE*PAGE_SIZE)
 
 // End of application code.  Leave some extra room for future data storage.
 // NOT included in application
