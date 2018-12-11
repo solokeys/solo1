@@ -47,15 +47,21 @@
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_conf.h"
+#include APP_CONFIG
 
 
 #define USBD_VID                        0x0483
 #define USBD_PID                        0xA2CA
 #define USBD_LANGID_STRING              0x409
+#ifndef SOLO_HACKER
 #define USBD_MANUFACTURER_STRING        "Solo Keys"
 #define USBD_PRODUCT_FS_STRING          "Solo"
 #define USBD_SERIAL_NUM                 "solocafebabe"
-
+#else
+#define USBD_MANUFACTURER_STRING        "Solo Keys"
+#define USBD_PRODUCT_FS_STRING          "Solo HACKER (not locked!!)"
+#define USBD_SERIAL_NUM                 "solocafebabe"
+#endif
 
 uint8_t *USBD_HID_DeviceDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
 uint8_t *USBD_HID_LangIDStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
