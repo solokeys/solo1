@@ -7,139 +7,115 @@
 
 # Solo
 
-Solo is an affordable security key that implements FIDO2/U2F and supports USB, NFC, and extensions.  Extensions
-include SSH, GPG, and cryptocurrency.  Solo is an upgrade to [U2F Zero](https://github.com/conorpp/u2f-zero) and is a work in progress.
+Solo is an open source security key, and you can get one at [solokeys.com](https://solokeys.com).
 
-> Technical documentation for this project is contained in [docs/](https://github.com/SoloKeysSec/solo/tree/master/docs), built with [MkDocs](https://solo.solokeys.io/documenting/) and deployed automatically to <https://solo.solokeys.io>, part of our technical documentation suite hosted at <https://docs.solokeys.io>.
+Solo supports FIDO2 and U2F standards for strong two-factor authentication and password-less login, and it will protect you against phishing and other online attacks. With colored cases and multilingual guides we want to make secure login more personable and accessible to everyone around the globe.
 
-![](https://i.imgur.com/cXWtI1D.png)
-![](https://i.imgur.com/vwFbsQW.png?1)
+<img src="https://solokeys.com/images/photos/hero-on-white-cropped.png" width="600">
 
-The Solo FIDO2/U2F code base is designed to be easily ported to different embedded systems.
-Right now, it has been ported to the NRF52840 and EFM32J.  Soon to be supported is the STM32L442.
+This repo contains the Solo firmware, including implementations of FIDO2 and U2F (CTAP2 and CTAP) over USB and NFC. The main implementation is for STM32L432, and it's ported to NRF52840 and EFM32J.
 
-No hardware is needed for development.  You can run and extend the FIDO2 code base
-using just your PC.
+For development no hardware is needed, Solo also runs as a standalone application for Windows, Linux, and Mac OSX. If you like (or want to learn) hardware instead, you can run Solo on the NUCLEO-L432KC development board, or we make Solo for Hacker, an unlocked version of Solo that lets you customize its firmware.
+
 
 # Security
 
-Solo is based on the STM32L442 microcontroller.  It offers the following security features.
+Solo is based on the STM32L432 microcontroller. It offers the following security features.
 
 - True random number generation to guarantee random keys.
-- Firewall feature for code and secret data isolation.
-- Locked flash
-
-It also has up to 256 KB of memory, meaning it has room for side channel and fault resistant crypto implementations, plus other features.
-
-Each chip ships with a read-only USB bootloader, put in place by ST.  This can be leveraged to completely reset and reprogram the device, to make sure you can trust it's running the right code.  The bootloader can be disabled.
-
-# How do I get one?
-
-We are still working on open sourcing an implementation that anyone can cheaply
-build and program, just like with U2F Zero.  This will be released soon.  It will be easy to solder :)
-
-In the meantime, you can port the code to your favorite microcontroller, or support
-us by [signing up for our Kickstarter](https://solokeys.com/kickstarter).  Our aim is to crowdfund enough to make an economic
-bulk order and provide open source security tokens for everyone that is interested.  We will offer 
-"hackable" tokens that come with USB bootloaders and are reprogrammable.
+- Security isolation so only simple & secure parts of code can handle keys.
+- Flash protection from both external use and untrusted code segments.
+- 256 KB of memory to support hardened crypto implementations and, later, additional features such as OpenPGP or SSH.
+- No NDA needed to develop for.
 
 
-# Setting up
+# Solo for Hackers
 
-Clone solo and build it
+Solo for Hacker is a special version of Solo that let you customize its firmware, for example you can change the LED color, and even build advanced applications.
+
+You can only buy Solo for Hacker at [solokeys.com](https://solokeys.com), as we don't sell it on Amazon and other places to avoid confusing customers. If you buy a Hacker, you can permanently lock it into a regular Solo, but viceversa you can NOT take a regular Solo and turn it a Hacker.
+
+If you have a Solo for Hacker, here's how you can load your own code on it. You can find more details, including how to permanently lock it, in our [documentation](https://solo.solokeys.io).
 
 ```bash
 git clone --recurse-submodules https://github.com/SoloKeysSec/solo
-cd solo/
-git submodule init
-git submodule update
+cd solo
+
+cd targets/stm32l442
+make cbor
+make all-hacker
+python ../../tools/programmer.py solo.hex
+```
+
+For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/SoloKeysSec/solo/blob/master/targets/stm32l442/src/led.c#L15) and force:
+```
+uint32_t b = 0;
+```
+
+Then recompile, load your new firmware, and enjoy a blue-light-free version of Solo.
+
+In the Hacker version, hardware is the same and firmware is unlocked, in the sense that you can 1) load an unsigned application, or 2) entirely reflash the key. By contrast, in a regular Solo you can only upgrade to a firmware signed by SoloKeys, and flash is locked and debug disabled permanently.
+
+A frequently asked question is whether Solo for Hacker is less secure than regular Solo. The answer is certainly yes, and therefore we only recommend to use Solo for Hacker for development, experimentation, and fun. An attacker with physical access to a Solo for Hacker can reflash it following the steps above, and even a malware on your computer could possibly reflash it.
+
+
+# Developing Solo (No Hardware Needed)
+
+Clone Solo and build it
+
+```bash
+git clone --recurse-submodules https://github.com/SoloKeysSec/solo
+cd solo
 make all
 ```
 
-This builds our FIDO 2.0 and the U2F authenticator, as well as making a virtualenv in venv/
-that has our python-fido2 fork installed.
+This builds Solo as a standalone application. Solo application is set up to send and recv USB HID messages over UDP to ease development and reduce need for hardware.
 
-Note that our python-fido2 fork will only connect to the software FIDO2 application,
-not a hardware authenticator.  Install Yubico's fork to do that.
-
-
-# Testing and development
-
-The application is set up to send and recv USB HID messages over UDP to ease
-development and reduce need for hardware.
-
-Testing can be done using our fork of Yubico's client software, `python-fido2`.
-Our fork of `python-fido2` has small changes to make it send
-USB HID over UDP to the authenticator application.  You can install our fork by running the following:
+Testing can be done using our fork of Yubico's client software, python-fido2. Our fork of python-fido2 has small changes to make it send USB HID over UDP to the authenticator application. You can install our fork by running the following:
 
 ```bash
-cd python-fido2/ && python setup.py install
+cd python-fido2 && python setup.py install
 ```
 
-Run FIDO 2 / U2F application.
-
+Run the Solo application:
 ```bash
 ./main
 ```
 
-Run example client software.  This runs through a registration and authentication.
-
-```
-python python-fido2/examples/credential.py
-```
-
-Run our FIDO2 tests.
-
-```
+In another shell, you can run client software, for example our tests:
+```bash
 python tools/ctap_test.py
 ```
 
-Follow specifications to really dig in.
+Or any client example such as:
+```bash
+python python-fido2/examples/credential.py
+```
 
-[https://fidoalliance.org/specs/fido-v2.0-ps-20170927/fido-client-to-authenticator-protocol-v2.0-ps-20170927.html](https://fidoalliance.org/specs/fido-v2.0-ps-20170927/fido-client-to-authenticator-protocol-v2.0-ps-20170927.html)
+You can find more details in our [documentation](https://solo.solokeys.io), including how to build on the the NUCLEO-L432KC development board.
 
-## Extensions
-
-Extensions can be added to FIDO2/U2F to support things like SSH, GPG, and cryptocurrency.
-Right now, an experimental cryptocurrency extension can be found in `fido2/extensions` and `web/index.html`.
-More documentation to come.
-
-The main goal is to expose an extensible API on Solo, like the following:
-- Command to store private key
-- Command to sign arbitrary hash
-- Command to derive a public key
-- Commands for setting/changing/authenticating a pin code (like in FIDO2)
-- Command to expose entropy from TRNG.
-
-Using these generic commands, various external programs can be implemented for the security key.
-Since FIDO2/U2F are implemented, these programs can potentially work in the browser on desktops
-and mobile devices, with no drivers needed to be installed.
-
-
-## Porting
-
-The main code base is in `fido2/`.  See `targets/nrf52840`, `targets/efm32/src`, and `pc/`
-for examples of FIDO2/U2F ports.  In essence, you just need to reimplement `device.c`.  Optionally you can
-re-implement `crypto.c` to accelerate operations and/or add other security features.
-
-
-More documentation to come.
 
 # Documentation
 
-Check out our [official documentation](https://solo.solokeys.io/).
+Check out our [official documentation](https://solo.solokeys.io).
+
 
 # Contributors
 
-Contributors are welcome.  The ultimate goal is to have a FIDO 2 hardware token
-capable of USB, Bluetooth, and NFC interfaces.  There could be multiple tokens
-for each interface.
-    
-Look at the issues to see what is currently being worked on.  Feel free to add issues as well.
+Solo is an upgrade to [U2F Zero](https://github.com/conorpp/u2f-zero). It was born from Conor's passion for making secure hardware, and from our shared belief that security should be open to be trustworthy, in hardware like in software.
 
-This is an upgrade to [U2F Zero](https://github.com/conorpp/u2f-zero).
+Contributors are welcome. The ultimate goal is to have a FIDO2 security key supporting USB, NFC, and BLE interfaces, that can run on a variety of MCUs.
+
+Look at the issues to see what is currently being worked on. Feel free to add issues as well.
+
 
 # License
 
-Everything in this repo is open source and licensed under the MIT License.
+Solo is fully open source.
+All software is licensed under GPLv3, and hardware under CC BY-SA 4.0.
+Software and hardware are available under licenses for commercial use. Please contact SoloKeys for more information.
 
+
+# Where To Buy Solo
+
+You can buy Solo, Solo Tap, and Solo for Hackers at [solokeys.com](https://solokeys.com).
