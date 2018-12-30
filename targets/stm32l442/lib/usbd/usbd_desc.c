@@ -59,7 +59,7 @@
 #define USBD_SERIAL_NUM                 "solocafebabe"
 #else
 #define USBD_MANUFACTURER_STRING        "Solo Keys"
-#define USBD_PRODUCT_FS_STRING          "Solo HACKER (not locked!!)"
+#define USBD_PRODUCT_FS_STRING          "Solo HACKER (Unlocked)"
 #define USBD_SERIAL_NUM                 "solocafebabe"
 #endif
 
