@@ -184,15 +184,6 @@ void heartbeat()
     uint8_t b = (LED_INIT_VALUE >> 0) & 0xff;
     int but = IS_BUTTON_PRESSED();
 
-    ///
-    // char msg[] = "hello cdc\r\n";
-    // int ret;
-    // if ((ret=CDC_Transmit_FS(msg, sizeof(msg))) != USBD_OK)
-    // {
-    //     printf1(TAG_RED,"cdc returned %d\r\n", ret);
-    // }
-
-
     if (state)
     {
         val--;
