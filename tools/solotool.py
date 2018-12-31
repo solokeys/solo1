@@ -721,6 +721,10 @@ def programmer_main():
             print('No Solo device detected.')
             sys.exit(1)
 
+    if args.detach:
+        use_dfu(args)
+        sys.exit(0)
+
     if args.use_u2f:
         p.use_u2f()
 
@@ -745,7 +749,7 @@ def programmer_main():
         sys.exit(0)
 
 
-    if fw == '':
+    if fw == '' and not args.reset_only:
         print('Need to supply firmware filename, or see help for more options.')
         parser.print_help()
         sys.exit(1)
