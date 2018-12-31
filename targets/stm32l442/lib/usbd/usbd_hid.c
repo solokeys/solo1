@@ -112,10 +112,17 @@ USBD_ClassTypeDef  USBD_HID =
   NULL, /*SOF */
   NULL,
   NULL,
-  USBD_HID_GetFSCfgDesc,
-  USBD_HID_GetFSCfgDesc,
-  USBD_HID_GetFSCfgDesc,
-  USBD_HID_GetDeviceQualifierDesc,
+
+
+
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  // USBD_HID_GetFSCfgDesc,
+  // USBD_HID_GetFSCfgDesc,
+  // USBD_HID_GetFSCfgDesc,
+  // USBD_HID_GetDeviceQualifierDesc,
 };
 
 #define USBD_HID_CfgHSDesc USBD_HID_OtherSpeedCfgDesc
@@ -388,6 +395,7 @@ static uint8_t  USBD_HID_Setup (USBD_HandleTypeDef *pdev,
       {
         len = MIN(HID_FIDO_REPORT_DESC_SIZE , req->wLength);
         pbuf = HID_MOUSE_ReportDesc;
+        printf1(TAG_GREEN,"get report desc\r\n");
       }
       else if(req->wValue >> 8 == HID_DESCRIPTOR_TYPE)
       {

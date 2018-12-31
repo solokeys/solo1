@@ -1,21 +1,21 @@
 /*
  * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- * 
+ *
  * This file is part of Solo.
- * 
+ *
  * Solo is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Solo is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- * 
+ *
  * This code is available under licenses for commercial use.
  * Please contact SoloKeys for more information.
  */
@@ -40,6 +40,9 @@
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_hid.h"
+#include "usbd_cdc.h"
+#include "usbd_composite.h"
+#include "usbd_cdc_if.h"
 #include "device.h"
 #include APP_CONFIG
 
@@ -205,8 +208,22 @@ void usb_init()
     // Enable USB Clock
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
 
+
+    USBD_Composite_Set_Classes(&USBD_HID, &USBD_CDC);
+    // USBD_Composite_Set_Classes(&USBD_CDC, &USBD_CDC);
+    in_endpoint_to_class[HID_EPIN_ADDR & 0x7F] = 0;
+    out_endpoint_to_class[HID_EPOUT_ADDR & 0x7F] = 0;
+
+    in_endpoint_to_class[CDC_IN_EP & 0x7F] = 1;
+    out_endpoint_to_class[CDC_OUT_EP & 0x7F] = 1;
+
     USBD_Init(&Solo_USBD_Device, &Solo_Desc, 0);
-    USBD_RegisterClass(&Solo_USBD_Device, &USBD_HID);
+    USBD_RegisterClass(&Solo_USBD_Device, &USBD_Composite);
+    // USBD_RegisterClass(&Solo_USBD_Device, &USBD_HID);
+    //
+    // USBD_RegisterClass(&Solo_USBD_Device, &USBD_CDC);
+    USBD_CDC_RegisterInterface(&Solo_USBD_Device, &USBD_Interface_fops_FS);
+
     USBD_Start(&Solo_USBD_Device);
 }
 
