@@ -37,6 +37,7 @@ from fido2.utils import Timeout
 
 import usb.core
 import usb.util
+import usb._objfinalizer
 
 from intelhex import IntelHex
 import serial
@@ -341,6 +342,15 @@ class DFU:
             self.state = s[4]
             self.istring = s[5]
 
+# hot patch for windows libusb backend
+olddel = usb._objfinalizer._AutoFinalizedObjectBase.__del__
+def newdel(self):
+    try:
+        olddel(self)
+    except OSError:
+        pass
+usb._objfinalizer._AutoFinalizedObjectBase.__del__ = newdel
+
 class DFUDevice:
     def __init__(self,):
         pass
@@ -377,7 +387,6 @@ class DFUDevice:
         else:
             self.dev = usb.core.find(idVendor=0x0483, idProduct=0xDF11,)
 
-        #print (self.dev)
 
         if self.dev is None:
             raise RuntimeError('No ST DFU devices found.')
