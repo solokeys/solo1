@@ -1,6 +1,6 @@
 # tl;dr
 
-Create `/etc/udev/fido.rules` and add the following (which assumes your user is in group `plugdev`):
+Create [`/etc/udev/99-solo.rules`](https://github.com/SoloKeysSec/solo/blob/master/99-solo.rules) and add the following (which assumes your user is in group `plugdev`):
 
 ```
 # Solo
