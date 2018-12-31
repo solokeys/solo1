@@ -35,6 +35,9 @@ from fido2.ctap import CtapError
 from fido2.ctap1 import CTAP1, ApduError
 from fido2.utils import Timeout
 
+import usb.core
+import usb.util
+
 from intelhex import IntelHex
 import serial
 
@@ -218,7 +221,7 @@ class SoloClient():
 
     def is_solo_bootloader(self,):
         try:
-            p.version()
+            self.version()
             return True
         except CtapError as e:
             if e.code == CtapError.ERR.INVALID_COMMAND:
@@ -303,6 +306,184 @@ class SoloClient():
                 self.verify_flash(sig)
             else:
                 self.verify_flash(b'A'*64)
+
+class DFU:
+    class type:
+        SEND = 0x21
+        RECEIVE = 0xa1
+
+    class bmReq:
+        DETACH    = 0x00
+        DNLOAD    = 0x01
+        UPLOAD    = 0x02
+        GETSTATUS = 0x03
+        CLRSTATUS = 0x04
+        GETSTATE  = 0x05
+        ABORT     = 0x06
+
+    class state:
+        APP_IDLE = 0x00
+        APP_DETACH  = 0x01
+        IDLE = 0x02
+        DOWNLOAD_SYNC = 0x03
+        DOWNLOAD_BUSY = 0x04
+        DOWNLOAD_IDLE = 0x05
+        MANIFEST_SYNC = 0x06
+        MANIFEST = 0x07
+        MANIFEST_WAIT_RESET = 0x08
+        UPLOAD_IDLE = 0x09
+        ERROR = 0x0a
+
+    class status:
+        def __init__(self,s):
+            self.status = s[0]
+            self.timeout = s[1] + (s[2] << 8) + (s[3] << 16)
+            self.state = s[4]
+            self.istring = s[5]
+
+class DFUDevice:
+    def __init__(self,):
+        pass
+
+
+    @staticmethod
+    def addr2list(a):
+        return [ a & 0xff, (a >> 8) & 0xff, (a >> 16) & 0xff, (a >> 24) & 0xff ]
+
+    @staticmethod
+    def addr2block(addr,size):
+        addr -= 0x08000000
+        addr //= size
+        addr += 2
+        return addr
+
+    @staticmethod
+    def block2addr(addr,size):
+        addr -= 2
+        addr *= size
+        addr += 0x08000000
+        return addr
+
+    def find(self, altsetting = 0, ser=None):
+
+        self.dev = None
+        if ser:
+            devs = usb.core.find(idVendor=0x0483, idProduct=0xDF11,find_all=1)
+            for x in devs:
+                if ser == (usb.util.get_string(x,x.iSerialNumber)):
+                    print('connecting to ',ser)
+                    self.dev = x
+                    break
+        else:
+            self.dev = usb.core.find(idVendor=0x0483, idProduct=0xDF11,)
+
+        #print (self.dev)
+
+        if self.dev is None:
+            raise RuntimeError('No ST DFU devices found.')
+        self.dev.set_configuration()
+
+        for cfg in self.dev:
+            for intf in cfg:
+                if intf.bAlternateSetting == altsetting:
+                    intf.set_altsetting()
+                    self.intf = intf
+                    self.intNum = intf.bInterfaceNumber
+                    return self.dev
+
+        raise RuntimeError('No ST DFU alternate-%d found.' % altsetting)
+
+    def init(self,):
+        if self.state() == DFU.state.ERROR:
+            self.clear_status()
+
+    def close(self,):
+        pass
+
+    def get_status(self,):
+        # bmReqType, bmReq, wValue, wIndex, data/size
+        s = self.dev.ctrl_transfer(DFU.type.RECEIVE, DFU.bmReq.GETSTATUS,0, self.intNum, 6)
+        return DFU.status(s)
+
+    def state(self,):
+        return self.get_status().state
+
+    def clear_status(self,):
+        # bmReqType, bmReq, wValue, wIndex, data/size
+        s = self.dev.ctrl_transfer(DFU.type.SEND, DFU.bmReq.CLRSTATUS, 0, self.intNum, None)
+
+    def upload(self,block,size):
+        """
+        address is  ((block – 2) × size) + 0x08000000
+        """
+        # bmReqType, bmReq, wValue, wIndex, data/size
+        return self.dev.ctrl_transfer(DFU.type.RECEIVE, DFU.bmReq.UPLOAD, block, self.intNum, size)
+
+    def set_addr(self, addr):
+        # must get_status after to take effect
+        return self.dnload(0x0, [0x21] + DFUDevice.addr2list(addr))
+
+    def dnload(self, block, data):
+        # bmReqType, bmReq, wValue, wIndex, data/size
+        return self.dev.ctrl_transfer(DFU.type.SEND, DFU.bmReq.DNLOAD, block, self.intNum, data)
+
+    def erase(self, a):
+        d = [0x41, a & 0xff, (a >> 8) & 0xff, (a >> 16) & 0xff, (a >> 24) & 0xff]
+        return self.dnload(0x0, d)
+
+    def mass_erase(self):
+        # self.set_addr(0x08000000)
+        # self.block_on_state(DFU.state.DOWNLOAD_BUSY)
+        # assert(DFU.state.DOWNLOAD_IDLE == self.state())
+        self.dnload(0x0,  [0x41,])
+        self.block_on_state(DFU.state.DOWNLOAD_BUSY)
+        assert(DFU.state.DOWNLOAD_IDLE == self.state())
+
+    def write_page(self, addr, data):
+        if self.state() not in (DFU.state.IDLE, DFU.state.DOWNLOAD_IDLE):
+            self.clear_status()
+            self.clear_status()
+        if self.state() not in (DFU.state.IDLE, DFU.state.DOWNLOAD_IDLE):
+            raise RuntimeError('DFU device not in correct state for writing memory.')
+
+        oldaddr = addr
+        addr = DFUDevice.addr2block(addr, len(data))
+        # print('flashing %d bytes to block %d/%08x...' % (len(data), addr,oldaddr))
+
+        self.dnload(addr, data)
+        self.block_on_state(DFU.state.DOWNLOAD_BUSY)
+        assert(DFU.state.DOWNLOAD_IDLE == self.state())
+
+    def read_mem(self, addr, size):
+        addr = DFUDevice.addr2block(addr,size)
+
+        if self.state() not in (DFU.state.IDLE, DFU.state.UPLOAD_IDLE):
+            self.clear_status()
+            self.clear_status()
+        if self.state() not in (DFU.state.IDLE, DFU.state.UPLOAD_IDLE):
+            raise RuntimeError('DFU device not in correct state for reading memory.')
+
+        return self.upload(addr,size)
+
+    def block_on_state(self,state):
+        s = self.get_status()
+        while s.state == state:
+            time.sleep(s.timeout/1000.0)
+            s = self.get_status()
+
+    def detach(self,):
+        if self.state() not in (DFU.state.IDLE, DFU.state.DOWNLOAD_IDLE):
+            self.clear_status()
+            self.clear_status()
+        if self.state() not in (DFU.state.IDLE, DFU.state.DOWNLOAD_IDLE):
+            raise RuntimeError('DFU device not in correct state for detaching.')
+        # self.set_addr(0x08000000)
+        # self.block_on_state(DFU.state.DOWNLOAD_BUSY)
+        # assert(DFU.state.DOWNLOAD_IDLE == self.state())
+        self.dnload(0x0, [])
+        return self.get_status()
+        # return self.dev.ctrl_transfer(DFU.type.SEND, DFU.bmReq.DETACH, 0, self.intNum, None)
+
 
 def attempt_to_find_device(p):
     found = False
@@ -444,6 +625,64 @@ def sign_main():
     wfile.write(json.dumps(msg).encode())
     wfile.close()
 
+def use_dfu(args):
+    fw = args.__dict__['[firmware]']
+    dfu = DFUDevice()
+    try:
+        dfu.find(ser = args.dfu_serial)
+    except RuntimeError:
+        print('No STU DFU device found. ')
+        if args.dfu_serial:
+            print('Serial number used: ', args.dfu_serial)
+        sys.exit(1)
+    dfu.init()
+
+    if fw:
+        ih = IntelHex()
+        ih.fromfile(fw, format='hex')
+
+        chunk = 2048
+        seg = ih.segments()[0]
+        size = sum([x[1] - x[0] for x in ih.segments()])
+        total = 0
+        t1 = time.time()*1000
+
+        print('erasing...')
+        try:
+            dfu.mass_erase()
+        except usb.core.USBError:
+            dfu.write_page(0x08000000 + 2048*10,'ZZFF'*(2048//4))
+            dfu.mass_erase()
+
+        page = 0
+        for start,end in ih.segments():
+            for i in range(start, end, chunk):
+                page += 1
+                s = i
+                data = ih.tobinarray(start=i,size = chunk)
+                dfu.write_page(i,data)
+                total += chunk
+                progress = total/float(size)*100
+                sys.stdout.write('downloading %.2f%%  %08x - %08x ...         \r' % (progress,i,i+page))
+                # time.sleep(0.100)
+
+            # print('done')
+            # print(dfu.read_mem(i,16))
+        t2 = time.time()*1000
+
+        print('time: %d ms' %(t2 - t1))
+        print('verifying...')
+        for start,end in ih.segments():
+            for i in range(start, end, chunk):
+                data1 = (dfu.read_mem(i,2048))
+                data2 = ih.tobinarray(start=i,size = chunk)
+                assert(data1 == data2)
+        print('firmware readback verified.')
+    if args.detach:
+        dfu.detach()
+
+
+
 def programmer_main():
 
     parser = argparse.ArgumentParser()
@@ -456,10 +695,22 @@ def programmer_main():
     parser.add_argument("--enter-bootloader", action="store_true", help = 'Don\'t write anything, try to enter bootloader.  Typically only supported by Solo Hacker builds.')
     parser.add_argument("--st-dfu", action="store_true", help = 'Don\'t write anything, try to enter ST DFU.  Warning, you could brick your Solo if you overwrite everything.  You should reprogram the option bytes just to be safe (boot to Solo bootloader first, then run this command).')
     parser.add_argument("--disable", action="store_true", help = 'Disable the Solo bootloader.  Cannot be undone.  No future updates can be applied.')
+    parser.add_argument("--detach", action="store_true", help = 'Detach from ST DFU and boot from main flash.  Must be in DFU mode.')
+    parser.add_argument("--dfu-serial", default='', help = 'Specify a serial number for a specific DFU device to connect to.')
     args = parser.parse_args()
 
+    fw = args.__dict__['[firmware]']
+
     p = SoloClient()
-    p.find_device()
+    try:
+        p.find_device()
+    except RuntimeError:
+        if fw or args.detach:
+            use_dfu(args)
+            sys.exit(0)
+        else:
+            print('No Solo device detected.')
+            sys.exit(1)
 
     if args.use_u2f:
         p.use_u2f()
@@ -484,7 +735,7 @@ def programmer_main():
         p.disable_solo_bootloader()
         sys.exit(0)
 
-    fw = args.__dict__['[firmware]']
+
     if fw == '':
         print('Need to supply firmware filename, or see help for more options.')
         parser.print_help()
