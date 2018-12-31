@@ -226,7 +226,11 @@ static uint8_t USBD_Composite_Setup (USBD_HandleTypeDef *pdev, USBD_SetupReqType
     int i;
     switch (req->bmRequest & USB_REQ_TYPE_MASK) {
         case USB_REQ_TYPE_CLASS :
-            return USBD_Classes[req->wIndex]->Setup(pdev, req);
+            if (req->wIndex < NUM_INTERFACES)
+                return USBD_Classes[req->wIndex]->Setup(pdev, req);
+            else
+                return USBD_FAIL;
+
 
         case USB_REQ_TYPE_STANDARD:
             switch (req->bRequest) {
@@ -242,7 +246,10 @@ static uint8_t USBD_Composite_Setup (USBD_HandleTypeDef *pdev, USBD_SetupReqType
 
         case USB_REQ_GET_INTERFACE :
         case USB_REQ_SET_INTERFACE :
-            return USBD_Classes[req->wIndex]->Setup(pdev, req);
+            if (req->wIndex < NUM_INTERFACES)
+                return USBD_Classes[req->wIndex]->Setup(pdev, req);
+            else
+                return USBD_FAIL;
         }
     }
     return USBD_OK;
