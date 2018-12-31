@@ -33,13 +33,13 @@ You can either compare `ls /dev` before and after inserting, or use the `udevadm
 ```
 udevadm monitor --environment --udev | grep DEVNAME
 ```
-Typically, you will detect `/dev/hidraw0`.
+Typically, you will detect `/dev/hidraw0`. Using the symlinks above, you can follow symlinks from `/dev/solokey` and `/dev/u2fzero`.
 
 ## How do you know if your system is configured correctly?
 Try reading and writing to the device node you identified in the previous step. Assuming the node is called `/dev/hidraw0`:
 
-* read: try `cat /dev/hidraw0`, if you don't get "permission denied", you can access.
-* write: try `echo "hello, Solo" > /dev/hidraw0`. Again, if you don't get denied permission, you're OK.
+* read: try `cat /dev/solokey`, if you don't get "permission denied", you can access.
+* write: try `echo "hello, Solo" > /dev/solokey`. Again, if you don't get denied permission, you're OK.
 
 ## Which rule should I use, and how do I do it?
 Simplest is probably to copy [Yubico's rule file](https://github.com/Yubico/libu2f-host/blob/master/70-u2f.rules) to `/etc/udev/rules.d/fido.rules` on your system, for instance:
