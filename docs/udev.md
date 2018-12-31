@@ -1,10 +1,13 @@
 # tl;dr
 
-Create `/etc/udev/fido.rules` and add the following.
+Create `/etc/udev/fido.rules` and add the following (which assumes your user is in group `plugdev`):
 
 ```
+# Solo
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", GROUP="plugdev", SYMLINK+="solokey"
+
 # U2F Zero
-KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="8acf", TAG+="uaccess"
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="8acf", TAG+="uaccess", GROUP="plugdev", SYMLINK+="u2fzero"
 ```
 
 Then run
