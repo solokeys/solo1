@@ -1,5 +1,6 @@
 # Solo
-KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", GROUP="plugdev", SYMLINK+="solokey"
+ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo",                   TAG+="uaccess", GROUP="plugdev", SYMLINK+="solokey"
+ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo HACKER (Unlocked)", TAG+="uaccess", GROUP="plugdev", SYMLINK+="solohacker"
 
 # U2F Zero
 KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="8acf", TAG+="uaccess", GROUP="plugdev", SYMLINK+="u2fzero"
