@@ -1,9 +1,10 @@
 sudo: required
 dist: bionic
 language: generic
-compiler:
-  - clang
-  - gcc
+# compiler:
+#   - clang
+#   - gcc
+compiler: gcc
 cache: pip
 python: 3
 
