@@ -11,9 +11,10 @@ addons:
   apt:
     packages:
       - python3
-      - python3-virtualenv
+      - python3-venv
 
 install:
+  - env
   - make env3
 
 script:
