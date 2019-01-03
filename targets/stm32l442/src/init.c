@@ -210,7 +210,6 @@ void usb_init()
 
 
     USBD_Composite_Set_Classes(&USBD_HID, &USBD_CDC);
-    // USBD_Composite_Set_Classes(&USBD_CDC, &USBD_CDC);
     in_endpoint_to_class[HID_EPIN_ADDR & 0x7F] = 0;
     out_endpoint_to_class[HID_EPOUT_ADDR & 0x7F] = 0;
 

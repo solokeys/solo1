@@ -1,21 +1,21 @@
 #
 # Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
-# 
+#
 # This file is part of Solo.
-# 
+#
 # Solo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Solo is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with Solo.  If not, see <https://www.gnu.org/licenses/>
-# 
+#
 # This code is available under licenses for commercial use.
 # Please contact SoloKeys for more information.
 #
@@ -59,6 +59,14 @@ for i in range(2, len(args)-1):
     print('merging %s with ' % (args[1]), args[i])
     first.merge(IntelHex( args[i] ), overlap = 'replace')
 
+first [ flash_addr(APPLICATION_END_PAGE-1) ] = 0x41
+first [ flash_addr(APPLICATION_END_PAGE-1)+1 ] = 0x41
+
+first[AUTH_WORD_ADDR-4]   = 0
+first[AUTH_WORD_ADDR-1] = 0
+first[AUTH_WORD_ADDR-2] = 0
+first[AUTH_WORD_ADDR-3] = 0
+
 first[AUTH_WORD_ADDR]   = 0
 first[AUTH_WORD_ADDR+1] = 0
 first[AUTH_WORD_ADDR+2] = 0
@@ -68,6 +76,7 @@ first[AUTH_WORD_ADDR+4] = 0xff
 first[AUTH_WORD_ADDR+5] = 0xff
 first[AUTH_WORD_ADDR+6] = 0xff
 first[AUTH_WORD_ADDR+7] = 0xff
+
 
 if secret_attestation_key is not None:
     key = unhexlify(secret_attestation_key)

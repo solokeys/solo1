@@ -170,7 +170,10 @@ class SoloClient():
 
         ret = data[0]
         if ret != CtapError.ERR.SUCCESS:
-            raise RuntimeError('Device returned non-success code %02x' % ret)
+            str = ''
+            if ret == CtapError.ERR.NOT_ALLOWED:
+                str = 'Out of bounds write'
+            raise RuntimeError('Device returned non-success code %02x: %s' % (ret,str))
 
         return data[1:]
 
@@ -184,7 +187,10 @@ class SoloClient():
 
         ret = res.signature[0]
         if ret != CtapError.ERR.SUCCESS:
-            raise RuntimeError('Device returned non-success code %02x' % ret)
+            str = ''
+            if ret == CtapError.ERR.NOT_ALLOWED:
+                str = 'Out of bounds write'
+            raise RuntimeError('Device returned non-success code %02x: %s' % (ret,str))
 
         return res.signature[1:]
 
@@ -506,7 +512,7 @@ def attempt_to_find_device(p):
     return found
 
 def attempt_to_boot_bootloader(p):
-    print('Bootloader not active.  Attempting to boot into bootloader mode...')
+
     try:
         p.enter_solo_bootloader()
     except OSError:
@@ -520,8 +526,8 @@ def attempt_to_boot_bootloader(p):
     print('Solo rebooted.  Reconnecting...')
     time.sleep(.500)
     if not attempt_to_find_device(p):
-        print('Failed to reconnect!')
-        sys.exit(1)
+        raise RuntimeError('Failed to reconnect!')
+
 
 def solo_main():
     parser = argparse.ArgumentParser()
@@ -636,10 +642,16 @@ def sign_main():
 
 def use_dfu(args):
     fw = args.__dict__['[firmware]']
-    dfu = DFUDevice()
-    try:
-        dfu.find(ser = args.dfu_serial)
-    except RuntimeError:
+
+    for i in range(0,8):
+        dfu = DFUDevice()
+        try:
+            dfu.find(ser = args.dfu_serial)
+        except RuntimeError:
+            time.sleep(0.25)
+            dfu = None
+
+    if dfu is None:
         print('No STU DFU device found. ')
         if args.dfu_serial:
             print('Serial number used: ', args.dfu_serial)
@@ -652,7 +664,7 @@ def use_dfu(args):
 
         chunk = 2048
         seg = ih.segments()[0]
-        size = sum([x[1] - x[0] for x in ih.segments()])
+        size = sum([max(x[1] - x[0],chunk) for x in ih.segments()])
         total = 0
         t1 = time.time()*1000
 
@@ -672,20 +684,27 @@ def use_dfu(args):
                 dfu.write_page(i,data)
                 total += chunk
                 progress = total/float(size)*100
+
                 sys.stdout.write('downloading %.2f%%  %08x - %08x ...         \r' % (progress,i,i+page))
                 # time.sleep(0.100)
 
             # print('done')
             # print(dfu.read_mem(i,16))
         t2 = time.time()*1000
-
+        print()
         print('time: %d ms' %(t2 - t1))
         print('verifying...')
+        progress = 0
         for start,end in ih.segments():
             for i in range(start, end, chunk):
                 data1 = (dfu.read_mem(i,2048))
                 data2 = ih.tobinarray(start=i,size = chunk)
-                assert(data1 == data2)
+                total += chunk
+                progress = total/float(size)*100
+                sys.stdout.write('reading %.2f%%  %08x - %08x ...         \r' % (progress,i,i+page))
+                if (end-start) == chunk:
+                    assert(data1 == data2)
+        print()
         print('firmware readback verified.')
     if args.detach:
         dfu.detach()
@@ -706,19 +725,31 @@ def programmer_main():
     parser.add_argument("--disable", action="store_true", help = 'Disable the Solo bootloader.  Cannot be undone.  No future updates can be applied.')
     parser.add_argument("--detach", action="store_true", help = 'Detach from ST DFU and boot from main flash.  Must be in DFU mode.')
     parser.add_argument("--dfu-serial", default='', help = 'Specify a serial number for a specific DFU device to connect to.')
+    parser.add_argument("--use-dfu", action="store_true", help = 'Boot to ST-DFU before continuing.')
     args = parser.parse_args()
 
     fw = args.__dict__['[firmware]']
 
     p = SoloClient()
+
+
+
     try:
         p.find_device()
+        if args.use_dfu:
+            print('entering dfu..')
+            try:
+                attempt_to_boot_bootloader(p)
+                p.enter_st_dfu()
+            except RuntimeError:
+                # already in DFU mode?
+                pass
     except RuntimeError:
+        print('No Solo device detected.')
         if fw or args.detach:
             use_dfu(args)
             sys.exit(0)
         else:
-            print('No Solo device detected.')
             sys.exit(1)
 
     if args.detach:
@@ -732,6 +763,7 @@ def programmer_main():
         p.set_reboot(False)
 
     if args.enter_bootloader:
+        print('Attempting to boot into bootloader mode...')
         attempt_to_boot_bootloader(p)
         sys.exit(0)
 
@@ -758,10 +790,12 @@ def programmer_main():
         p.version()
     except CtapError as e:
         if e.code == CtapError.ERR.INVALID_COMMAND:
+            print('Bootloader not active.  Attempting to boot into bootloader mode...')
             attempt_to_boot_bootloader(p)
         else:
             raise(e)
     except ApduError:
+        print('Bootloader not active.  Attempting to boot into bootloader mode...')
         attempt_to_boot_bootloader(p)
 
     if args.reset_only:

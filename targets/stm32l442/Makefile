@@ -12,17 +12,17 @@ all-locked:
 	$(MAKE) -f application.mk -j8 solo.hex EXTRA_DEFINES='-DFLASH_ROP=2'
 
 debugboot-app:
-	$(MAKE) -f application.mk -j8 solo.hex DEBUG=1 \
+	$(MAKE) -f application.mk -j8 solo.hex DEBUG=2 \
 	LDSCRIPT=linker/stm32l4xx_extra.ld EXTRA_DEFINES='-DAPPLICATION_START_PAGE=16 -DSOLO_HACKER'
 
 debugboot-boot:
 	$(MAKE) -f bootloader.mk -j8 bootloader.hex DEBUG=1 \
 	LDSCRIPT=linker/bootloader_stm32l4xx_extra.ld EXTRA_DEFINES='-DAPPLICATION_START_PAGE=16 -DSOLO_HACKER'
 
-boot:
-	$(MAKE) -f bootloader.mk -j8 bootloader.hex DEBUG=$(DEBUG)
+boot-sig-checking:
+	$(MAKE) -f bootloader.mk -j8 bootloader.hex
 
-boot-hacker:
+boot-no-sig:
 	$(MAKE) -f bootloader.mk -j8 bootloader.hex EXTRA_DEFINES='-DSOLO_HACKER'
 
 clean:
