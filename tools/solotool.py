@@ -26,7 +26,7 @@
 import sys,os,time,struct,argparse
 import array,struct,socket,json,base64,binascii
 import tempfile
-from binascii import hexlify
+from binascii import hexlify,unhexlify
 from hashlib import sha256
 
 from fido2.hid import CtapHidDevice, CTAPHID
@@ -803,12 +803,73 @@ def programmer_main():
     else:
         p.program_file(fw)
 
+
+def main_mergehex():
+    if len(sys.argv) < 3:
+        print('usage: %s <file1.hex> <file2.hex> [...] [-s <secret_attestation_key>] <output.hex>')
+        sys.exit(1)
+
+    def flash_addr(num):
+        return 0x08000000 + num * 2048
+
+    args = sys.argv[:]
+
+    # generic / hacker attestation key
+    secret_attestation_key = "1b2626ecc8f69b0f69e34fb236d76466ba12ac16c3ab5750ba064e8b90e02448"
+
+    # user supplied, optional
+    for i,x in enumerate(args):
+        if x == '-s':
+            secret_attestation_key = args[i+1]
+            args = args[:i] + args[i+2:]
+            break
+
+
+    # TODO put definitions somewhere else
+    PAGES = 128
+    APPLICATION_END_PAGE = PAGES - 19
+    AUTH_WORD_ADDR       = (flash_addr(APPLICATION_END_PAGE)-8)
+    ATTEST_ADDR          = (flash_addr(PAGES - 15))
+
+    first = IntelHex(args[1])
+    for i in range(2, len(args)-1):
+        print('merging %s with ' % (args[1]), args[i])
+        first.merge(IntelHex( args[i] ), overlap = 'replace')
+
+    first [ flash_addr(APPLICATION_END_PAGE-1) ] = 0x41
+    first [ flash_addr(APPLICATION_END_PAGE-1)+1 ] = 0x41
+
+    first[AUTH_WORD_ADDR-4]   = 0
+    first[AUTH_WORD_ADDR-1] = 0
+    first[AUTH_WORD_ADDR-2] = 0
+    first[AUTH_WORD_ADDR-3] = 0
+
+    first[AUTH_WORD_ADDR]   = 0
+    first[AUTH_WORD_ADDR+1] = 0
+    first[AUTH_WORD_ADDR+2] = 0
+    first[AUTH_WORD_ADDR+3] = 0
+
+    first[AUTH_WORD_ADDR+4] = 0xff
+    first[AUTH_WORD_ADDR+5] = 0xff
+    first[AUTH_WORD_ADDR+6] = 0xff
+    first[AUTH_WORD_ADDR+7] = 0xff
+
+
+    if secret_attestation_key is not None:
+        key = unhexlify(secret_attestation_key)
+
+
+        for i,x in enumerate(key):
+            first[ATTEST_ADDR + i] = x
+
+    first.tofile(args[len(args)-1], format='hex')
+
 if __name__ == '__main__':
 
     if len(sys.argv) < 2 or (len(sys.argv) == 2 and asked_for_help()):
         print('Diverse command line tool for working with Solo')
         print('usage: %s <command> [options] [-h]' % sys.argv[0])
-        print('commands: program, solo, monitor, sign, genkey')
+        print('commands: program, solo, monitor, sign, genkey, mergehex')
         print(
 """
 Examples:
@@ -820,6 +881,7 @@ Examples:
     {0} monitor <serial-port>
     {0} sign <key.pem> <firmware.hex> <output.json>
     {0} genkey <output-pem-file> [rng-seed-file]
+    {0} mergehex bootloader.hex solo.hex combined.hex
 """.format(sys.argv[0]))
         sys.exit(1)
 
@@ -838,5 +900,7 @@ Examples:
         sign_main()
     elif c == 'genkey':
         genkey_main()
+    elif c == 'mergehex':
+        main_mergehex()
     else:
         print('invalid command: %s' % c)
