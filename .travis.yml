@@ -13,8 +13,7 @@ addons:
       - python3
 
 install:
-  - pip install -f tools/requirements.txt
-  - pip install black
+  - make env3
 
 script:
   - env3/bin/black --check --skip-string-normalization tools/
