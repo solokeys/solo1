@@ -5,6 +5,12 @@ compiler:
   - clang
   - gcc
 cache: pip
+python: 3
+
+addons:
+  apt:
+    packages:
+      - python3
 
 install:
   - pip install -f tools/requirements.txt
