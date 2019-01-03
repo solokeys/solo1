@@ -1,36 +1,37 @@
 #!/usr/bin/env python
 #
 # Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
-# 
+#
 # This file is part of Solo.
-# 
+#
 # Solo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Solo is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with Solo.  If not, see <https://www.gnu.org/licenses/>
-# 
+#
 # This code is available under licenses for commercial use.
 # Please contact SoloKeys for more information.
 #
 from __future__ import print_function
 import base64
+
 """
     cbytes.py
 
     Output a c file with the DER certificate.
     Read der file as input
 """
-import sys,fileinput,binascii
+import sys, fileinput, binascii
 
-if len(sys.argv) not in [2,3]:
+if len(sys.argv) not in [2, 3]:
     print('usage: %s <certificate.der|hex-input> [-s]' % sys.argv[0])
     print('    -s: just output c string (for general use)')
     sys.exit(1)
@@ -39,17 +40,17 @@ buf = None
 try:
     buf = bytearray(open(sys.argv[1], 'rb').read())
 except:
-    n = sys.argv[1].replace('\n','')
-    n = sys.argv[1].replace('\r','')
+    n = sys.argv[1].replace('\n', '')
+    n = sys.argv[1].replace('\r', '')
     buf = bytearray(binascii.unhexlify(n))
 
 c_str = ''
 size = len(buf)
 
-a = ''.join(map(lambda c:'\\x%02x'%c, buf))
+a = ''.join(map(lambda c: '\\x%02x' % c, buf))
 
-for i in range(0,len(a), 80):
-    c_str += ("\""+a[i:i+80]+"\"\n")
+for i in range(0, len(a), 80):
+    c_str += "\"" + a[i : i + 80] + "\"\n"
 
 if '-s' in sys.argv:
     print(c_str)
