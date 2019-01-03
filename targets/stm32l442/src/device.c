@@ -124,6 +124,22 @@ void usb_init(void);
 void usbhid_init()
 {
     usb_init();
+
+#if DEBUG_LEVEL>1
+    wait_for_usb_tether();
+#endif
+
+}
+
+void wait_for_usb_tether()
+{
+    while (USBD_OK != CDC_Transmit_FS("tethered\r\n", 10) )
+        ;
+    while (USBD_OK != CDC_Transmit_FS("tethered\r\n", 10) )
+        ;
+    delay(10);
+    while (USBD_OK != CDC_Transmit_FS("tethered\r\n", 10) )
+        ;
 }
 
 int usbhid_recv(uint8_t * msg)

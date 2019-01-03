@@ -1,2 +1,5 @@
 ecdsa
 intelhex
+pyserial
+python-fido2
+pyusb

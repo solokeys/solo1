@@ -1,21 +1,21 @@
 /*
  * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- * 
+ *
  * This file is part of Solo.
- * 
+ *
  * Solo is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Solo is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- * 
+ *
  * This code is available under licenses for commercial use.
  * Please contact SoloKeys for more information.
  */
@@ -114,10 +114,10 @@ int main(int argc, char * argv[])
     }
     else
     {
+
         printf1(TAG_RED,"Not authorized to boot (%08x == %08lx)\r\n", AUTH_WORD_ADDR, *(uint32_t*)AUTH_WORD_ADDR);
     }
     start_bootloader:
-
     usbhid_init();
     printf1(TAG_GEN,"init usb\n");
 
@@ -155,7 +155,7 @@ int main(int argc, char * argv[])
             device_reboot();
         }
 #ifdef SOLO_HACKER
-        // Boot ST bootloader if button is held for 2s
+        // Boot ST bootloader if button is held for 5s
         if (!device_is_button_pressed())
         {
             stboot_time = millis();
