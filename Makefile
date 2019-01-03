@@ -71,7 +71,7 @@ uECC.o: ./crypto/micro-ecc/uECC.c
 	$(CC) -c -o $@ $^ -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform) -I./crypto/micro-ecc/
 
 env2:
-	virtualenv env2
+	virtualenv --python=python2.7 env2
 	env2/bin/pip install -r tools/requirements.txt
 
 env3:
