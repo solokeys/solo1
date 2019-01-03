@@ -81,7 +81,7 @@ env3:
 
 # selectively reformat our own code
 black: env3
-	env3/bin/black -S tools/
+	env3/bin/black --skip-string-normalization tools/
 
 wink2: env2
 	env2/bin/python tools/solotool.py solo --wink

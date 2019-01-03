@@ -1,12 +1,16 @@
-dist: trusty
-language: c
-compiler: gcc
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - gcc-7
+sudo: required
+dist: bionic
+language: generic
+compiler:
+  - clang
+  - gcc
+cache: pip
+
+install:
+  - pip install -f tools/requirements.txt
+  - pip install black
+
 script:
-  - export CC=gcc-7
+  - env3/bin/black --check --skip-string-normalization tools/
+  - env3/bin/python tools/solotool.py -h
   - make test
