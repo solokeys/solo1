@@ -874,8 +874,10 @@ if __name__ == '__main__':
 """
 Examples:
     {0} program <filename.hex|filename.json>
+    {0} program <all.hex> --use-dfu
     {0} program --reboot
     {0} program --enter-bootloader
+    {0} program --st-dfu
     {0} solo --wink
     {0} solo --rng
     {0} monitor <serial-port>
