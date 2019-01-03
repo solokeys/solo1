@@ -11,6 +11,7 @@ addons:
   apt:
     packages:
       - python3
+      - python3-virtualenv
 
 install:
   - make env3
