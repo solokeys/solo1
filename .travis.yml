@@ -15,9 +15,9 @@ addons:
 
 install:
   - env
-  - make env3
+  # - make env3
 
 script:
-  - env3/bin/black --check --skip-string-normalization tools/
-  - env3/bin/python tools/solotool.py -h
+  # - env3/bin/black --check --skip-string-normalization tools/
+  # - env3/bin/python tools/solotool.py -h
   - make test
