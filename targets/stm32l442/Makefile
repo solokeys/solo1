@@ -27,9 +27,23 @@ boot-sig-checking:
 boot-no-sig:
 	$(MAKE) -f bootloader.mk -j8 bootloader.hex EXTRA_DEFINES='-DSOLO_HACKER'
 
+build-release-locked: clean2 boot-sig-checking clean all-locked
+	$(merge_hex) solo.hex bootloader.hex all.hex
+
+build-release: clean2 boot-sig-checking clean all
+	$(merge_hex) solo.hex bootloader.hex all.hex
+
+build-hacker: clean2 boot-no-sig clean all-hacker
+	$(merge_hex) solo.hex bootloader.hex all.hex
+
 clean:
 	$(MAKE) -f application.mk clean
 	$(MAKE) -f bootloader.mk clean
+clean2:
+	rm -f solo.hex bootloader.hex all.hex
+	$(MAKE) -f application.mk clean
+	$(MAKE) -f bootloader.mk clean
+
 
 flash: solo.hex bootloader.hex
 	$(merge_hex) solo.hex bootloader.hex all.hex
