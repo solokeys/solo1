@@ -22,13 +22,14 @@ debugboot-boot:
 	LDSCRIPT=linker/bootloader_stm32l4xx_extra.ld EXTRA_DEFINES='-DAPPLICATION_START_PAGE=16 -DSOLO_HACKER'
 
 boot-sig-checking:
-	$(MAKE) -f bootloader.mk -j8 bootloader.hex
+	$(MAKE) -f bootloader.mk -j8 bootloader.hex DEBUG=0
 
 boot-no-sig:
-	$(MAKE) -f bootloader.mk -j8 bootloader.hex EXTRA_DEFINES='-DSOLO_HACKER'
+	$(MAKE) -f bootloader.mk -j8 bootloader.hex EXTRA_DEFINES='-DSOLO_HACKER' DEBUG=0
 
 build-release-locked: clean2 boot-sig-checking clean all-locked
 	$(merge_hex) solo.hex bootloader.hex all.hex
+	rm -f solo.hex bootloader.hex  # don't program solo.hex ...
 
 build-release: clean2 boot-sig-checking clean all
 	$(merge_hex) solo.hex bootloader.hex all.hex
