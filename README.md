@@ -44,7 +44,7 @@ cd solo
 cd targets/stm32l432
 make cbor
 make all-hacker
-python ../../tools/programmer.py solo.hex
+python ../../tools/solotool.py program solo.hex
 ```
 
 If you forgot the `--recurse-submodules` when cloning, simply `git submodule update --init --recursive`.
