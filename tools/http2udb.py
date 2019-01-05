@@ -1,27 +1,28 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
-# 
+#
 # This file is part of Solo.
-# 
+#
 # Solo is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # Solo is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with Solo.  If not, see <https://www.gnu.org/licenses/>
-# 
+#
 # This code is available under licenses for commercial use.
 # Please contact SoloKeys for more information.
 #
 from __future__ import print_function, absolute_import, unicode_literals
-from http.server import BaseHTTPRequestHandler,HTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from fido2.hid import CtapHidDevice, CTAPHID
 from fido2.client import Fido2Client, ClientError
@@ -35,7 +36,7 @@ from intelhex import IntelHex
 
 from ecdsa import SigningKey, NIST256p
 
-import socket,json,base64,ssl,array,binascii
+import socket, json, base64, ssl, array, binascii
 
 from sign_firmware import *
 
@@ -44,7 +45,8 @@ udpport = 8111
 
 HEX_FILE = '../efm32/GNU ARM v7.2.1 - Debug/EFM32.hex'
 
-def ForceU2F(client,device):
+
+def ForceU2F(client, device):
     client.ctap = CTAP1(device)
     client.pin_protocol = None
     client._do_make_credential = client._ctap1_make_credential
@@ -64,39 +66,39 @@ if __name__ == '__main__':
         print(e)
 
 
-
-
 def write(data):
     msg = from_websafe(data)
     msg = base64.b64decode(msg)
-    chal = b'A'*32
-    appid = b'A'*32
-    #print (msg)
-    #print (msg.decode())
-    #print (str(msg))
-    #msg = msg.decode('ascii')
-    #print('ascii:',repr(msg))
-    #print('ascii:',(type(msg)))
-    #print(msg + chal)
+    chal = b'A' * 32
+    appid = b'A' * 32
+    # print (msg)
+    # print (msg.decode())
+    # print (str(msg))
+    # msg = msg.decode('ascii')
+    # print('ascii:',repr(msg))
+    # print('ascii:',(type(msg)))
+    # print(msg + chal)
 
-    #data = client_param + app_param + struct.pack('>B', len(key_handle)) + key_handle
-    #msg = str(msg.decode())
-    #print(msg.decode())
-    s = ctap.authenticate(chal,appid,msg,)
+    # data = client_param + app_param + struct.pack('>B', len(key_handle)) + key_handle
+    # msg = str(msg.decode())
+    # print(msg.decode())
+    s = ctap.authenticate(chal, appid, msg)
     print(s)
-    #sock.sendto(msg, ('127.0.0.1', udpport))
+    # sock.sendto(msg, ('127.0.0.1', udpport))
+
 
 def read():
-    #msg = [0]*64
+    # msg = [0]*64
     pkt, _ = sock.recvfrom(1000)
-    #for i,v in enumerate(pkt):
-        #msg[i] = ord(v)
+    # for i,v in enumerate(pkt):
+    # msg[i] = ord(v)
     msg = base64.b64encode(pkt)
     msg = to_websafe(pkt)
     return msg
 
+
 class UDPBridge(BaseHTTPRequestHandler):
-    def end_headers (self):
+    def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
         BaseHTTPRequestHandler.end_headers(self)
 
@@ -109,43 +111,50 @@ class UDPBridge(BaseHTTPRequestHandler):
         msg = from_websafe(data)
         msg = base64.b64decode(msg)
         chal = b"\xf6\xa2\x3c\xa4\x0a\xf9\xda\xd4\x5f\xdc\xba\x7d\xc9\xde\xcb\xed\xb5\x84\x64\x3a\x4c\x9f\x44\xc2\x04\xb0\x17\xd7\xf4\x3e\xe0\x3f"
-        appid = b'A'*32
+        appid = b'A' * 32
 
-        s = ctap.authenticate(chal,appid,msg,)
+        s = ctap.authenticate(chal, appid, msg)
 
-        data = struct.pack('B',s.user_presence) + struct.pack('>L',s.counter) + s.signature
+        data = (
+            struct.pack('B', s.user_presence)
+            + struct.pack('>L', s.counter)
+            + s.signature
+        )
         data = base64.b64encode(data).decode('ascii')
         data = to_websafe(data)
-        data = json.dumps({'data':data})
+        data = json.dumps({'data': data})
         data = data.encode('ascii')
 
         self.send_response(200)
-        self.send_header('Content-type','text/json')
+        self.send_header('Content-type', 'text/json')
         self.end_headers()
         self.wfile.write(data)
 
-
     def do_GET(self):
         self.send_response(200)
-        self.send_header('Content-type','text/json')
+        self.send_header('Content-type', 'text/json')
 
-        msg = get_firmware_object("signing_key.pem",HEX_FILE)
+        msg = get_firmware_object("signing_key.pem", HEX_FILE)
 
         self.end_headers()
 
         self.wfile.write(json.dumps(msg).encode())
 
+
 try:
     server = HTTPServer(('', httpport), UDPBridge)
-    print('Started httpserver on port ' , httpport)
+    print('Started httpserver on port ', httpport)
 
-    server.socket = ssl.wrap_socket (server.socket,
-            keyfile="../web/localhost.key", 
-            certfile='../web/localhost.crt', server_side=True)
+    server.socket = ssl.wrap_socket(
+        server.socket,
+        keyfile="../web/localhost.key",
+        certfile='../web/localhost.crt',
+        server_side=True,
+    )
 
     print('Saving signed firmware to firmware.json')
-    msg = get_firmware_object("signing_key.pem",HEX_FILE)
-    wfile = open('firmware.json','wb+')
+    msg = get_firmware_object("signing_key.pem", HEX_FILE)
+    wfile = open('firmware.json', 'wb+')
     wfile.write(json.dumps(msg).encode())
     wfile.close()
 
@@ -153,4 +162,3 @@ try:
 
 except KeyboardInterrupt:
     server.socket.close()
-

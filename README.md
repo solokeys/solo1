@@ -47,6 +47,7 @@ make all-hacker
 python ../../tools/programmer.py solo.hex
 ```
 
+If you forgot the `--recurse-submodules` when cloning, simply `git submodule update --init --recursive`.
 For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/SoloKeysSec/solo/blob/master/targets/stm32l432/src/led.c#L15) and force:
 ```
 uint32_t b = 0;
