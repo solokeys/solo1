@@ -41,15 +41,14 @@ If you have a Solo for Hacker, here's how you can load your own code on it. You 
 git clone --recurse-submodules https://github.com/SoloKeysSec/solo
 cd solo
 
-cd targets/stm32l442
+cd targets/stm32l432
 make cbor
 make all-hacker
 python ../../tools/programmer.py solo.hex
 ```
 
 If you forgot the `--recurse-submodules` when cloning, simply `git submodule update --init --recursive`.
-
-For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/SoloKeysSec/solo/blob/master/targets/stm32l442/src/led.c#L15) and force:
+For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/SoloKeysSec/solo/blob/master/targets/stm32l432/src/led.c#L15) and force:
 ```
 uint32_t b = 0;
 ```
