@@ -21,7 +21,7 @@ To program your build, you'll need one of the following programs.
 Enter the `stm32l4xx` target directory.
 
 ```
-cd targets/stm32l442
+cd targets/stm32l432
 ```
 
 Build the cbor library.

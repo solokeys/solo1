@@ -2,11 +2,11 @@ We are very open to contributions!
 
 [Currently](https://github.com/solokeyssec/solo/issues), most work will go towards
 
-* implementing STM32L442
+* implementing STM32L432
 * implementing NFC
 * adding documentation and improving accessability of the code
 
-In the future, we would love to see creative plugins/extensions, putting the TRNG and other features of the STM32L442 to good use! 
+In the future, we would love to see creative plugins/extensions, putting the TRNG and other features of the STM32L432 to good use! 
 
 Feel free to send a [pull request](https://github.com/SoloKeysSec/solo/pulls) at any time, we don't currently have a formal contribution process.
 

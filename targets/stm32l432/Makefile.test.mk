@@ -24,10 +24,8 @@ CFLAGS= $(INC)
 TARGET=solo
 HW=-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb
 
-# Nucleo board
-#CHIP=STM32L432xx
-# Solo
-CHIP=STM32L442xx
+# Solo or Nucleo board
+CHIP=STM32L432xx
 
 DEFINES = -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER
 DEFINES += -DTEST_SOLO_STM32 -DTEST
