@@ -250,38 +250,38 @@ void usb_hid_recieve_callback(uint8_t ep)
             HID_PACKET_SIZE);
 }
 
-static void dump_pma()
-{
-
-    register uint32_t _wRegBase = (uint32_t)USB;
-    _wRegBase += (uint32_t)(USB)->BTABLE + 0x400;
-
-    uint16_t * pma_ptr = (uint16_t *)_wRegBase;
-    uint16_t val;
-    uint32_t offset = (uint32_t)(USB)->BTABLE;
-
-    printf1(TAG_GREEN,"btable: %02lx\r\n",offset);
-
-    for (int i = 0; i < 2; i++)
-    {
-        uint16_t addr_tx = pma_ptr[i * 4 + 0];
-        uint16_t cnt_tx = pma_ptr[i * 4 + 1];
-        uint16_t addr_rx = pma_ptr[i * 4 + 2];
-        uint16_t cnt_rx = pma_ptr[i * 4 + 3];
-
-        printf1(TAG_GREEN,"EP%d addr_tx == %02x, count_tx == %02x\r\n", i, addr_tx,cnt_tx );
-        printf1(TAG_GREEN,"EP%d addr_rx == %02x, count_rx == %02x\r\n", i, addr_rx,cnt_rx );
-    }
-
-    uint16_t ep1_tx = pma_ptr[1 * 4 + 0];
-
-    for (int i  = 0; i < 32; i++)
-    {
-        val = pma_ptr[ep1_tx + i];
-        printf1(TAG_GREEN,"%04x ",val);
-    }
-    printf1(TAG_GREEN,"\r\n");
-}
+// static void dump_pma()
+// {
+//
+//     register uint32_t _wRegBase = (uint32_t)USB;
+//     _wRegBase += (uint32_t)(USB)->BTABLE + 0x400;
+//
+//     uint16_t * pma_ptr = (uint16_t *)_wRegBase;
+//     uint16_t val;
+//     uint32_t offset = (uint32_t)(USB)->BTABLE;
+//
+//     printf1(TAG_GREEN,"btable: %02lx\r\n",offset);
+//
+//     for (int i = 0; i < 2; i++)
+//     {
+//         uint16_t addr_tx = pma_ptr[i * 4 + 0];
+//         uint16_t cnt_tx = pma_ptr[i * 4 + 1];
+//         uint16_t addr_rx = pma_ptr[i * 4 + 2];
+//         uint16_t cnt_rx = pma_ptr[i * 4 + 3];
+//
+//         printf1(TAG_GREEN,"EP%d addr_tx == %02x, count_tx == %02x\r\n", i, addr_tx,cnt_tx );
+//         printf1(TAG_GREEN,"EP%d addr_rx == %02x, count_rx == %02x\r\n", i, addr_rx,cnt_rx );
+//     }
+//
+//     uint16_t ep1_tx = pma_ptr[1 * 4 + 0];
+//
+//     for (int i  = 0; i < 32; i++)
+//     {
+//         val = pma_ptr[ep1_tx + i];
+//         printf1(TAG_GREEN,"%04x ",val);
+//     }
+//     printf1(TAG_GREEN,"\r\n");
+// }
 
 /**
   * @brief  USBD_HID_Init

@@ -213,7 +213,7 @@ static uint8_t USBD_Composite_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
 
 static uint8_t  USBD_Composite_DeInit (USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
     int i;
-    for(int i = 0; i < NUM_INTERFACES; i++) {
+    for(i = 0; i < NUM_INTERFACES; i++) {
         if (USBD_Classes[i]->DeInit(pdev, cfgidx) != USBD_OK) {
             return USBD_FAIL;
         }
