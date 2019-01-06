@@ -533,13 +533,21 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
     uint8_t cmd;
     uint32_t cid;
     int len;
+#ifndef DISABLE_CTAPHID_CBOR
     int status;
+#endif
 
     static uint8_t is_busy = 0;
     static CTAPHID_WRITE_BUFFER wb;
     CTAP_RESPONSE ctap_resp;
 
+#ifndef DISABLE_CTAPHID_PING
+#ifndef DISABLE_CTAPHID_CBOR
+#if DEBUG_LEVEL > 0
     uint32_t t1,t2;
+#endif
+#endif
+#endif
 
     int bufstatus = ctaphid_buffer_packet(pkt_raw, &cmd, &cid, &len);
 
@@ -581,11 +589,15 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             wb.cid = cid;
             wb.cmd = CTAPHID_PING;
             wb.bcnt = len;
+#if DEBUG_LEVEL > 0
             t1 = millis();
+#endif
             ctaphid_write(&wb, ctap_buffer, len);
             ctaphid_write(&wb, NULL,0);
+#if DEBUG_LEVEL > 0
             t2 = millis();
             printf1(TAG_TIME,"PING writeback: %d ms\n",(uint32_t)(t2-t1));
+#endif
             break;
 #endif
 #ifndef DISABLE_CTAPHID_WINK
@@ -629,12 +641,16 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             wb.bcnt = (ctap_resp.length+1);
 
 
+#if DEBUG_LEVEL > 0
             t1 = millis();
+#endif
             ctaphid_write(&wb, &status, 1);
             ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
             ctaphid_write(&wb, NULL, 0);
+#if DEBUG_LEVEL > 0
             t2 = millis();
             printf1(TAG_TIME,"CBOR writeback: %d ms\n",(uint32_t)(t2-t1));
+#endif
             is_busy = 0;
             break;
 #endif

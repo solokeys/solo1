@@ -43,7 +43,9 @@ USBD_HandleTypeDef Solo_USBD_Device;
 static void LL_Init(void);
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+#if DEBUG_LEVEL > 0
 static void MX_USART1_UART_Init(void);
+#endif
 static void MX_TIM2_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_RNG_Init(void);
@@ -287,6 +289,7 @@ static void MX_TIM2_Init(void)
 
 }
 
+#if DEBUG_LEVEL > 0
 /* USART1 init function */
 static void MX_USART1_UART_Init(void)
 {
@@ -324,6 +327,7 @@ static void MX_USART1_UART_Init(void)
   LL_USART_Enable(USART1);
 
 }
+#endif
 
 /** Pinout Configuration
 */

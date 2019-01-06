@@ -68,4 +68,4 @@ all: $(TARGET).elf
 	$(CP) -O ihex $^ $(TARGET).hex
 
 clean:
-	rm -f *.o src/*.o bootloader/*.o src/*.elf  $(OBJ)
+	rm -f *.o src/*.o bootloader/*.o *.elf  $(OBJ)

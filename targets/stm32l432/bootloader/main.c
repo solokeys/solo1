@@ -42,7 +42,9 @@ int main(int argc, char * argv[])
 {
     uint8_t hidmsg[64];
     uint32_t t1 = 0;
+#ifdef SOLO_HACKER
     uint32_t stboot_time = 0;
+#endif
     uint32_t boot = 1;
 
     set_logging_mask(
@@ -102,7 +104,9 @@ int main(int argc, char * argv[])
 
         printf1(TAG_RED,"Not authorized to boot (%08x == %08lx)\r\n", AUTH_WORD_ADDR, *(uint32_t*)AUTH_WORD_ADDR);
     }
+#ifdef SOLO_HACKER
     start_bootloader:
+#endif
     usbhid_init();
     printf1(TAG_GEN,"init usb\n");
 

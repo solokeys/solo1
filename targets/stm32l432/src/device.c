@@ -27,6 +27,9 @@
 #include "stm32l4xx_ll_iwdg.h"
 #include "usbd_cdc_if.h"
 
+void wait_for_usb_tether();
+
+
 uint32_t __90_ms = 0;
 uint32_t __device_status = 0;
 uint32_t __last_update = 0;
@@ -118,12 +121,12 @@ void usbhid_init()
 
 void wait_for_usb_tether()
 {
-    while (USBD_OK != CDC_Transmit_FS("tethered\r\n", 10) )
+    while (USBD_OK != CDC_Transmit_FS((uint8_t*)"tethered\r\n", 10) )
         ;
-    while (USBD_OK != CDC_Transmit_FS("tethered\r\n", 10) )
+    while (USBD_OK != CDC_Transmit_FS((uint8_t*)"tethered\r\n", 10) )
         ;
     delay(10);
-    while (USBD_OK != CDC_Transmit_FS("tethered\r\n", 10) )
+    while (USBD_OK != CDC_Transmit_FS((uint8_t*)"tethered\r\n", 10) )
         ;
 }
 
@@ -169,7 +172,9 @@ void main_loop_delay()
 
 static int wink_time = 0;
 static uint32_t winkt1 = 0;
+#ifdef LED_WINK_VALUE
 static uint32_t winkt2 = 0;
+#endif
 void device_wink()
 {
     wink_time = 10;
@@ -453,7 +458,9 @@ led_rgb(0x001040);
 delay(50);
 
 
+#if SKIP_BUTTON_CHECK_WITH_DELAY || SKIP_BUTTON_CHECK_FAST
 done:
+#endif
 return 1;
 
 fail:

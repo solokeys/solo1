@@ -69,7 +69,7 @@ all: $(TARGET).elf
 	$(CP) -O ihex $^ $(TARGET).hex
 
 clean:
-	rm -f *.o src/*.o src/*.elf  bootloader/*.o $(OBJ)
+	rm -f *.o src/*.o *.elf  bootloader/*.o $(OBJ)
 
 
 cbor:

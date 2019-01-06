@@ -1358,8 +1358,9 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     CborEncoder encoder;
     uint8_t status = 0;
     uint8_t cmd = *pkt_raw;
-    uint64_t t1;
-    uint64_t t2;
+#if DEBUG_LEVEL > 0
+    uint64_t t1,t2;
+#endif
     pkt_raw++;
     length--;
 
@@ -1392,10 +1393,14 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
         case CTAP_MAKE_CREDENTIAL:
             device_set_status(CTAPHID_STATUS_PROCESSING);
             printf1(TAG_CTAP,"CTAP_MAKE_CREDENTIAL\n");
+#if DEBUG_LEVEL > 0
             t1 = millis();
+#endif
             status = ctap_make_credential(&encoder, pkt_raw, length);
+#if DEBUG_LEVEL > 0
             t2 = millis();
             printf1(TAG_TIME,"make_credential time: %d ms\n", t2-t1);
+#endif
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
             dump_hex1(TAG_DUMP, buf, resp->length);
@@ -1404,10 +1409,14 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
         case CTAP_GET_ASSERTION:
             device_set_status(CTAPHID_STATUS_PROCESSING);
             printf1(TAG_CTAP,"CTAP_GET_ASSERTION\n");
+#if DEBUG_LEVEL > 0
             t1 = millis();
+#endif
             status = ctap_get_assertion(&encoder, pkt_raw, length);
+#if DEBUG_LEVEL > 0
             t2 = millis();
             printf1(TAG_TIME,"get_assertion time: %d ms\n", t2-t1);
+#endif
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
 

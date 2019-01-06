@@ -53,7 +53,9 @@ void led_test_colors()
 {
     // Should produce pulsing of various colors
     int i = 0;
+#if DEBUG_LEVEL > 0
     int j = 0;
+#endif
     int inc = 1;
     uint32_t time = 0;
 #define update() do {\
