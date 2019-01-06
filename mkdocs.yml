@@ -3,18 +3,18 @@ site_author: SoloKeys
 site_description: 'Documentation for the SoloKeys solo software'
 repo_url: 'https://github.com/solokeyssec/solo'
 repo_name: 'solokeyssec/solo'
-copyright: 'Copyright &copy; 2018 SoloKeys'
+copyright: 'Copyright &copy; 2018 - 2019 SoloKeys'
 
 nav:
     - Home: index.md
-    - README.md: repo-readme.md
     - FIDO2 Implementation: fido2-impl.md
+    - Build instructions: building.md
     - Signed update process: signed-updates.md
-    - Building: building.md
     - Code documentation: code-overview.md
     - Contributing Code: contributing.md
     - Contributing Docs: documenting.md
-    - What the udev?!: udev.md
+    - udev Rules: udev.md
+    - About: repo-readme.md
 
 theme:
   name: material
