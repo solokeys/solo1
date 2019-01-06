@@ -1,7 +1,6 @@
-![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)
-[![Kickstarter](https://img.shields.io/badge/kickstarter-back%20us-red.svg)](https://solokeys.com/kickstarter)
+[![License](https://img.shields.io/github/license/solokeyssec/solo.svg)](https://github.com/SoloKeysSec/solo/blob/master/LICENSE)
 [![Build Status](https://travis-ci.com/SoloKeysSec/solo.svg?branch=master)](https://travis-ci.com/SoloKeysSec/solo)
-[![Discourse Status](https://img.shields.io/discourse/https/meta.discourse.org/status.svg)](https://discourse.solokeys.com)
+[![Discourse Users](https://img.shields.io/discourse/https/discourse.solokeys.com/users.svg)](https://discourse.solokeys.com)
 [![Keybase Chat](https://img.shields.io/badge/chat-on%20keybase-brightgreen.svg)](https://keybase.io/team/solokeys.public)
 
 
@@ -44,10 +43,15 @@ cd solo
 cd targets/stm32l432
 make cbor
 make all-hacker
-python ../../tools/solotool.py program solo.hex
+cd ../..
+
+make env3
+source env3/bin/activate
+python tools/solotool.py program targets/stm32l432/solo.hex
 ```
 
 If you forgot the `--recurse-submodules` when cloning, simply `git submodule update --init --recursive`.
+
 For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/SoloKeysSec/solo/blob/master/targets/stm32l432/src/led.c#L15) and force:
 ```
 uint32_t b = 0;
