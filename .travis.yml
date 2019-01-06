@@ -5,9 +5,11 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
+      - team-gcc-arm-embedded/ppa
     packages:
       - gcc-7
       - cppcheck
+      - gcc-arm-embedded
 script:
   - export CC=gcc-7
   - make test

@@ -5,7 +5,7 @@ endif
 APPMAKE=build/application.mk
 BOOTMAKE=build/application.mk
 
-merge_hex=python ../../tools/solotool.py mergehex
+merge_hex=../../tools/solotool.py mergehex
 
 all:
 	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=$(DEBUG) EXTRA_DEFINES='-DFLASH_ROP=1'
@@ -38,6 +38,9 @@ build-release: clean2 boot-sig-checking clean all
 	$(merge_hex) solo.hex bootloader.hex all.hex
 
 build-hacker: clean2 boot-no-sig clean all-hacker
+	$(merge_hex) solo.hex bootloader.hex all.hex
+
+build-debugboot: clean2 debugboot-boot clean debugboot-app
 	$(merge_hex) solo.hex bootloader.hex all.hex
 
 clean:
@@ -76,3 +79,11 @@ solo.hex:
 
 cbor:
 	$(MAKE) -f application.mk -j8 cbor
+
+test:
+	$(MAKE) cbor
+	$(VENV) $(MAKE) build-release-locked
+	$(VENV) $(MAKE) build-release
+	$(VENV) $(MAKE) build-hacker
+	$(VENV) $(MAKE) build-debugboot
+	$(MAKE) clean2

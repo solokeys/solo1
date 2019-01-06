@@ -33,7 +33,7 @@ CFLAGS += -DAES256=1 -DAPP_CONFIG=\"app.h\"
 
 name = main
 
-.PHONY: all
+.PHONY: all $(LIBCBOR)
 all: main
 
 tinycbor/Makefile crypto/tiny-AES-c/aes.c:
@@ -42,8 +42,16 @@ tinycbor/Makefile crypto/tiny-AES-c/aes.c:
 .PHONY: cbor
 cbor: $(LIBCBOR)
 
-$(LIBCBOR): tinycbor/Makefile
+$(LIBCBOR):
 	cd tinycbor/ && $(MAKE) clean && $(MAKE) -j8
+
+test: env3
+	$(MAKE) clean
+	$(MAKE) -C . main
+	$(MAKE) clean
+	cd ./targets/stm32l432; $(MAKE) test PREFIX=$(PREFIX) VENV=". ../../env3/bin/activate;"
+	$(MAKE) clean
+	$(MAKE) cppcheck
 
 .PHONY: efm8prog
 efm8prog:
@@ -97,13 +105,13 @@ cppcheck:
 	cppcheck $(CPPCHECK_FLAGS) fido2
 	cppcheck $(CPPCHECK_FLAGS) pc
 
-test: main cppcheck
-
 clean:
 	rm -f *.o main.exe main $(obj)
-	rm -rf env2 env3
 	for f in crypto/tiny-AES-c/Makefile tinycbor/Makefile ; do \
 	    if [ -f "$$f" ]; then \
 	    	(cd `dirname $$f` ; git checkout -- .) ;\
 	    fi ;\
 	done
+
+full-clean: clean
+	rm -rf env2 env3
