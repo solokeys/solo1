@@ -1,7 +1,7 @@
-CC=arm-none-eabi-gcc
-CP=arm-none-eabi-objcopy
-SZ=arm-none-eabi-size
-AR=arm-none-eabi-ar
+CC=$(PREFIX)arm-none-eabi-gcc
+CP=$(PREFIX)arm-none-eabi-objcopy
+SZ=$(PREFIX)arm-none-eabi-size
+AR=$(PREFIX)arm-none-eabi-ar
 
 # ST related
 SRC = src/main.c src/init.c src/redirect.c src/flash.c src/rng.c src/led.c src/device.c
@@ -16,7 +16,6 @@ SRC += ../../fido2/ctap_parse.c ../../fido2/main.c
 
 # Crypto libs
 SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c
-
 
 OBJ1=$(SRC:.c=.o)
 OBJ=$(OBJ1:.s=.o)

@@ -1,7 +1,7 @@
-CC=arm-none-eabi-gcc
-CP=arm-none-eabi-objcopy
-SZ=arm-none-eabi-size
-AR=arm-none-eabi-ar
+CC=$(PREFIX)arm-none-eabi-gcc
+CP=$(PREFIX)arm-none-eabi-objcopy
+SZ=$(PREFIX)arm-none-eabi-size
+AR=$(PREFIX)arm-none-eabi-ar
 
 # ST related
 SRC = bootloader/main.c bootloader/bootloader.c
@@ -46,7 +46,7 @@ DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAP
 
 CFLAGS=$(INC) -c $(DEFINES)   -Wall -fdata-sections -ffunction-sections $(HW) -g
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections  -lnosys
-LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref  -Wl,-Bstatic
+LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref  -Wl,-Bstatic 
 
 
 .PRECIOUS: %.o
