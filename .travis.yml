@@ -5,11 +5,13 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
-      - team-gcc-arm-embedded/ppa
     packages:
       - gcc-7
       - cppcheck
-      - gcc-arm-embedded
+before_install:
+	- sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
+    - sudo apt-get update -q
+	- sudo apt-get install -y gcc-arm-embedded
 script:
   - export CC=gcc-7
   - make test
