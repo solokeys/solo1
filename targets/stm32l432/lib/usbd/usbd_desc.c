@@ -60,7 +60,9 @@
 #else
 #define USBD_MANUFACTURER_STRING        "Solo Keys"
 #define USBD_PRODUCT_FS_STRING          "Solo HACKER (Unlocked)"
-#define USBD_SERIAL_NUM                 "solocafebabe"
+#ifndef USBD_SERIAL_NUM
+#define USBD_SERIAL_NUM                 "Solo-Keys-Solo"
+#endif
 #endif
 
 uint8_t *USBD_HID_DeviceDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
