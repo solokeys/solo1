@@ -38,7 +38,7 @@ void  BOOT_boot(void)
   ((pFunction)bootAddress[1])();
 }
 
-int main(int argc, char * argv[])
+int main()
 {
     uint8_t hidmsg[64];
     uint32_t t1 = 0;

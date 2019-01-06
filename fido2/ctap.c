@@ -309,7 +309,7 @@ static int is_matching_rk(CTAP_residentKey * rk, CTAP_residentKey * rk2)
 }
 
 
-static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, int len, CTAP_userEntity * user, uint8_t credtype, int32_t algtype, int32_t * sz, int store)
+static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, unsigned int len, CTAP_userEntity * user, uint8_t credtype, int32_t algtype, int32_t * sz, int store)
 {
     CborEncoder cose_key;
     int auth_data_sz, ret;
@@ -380,8 +380,8 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
             memmove(&rk.id, &authData->attest.id, sizeof(CredentialId));
             memmove(&rk.user, user, sizeof(CTAP_userEntity));
 
-            int index = STATE.rk_stored;
-            int i;
+            unsigned int index = STATE.rk_stored;
+            unsigned int i;
             for (i = 0; i < index; i++)
             {
                 ctap_load_rk(i, &rk2);
@@ -549,7 +549,8 @@ int ctap_authenticate_credential(struct rpId * rp, CTAP_credentialDescriptor * d
 uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_makeCredential MC;
-    int ret, i;
+    int ret;
+    unsigned int i;
     uint8_t auth_data_buf[300];
     CTAP_credentialDescriptor * excl_cred = (CTAP_credentialDescriptor *) auth_data_buf;
     uint8_t * sigbuf = auth_data_buf + 32;

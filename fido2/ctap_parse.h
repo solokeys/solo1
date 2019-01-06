@@ -24,7 +24,7 @@ const char * cbor_value_get_type_string(const CborValue *value);
 uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val);
 uint8_t parse_pub_key_cred_param(CborValue * val, uint8_t * cred_type, int32_t * alg_type);
 uint8_t parse_pub_key_cred_params(CTAP_makeCredential * MC, CborValue * val);
-uint8_t parse_fixed_byte_string(CborValue * map, uint8_t * dst, int len);
+uint8_t parse_fixed_byte_string(CborValue * map, uint8_t * dst, unsigned int len);
 uint8_t parse_rp_id(struct rpId * rp, CborValue * val);
 uint8_t parse_rp(struct rpId * rp, CborValue * val);
 uint8_t parse_options(CborValue * val, uint8_t * rk, uint8_t * uv, uint8_t * up);

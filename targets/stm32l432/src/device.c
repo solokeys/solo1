@@ -63,7 +63,7 @@ uint32_t millis()
     return (((uint32_t)TIM6->CNT) + (__90_ms * 90));
 }
 
-void device_set_status(int status)
+void device_set_status(uint32_t status)
 {
     __disable_irq();
     __last_update = millis();

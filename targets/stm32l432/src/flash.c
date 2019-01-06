@@ -133,7 +133,7 @@ void flash_write_dword(uint32_t addr, uint64_t data)
 
 void flash_write(uint32_t addr, uint8_t * data, size_t sz)
 {
-    int i;
+    unsigned int i;
     uint8_t buf[8];
     while (FLASH->SR & (1<<16))
         ;

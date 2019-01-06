@@ -98,7 +98,7 @@ static uint32_t get_new_cid()
 
 static int8_t add_cid(uint32_t cid)
 {
-    int i;
+    uint32_t i;
     for(i = 0; i < CID_MAX-1; i++)
     {
         if (!CIDS[i].busy)
@@ -114,7 +114,7 @@ static int8_t add_cid(uint32_t cid)
 
 static int8_t cid_exists(uint32_t cid)
 {
-    int i;
+    uint32_t i;
     for(i = 0; i < CID_MAX-1; i++)
     {
         if (CIDS[i].cid == cid)
@@ -127,7 +127,7 @@ static int8_t cid_exists(uint32_t cid)
 
 static int8_t cid_refresh(uint32_t cid)
 {
-    int i;
+    uint32_t i;
     for(i = 0; i < CID_MAX-1; i++)
     {
         if (CIDS[i].cid == cid)
@@ -142,7 +142,7 @@ static int8_t cid_refresh(uint32_t cid)
 
 static int8_t cid_del(uint32_t cid)
 {
-    int i;
+    uint32_t i;
     for(i = 0; i < CID_MAX-1; i++)
     {
         if (CIDS[i].cid == cid)
@@ -380,7 +380,7 @@ static int ctaphid_buffer_packet(uint8_t * pkt_raw, uint8_t * cmd, uint32_t * ci
     printf1(TAG_HID, "Recv packet\n");
     printf1(TAG_HID, "  CID: %08x \n", pkt->cid);
     printf1(TAG_HID, "  cmd: %02x\n", pkt->pkt.init.cmd);
-    if (!is_cont_pkt(pkt)) printf1(TAG_HID, "  length: %d\n", ctaphid_packet_len(pkt));
+    if (!is_cont_pkt(pkt)) {printf1(TAG_HID, "  length: %d\n", ctaphid_packet_len(pkt));}
 
     int ret;
     uint32_t oldcid;

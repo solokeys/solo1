@@ -57,7 +57,7 @@ __attribute__((weak)) void set_logging_tag(uint32_t tag)
 
 void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...)
 {
-    int i;
+    unsigned int i;
 
     if (((tag & 0x7fffffff) & LOGMASK) == 0)
     {

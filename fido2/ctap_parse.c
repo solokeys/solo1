@@ -79,7 +79,7 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
     size_t sz, map_length;
     uint8_t key[24];
     int ret;
-    int i;
+    unsigned int i;
     CborValue map;
 
 
@@ -270,7 +270,7 @@ uint8_t parse_pub_key_cred_params(CTAP_makeCredential * MC, CborValue * val)
     uint8_t cred_type;
     int32_t alg_type;
     int ret;
-    int i;
+    unsigned int i;
     CborValue arr;
 
 
@@ -319,7 +319,7 @@ uint8_t parse_pub_key_cred_params(CTAP_makeCredential * MC, CborValue * val)
     return CTAP2_ERR_UNSUPPORTED_ALGORITHM;
 }
 
-uint8_t parse_fixed_byte_string(CborValue * map, uint8_t * dst, int len)
+uint8_t parse_fixed_byte_string(CborValue * map, uint8_t * dst, unsigned int len)
 {
     size_t sz;
     int ret;
@@ -344,7 +344,7 @@ uint8_t parse_fixed_byte_string(CborValue * map, uint8_t * dst, int len)
 
 uint8_t parse_verify_exclude_list(CborValue * val)
 {
-    int i;
+    unsigned int i;
     int ret;
     CborValue arr;
     size_t size;
@@ -393,7 +393,7 @@ uint8_t parse_rp(struct rpId * rp, CborValue * val)
     size_t sz, map_length;
     char key[8];
     int ret;
-    int i;
+    unsigned int i;
     CborValue map;
 
 
@@ -481,7 +481,7 @@ uint8_t parse_options(CborValue * val, uint8_t * rk, uint8_t * uv, uint8_t * up)
     size_t sz, map_length;
     char key[8];
     int ret;
-    int i;
+    unsigned int i;
     _Bool b;
     CborValue map;
 
@@ -559,7 +559,7 @@ uint8_t parse_options(CborValue * val, uint8_t * rk, uint8_t * uv, uint8_t * up)
 uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encoder, uint8_t * request, int length)
 {
     int ret;
-    int i;
+    unsigned int i;
     int key;
     size_t map_length;
     CborParser parser;
@@ -775,7 +775,8 @@ uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
 {
     CborValue arr;
     size_t len;
-    int i,ret;
+    int ret;
+    unsigned int i;
     CTAP_credentialDescriptor * cred;
 
     if (cbor_value_get_type(it) != CborArrayType)
@@ -817,7 +818,7 @@ uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
 uint8_t ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int length)
 {
     int ret;
-    int i;
+    unsigned int i;
     int key;
     size_t map_length;
     CborParser parser;
@@ -943,7 +944,8 @@ uint8_t parse_cose_key(CborValue * it, uint8_t * x, uint8_t * y, int * kty, int 
 {
     CborValue map;
     size_t map_length;
-    int i,ret,key;
+    int ret,key;
+    unsigned int i;
     int xkey = 0,ykey = 0;
     *kty = 0;
     *crv = 0;
@@ -1038,7 +1040,7 @@ uint8_t parse_cose_key(CborValue * it, uint8_t * x, uint8_t * y, int * kty, int 
 uint8_t ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length)
 {
     int ret;
-    int i;
+    unsigned int i;
     int key;
     size_t map_length;
     size_t sz;
