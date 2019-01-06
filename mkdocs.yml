@@ -19,3 +19,4 @@ nav:
 theme:
   name: material
   logo: 'images/logo.svg'
+  favicon: 'images/favicon.ico'
