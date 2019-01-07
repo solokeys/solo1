@@ -34,7 +34,7 @@ Solo for Hacker is a special version of Solo that let you customize its firmware
 
 You can only buy Solo for Hacker at [solokeys.com](https://solokeys.com), as we don't sell it on Amazon and other places to avoid confusing customers. If you buy a Hacker, you can permanently lock it into a regular Solo, but viceversa you can NOT take a regular Solo and turn it a Hacker.
 
-If you have a Solo for Hacker, here's how you can load your own code on it. You can find more details, including how to permanently lock it, in our [documentation](https://solo.solokeys.io/building/).
+If you have a Solo for Hacker, here's how you can load your own code on it. You can find more details, including how to permanently lock it, in our [documentation](https://docs.solokeys.io/solo/building/).
 
 ```bash
 git clone --recurse-submodules https://github.com/solokeys/solo
@@ -97,12 +97,12 @@ Or any client example such as:
 python python-fido2/examples/credential.py
 ```
 
-You can find more details in our [documentation](https://solo.solokeys.io), including how to build on the the NUCLEO-L432KC development board.
+You can find more details in our [documentation](https://docs.solokeys.io/solo/), including how to build on the the NUCLEO-L432KC development board.
 
 
 # Documentation
 
-Check out our [official documentation](https://solo.solokeys.io).
+Check out our [official documentation](https://docs.solokeys.io/solo/).
 
 
 # Contributors
