@@ -14,4 +14,4 @@ before_install:
 	- sudo apt-get install -y gcc-arm-embedded
 script:
   - export CC=gcc-7
-  - make test
+  - make travis

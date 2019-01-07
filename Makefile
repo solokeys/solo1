@@ -13,7 +13,7 @@ EFM32_DEBUGGER= -s 440083537 --device EFM32JG1B200F128GM32
 #EFM32_DEBUGGER= -s 440121060    #dev board
 
 src = $(wildcard pc/*.c) $(wildcard fido2/*.c) $(wildcard crypto/sha256/*.c) crypto/tiny-AES-c/aes.c
-obj = $(src:.c=.o) uECC.o
+obj = $(src:.c=.o) crypto/micro-ecc/uECC.o
 
 LIBCBOR = tinycbor/lib/libtinycbor.a
 
@@ -72,7 +72,7 @@ efm32bootprog: efm32com
 $(name): $(obj) $(LIBCBOR)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
 
-uECC.o: ./crypto/micro-ecc/uECC.c
+crypto/micro-ecc/uECC.o: ./crypto/micro-ecc/uECC.c
 	$(CC) -c -o $@ $^ -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform) -I./crypto/micro-ecc/
 
 env2:
