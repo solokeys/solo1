@@ -30,14 +30,14 @@ boot-sig-checking:
 boot-no-sig:
 	$(MAKE) -f $(BOOTMAKE) -j8 bootloader.hex PREFIX=$(PREFIX) EXTRA_DEFINES='-DSOLO_HACKER' DEBUG=0
 
-build-release-locked: clean2 boot-sig-checking clean all-locked
+build-release-locked: cbor clean2 boot-sig-checking clean all-locked
 	$(merge_hex) solo.hex bootloader.hex all.hex
 	rm -f solo.hex bootloader.hex  # don't program solo.hex ...
 
-build-release: clean2 boot-sig-checking clean all
+build-release: cbor clean2 boot-sig-checking clean all
 	$(merge_hex) solo.hex bootloader.hex all.hex
 
-build-hacker: clean2 boot-no-sig clean all-hacker
+build-hacker: cbor clean2 boot-no-sig clean all-hacker
 	$(merge_hex) solo.hex bootloader.hex all.hex
 
 build-debugboot: clean2 debugboot-boot clean debugboot-app
@@ -81,7 +81,6 @@ cbor:
 	$(MAKE) -f application.mk -j8 cbor
 
 test:
-	$(MAKE) cbor
 	$(VENV) $(MAKE) build-release-locked
 	$(VENV) $(MAKE) build-release
 	$(VENV) $(MAKE) build-hacker
