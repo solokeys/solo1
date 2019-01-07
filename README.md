@@ -1,5 +1,5 @@
-[![License](https://img.shields.io/github/license/solokeyssec/solo.svg)](https://github.com/SoloKeysSec/solo/blob/master/LICENSE)
-[![Build Status](https://travis-ci.com/SoloKeysSec/solo.svg?branch=master)](https://travis-ci.com/SoloKeysSec/solo)
+[![License](https://img.shields.io/github/license/solokeys/solo.svg)](https://github.com/solokeys/solo/blob/master/LICENSE)
+[![Build Status](https://travis-ci.com/solokeys/solo.svg?branch=master)](https://travis-ci.com/solokeys/solo)
 [![Discourse Users](https://img.shields.io/discourse/https/discourse.solokeys.com/users.svg)](https://discourse.solokeys.com)
 [![Keybase Chat](https://img.shields.io/badge/chat-on%20keybase-brightgreen.svg)](https://keybase.io/team/solokeys.public)
 
@@ -37,7 +37,7 @@ You can only buy Solo for Hacker at [solokeys.com](https://solokeys.com), as we 
 If you have a Solo for Hacker, here's how you can load your own code on it. You can find more details, including how to permanently lock it, in our [documentation](https://solo.solokeys.io/building/).
 
 ```bash
-git clone --recurse-submodules https://github.com/SoloKeysSec/solo
+git clone --recurse-submodules https://github.com/solokeys/solo
 cd solo
 
 cd targets/stm32l432
@@ -52,7 +52,7 @@ python tools/solotool.py program targets/stm32l432/solo.hex
 
 If you forgot the `--recurse-submodules` when cloning, simply `git submodule update --init --recursive`.
 
-For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/SoloKeysSec/solo/blob/master/targets/stm32l432/src/led.c#L15) and force:
+For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/solokeys/solo/blob/master/targets/stm32l432/src/led.c#L15) and force:
 ```
 uint32_t b = 0;
 ```
@@ -69,7 +69,7 @@ A frequently asked question is whether Solo for Hacker is less secure than regul
 Clone Solo and build it
 
 ```bash
-git clone --recurse-submodules https://github.com/SoloKeysSec/solo
+git clone --recurse-submodules https://github.com/solokeys/solo
 cd solo
 make all
 ```

@@ -1,6 +1,6 @@
 # tl;dr
 
-Create [`/etc/udev/99-solo.rules`](https://github.com/SoloKeysSec/solo/blob/master/99-solo.rules) and add the following (which assumes your user is in group `plugdev`):
+Create [`/etc/udev/99-solo.rules`](https://github.com/solokeys/solo/blob/master/99-solo.rules) and add the following (which assumes your user is in group `plugdev`):
 
 ```
 # Solo
@@ -69,4 +69,4 @@ udevadm trigger
 | U2F Zero | 0483 | a2ca |
 
 ## You got this all wrong, I can't believe it!
-Are you suffering from [us being wrong](https://xkcd.com/386/)? Please, send us a [pull request](https://github.com/SoloKeysSec/solo/pulls) and prove us wrong :D
+Are you suffering from [us being wrong](https://xkcd.com/386/)? Please, send us a [pull request](https://github.com/solokeys/solo/pulls) and prove us wrong :D
