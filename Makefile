@@ -49,7 +49,7 @@ test: env3
 	$(MAKE) clean
 	$(MAKE) -C . main
 	$(MAKE) clean
-	cd ./targets/stm32l432; $(MAKE) test PREFIX=$(PREFIX) VENV=$(VENV)
+	$(MAKE) -C ./targets/stm32l432 test PREFIX=$(PREFIX) "VENV=$(VENV)"
 	$(MAKE) clean
 	$(MAKE) cppcheck
 
@@ -81,8 +81,8 @@ env2:
 
 env3:
 	python3 -m venv env3
-	env3/bin/pip install --upgrade -r tools/requirements.txt
-	env3/bin/pip install --upgrade black
+	env3/bin/pip -q install --upgrade -r tools/requirements.txt
+	env3/bin/pip -q install --upgrade black
 
 # selectively reformat our own code
 black: env3
