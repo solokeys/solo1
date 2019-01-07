@@ -33,7 +33,7 @@ CFLAGS += -DAES256=1 -DAPP_CONFIG=\"app.h\"
 
 name = main
 
-.PHONY: all $(LIBCBOR)
+.PHONY: all $(LIBCBOR) env2 env3 black wink2 wink3 fido2-test clean full-clean travis
 all: main
 
 tinycbor/Makefile crypto/tiny-AES-c/aes.c:
@@ -49,7 +49,7 @@ test: env3
 	$(MAKE) clean
 	$(MAKE) -C . main
 	$(MAKE) clean
-	cd ./targets/stm32l432; $(MAKE) test PREFIX=$(PREFIX) VENV=". ../../env3/bin/activate;"
+	cd ./targets/stm32l432; $(MAKE) test PREFIX=$(PREFIX) VENV=$(VENV)
 	$(MAKE) clean
 	$(MAKE) cppcheck
 
@@ -86,7 +86,7 @@ env3:
 
 # selectively reformat our own code
 black: env3
-	env3/bin/black --skip-string-normalization tools/
+	env3/bin/black --skip-string-normalization --check tools/
 
 wink2: env2
 	env2/bin/python tools/solotool.py solo --wink
@@ -115,3 +115,7 @@ clean:
 
 full-clean: clean
 	rm -rf env2 env3
+
+travis:
+	$(MAKE) test VENV=". ../../env3/bin/activate;"
+	$(MAKE) black
