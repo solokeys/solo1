@@ -47,10 +47,9 @@ clean:
 	$(MAKE) -f $(APPMAKE) clean
 	$(MAKE) -f $(BOOTMAKE) clean
 clean2:
-	rm -f solo.hex bootloader.hex all.hex
+	rm -f solo.hex solo.map bootloader.hex bootloader.map all.hex
 	$(MAKE) -f $(APPMAKE) clean
 	$(MAKE) -f $(BOOTMAKE) clean
-
 
 flash: solo.hex bootloader.hex
 	$(merge_hex) solo.hex bootloader.hex all.hex
