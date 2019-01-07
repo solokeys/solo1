@@ -68,6 +68,10 @@ reconnect each time you program Solo.
 python tools/solotool.py monitor <serial-port>
 ```
 
+#### Linux Users:
+
+[See issue 62](https://github.com/solokeys/solo/issues/62).
+
 ### Building a Solo release
 
 If you want to build a release of Solo, we recommend trying a Hacker build first
