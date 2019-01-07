@@ -1,6 +1,6 @@
 # tl;dr
 
-Create [`/etc/udev/99-solo.rules`](https://github.com/solokeys/solo/blob/master/99-solo.rules) and add the following (which assumes your user is in group `plugdev`):
+Create [`/etc/udev/rules.d/99-solo.rules`](https://github.com/solokeys/solo/blob/master/99-solo.rules) and add the following (which assumes your user is in group `plugdev`):
 
 ```
 # Solo
@@ -13,7 +13,7 @@ KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", ATTRS{idProduct
 Then run
 
 ```
-udevadm trigger
+sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
 # How do udev rules work and why are they needed
