@@ -113,6 +113,12 @@ make flash
  #	STM32_Programmer_CLI -c port=SWD -halt  -d all.hex -rst
 ```
 
+## Manual flashing
+In case you already have a firmware to flash (named `all.hex`), please run the following:
+```bash
+STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
+STM32_Programmer_CLI -c port=SWD -halt  -d all.hex -rst
+```
 
 # Testing
 
