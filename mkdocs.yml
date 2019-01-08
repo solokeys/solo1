@@ -1,21 +1,21 @@
-site_name: Solo
+site_name: Solo Technical Documentation
 site_author: SoloKeys
 site_description: 'Documentation for the SoloKeys solo software'
 site_url: 'https://docs.solokeys.io/solo/'
 repo_url: 'https://github.com/solokeys/solo'
 repo_name: 'solokeys/solo'
-copyright: 'Copyright &copy; 2018-2019 SoloKeys'
+copyright: 'Copyright &copy; 2018 - 2019 SoloKeys'
 
 nav:
-    - Home: solo/index.md
-    - README.md: solo/repo-readme.md
-    - FIDO2 Implementation: solo/fido2-impl.md
-    - Signed update process: solo/signed-updates.md
-    - Building: solo/building.md
-    - Code documentation: solo/code-overview.md
-    - Contributing Code: solo/contributing.md
-    - Contributing Docs: solo/documenting.md
-    - What the udev?!: solo/udev.md
+    - Home: index.md
+    - FIDO2 Implementation: fido2-impl.md
+    - Build instructions: building.md
+    - Signed update process: signed-updates.md
+    - Code documentation: code-overview.md
+    - Contributing Code: contributing.md
+    - Contributing Docs: documenting.md
+    - udev Rules: udev.md
+    - About: repo-readme.md
 
 theme:
   name: material
