@@ -38,11 +38,11 @@
 
 //#define ENABLE_U2F_EXTENSIONS
 
-#define ENABLE_U2F
+// #define ENABLE_U2F
 
-// #define DISABLE_CTAPHID_PING
-// #define DISABLE_CTAPHID_WINK
-// #define DISABLE_CTAPHID_CBOR
+#define DISABLE_CTAPHID_PING
+#define DISABLE_CTAPHID_WINK
+#define DISABLE_CTAPHID_CBOR
 
 void printing_init();
 void hw_init(void);
@@ -69,6 +69,9 @@ void hw_init(void);
 // Button
 #define SOLO_BUTTON_PORT        GPIOA
 #define SOLO_BUTTON_PIN         LL_GPIO_PIN_0
+
+#define SOLO_AMS_CS_PORT        GPIOB
+#define SOLO_AMS_CS_PIN         LL_GPIO_PIN_0
 
 #define SKIP_BUTTON_CHECK_WITH_DELAY        0
 #define SKIP_BUTTON_CHECK_FAST              0
