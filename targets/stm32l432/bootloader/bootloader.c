@@ -58,7 +58,9 @@ typedef struct {
     uint8_t payload[255 - 10];
 } __attribute__((packed)) BootloaderReq;
 
-
+/**
+ * Erase all application pages. **APPLICATION_END_PAGE excluded**.
+ */
 static void erase_application()
 {
     int page;
@@ -72,6 +74,7 @@ static void erase_application()
 #define LAST_PAGE       (APPLICATION_END_PAGE-1)
 static void disable_bootloader()
 {
+    // Clear last 4 bytes of the last application page-1, which is 108th
     uint8_t page[PAGE_SIZE];
     memmove(page, (uint8_t*)LAST_ADDR, PAGE_SIZE);
     memset(page+PAGE_SIZE -4, 0, 4);
@@ -81,6 +84,9 @@ static void disable_bootloader()
 
 static void authorize_application()
 {
+    // Do nothing, if is_authorized_to_boot() returns true, otherwise
+    // clear first 4 bytes of the last 8 bytes of the page 108.
+
     // uint32_t zero = 0;
     // uint32_t * ptr;
     // ptr = (uint32_t *)AUTH_WORD_ADDR;
@@ -88,6 +94,7 @@ static void authorize_application()
     uint8_t page[PAGE_SIZE];
     if (is_authorized_to_boot())
         return;
+    // FIXME refactor: code same as in disable_bootloader(), except clearing start address (-8)
     memmove(page, (uint8_t*)LAST_ADDR, PAGE_SIZE);
     memset(page+PAGE_SIZE -8, 0, 4);
     flash_erase_page(LAST_PAGE);
@@ -96,16 +103,26 @@ static void authorize_application()
 
 int is_authorized_to_boot()
 {
+    // return true, if (uint32_t)AUTH_WORD_ADDR is equal 0
+    // Page -4 -> 124
     uint32_t * auth = (uint32_t *)AUTH_WORD_ADDR;
     return *auth == 0;
 }
 
 int is_bootloader_disabled()
 {
+    // return true, if (uint32_t)AUTH_WORD_ADDR+4 is equal 0
+    // Page -4 -> 124
     uint32_t * auth = (uint32_t *)(AUTH_WORD_ADDR+4);
     return *auth == 0;
 }
 
+/**
+ * Execute bootloader commands
+ * @param klen key length - length of the bootloader request
+ * @param keyh key handle - bootloader request, packeted as key handle
+ * @return
+ */
 int bootloader_bridge(int klen, uint8_t * keyh)
 {
     static int has_erased = 0;
@@ -121,39 +138,49 @@ int bootloader_bridge(int klen, uint8_t * keyh)
         return CTAP1_ERR_INVALID_LENGTH;
     }
 
-    uint8_t * pubkey = (uint8_t*)"\xd2\xa4\x2f\x8f\xb2\x31\x1c\xc1\xf7\x0c\x7e\x64\x32\xfb\xbb\xb4\xa3\xdd\x32\x20\x0f\x1b\x88\x9c\xda\x62\xc2\x83\x25\x93\xdd\xb8\x75\x9d\xf9\x86\xee\x03\x6c\xce\x34\x47\x71\x36\xb3\xb2\xad\x6d\x12\xb7\xbe\x49\x3e\x20\xa4\x61\xac\xc7\x71\xc7\x1f\xa8\x14\xf2";
+    uint8_t * pubkey = (uint8_t*)"\xd2\xa4\x2f\x8f\xb2\x31\x1c\xc1\xf7\x0c\x7e\x64\x32\xfb\xbb\xb4\xa3\xdd\x32\x20"
+                                 "\x0f\x1b\x88\x9c\xda\x62\xc2\x83\x25\x93\xdd\xb8\x75\x9d\xf9\x86\xee\x03\x6c\xce"
+                                 "\x34\x47\x71\x36\xb3\xb2\xad\x6d\x12\xb7\xbe\x49\x3e\x20\xa4\x61\xac\xc7\x71\xc7"
+                                 "\x1f\xa8\x14\xf2";
     const struct uECC_Curve_t * curve = NULL;
 
+    // Translate and enclose the requested address in the MCU flash space, starting from 0x8000000
     uint32_t addr = ((*((uint32_t*)req->addr)) & 0xffffff) | 0x8000000;
 
     uint32_t * ptr = (uint32_t *)addr;
 
     switch(req->op){
         case BootWrite:
+            // Write to MCU's flash.
             printf1(TAG_BOOT, "BootWrite: %08lx\r\n",(uint32_t)ptr);
-            if ((uint32_t)ptr < APPLICATION_START_ADDR || (uint32_t)ptr >= APPLICATION_END_ADDR
+            // Validate write range.
+            if (   (uint32_t)ptr < APPLICATION_START_ADDR
+                || (uint32_t)ptr >= APPLICATION_END_ADDR
                 || ((uint32_t)ptr+len) > APPLICATION_END_ADDR)
             {
                 printf1(TAG_BOOT,"Bound exceeded [%08lx, %08lx]\r\n",APPLICATION_START_ADDR,APPLICATION_END_ADDR);
                 return CTAP2_ERR_NOT_ALLOWED;
             }
 
+            // Clear all application pages, if not done already.
             if (!has_erased || is_authorized_to_boot())
             {
                 erase_application();
                 has_erased = 1;
             }
+            // Fail, if the validation procedure passes.
             if (is_authorized_to_boot())
             {
                 printf2(TAG_ERR, "Error, boot check bypassed\n");
                 exit(1);
             }
-
+            // Do the actual write
             flash_write((uint32_t)ptr,req->payload, len);
 
 
             break;
         case BootDone:
+            // Writing to flash finished. Request code validation.
             printf1(TAG_BOOT, "BootDone: ");
 #ifndef SOLO_HACKER
             if (len != 64)
@@ -162,12 +189,13 @@ int bootloader_bridge(int klen, uint8_t * keyh)
                 return CTAP1_ERR_INVALID_LENGTH;
             }
             dump_hex1(TAG_BOOT, req->payload, 32);
+            // Hash all code, included in the application pages, SHA256
             ptr = (uint32_t *)APPLICATION_START_ADDR;
             crypto_sha256_init();
             crypto_sha256_update((uint8_t*)ptr, APPLICATION_END_ADDR-APPLICATION_START_ADDR);
             crypto_sha256_final(hash);
             curve = uECC_secp256r1();
-
+            // Verify incoming signature made over the SHA256 hash
             if (! uECC_verify(pubkey,
                         hash,
                         32,
@@ -177,6 +205,7 @@ int bootloader_bridge(int klen, uint8_t * keyh)
                 return CTAP2_ERR_OPERATION_DENIED;
             }
 #endif
+            // Set the application validated, and mark for reboot.
             authorize_application();
             REBOOT_FLAG = 1;
             break;
@@ -199,6 +228,7 @@ int bootloader_bridge(int klen, uint8_t * keyh)
             REBOOT_FLAG = 1;
             break;
         case BootDisable:
+            // Disable bootloader using a magic bytes as a confirmation phrase.
             printf1(TAG_BOOT, "BootDisable %08lx.\r\n", *(uint32_t *)(AUTH_WORD_ADDR+4));
             if (req->payload[0] == 0xcd && req->payload[1] == 0xde
                && req->payload[2] == 0xba && req->payload[3] == 0xaa)
@@ -215,6 +245,7 @@ int bootloader_bridge(int klen, uint8_t * keyh)
             break;
 #ifdef SOLO_HACKER
         case BootBootloader:
+            // Boot ST bootloader
             printf1(TAG_BOOT, "BootBootloader.\r\n");
             flash_option_bytes_init(1);
             boot_st_bootloader();
@@ -226,6 +257,9 @@ int bootloader_bridge(int klen, uint8_t * keyh)
     return 0;
 }
 
+/**
+ * Control LEDs while in the bootloader.
+ */
 void bootloader_heartbeat()
 {
     static int state = 0;
