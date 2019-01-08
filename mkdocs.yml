@@ -1,8 +1,9 @@
-site_name: Solo
+site_name: Solo Technical Documentation
 site_author: SoloKeys
 site_description: 'Documentation for the SoloKeys solo software'
-repo_url: 'https://github.com/solokeyssec/solo'
-repo_name: 'solokeyssec/solo'
+site_url: 'https://docs.solokeys.io/solo/'
+repo_url: 'https://github.com/solokeys/solo'
+repo_name: 'solokeys/solo'
 copyright: 'Copyright &copy; 2018 - 2019 SoloKeys'
 
 nav:
@@ -18,4 +19,5 @@ nav:
 
 theme:
   name: material
-  logo: 'images/logo.svg'
+  logo: 'solo/images/logo.svg'
+  favicon: 'solo/images/favicon.ico'
