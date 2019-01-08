@@ -7,6 +7,9 @@
 #include "log.h"
 #include "util.h"
 
+#define SELECT() LL_GPIO_ResetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN)
+#define UNSELECT() LL_GPIO_SetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN)
+
 
 static void flush_rx()
 {
@@ -29,10 +32,29 @@ static void wait_for_rx()
 }
 
 
-#define SELECT() LL_GPIO_ResetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN)
-#define UNSELECT() LL_GPIO_SetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN)
+static void ams_print_device(AMS_DEVICE * dev)
+{
+    printf1(TAG_NFC, "AMS_DEVICE:\r\n");
+    printf1(TAG_NFC, "    io_conf: %02x\r\n",dev->regs.io_conf);
+    printf1(TAG_NFC, "    ic_conf0: %02x\r\n",dev->regs.ic_conf0);
+    printf1(TAG_NFC, "    ic_conf1: %02x\r\n",dev->regs.ic_conf1);
+    printf1(TAG_NFC, "    ic_conf2: %02x\r\n",dev->regs.ic_conf2);
+    printf1(TAG_NFC, "    rfid_status: %02x\r\n",dev->regs.rfid_status);
+    printf1(TAG_NFC, "    ic_status: %02x\r\n",dev->regs.ic_status);
+    printf1(TAG_NFC, "    mask_int0: %02x\r\n",dev->regs.mask_int0);
+    printf1(TAG_NFC, "    mask_int1: %02x\r\n",dev->regs.mask_int1);
+    printf1(TAG_NFC, "    int0: %02x\r\n",dev->regs.int0);
+    printf1(TAG_NFC, "    int1: %02x\r\n",dev->regs.int1);
+    printf1(TAG_NFC, "    buffer_status2: %02x\r\n",dev->regs.buffer_status2);
+    printf1(TAG_NFC, "    buffer_status1: %02x\r\n",dev->regs.buffer_status1);
+    printf1(TAG_NFC, "    last_nfc_addr: %02x\r\n",dev->regs.last_nfc_addr);
+    printf1(TAG_NFC, "    product_type: %02x\r\n",dev->regs.product_type);
+    printf1(TAG_NFC, "    product_subtype: %02x\r\n",dev->regs.product_subtype);
+    printf1(TAG_NFC, "    version_maj: %02x\r\n",dev->regs.version_maj);
+    printf1(TAG_NFC, "    version_min: %02x\r\n",dev->regs.version_min);
+}
 
-uint8_t send_recv(uint8_t b)
+static uint8_t send_recv(uint8_t b)
 {
     wait_for_tx();
     LL_SPI_TransmitData8(SPI1, b);
@@ -41,16 +63,9 @@ uint8_t send_recv(uint8_t b)
     return b;
 }
 
-uint8_t send_recv2(uint8_t b1,uint8_t b2)
-{
-    send_recv(b1);
-    return send_recv(b2);
-}
 
-void ams_write_reg(uint8_t addr, uint8_t tx)
+static void ams_write_reg(uint8_t addr, uint8_t tx)
 {
-    // SELECT();
-    // delay(2);
     send_recv(0x00| addr);
     send_recv(tx);
 
@@ -61,77 +76,48 @@ void ams_write_reg(uint8_t addr, uint8_t tx)
 
 uint8_t ams_read_reg(uint8_t addr)
 {
-	// SELECT();
-    // delay(2);
-
-    uint8_t data = send_recv2(0x20| (addr & 0x1f), 0);
-    // send_recv(0x20| addr);
-    //
-    // uint8_t data = send_recv(0);
-
-    // delay(2);
+    send_recv(0x20| (addr & 0x1f));
+    uint8_t data = send_recv(0);
     UNSELECT();
     SELECT();
     return data;
 }
 
 // data must be 14 bytes long
-void read_reg_block2(uint8_t * data)
+void read_reg_block2(AMS_DEVICE * dev)
 {
 	int i;
 
-	for (i = 0; i < 0x20; i++)
+    for (i = 0; i < 0x20; i++)
 	{
-		// if (i < 6 || (i >=8 && i < 0x0f) || (i >= 0x1e))
-		{
-			*data = ams_read_reg(i);
-			data++;
-		}
+		dev->buf[i] = ams_read_reg(i);
 	}
-
 }
 
 
 // data must be 14 bytes long
-void read_reg_block(uint8_t * data)
+void read_reg_block(AMS_DEVICE * dev)
 {
 	int i;
 	uint8_t mode = 0x20 | (0 );
     flush_rx();
-	// SELECT();
-    // delay(2);
 
 	send_recv(mode);
 	for (i = 0; i < 0x20; i++)
 	{
-		mode = send_recv(0);
-		// if (i < 6 || (i >=8 && i < 0x0f) || (i >= 0x1e))
-		// {
-			*data = mode;
-			data++;
-		// }
+		dev->buf[i] = send_recv(0);
 	}
 
     UNSELECT();
     SELECT();
-	// UNSELECT();
-    // delay(2);
-	// SELECT();
+
 }
 
 void ams_write_command(uint8_t cmd)
 {
-
-	uint8_t mode = cmd;
-	// delay(10);
-
-	// delay(10);
-	SELECT();
-	delay(1);
-	send_recv(mode);
+	send_recv(0xc0 | cmd);
     UNSELECT();
 	SELECT();
-
 }
 
 void nfc_init()
@@ -149,51 +135,39 @@ void nfc_loop()
 {
 
         static int run = 0;
+        AMS_DEVICE ams,ams2;
 
         if (!run)
         {
-            uint8_t regs[0x20];
             run = 1;
 
-            delay(10);
-        	LL_GPIO_SetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN);
-        	delay(10);
-        	// LL_GPIO_ResetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN);
         	delay(10);
             SELECT();
             delay(10);
-            // ams_write_command(0xC2);				// Set to default state
-            // ams_write_command(0xC4);				// Clear buffer
-            ams_write_reg(2,7);
+
+            ams_write_command(AMS_CMD_DEFAULT);
+            ams_write_command(AMS_CMD_CLEAR_BUFFER);
+
+            ams_write_reg(AMS_REG_IC_CONF1,7);
+
             int x;
-            for (x = 0 ; x < 10; x++)
+            for (x = 0 ; x < 2; x++)
             {
-                memset(regs,0,sizeof(regs));
-                // ams_write_reg(1,7);
-                read_reg_block(regs);
-                printf1(TAG_NFC,"regs: "); dump_hex1(TAG_NFC,regs,sizeof(regs));
-
-
+                read_reg_block(&ams);
+                printf1(TAG_NFC,"regs: "); dump_hex1(TAG_NFC,ams.buf,sizeof(AMS_DEVICE));
+                ams_print_device(&ams);
             }
+
             printf1(TAG_NFC,"---\r\n");
-            for (x = 0 ; x < 10; x++)
+            for (x = 0 ; x < 2; x++)
             {
-                memset(regs,0,sizeof(regs));
-                read_reg_block2(regs);
-                printf1(TAG_NFC,"regs: "); dump_hex1(TAG_NFC,regs,sizeof(regs));
+                read_reg_block2(&ams2);
+                printf1(TAG_NFC,"regs: "); dump_hex1(TAG_NFC,ams.buf,sizeof(AMS_DEVICE));
             }
 
-            printf1(TAG_NFC,"Version: %02x\r\n",ams_read_reg(0x1e));
-            printf1(TAG_NFC,"Product Type: %02x\r\n",ams_read_reg(0x1c));
+            printf1(TAG_NFC,"Version: %02x vs %02x\r\n",ams_read_reg(0x1e), ams.regs.version_maj);
+            printf1(TAG_NFC,"Product Type: %02x vs %02x\r\n",ams_read_reg(0x1c), ams.regs.product_type);
+            printf1(TAG_NFC,"Electrical: %02x vs %02x\r\n",ams_read_reg(2), ams.regs.ic_conf1);
 
-            //
-            // LL_GPIO_SetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN);
-            //
-            // memset(regs,0,sizeof(regs));
-            // for (x = 0 ; x < sizeof(regs); x++)
-            // {
-            //     regs[x] = ams_read_reg(x);
-            // }
-            // printf1(TAG_NFC,"regs2: "); dump_hex1(TAG_NFC,regs,sizeof(regs));
         }
 }
