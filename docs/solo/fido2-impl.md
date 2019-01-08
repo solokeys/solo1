@@ -21,7 +21,7 @@ When you register a service with a FIDO2 or U2F authenticator, the
 authenticator must generate a new keypair unique to that service.  This keypair
 could be stored on the authenticator to be used in subsequent authentications,
 but now a certain amount of memory needs to be allocated for this.  On embedded
-devices, there isn't much memory to spare and users will allows frustratingly
+devices, there isn't much memory to spare and users will always frustratingly
 hit the limit of this memory.
 
 The answer to this problem is to do key wrapping.  The authenticator just
