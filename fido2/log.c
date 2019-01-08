@@ -83,7 +83,7 @@ void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...)
     {
         if (tag & tagtable[i].tagn)
         {
-            if (tagtable[i].tag[0]) printf("[%s] ", tagtable[i].tag);
+            if (tagtable[i].tag[0] && !(tag & TAG_NO_TAG)) printf("[%s] ", tagtable[i].tag);
             i = 0;
             break;
         }

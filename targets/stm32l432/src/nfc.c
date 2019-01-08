@@ -35,23 +35,23 @@ static void wait_for_rx()
 static void ams_print_device(AMS_DEVICE * dev)
 {
     printf1(TAG_NFC, "AMS_DEVICE:\r\n");
-    printf1(TAG_NFC, "    io_conf: %02x\r\n",dev->regs.io_conf);
-    printf1(TAG_NFC, "    ic_conf0: %02x\r\n",dev->regs.ic_conf0);
-    printf1(TAG_NFC, "    ic_conf1: %02x\r\n",dev->regs.ic_conf1);
-    printf1(TAG_NFC, "    ic_conf2: %02x\r\n",dev->regs.ic_conf2);
-    printf1(TAG_NFC, "    rfid_status: %02x\r\n",dev->regs.rfid_status);
-    printf1(TAG_NFC, "    ic_status: %02x\r\n",dev->regs.ic_status);
-    printf1(TAG_NFC, "    mask_int0: %02x\r\n",dev->regs.mask_int0);
-    printf1(TAG_NFC, "    mask_int1: %02x\r\n",dev->regs.mask_int1);
-    printf1(TAG_NFC, "    int0: %02x\r\n",dev->regs.int0);
-    printf1(TAG_NFC, "    int1: %02x\r\n",dev->regs.int1);
+    printf1(TAG_NFC, "    io_conf:        %02x\r\n",dev->regs.io_conf);
+    printf1(TAG_NFC, "    ic_conf0:       %02x\r\n",dev->regs.ic_conf0);
+    printf1(TAG_NFC, "    ic_conf1:       %02x\r\n",dev->regs.ic_conf1);
+    printf1(TAG_NFC, "    ic_conf2:       %02x\r\n",dev->regs.ic_conf2);
+    printf1(TAG_NFC, "    rfid_status:    %02x\r\n",dev->regs.rfid_status);
+    printf1(TAG_NFC, "    ic_status:      %02x\r\n",dev->regs.ic_status);
+    printf1(TAG_NFC, "    mask_int0:      %02x\r\n",dev->regs.mask_int0);
+    printf1(TAG_NFC, "    mask_int1:      %02x\r\n",dev->regs.mask_int1);
+    printf1(TAG_NFC, "    int0:           %02x\r\n",dev->regs.int0);
+    printf1(TAG_NFC, "    int1:           %02x\r\n",dev->regs.int1);
     printf1(TAG_NFC, "    buffer_status2: %02x\r\n",dev->regs.buffer_status2);
     printf1(TAG_NFC, "    buffer_status1: %02x\r\n",dev->regs.buffer_status1);
-    printf1(TAG_NFC, "    last_nfc_addr: %02x\r\n",dev->regs.last_nfc_addr);
-    printf1(TAG_NFC, "    product_type: %02x\r\n",dev->regs.product_type);
-    printf1(TAG_NFC, "    product_subtype: %02x\r\n",dev->regs.product_subtype);
-    printf1(TAG_NFC, "    version_maj: %02x\r\n",dev->regs.version_maj);
-    printf1(TAG_NFC, "    version_min: %02x\r\n",dev->regs.version_min);
+    printf1(TAG_NFC, "    last_nfc_addr:  %02x\r\n",dev->regs.last_nfc_addr);
+    printf1(TAG_NFC, "    product_type:   %02x\r\n",dev->regs.product_type);
+    printf1(TAG_NFC, "    product_subtype:%02x\r\n",dev->regs.product_subtype);
+    printf1(TAG_NFC, "    version_maj:    %02x\r\n",dev->regs.version_maj);
+    printf1(TAG_NFC, "    version_min:    %02x\r\n",dev->regs.version_min);
 }
 
 static uint8_t send_recv(uint8_t b)
@@ -110,7 +110,19 @@ void read_reg_block(AMS_DEVICE * dev)
 
     UNSELECT();
     SELECT();
+}
 
+void ams_read_buffer(uint8_t * data, int len)
+{
+    int i;
+    send_recv(0xa0);
+    while(len--)
+    {
+        *data++ = send_recv(0x00);
+    }
+
+    UNSELECT();
+    SELECT();
 }
 
 void ams_write_command(uint8_t cmd)
@@ -119,6 +131,87 @@ void ams_write_command(uint8_t cmd)
     UNSELECT();
 	SELECT();
 }
+
+const char * ams_get_state_string(uint8_t regval)
+{
+    if (regval & AMS_STATE_INVALID)
+    {
+        return "STATE_INVALID";
+    }
+    switch (regval & AMS_STATE_MASK)
+    {
+        case AMS_STATE_OFF:
+            return "STATE_OFF";
+        case AMS_STATE_SENSE:
+            return "STATE_SENSE";
+        case AMS_STATE_RESOLUTION:
+            return "STATE_RESOLUTION";
+        case AMS_STATE_RESOLUTION_L2:
+            return "STATE_RESOLUTION_L2";
+        case AMS_STATE_SELECTED:
+            return "STATE_SELECTED";
+        case AMS_STATE_SECTOR2:
+            return "STATE_SECTOR2";
+        case AMS_STATE_SECTORX_2:
+            return "STATE_SECTORX_2";
+        case AMS_STATE_SELECTEDX:
+            return "STATE_SELECTEDX";
+        case AMS_STATE_SENSEX_L2:
+            return "STATE_SENSEX_L2";
+        case AMS_STATE_SENSEX:
+            return "STATE_SENSEX";
+        case AMS_STATE_SLEEP:
+            return "STATE_SLEEP";
+    }
+    return "STATE_WRONG";
+}
+
+void ams_print_int0(uint8_t int0)
+{
+    printf1(TAG_NFC,"    ");
+    if (int0 & AMS_INT_XRF)
+        printf1(TAG_NFC|TAG_NO_TAG," XRF");
+    if (int0 & AMS_INT_TXE)
+        printf1(TAG_NFC|TAG_NO_TAG," TXE");
+    if (int0 & AMS_INT_RXE)
+        printf1(TAG_NFC|TAG_NO_TAG," RXE");
+    if (int0 & AMS_INT_EER_RF)
+        printf1(TAG_NFC|TAG_NO_TAG," EER_RF");
+    if (int0 & AMS_INT_EEW_RF)
+        printf1(TAG_NFC|TAG_NO_TAG," EEW_RF");
+    if (int0 & AMS_INT_SLP)
+        printf1(TAG_NFC|TAG_NO_TAG," SLP");
+    if (int0 & AMS_INT_WU_A)
+        printf1(TAG_NFC|TAG_NO_TAG," WU_A");
+    if (int0 & AMS_INT_INIT)
+        printf1(TAG_NFC|TAG_NO_TAG," INIT");
+
+    printf1(TAG_NFC|TAG_NO_TAG,"\r\n");
+}
+
+void ams_print_int1(uint8_t int0)
+{
+    printf1(TAG_NFC,"    ");
+    if (int0 & AMS_INT_ACC_ERR)
+        printf1(TAG_NFC|TAG_NO_TAG," ACC_ERR");
+    if (int0 & AMS_INT_EEAC_ERR)
+        printf1(TAG_NFC|TAG_NO_TAG," EEAC_ERR");
+    if (int0 & AMS_INT_IO_EEWR)
+        printf1(TAG_NFC|TAG_NO_TAG," IO_EEWR");
+    if (int0 & AMS_INT_BF_ERR)
+        printf1(TAG_NFC|TAG_NO_TAG," BF_ERR");
+    if (int0 & AMS_INT_CRC_ERR)
+        printf1(TAG_NFC|TAG_NO_TAG," CRC_ERR");
+    if (int0 & AMS_INT_PAR_ERR)
+        printf1(TAG_NFC|TAG_NO_TAG," PAR_ERR");
+    if (int0 & AMS_INT_FRM_ERR)
+        printf1(TAG_NFC|TAG_NO_TAG," FRM_ERR");
+    if (int0 & AMS_INT_RXS)
+        printf1(TAG_NFC|TAG_NO_TAG," RXS");
+
+    printf1(TAG_NFC|TAG_NO_TAG,"\r\n");
+}
+
 
 void nfc_init()
 {
@@ -129,45 +222,63 @@ void nfc_init()
     LL_SPI_SetClockPhase(SPI1,LL_SPI_PHASE_2EDGE);
     LL_SPI_SetRxFIFOThreshold(SPI1,LL_SPI_RX_FIFO_TH_QUARTER);
     LL_SPI_Enable(SPI1);
+
+    delay(10);
+    SELECT();
+    delay(10);
+
+
+    ams_write_command(AMS_CMD_DEFAULT);
+    ams_write_command(AMS_CMD_CLEAR_BUFFER);
+
+    // enable tunneling mode and RF configuration
+    ams_write_reg(AMS_REG_IC_CONF2, AMS_RFCFG_EN | AMS_TUN_MOD);
 }
 
 void nfc_loop()
 {
 
-        static int run = 0;
-        AMS_DEVICE ams,ams2;
+    const uint32_t interval = 200;
+    static uint32_t t1 = 0;
+    uint8_t buf[32];
+    AMS_DEVICE ams,ams2;
+    int len = 0;
 
-        if (!run)
+    if (millis() - t1 > interval)
+    {
+        t1 = millis();
+        read_reg_block(&ams);
+        printf1(TAG_NFC,"regs: "); dump_hex1(TAG_NFC,ams.buf,sizeof(AMS_DEVICE));
+
+        if (ams.regs.rfid_status)
         {
-            run = 1;
-
-        	delay(10);
-            SELECT();
-            delay(10);
-
-            ams_write_command(AMS_CMD_DEFAULT);
-            ams_write_command(AMS_CMD_CLEAR_BUFFER);
-
-            ams_write_reg(AMS_REG_IC_CONF1,7);
-
-            int x;
-            for (x = 0 ; x < 2; x++)
-            {
-                read_reg_block(&ams);
-                printf1(TAG_NFC,"regs: "); dump_hex1(TAG_NFC,ams.buf,sizeof(AMS_DEVICE));
-                ams_print_device(&ams);
-            }
-
-            printf1(TAG_NFC,"---\r\n");
-            for (x = 0 ; x < 2; x++)
-            {
-                read_reg_block2(&ams2);
-                printf1(TAG_NFC,"regs: "); dump_hex1(TAG_NFC,ams.buf,sizeof(AMS_DEVICE));
-            }
-
-            printf1(TAG_NFC,"Version: %02x vs %02x\r\n",ams_read_reg(0x1e), ams.regs.version_maj);
-            printf1(TAG_NFC,"Product Type: %02x vs %02x\r\n",ams_read_reg(0x1c), ams.regs.product_type);
-            printf1(TAG_NFC,"Electrical: %02x vs %02x\r\n",ams_read_reg(2), ams.regs.ic_conf1);
-
+            printf1(TAG_NFC,"    %s\r\n", ams_get_state_string(ams.regs.rfid_status));
         }
+        if (ams.regs.int0)
+        {
+            ams_print_int0(ams.regs.int0);
+        }
+        if (ams.regs.int1)
+        {
+            ams_print_int1(ams.regs.int1);
+        }
+        if (ams.regs.buffer_status2)
+        {
+            if (ams.regs.buffer_status2 & AMS_BUF_INVALID)
+            {
+                printf1(TAG_NFC,"Buffer being updated!\r\n");
+            }
+            else
+            {
+                len = ams.regs.buffer_status2 & AMS_BUF_LEN_MASK;
+                printf1(TAG_NFC,"%d bytes in buffer\r\n", len);
+                ams_read_buffer(buf, len);
+                dump_hex1(TAG_NFC, buf, len);
+            }
+        }
+        // ams_print_device( &ams);
+    }
+
+
+
 }

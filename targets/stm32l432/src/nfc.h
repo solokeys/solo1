@@ -36,6 +36,46 @@ typedef union
 #define AMS_REG_IC_CONF0                0x01
 #define AMS_REG_IC_CONF1                0x02
 #define AMS_REG_IC_CONF2                0x03
+    #define AMS_RFCFG_EN                0x80
+    #define AMS_TUN_MOD                 0x40
+#define AMS_REG_RFID_STATUS             0x04
+    #define AMS_HF_PON                  0x80
+    #define AMS_STATE_MASK              0x78
+    #define AMS_STATE_INVALID           0x04
+    #define AMS_STATE_OFF               (0 << 3)
+    #define AMS_STATE_SENSE             (1 << 3)
+    #define AMS_STATE_RESOLUTION        (3 << 3)
+    #define AMS_STATE_RESOLUTION_L2     (2 << 3)
+    #define AMS_STATE_SELECTED          (6 << 3)
+    #define AMS_STATE_SECTOR2           (7 << 3)
+    #define AMS_STATE_SECTORX_2         (0xf << 3)
+    #define AMS_STATE_SELECTEDX         (0xd << 3)
+    #define AMS_STATE_SENSEX_L2         (0xa << 3)
+    #define AMS_STATE_SENSEX            (0xb << 3)
+    #define AMS_STATE_SLEEP             (0x9 << 3)
+// ... //
+#define AMS_REG_INT0                    0x0a
+    #define AMS_INT_XRF                 (1<<0)
+    #define AMS_INT_TXE                 (1<<1)
+    #define AMS_INT_RXE                 (1<<2)
+    #define AMS_INT_EER_RF              (1<<3)
+    #define AMS_INT_EEW_RF              (1<<4)
+    #define AMS_INT_SLP                 (1<<5)
+    #define AMS_INT_WU_A                (1<<6)
+    #define AMS_INT_INIT                (1<<7)
+#define AMS_REG_INT0                    0x0b
+    #define AMS_INT_ACC_ERR             (1<<0)
+    #define AMS_INT_EEAC_ERR            (1<<1)
+    #define AMS_INT_IO_EEWR             (1<<2)
+    #define AMS_INT_BF_ERR              (1<<3)
+    #define AMS_INT_CRC_ERR             (1<<4)
+    #define AMS_INT_PAR_ERR             (1<<5)
+    #define AMS_INT_FRM_ERR             (1<<6)
+    #define AMS_INT_RXS                 (1<<7)
+#define AMS_REG_BUF2                    0x0c
+    #define AMS_BUF_LEN_MASK            0x1f
+    #define AMS_BUF_INVALID             0x80
+
 
 #define AMS_CMD_DEFAULT                 0x02
 #define AMS_CMD_CLEAR_BUFFER            0x04

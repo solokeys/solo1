@@ -59,6 +59,7 @@ typedef enum
     TAG_EXT = (1 << 17),
     TAG_NFC = (1 << 18),
 
+    TAG_NO_TAG = (1<<30),
     TAG_FILENO = (1<<31)
 } LOG_TAG;
 
