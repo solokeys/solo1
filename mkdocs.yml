@@ -10,6 +10,7 @@ nav:
     - Home: solo/index.md
     - FIDO2 Implementation: solo/fido2-impl.md
     - Build instructions: solo/building.md
+    - Running on Nucleo32 board: solo/nucleo32-board.md
     - Signed update process: solo/signed-updates.md
     - Code documentation: solo/code-overview.md
     - Contributing Code: solo/contributing.md
