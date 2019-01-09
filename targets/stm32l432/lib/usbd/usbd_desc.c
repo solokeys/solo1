@@ -56,12 +56,14 @@
 #ifndef SOLO_HACKER
 #define USBD_MANUFACTURER_STRING        "Solo Keys"
 #define USBD_PRODUCT_FS_STRING          "Solo"
-#define USBD_SERIAL_NUM                 "solocafebabe"
+#ifndef USBD_SERIAL_NUM
+#define USBD_SERIAL_NUM                 "0123456789ABCDEF"
+#endif
 #else
 #define USBD_MANUFACTURER_STRING        "Solo Keys"
 #define USBD_PRODUCT_FS_STRING          "Solo HACKER (Unlocked)"
 #ifndef USBD_SERIAL_NUM
-#define USBD_SERIAL_NUM                 "Solo-Keys-Solo"
+#define USBD_SERIAL_NUM                 "0123456789ABCDEF"
 #endif
 #endif
 
