@@ -1,21 +1,21 @@
 /*
  * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- * 
+ *
  * This file is part of Solo.
- * 
+ *
  * Solo is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Solo is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- * 
+ *
  * This code is available under licenses for commercial use.
  * Please contact SoloKeys for more information.
  */
@@ -234,12 +234,15 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
     }
 
     count = ctap_atomic_count(0);
-
+    hash[0] = (count >> 24) & 0xff;
+    hash[1] = (count >> 16) & 0xff;
+    hash[2] = (count >> 8) & 0xff;
+    hash[3] = (count >> 0) & 0xff;
     crypto_sha256_init();
 
     crypto_sha256_update(req->app,32);
     crypto_sha256_update(&up,1);
-    crypto_sha256_update((uint8_t *)&count,4);
+    crypto_sha256_update(hash,4);
     crypto_sha256_update(req->chal,32);
 
     crypto_sha256_final(hash);
@@ -248,7 +251,11 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
     crypto_ecc256_sign(hash, 32, sig);
 
     u2f_response_writeback(&up,1);
-    u2f_response_writeback((uint8_t *)&count,4);
+    hash[0] = (count >> 24) & 0xff;
+    hash[1] = (count >> 16) & 0xff;
+    hash[2] = (count >> 8) & 0xff;
+    hash[3] = (count >> 0) & 0xff;
+    u2f_response_writeback(hash,4);
     dump_signature_der(sig);
 
     return U2F_SW_NO_ERROR;
