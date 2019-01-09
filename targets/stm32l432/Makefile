@@ -31,17 +31,17 @@ boot-no-sig:
 	$(MAKE) -f $(BOOTMAKE) -j8 bootloader.hex PREFIX=$(PREFIX) EXTRA_DEFINES='-DSOLO_HACKER' DEBUG=0
 
 build-release-locked: cbor clean2 boot-sig-checking clean all-locked
-	$(merge_hex) solo.hex bootloader.hex all.hex
+	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
 	rm -f solo.hex bootloader.hex  # don't program solo.hex ...
 
 build-release: cbor clean2 boot-sig-checking clean all
-	$(merge_hex) solo.hex bootloader.hex all.hex
+	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
 
 build-hacker: cbor clean2 boot-no-sig clean all-hacker
-	$(merge_hex) solo.hex bootloader.hex all.hex
+	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
 
 build-debugboot: clean2 debugboot-boot clean debugboot-app
-	$(merge_hex) solo.hex bootloader.hex all.hex
+	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
 
 clean:
 	$(MAKE) -f $(APPMAKE) clean
@@ -52,17 +52,17 @@ clean2:
 	$(MAKE) -f $(BOOTMAKE) clean
 
 flash: solo.hex bootloader.hex
-	$(merge_hex) solo.hex bootloader.hex all.hex
+	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
 	STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
 	STM32_Programmer_CLI -c port=SWD -halt  -d all.hex -rst
 
 flash_dfu: solo.hex bootloader.hex
-	$(merge_hex) solo.hex bootloader.hex all.hex
+	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
 	# STM32_Programmer_CLI -c port=usb1 -halt -e all --readunprotect
 	STM32_Programmer_CLI -c port=usb1 -halt -rdu  -d all.hex
 
 flashboot: solo.hex bootloader.hex
-	$(merge_hex) solo.hex bootloader.hex all.hex
+	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
 	STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
 	STM32_Programmer_CLI -c port=SWD -halt  -d bootloader.hex -rst
 
@@ -80,8 +80,8 @@ cbor:
 	$(MAKE) -f application.mk -j8 cbor
 
 test:
-	$(VENV) $(MAKE) build-release-locked
-	$(VENV) $(MAKE) build-release
-	$(VENV) $(MAKE) build-hacker
-	$(VENV) $(MAKE) build-debugboot
+	$(MAKE) build-release-locked
+	$(MAKE) build-release
+	$(MAKE) build-hacker
+	$(MAKE) build-debugboot
 	$(MAKE) clean2
