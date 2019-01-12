@@ -125,6 +125,39 @@ void ams_read_buffer(uint8_t * data, int len)
     SELECT();
 }
 
+// data must be 4 bytes
+void ams_read_eeprom_block(uint8_t block, uint8_t * data)
+{
+    int i;
+    send_recv(0x7f);
+    send_recv(block << 1);
+
+    data[0] = send_recv(0);
+    data[1] = send_recv(0);
+    data[2] = send_recv(0);
+    data[3] = send_recv(0);
+
+    UNSELECT();
+    SELECT();
+}
+
+
+// data must be 4 bytes
+void ams_write_eeprom_block(uint8_t block, uint8_t * data)
+{
+    int i;
+    send_recv(0x40);
+    send_recv(block << 1);
+
+    send_recv(data[0]);
+    send_recv(data[1]);
+    send_recv(data[2]);
+    send_recv(data[3]);
+
+    UNSELECT();
+    SELECT();
+}
+
 void ams_write_command(uint8_t cmd)
 {
 	send_recv(0xc0 | cmd);
@@ -168,53 +201,56 @@ const char * ams_get_state_string(uint8_t regval)
 
 void ams_print_int0(uint8_t int0)
 {
+    uint32_t tag = (TAG_NFC)|(TAG_NO_TAG);
     printf1(TAG_NFC,"    ");
     if (int0 & AMS_INT_XRF)
-        printf1(TAG_NFC|TAG_NO_TAG," XRF");
+        printf1(tag," XRF");
     if (int0 & AMS_INT_TXE)
-        printf1(TAG_NFC|TAG_NO_TAG," TXE");
+        printf1(tag," TXE");
     if (int0 & AMS_INT_RXE)
-        printf1(TAG_NFC|TAG_NO_TAG," RXE");
+        printf1(tag," RXE");
     if (int0 & AMS_INT_EER_RF)
-        printf1(TAG_NFC|TAG_NO_TAG," EER_RF");
+        printf1(tag," EER_RF");
     if (int0 & AMS_INT_EEW_RF)
-        printf1(TAG_NFC|TAG_NO_TAG," EEW_RF");
+        printf1(tag," EEW_RF");
     if (int0 & AMS_INT_SLP)
-        printf1(TAG_NFC|TAG_NO_TAG," SLP");
+        printf1(tag," SLP");
     if (int0 & AMS_INT_WU_A)
-        printf1(TAG_NFC|TAG_NO_TAG," WU_A");
+        printf1(tag," WU_A");
     if (int0 & AMS_INT_INIT)
-        printf1(TAG_NFC|TAG_NO_TAG," INIT");
+        printf1(tag," INIT");
 
-    printf1(TAG_NFC|TAG_NO_TAG,"\r\n");
+    printf1(tag,"\r\n");
 }
 
 void ams_print_int1(uint8_t int0)
 {
+    uint32_t tag = (TAG_NFC)|(TAG_NO_TAG);
     printf1(TAG_NFC,"    ");
     if (int0 & AMS_INT_ACC_ERR)
-        printf1(TAG_NFC|TAG_NO_TAG," ACC_ERR");
+        printf1(tag," ACC_ERR");
     if (int0 & AMS_INT_EEAC_ERR)
-        printf1(TAG_NFC|TAG_NO_TAG," EEAC_ERR");
+        printf1(tag," EEAC_ERR");
     if (int0 & AMS_INT_IO_EEWR)
-        printf1(TAG_NFC|TAG_NO_TAG," IO_EEWR");
+        printf1(tag," IO_EEWR");
     if (int0 & AMS_INT_BF_ERR)
-        printf1(TAG_NFC|TAG_NO_TAG," BF_ERR");
+        printf1(tag," BF_ERR");
     if (int0 & AMS_INT_CRC_ERR)
-        printf1(TAG_NFC|TAG_NO_TAG," CRC_ERR");
+        printf1(tag," CRC_ERR");
     if (int0 & AMS_INT_PAR_ERR)
-        printf1(TAG_NFC|TAG_NO_TAG," PAR_ERR");
+        printf1(tag," PAR_ERR");
     if (int0 & AMS_INT_FRM_ERR)
-        printf1(TAG_NFC|TAG_NO_TAG," FRM_ERR");
+        printf1(tag," FRM_ERR");
     if (int0 & AMS_INT_RXS)
-        printf1(TAG_NFC|TAG_NO_TAG," RXS");
+        printf1(tag," RXS");
 
-    printf1(TAG_NFC|TAG_NO_TAG,"\r\n");
+    printf1(tag,"\r\n");
 }
 
 
 void nfc_init()
 {
+    uint8_t block[4];
     LL_GPIO_SetPinMode(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN,LL_GPIO_MODE_OUTPUT);
     LL_GPIO_SetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN);
 
@@ -233,6 +269,40 @@ void nfc_init()
 
     // enable tunneling mode and RF configuration
     ams_write_reg(AMS_REG_IC_CONF2, AMS_RFCFG_EN | AMS_TUN_MOD);
+
+    ams_read_eeprom_block(0, block);
+    printf1(TAG_NFC,"UID: "); dump_hex1(TAG_NFC,block,4);
+
+    ams_read_eeprom_block(0, block);
+    printf1(TAG_NFC,"UID: "); dump_hex1(TAG_NFC,block,4);
+
+    ams_read_eeprom_block(AMS_CONFIG_BLOCK0_ADDR, block);
+    printf1(TAG_NFC,"conf0: "); dump_hex1(TAG_NFC,block,4);
+
+    ams_read_eeprom_block(AMS_CONFIG_BLOCK1_ADDR, block);
+    printf1(TAG_NFC,"conf1: "); dump_hex1(TAG_NFC,block,4);
+
+    uint8_t ic_cfg1 = AMS_CFG1_OUTPUT_RESISTANCE_100 | AMS_CFG1_VOLTAGE_LEVEL_2V0;
+    uint8_t ic_cfg2 = AMS_CFG2_RFCFG_EN | AMS_CFG2_TUN_MOD;
+
+    if (block[0] != ic_cfg1 || block[1] != ic_cfg2)
+    {
+        printf1(TAG_NFC,"Writing...\r\n");
+        // set IC_CFG1
+        block[0] = ic_cfg1;
+
+        // set IC_CFG2
+        block[1] = ic_cfg2;
+
+        // mask interrupt bits
+        block[2] = 0x80;
+        block[3] = 0;
+
+        ams_write_eeprom_block(0x7F, block);
+    }
+
+    ams_read_eeprom_block(0x7F, block);
+    printf1(TAG_NFC,"conf1: "); dump_hex1(TAG_NFC,block,4);
 }
 
 void nfc_loop()
@@ -244,7 +314,8 @@ void nfc_loop()
     AMS_DEVICE ams,ams2;
     int len = 0;
 
-    if (millis() - t1 > interval)
+    // if (millis() - t1 > interval)
+    if (0)
     {
         t1 = millis();
         read_reg_block(&ams);

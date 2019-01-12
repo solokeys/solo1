@@ -63,7 +63,7 @@ typedef union
     #define AMS_INT_SLP                 (1<<5)
     #define AMS_INT_WU_A                (1<<6)
     #define AMS_INT_INIT                (1<<7)
-#define AMS_REG_INT0                    0x0b
+#define AMS_REG_INT1                    0x0b
     #define AMS_INT_ACC_ERR             (1<<0)
     #define AMS_INT_EEAC_ERR            (1<<1)
     #define AMS_INT_IO_EEWR             (1<<2)
@@ -76,6 +76,19 @@ typedef union
     #define AMS_BUF_LEN_MASK            0x1f
     #define AMS_BUF_INVALID             0x80
 
+#define AMS_CONFIG_BLOCK0_ADDR          0x7e
+#define AMS_CONFIG_BLOCK1_ADDR          0x7f
+
+#define AMS_CFG1_VOLTAGE_LEVEL_1V9      (0x00<<2)
+#define AMS_CFG1_VOLTAGE_LEVEL_2V0      (0x01<<2)
+
+#define AMS_CFG1_OUTPUT_RESISTANCE_ZZ   0x00
+#define AMS_CFG1_OUTPUT_RESISTANCE_100  0x01
+#define AMS_CFG1_OUTPUT_RESISTANCE_50   0x02
+#define AMS_CFG1_OUTPUT_RESISTANCE_25   0x03
+
+#define AMS_CFG2_RFCFG_EN               (1<<7)
+#define AMS_CFG2_TUN_MOD                (1<<6)
 
 #define AMS_CMD_DEFAULT                 0x02
 #define AMS_CMD_CLEAR_BUFFER            0x04
