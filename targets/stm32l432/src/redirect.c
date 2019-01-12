@@ -37,15 +37,18 @@ void _putchar(char c)
     LL_USART_TransmitData8(DEBUG_UART,c);
 #endif
 }
-
+static int NFC = 0;
 
 
 int _write (int fd, const void *buf, long int len)
 {
     uint8_t * data = (uint8_t *) buf;
 
-    // Send out USB serial
-    CDC_Transmit_FS(data, len);
+    if (!NFC)
+    {
+        // Send out USB serial
+        CDC_Transmit_FS(data, len);
+    }
 
     // Send out UART serial
     while(len--)
