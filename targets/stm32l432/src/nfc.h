@@ -110,4 +110,18 @@ typedef struct
 #define AMS_CMD_SENSE                   0x11
 #define AMS_CMD_SENSE_SLEEP             0x12
 
+#define NFC_CMD_REQA                  0x26
+#define NFC_CMD_WUPA                  0x52
+#define NFC_CMD_HLTA                  0x50
+#define NFC_CMD_RATS                  0xe0
+
+#define NFC_CMD_PPSS                  0xd0
+#define IS_PPSS_CMD(x)                (((x) & 0xf0) == NFC_CMD_PPSS)
+#define NFC_CMD_IBLOCK                0x00
+#define IS_IBLOCK(x)                  (((x) & 0xe0) == NFC_CMD_IBLOCK)
+#define NFC_CMD_RBLOCK                0xa0
+#define IS_RBLOCK(x)                  (((x) & 0xe0) == NFC_CMD_RBLOCK)
+#define NFC_CMD_SBLOCK                0xc0
+#define IS_SBLOCK(x)                  (((x) & 0xc0) == NFC_CMD_SBLOCK)
+
 #endif

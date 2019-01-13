@@ -120,7 +120,6 @@ void read_reg_block(AMS_DEVICE * dev)
 
 void ams_read_buffer(uint8_t * data, int len)
 {
-    int i;
     send_recv(0xa0);
     while(len--)
     {
@@ -133,7 +132,6 @@ void ams_read_buffer(uint8_t * data, int len)
 
 void ams_write_buffer(uint8_t * data, int len)
 {
-    int i;
     send_recv(0x80);
     while(len--)
     {
@@ -147,7 +145,6 @@ void ams_write_buffer(uint8_t * data, int len)
 // data must be 4 bytes
 void ams_read_eeprom_block(uint8_t block, uint8_t * data)
 {
-    int i;
     send_recv(0x7f);
     send_recv(block << 1);
 
@@ -164,7 +161,6 @@ void ams_read_eeprom_block(uint8_t block, uint8_t * data)
 // data must be 4 bytes
 void ams_write_eeprom_block(uint8_t block, uint8_t * data)
 {
-    int i;
     send_recv(0x40);
     send_recv(block << 1);
 
@@ -368,19 +364,13 @@ void nfc_write_frame(uint8_t * data, uint8_t len)
 
 }
 
-int answer_rats(RATS_REQUEST * rats)
+int answer_rats(uint8_t parameter)
 {
-    if (rats->start != 0xE0)
-    {
-        printf1(TAG_ERR, "Not a RATS request.  Ignoring.\r\n");
-        return 1;
-    }
 
-    uint8_t fsdi = (rats->parameter & 0xf0) >> 4;
-    uint8_t cid = (rats->parameter & 0x0f);
+    uint8_t fsdi = (parameter & 0xf0) >> 4;
+    uint8_t cid = (parameter & 0x0f);
 
-    // printf1(TAG_NFC, "fsdi: %x\r\n",fsdi);
-    // printf1(TAG_NFC, "cid: %x\r\n",cid);
+    NFC_STATE.cid = cid;
 
     if (fsdi == 0)
         NFC_STATE.max_frame_size = 16;
@@ -389,11 +379,20 @@ int answer_rats(RATS_REQUEST * rats)
     else
         NFC_STATE.max_frame_size = 32;
 
-    uint8_t res[2];
-    res[0] = 2;
-    res[1] = 2;     // 2 FSCI == 32 byte frame size
+    uint8_t res[3];
+    res[0] = 3;
+    res[1] = 2 | (1<<5);     // 2 FSCI == 32 byte frame size, TB is enabled
 
-    nfc_write_frame(res,2);
+    // frame wait time = (256 * 16 / 13.56MHz) * 2^FWI
+    // FWI=0, FMT=0.3ms (min)
+    // FWI=4, FMT=4.8ms (default)
+    // FWI=10, FMT=309ms
+    // FWI=12, FMT=1237ms
+    // FWI=14, FMT=4949ms (max)
+    res[2] = (12<<4) | (0);     // TB (FWI << 4) | (SGTI)
+
+
+    nfc_write_frame(res,3);
     return 0;
 }
 
@@ -453,9 +452,51 @@ void nfc_loop()
         {
             // printf1(TAG_NFC,"RATS %d\r\n",c++);
             // ams_write_command(AMS_CMD_TRANSMIT_ACK);
-            t1 = millis();
-            answer_rats((RATS_REQUEST*)buf);
-            printf1(TAG_NFC,"RATS answered %d (took %d)\r\n",millis(), millis() - t1);
+            switch(buf[0])
+            {
+                case NFC_CMD_REQA:
+                    printf1(TAG_NFC, "NFC_CMD_REQA\r\n");
+                break;
+                case NFC_CMD_WUPA:
+                    printf1(TAG_NFC, "NFC_CMD_WUPA\r\n");
+                break;
+                case NFC_CMD_HLTA:
+                    printf1(TAG_NFC, "HLTA/Halt\r\n");
+                break;
+                case NFC_CMD_RATS:
+                    t1 = millis();
+                    answer_rats(buf[1]);
+                    printf1(TAG_NFC,"RATS answered %d (took %d)\r\n",millis(), millis() - t1);
+                break;
+                default:
+
+                    if (IS_PPSS_CMD(buf[0]))
+                    {
+                        printf1(TAG_NFC, "NFC_CMD_PPSS\r\n");
+                    }
+                    else if (IS_IBLOCK(buf[0]))
+                    {
+                        printf1(TAG_NFC, "NFC_CMD_IBLOCK\r\n");
+                    }
+                    else if (IS_RBLOCK(buf[0]))
+                    {
+                        printf1(TAG_NFC, "NFC_CMD_IBLOCK\r\n");
+                    }
+                    else if (IS_SBLOCK(buf[0]))
+                    {
+                        printf1(TAG_NFC, "NFC_CMD_IBLOCK\r\n");
+                    }
+                    else
+                    {
+                        printf1(TAG_NFC, "unknown NFC request\r\n len[%d]:", len);
+                        dump_hex1(TAG_NFC, buf, len);
+                    }
+
+                break;
+            }
+
+
+
         }
     }
 
