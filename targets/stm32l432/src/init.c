@@ -527,10 +527,10 @@ static void MX_SPI1_Init(void)
     SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_LOW;
     SPI_InitStruct.ClockPhase = LL_SPI_PHASE_2EDGE;
     SPI_InitStruct.NSS = LL_SPI_NSS_SOFT;
-    if (!NFC)
-        SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV64;
-    else
-        SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV8;
+    // if (!NFC)
+    //     SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV64;
+    // else
+        SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV2;
     SPI_InitStruct.BitOrder = LL_SPI_MSB_FIRST;
     SPI_InitStruct.CRCCalculation = LL_SPI_CRCCALCULATION_DISABLE;
     SPI_InitStruct.CRCPoly = 7;

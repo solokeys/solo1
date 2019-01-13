@@ -108,9 +108,7 @@ void device_reboot()
 void device_init()
 {
     hw_init();
-    #ifndef IS_BOOTLOADER
-        nfc_init();
-    #endif
+
     LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
     LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
 
@@ -133,8 +131,9 @@ void usbhid_init()
 #if DEBUG_LEVEL>1
     wait_for_usb_tether();
 #endif
-
 }
+
+
 
 void wait_for_usb_tether()
 {

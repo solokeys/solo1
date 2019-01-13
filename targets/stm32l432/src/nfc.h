@@ -30,7 +30,13 @@ typedef union
         uint8_t version_maj;            // 0x1e
         uint8_t version_min;            // 0x1f
     } regs;
-} AMS_DEVICE;
+} __attribute__((packed)) AMS_DEVICE;
+
+typedef struct
+{
+    uint8_t start;
+    uint8_t parameter;
+} __attribute__((packed)) RATS_REQUEST;
 
 #define AMS_REG_IO_CONF                 0x00
 #define AMS_REG_IC_CONF0                0x01

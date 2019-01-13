@@ -65,6 +65,7 @@ int main(int argc, char * argv[])
     usbhid_init();
     printf1(TAG_GEN,"init usb\n");
 
+    nfc_init();
 
     ctaphid_init();
     printf1(TAG_GEN,"init ctaphid\n");

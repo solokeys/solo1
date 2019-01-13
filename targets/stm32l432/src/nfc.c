@@ -10,6 +10,12 @@
 #define SELECT() LL_GPIO_ResetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN)
 #define UNSELECT() LL_GPIO_SetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN)
 
+static struct
+{
+    uint8_t max_frame_size;
+    uint8_t cid;
+} NFC_STATE;
+
 
 static void flush_rx()
 {
@@ -119,6 +125,19 @@ void ams_read_buffer(uint8_t * data, int len)
     while(len--)
     {
         *data++ = send_recv(0x00);
+    }
+
+    UNSELECT();
+    SELECT();
+}
+
+void ams_write_buffer(uint8_t * data, int len)
+{
+    int i;
+    send_recv(0x80);
+    while(len--)
+    {
+        send_recv(*data++);
     }
 
     UNSELECT();
@@ -251,6 +270,10 @@ void ams_print_int1(uint8_t int0)
 void nfc_init()
 {
     uint8_t block[4];
+
+    memset(&NFC_STATE,0,sizeof(NFC_STATE));
+    NFC_STATE.max_frame_size = 32;
+
     LL_GPIO_SetPinMode(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN,LL_GPIO_MODE_OUTPUT);
     LL_GPIO_SetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN);
 
@@ -279,15 +302,37 @@ void nfc_init()
     ams_read_eeprom_block(AMS_CONFIG_BLOCK0_ADDR, block);
     printf1(TAG_NFC,"conf0: "); dump_hex1(TAG_NFC,block,4);
 
+    uint8_t sense1 = 0x44;
+    uint8_t sense2 = 0x00;
+    uint8_t selr = 0x20;    // SAK
+
+    if(block[0] != sense1 || block[1] != sense2 || block[2] != selr)
+    {
+        printf1(TAG_NFC,"Writing config block 0\r\n");
+        block[0] = sense1;
+        block[1] = sense2;
+        block[2] = selr;
+        block[3] = 0x00;
+
+        ams_write_eeprom_block(AMS_CONFIG_BLOCK0_ADDR, block);
+        UNSELECT();
+        delay(10);
+        SELECT();
+        delay(10);
+
+        ams_read_eeprom_block(AMS_CONFIG_BLOCK0_ADDR, block);
+        printf1(TAG_NFC,"conf0: "); dump_hex1(TAG_NFC,block,4);
+    }
+
     ams_read_eeprom_block(AMS_CONFIG_BLOCK1_ADDR, block);
     printf1(TAG_NFC,"conf1: "); dump_hex1(TAG_NFC,block,4);
 
     uint8_t ic_cfg1 = AMS_CFG1_OUTPUT_RESISTANCE_100 | AMS_CFG1_VOLTAGE_LEVEL_2V0;
-    uint8_t ic_cfg2 = AMS_CFG2_RFCFG_EN | AMS_CFG2_TUN_MOD;
+    uint8_t ic_cfg2 = AMS_CFG2_TUN_MOD;
 
     if (block[0] != ic_cfg1 || block[1] != ic_cfg2)
     {
-        printf1(TAG_NFC,"Writing...\r\n");
+        printf1(TAG_NFC,"Writing config block 1\r\n");
         // set IC_CFG1
         block[0] = ic_cfg1;
 
@@ -298,11 +343,58 @@ void nfc_init()
         block[2] = 0x80;
         block[3] = 0;
 
-        ams_write_eeprom_block(0x7F, block);
+        ams_write_eeprom_block(AMS_CONFIG_BLOCK1_ADDR, block);
+
+        UNSELECT();
+        delay(10);
+        SELECT();
+        delay(10);
+
+        ams_read_eeprom_block(0x7F, block);
+        printf1(TAG_NFC,"conf1: "); dump_hex1(TAG_NFC,block,4);
     }
 
-    ams_read_eeprom_block(0x7F, block);
-    printf1(TAG_NFC,"conf1: "); dump_hex1(TAG_NFC,block,4);
+}
+
+void nfc_write_frame(uint8_t * data, uint8_t len)
+{
+    if (len > 32)
+    {
+        len = 32;
+    }
+    ams_write_command(AMS_CMD_CLEAR_BUFFER);
+    ams_write_buffer(data,len);
+    ams_write_command(AMS_CMD_TRANSMIT_BUFFER);
+
+}
+
+int answer_rats(RATS_REQUEST * rats)
+{
+    if (rats->start != 0xE0)
+    {
+        printf1(TAG_ERR, "Not a RATS request.  Ignoring.\r\n");
+        return 1;
+    }
+
+    uint8_t fsdi = (rats->parameter & 0xf0) >> 4;
+    uint8_t cid = (rats->parameter & 0x0f);
+
+    // printf1(TAG_NFC, "fsdi: %x\r\n",fsdi);
+    // printf1(TAG_NFC, "cid: %x\r\n",cid);
+
+    if (fsdi == 0)
+        NFC_STATE.max_frame_size = 16;
+    else if (fsdi == 1)
+        NFC_STATE.max_frame_size = 24;
+    else
+        NFC_STATE.max_frame_size = 32;
+
+    uint8_t res[2];
+    res[0] = 2;
+    res[1] = 2;     // 2 FSCI == 32 byte frame size
+
+    nfc_write_frame(res,2);
+    return 0;
 }
 
 void nfc_loop()
@@ -310,30 +402,39 @@ void nfc_loop()
 
     const uint32_t interval = 200;
     static uint32_t t1 = 0;
+    static uint32_t c = 0;
     uint8_t buf[32];
     AMS_DEVICE ams,ams2;
     int len = 0;
-
+    uint8_t def[] = "\x00\x00\x05\x40\x00\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x14\x02\x01\x00";
     // if (millis() - t1 > interval)
-    if (0)
+    if (1)
     {
         t1 = millis();
         read_reg_block(&ams);
-        printf1(TAG_NFC,"regs: "); dump_hex1(TAG_NFC,ams.buf,sizeof(AMS_DEVICE));
-
+        // if (memcmp(def,ams.buf,sizeof(AMS_DEVICE)) != 0)
+        // {
+        //     printf1(TAG_NFC,"regs: "); dump_hex1(TAG_NFC,ams.buf,sizeof(AMS_DEVICE));
+        // }
         if (ams.regs.rfid_status)
         {
-            printf1(TAG_NFC,"    %s\r\n", ams_get_state_string(ams.regs.rfid_status));
+            uint8_t state = AMS_STATE_MASK & ams.regs.rfid_status;
+            // if (state != AMS_STATE_SENSE)
+            //     printf1(TAG_NFC,"    %s  %d\r\n", ams_get_state_string(ams.regs.rfid_status), millis());
         }
         if (ams.regs.int0)
         {
-            ams_print_int0(ams.regs.int0);
+            // ams_print_int0(ams.regs.int0);
+            if (ams.regs.int0 & AMS_INT_XRF)
+            {
+                printf1(TAG_NFC,"     %d\r\n", millis());
+            }
         }
         if (ams.regs.int1)
         {
-            ams_print_int1(ams.regs.int1);
+            // ams_print_int1(ams.regs.int1);
         }
-        if (ams.regs.buffer_status2)
+        if (ams.regs.buffer_status2 && (ams.regs.int0 & AMS_INT_RXE))
         {
             if (ams.regs.buffer_status2 & AMS_BUF_INVALID)
             {
@@ -342,14 +443,21 @@ void nfc_loop()
             else
             {
                 len = ams.regs.buffer_status2 & AMS_BUF_LEN_MASK;
-                printf1(TAG_NFC,"%d bytes in buffer\r\n", len);
                 ams_read_buffer(buf, len);
-                dump_hex1(TAG_NFC, buf, len);
+                // printf1(TAG_NFC,"%d bytes in buffer\r\n", len);
+                // dump_hex1(TAG_NFC, buf, len);
             }
         }
-        // ams_print_device( &ams);
-    }
 
+        if (len)
+        {
+            // printf1(TAG_NFC,"RATS %d\r\n",c++);
+            // ams_write_command(AMS_CMD_TRANSMIT_ACK);
+            t1 = millis();
+            answer_rats((RATS_REQUEST*)buf);
+            printf1(TAG_NFC,"RATS answered %d (took %d)\r\n",millis(), millis() - t1);
+        }
+    }
 
 
 }
