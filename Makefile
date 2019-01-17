@@ -45,9 +45,6 @@ cbor: $(LIBCBOR)
 $(LIBCBOR): tinycbor/Makefile
 	cd tinycbor/ && $(MAKE) clean && $(MAKE) -j8
 
-test:
-	$(MAKE) -C . main
-
 .PHONY: efm8prog
 efm8prog:
 	cd './targets/efm8\Keil 8051 v9.53 - Debug' && $(MAKE) all
@@ -91,6 +88,16 @@ wink3: env3
 
 fido2-test: env3
 	env3/bin/python tools/ctap_test.py
+
+CPPCHECK_FLAGS=--quiet --error-exitcode=2
+
+cppcheck:
+	cppcheck $(CPPCHECK_FLAGS) crypto/aes-gcm
+	cppcheck $(CPPCHECK_FLAGS) crypto/sha256
+	cppcheck $(CPPCHECK_FLAGS) fido2
+	cppcheck $(CPPCHECK_FLAGS) pc
+
+test: main cppcheck
 
 clean:
 	rm -f *.o main.exe main $(obj)
