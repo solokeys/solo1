@@ -80,7 +80,7 @@ env2:
 	env2/bin/pip install --upgrade -r tools/requirements.txt
 
 env3:
-	python3 -m venv env3
+	python3.6 -m venv env3
 	env3/bin/pip -q install --upgrade -r tools/requirements.txt
 	env3/bin/pip -q install --upgrade black
 
