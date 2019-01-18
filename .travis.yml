@@ -15,4 +15,5 @@ before_install:
     - sudo apt-get install -y python3-venv
 script:
   - export CC=gcc-7
+  - pyenv shell 3.6.7
   - make travis
