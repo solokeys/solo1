@@ -133,12 +133,12 @@ void usbhid_init()
 
 void wait_for_usb_tether()
 {
-    while (USBD_OK != CDC_Transmit_FS("tethered\r\n", 10) )
+    while (USBD_OK != CDC_Transmit_FS((uint8_t *)"tethered\r\n", 10) )
         ;
-    while (USBD_OK != CDC_Transmit_FS("tethered\r\n", 10) )
+    while (USBD_OK != CDC_Transmit_FS((uint8_t *)"tethered\r\n", 10) )
         ;
     delay(10);
-    while (USBD_OK != CDC_Transmit_FS("tethered\r\n", 10) )
+    while (USBD_OK != CDC_Transmit_FS((uint8_t *)"tethered\r\n", 10) )
         ;
 }
 
