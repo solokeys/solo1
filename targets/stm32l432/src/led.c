@@ -29,20 +29,39 @@
 #include "device.h"
 #include "log.h"
 
+// normalization formula: 16.06*x^0.33 = (0%-100%)
+// here values: value * 10
+uint8_t norm_k[] = {
+	0,   80,  101, 115, 127, 137, 145, 153, 159, 166, 
+	172, 177, 182, 187, 192, 196, 200, 205, 208, 212, 
+	216, 219, 223, 226, 229, 232, 235, 238, 241, 245};
+#define norm_k_len sizeof(norm_k)
+
+uint32_t led_normalization(uint8_t value)
+{
+	if (value > norm_k_len - 1)
+	{
+		return value * 10;
+	} else {
+		return norm_k[value];
+	}
+}
+
 void led_rgb(uint32_t hex)
 {
-    uint32_t r = hex >> 16;
-    uint32_t g = (hex >> 8)&0xff;
-    uint32_t b = hex & 0xff;
+    uint32_t r = led_normalization((hex >> 16) & 0xff);
+    uint32_t g = led_normalization((hex >> 8) & 0xff);
+    uint32_t b = led_normalization(hex & 0xff);
 
     // CCR2 == blue
     // CCR3 == red
     // CCR4 == green
 
     // map and scale colors
-    TIM2->CCR2 = 1000 - (b * 1000)/(256);
-    TIM2->CCR3 = 1000 - (r * 1000)/(256*6);
-    TIM2->CCR4 = 1000 - (g * 1000)/(256);
+	// normalization table values: value * 10
+    TIM2->CCR2 = 1000 - (b * 100)/(256);
+    TIM2->CCR3 = 1000 - (r * 100)/(256*6);
+    TIM2->CCR4 = 1000 - (g * 100)/(256);
 }
 
 void led_test_colors()

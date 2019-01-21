@@ -209,9 +209,14 @@ void heartbeat()
         val++;
     }
 
-    if (val > LED_MAX_SCALER || val < LED_MIN_SCALER)
+    if (val >= LED_MAX_SCALER || val <= LED_MIN_SCALER)
     {
         state = !state;
+
+		if (val > LED_MAX_SCALER)
+			val = LED_MAX_SCALER;
+		if (val < LED_MIN_SCALER)
+			val = LED_MIN_SCALER;
     }
 
 #ifdef LED_WINK_VALUE
