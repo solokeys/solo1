@@ -29,6 +29,11 @@
 #include "log.h"
 #include "device.h"
 
+static void flash_lock()
+{
+    FLASH->CR |= (1U<<31);
+}
+
 static void flash_unlock()
 {
     if (FLASH->CR & FLASH_CR_LOCK)
@@ -196,9 +201,4 @@ void flash_write_fast(uint32_t addr, uint32_t * data)
     FLASH->CR &= ~(1<<18);
     __enable_irq();
 
-}
-
-void flash_lock()
-{
-    FLASH->CR |= (1U<<31);
 }
