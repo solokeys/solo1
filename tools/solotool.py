@@ -954,6 +954,10 @@ def main_mergehex():
 
 if __name__ == '__main__':
 
+    if sys.version_info[0] < 3:
+        print('Sorry, python3 is required.')
+        sys.exit(1)
+
     if len(sys.argv) < 2 or (len(sys.argv) == 2 and asked_for_help()):
         print('Diverse command line tool for working with Solo')
         print('usage: %s <command> [options] [-h]' % sys.argv[0])
