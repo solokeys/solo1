@@ -782,6 +782,7 @@ static uint8_t  USBD_CDC_EP0_RxReady (USBD_HandleTypeDef *pdev)
   return USBD_OK;
 }
 
+#define SUPRESS_UNUSED_WARN __attribute__((unused))
 /**
   * @brief  USBD_CDC_GetFSCfgDesc
   *         Return configuration descriptor
@@ -789,7 +790,7 @@ static uint8_t  USBD_CDC_EP0_RxReady (USBD_HandleTypeDef *pdev)
   * @param  length : pointer data length
   * @retval pointer to descriptor buffer
   */
-static uint8_t  *USBD_CDC_GetFSCfgDesc (uint16_t *length)
+SUPRESS_UNUSED_WARN static uint8_t  *USBD_CDC_GetFSCfgDesc (uint16_t *length)
 {
   *length = sizeof (USBD_CDC_CfgFSDesc);
   return USBD_CDC_CfgFSDesc;
@@ -802,7 +803,7 @@ static uint8_t  *USBD_CDC_GetFSCfgDesc (uint16_t *length)
   * @param  length : pointer data length
   * @retval pointer to descriptor buffer
   */
-static uint8_t  *USBD_CDC_GetHSCfgDesc (uint16_t *length)
+SUPRESS_UNUSED_WARN static uint8_t  *USBD_CDC_GetHSCfgDesc (uint16_t *length)
 {
   *length = sizeof (USBD_CDC_CfgHSDesc);
   return USBD_CDC_CfgHSDesc;
@@ -815,7 +816,7 @@ static uint8_t  *USBD_CDC_GetHSCfgDesc (uint16_t *length)
   * @param  length : pointer data length
   * @retval pointer to descriptor buffer
   */
-static uint8_t  *USBD_CDC_GetOtherSpeedCfgDesc (uint16_t *length)
+SUPRESS_UNUSED_WARN static uint8_t  *USBD_CDC_GetOtherSpeedCfgDesc (uint16_t *length)
 {
   *length = sizeof (USBD_CDC_OtherSpeedCfgDesc);
   return USBD_CDC_OtherSpeedCfgDesc;
