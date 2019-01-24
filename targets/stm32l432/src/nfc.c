@@ -74,8 +74,8 @@ int answer_rats(uint8_t parameter)
     else
         NFC_STATE.max_frame_size = 32;
 
-    uint8_t res[3];
-    res[0] = 3;
+    uint8_t res[3 + 11];
+    res[0] = sizeof(res);
     res[1] = 2 | (1<<5);     // 2 FSCI == 32 byte frame size, TB is enabled
 
     // frame wait time = (256 * 16 / 13.56MHz) * 2^FWI
@@ -86,8 +86,10 @@ int answer_rats(uint8_t parameter)
     // FWI=14, FMT=4949ms (max)
     res[2] = (12<<4) | (0);     // TB (FWI << 4) | (SGTI)
 
-
-    nfc_write_frame(res,3);
+	// historical bytes
+	memcpy(&res[3], (uint8_t *)"SoloKey tap", 11);
+	
+    nfc_write_frame(res, sizeof(res));
     return 0;
 }
 
