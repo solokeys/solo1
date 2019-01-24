@@ -57,6 +57,8 @@ keys which are then used for FIDO2/U2F.  -->
 
 ## Key derivation
 
+** Planned, but not yet implemented. **
+
 Master secret `M` consists of 64 bytes, split into equal parts `M1` and `M2`.
 In theory, we should only need 32 bytes to achieve 256 security, but we also
 plan to have side channel security hence the added bytes.
