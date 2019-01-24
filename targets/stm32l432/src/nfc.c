@@ -77,7 +77,7 @@ bool nfc_write_response_ex(uint8_t req0, uint8_t * data, uint8_t len, uint16_t r
 	
 	res[0] = NFC_CMD_IBLOCK | (req0 & 3);
 	
-	if (len)
+	if (len && data)
 		memcpy(&res[1], data, len);
 	
 	res[len + 1] = resp >> 8;
@@ -222,7 +222,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			
             ctap_response_init(&ctap_resp);
             status = ctap_request(payload, plen, &ctap_resp);
-			printf1(TAG_NFC, "status: %d\r\n", status);
+			printf1(TAG_NFC, "CTAP resp: %d  len: %d\r\n", status, ctap_resp.length);
 			
 			if (status == CTAP1_ERR_SUCCESS) 
 			{
