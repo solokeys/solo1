@@ -104,37 +104,24 @@ void rblock_acknowledge()
 // Selects application.  Returns 1 if success, 0 otherwise
 int select_applet(uint8_t * aid, int len)
 {
-    if (memcmp(aid,AID_NDEF_TYPE_4,sizeof(AID_NDEF_TYPE_4)) == 0)
+    if (memcmp(aid,AID_FIDO,sizeof(AID_FIDO)) == 0)
     {
-        NFC_STATE.selected_applet = APP_NDEF_TYPE_4;
-        return 1;
-    } else if (memcmp(aid,AID_NDEF_MIFARE_TYPE_4,sizeof(AID_NDEF_MIFARE_TYPE_4)) == 0)
-    {
-        NFC_STATE.selected_applet = APP_MIFARE_TYPE_4;
-        return 1;
-    } else if (memcmp(aid,AID_CAPABILITY_CONTAINER,sizeof(AID_CAPABILITY_CONTAINER)) == 0)
-    {
-        NFC_STATE.selected_applet = APP_CAPABILITY_CONTAINER;
-        return 1;
-    } else if (memcmp(aid,AID_NDEF_TAG,sizeof(AID_NDEF_TAG)) == 0)
-    {
-        NFC_STATE.selected_applet = APP_NDEF_TAG;
+        NFC_STATE.selected_applet = APP_FIDO;
         return 1;
     }
-
     return 0;
 }
 
 void nfc_process_iblock(uint8_t * buf, int len)
 {
-    APDU_HEADER * apdu = (APDU_HEADER *)(buf+1);
+    APDU_HEADER * apdu = (APDU_HEADER *)(buf + 1);
     uint8_t * payload = buf + 1 + 5;
     uint8_t plen = apdu->lc;
     int selected;
     uint8_t res[32];
 
-    printf1(TAG_NFC,">> "); dump_hex1(TAG_NFC,buf,len);
-
+    printf1(TAG_NFC,">> "); 
+	dump_hex1(TAG_NFC, buf, len);
 
     // TODO this needs to be organized better
     switch(apdu->ins)
@@ -162,13 +149,12 @@ void nfc_process_iblock(uint8_t * buf, int len)
                 selected = select_applet(payload, plen);
                 if (selected)
                 {
-
                     // block = buf[0] & 1;
                     // block = NFC_STATE.block_num;
                     // block = !block;
                     // NFC_STATE.block_num = block;
-                    res[0] = NFC_CMD_IBLOCK | (buf[0] & 1);
-                    res[1] = APDU_STATUS_SUCCESS>>8;
+                    res[0] = NFC_CMD_IBLOCK | (buf[0] & 3);
+                    res[1] = APDU_STATUS_SUCCESS >> 8;
                     res[2] = APDU_STATUS_SUCCESS & 0xff;
                     nfc_write_frame(res, 3);
                     printf1(TAG_NFC,"<< "); dump_hex1(TAG_NFC,res, 3);
@@ -231,8 +217,8 @@ void nfc_process_block(uint8_t * buf, int len)
     }
     else if (IS_IBLOCK(buf[0]))
     {
-        nfc_process_iblock(buf,len);
         printf1(TAG_NFC, "NFC_CMD_IBLOCK\r\n");
+        nfc_process_iblock(buf, len);
     }
     else if (IS_RBLOCK(buf[0]))
     {

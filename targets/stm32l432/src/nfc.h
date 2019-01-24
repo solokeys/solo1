@@ -34,14 +34,15 @@ typedef struct
 
 #define NFC_CMD_PPSS                  0xd0
 #define IS_PPSS_CMD(x)                (((x) & 0xf0) == NFC_CMD_PPSS)
-#define NFC_CMD_IBLOCK                0x02
-#define IS_IBLOCK(x)                  (((x) & 0xe2) == NFC_CMD_IBLOCK)
-#define NFC_CMD_RBLOCK                0xa2
-#define IS_RBLOCK(x)                  (((x) & 0xe6) == NFC_CMD_RBLOCK)
-#define NFC_CMD_SBLOCK                0xc2
-#define IS_SBLOCK(x)                  (((x) & 0xc7) == NFC_CMD_SBLOCK)
+#define NFC_CMD_IBLOCK                0x00
+#define IS_IBLOCK(x)                  ( (((x) & 0xc0) == NFC_CMD_IBLOCK) && (((x) & 0x02) == 0x02) )
+#define NFC_CMD_RBLOCK                0x80
+#define IS_RBLOCK(x)                  ( (((x) & 0xc0) == NFC_CMD_RBLOCK) && (((x) & 0x02) == 0x02) )
+#define NFC_CMD_SBLOCK                0xc0
+#define IS_SBLOCK(x)                  ( (((x) & 0xc0) == NFC_CMD_SBLOCK) && (((x) & 0x02) == 0x02) )
 
-#define NFC_SBLOCK_DESELECT           0x30
+#define NFC_SBLOCK_DESELECT           0x32
+#define NFC_SBLOCK_WTX                0xf2
 
 #define APDU_INS_SELECT               0xA4
 #define APDU_INS_READ_BINARY          0xB0
@@ -50,6 +51,7 @@ typedef struct
 #define AID_NDEF_MIFARE_TYPE_4        "\xD2\x76\x00\x00\x85\x01\x00"
 #define AID_CAPABILITY_CONTAINER      "\xE1\x03"
 #define AID_NDEF_TAG                  "\x11\x11"
+#define AID_FIDO                      "\xa0\x00\x00\x06\x47\x2f\x00\x01"
 
 typedef enum
 {
@@ -57,6 +59,7 @@ typedef enum
     APP_MIFARE_TYPE_4,
     APP_CAPABILITY_CONTAINER,
     APP_NDEF_TAG,
+	APP_FIDO,
 } APPLETS;
 
 #define APDU_STATUS_SUCCESS           0x9000
