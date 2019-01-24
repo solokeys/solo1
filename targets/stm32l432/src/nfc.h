@@ -67,6 +67,7 @@ typedef enum
 } APPLETS;
 
 #define SW_SUCCESS                    0x9000
+#define SW_COND_USE_NOT_SATISFIED     0x6985
 #define SW_FILE_NOT_FOUND             0x6a82
 #define SW_INS_INVALID                0x6d00
 #define SW_INTERNAL_EXCEPTION         0x6f00

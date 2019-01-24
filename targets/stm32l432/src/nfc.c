@@ -208,10 +208,13 @@ void nfc_process_iblock(uint8_t * buf, int len)
         case APDU_FIDO_U2F_REGISTER:
 			printf1(TAG_NFC, "U2F Register command.\r\n");
 
+			nfc_write_response(buf[0], SW_COND_USE_NOT_SATISFIED);
         break;
 
         case APDU_FIDO_U2F_AUTHENTICATE:
 			printf1(TAG_NFC, "U2F Authenticate command.\r\n");
+			
+			nfc_write_response(buf[0], SW_COND_USE_NOT_SATISFIED);
         break;
 
         case APDU_FIDO_NFCCTAP_MSG:
