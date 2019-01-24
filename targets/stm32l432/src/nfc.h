@@ -47,7 +47,7 @@ typedef struct
 #define APDU_FIDO_U2F_REGISTER        0x01
 #define APDU_FIDO_U2F_AUTHENTICATE    0x02
 #define APDU_FIDO_U2F_VERSION         0x03
-#define APDU_FIDO_EXCHANGE            0x10
+#define APDU_FIDO_NFCCTAP_MSG         0x10
 #define APDU_INS_SELECT               0xA4
 #define APDU_INS_READ_BINARY          0xB0
 

@@ -120,6 +120,9 @@ void nfc_process_iblock(uint8_t * buf, int len)
     int selected;
     uint8_t res[32];
 
+    CTAP_RESPONSE ctap_resp;	
+    int status;
+	
     printf1(TAG_NFC,">> "); 
 	dump_hex1(TAG_NFC, buf, len);
 
@@ -173,24 +176,33 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
         case APDU_FIDO_U2F_VERSION:
 			printf1(TAG_NFC, "U2F GetVersion command.\r\n");
+
 			res[0] = NFC_CMD_IBLOCK | (buf[0] & 3);
 			memcpy(&res[1], (uint8_t *)"U2F_V2", 6);
 			res[7] = APDU_STATUS_SUCCESS >> 8;
 			res[8] = APDU_STATUS_SUCCESS & 0xff;
 			nfc_write_frame(res, 3 + 6);
-			printf1(TAG_NFC, "<< "); dump_hex1(TAG_NFC,res, 3 + 6);
+			printf1(TAG_NFC,"<< "); dump_hex1(TAG_NFC,res, 3 + 6);
         break;
 
         case APDU_FIDO_U2F_REGISTER:
 			printf1(TAG_NFC, "U2F Register command.\r\n");
+
         break;
 
         case APDU_FIDO_U2F_AUTHENTICATE:
 			printf1(TAG_NFC, "U2F Authenticate command.\r\n");
         break;
 
-        case APDU_FIDO_EXCHANGE:
-			printf1(TAG_NFC, "FIDO2 Exchange command.\r\n");
+        case APDU_FIDO_NFCCTAP_MSG:
+			printf1(TAG_NFC, "FIDO2 CTAP message.\r\n");
+			
+            ctap_response_init(&ctap_resp);
+            status = ctap_request(payload, plen, &ctap_resp);
+			printf1(TAG_NFC, "status: %d\r\n", status);
+			
+			nfc_write_frame(ctap_resp.data, ctap_resp.length);
+			printf1(TAG_NFC, "<< "); dump_hex1(TAG_NFC, ctap_resp.data, ctap_resp.length);
         break;
 
         case APDU_INS_READ_BINARY:
