@@ -154,17 +154,39 @@ void nfc_process_iblock(uint8_t * buf, int len)
                     // block = !block;
                     // NFC_STATE.block_num = block;
                     res[0] = NFC_CMD_IBLOCK | (buf[0] & 3);
-                    res[1] = APDU_STATUS_SUCCESS >> 8;
-                    res[2] = APDU_STATUS_SUCCESS & 0xff;
-                    nfc_write_frame(res, 3);
-                    printf1(TAG_NFC,"<< "); dump_hex1(TAG_NFC,res, 3);
+					memcpy(&res[1], (uint8_t *)"U2F_V2", 6);
+                    res[7] = APDU_STATUS_SUCCESS >> 8;
+                    res[8] = APDU_STATUS_SUCCESS & 0xff;
+                    nfc_write_frame(res, 3 + 6);
+                    printf1(TAG_NFC,"<< "); dump_hex1(TAG_NFC,res, 3 + 6);
                 }
                 else
                 {
-                    printf1(TAG_NFC, "NOT selected\r\n");
+                    res[0] = NFC_CMD_IBLOCK | (buf[0] & 3);
+                    res[1] = 0x6a;
+                    res[2] = 0x82;
+                    nfc_write_frame(res, 3);
+                    printf1(TAG_NFC, "NOT selected\r\n"); dump_hex1(TAG_NFC,res, 3);
                 }
             }
         break;
+
+        case APDU_FIDO_U2F_VERSION:
+			printf1(TAG_NFC, "GetVersion command.\r\n");
+			res[0] = NFC_CMD_IBLOCK | (buf[0] & 3);
+			memcpy(&res[1], (uint8_t *)"U2F_V2", 6);
+			res[7] = APDU_STATUS_SUCCESS >> 8;
+			res[8] = APDU_STATUS_SUCCESS & 0xff;
+			nfc_write_frame(res, 3 + 6);
+			printf1(TAG_NFC, "<< "); dump_hex1(TAG_NFC,res, 3 + 6);
+        break;
+
+        case APDU_FIDO_U2F_REGISTER:
+        break;
+
+        case APDU_FIDO_U2F_AUTHENTICATE:
+        break;
+
         case APDU_INS_READ_BINARY:
 
 
