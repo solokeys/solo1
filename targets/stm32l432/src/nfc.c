@@ -172,7 +172,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
         break;
 
         case APDU_FIDO_U2F_VERSION:
-			printf1(TAG_NFC, "GetVersion command.\r\n");
+			printf1(TAG_NFC, "U2F GetVersion command.\r\n");
 			res[0] = NFC_CMD_IBLOCK | (buf[0] & 3);
 			memcpy(&res[1], (uint8_t *)"U2F_V2", 6);
 			res[7] = APDU_STATUS_SUCCESS >> 8;
@@ -182,9 +182,15 @@ void nfc_process_iblock(uint8_t * buf, int len)
         break;
 
         case APDU_FIDO_U2F_REGISTER:
+			printf1(TAG_NFC, "U2F Register command.\r\n");
         break;
 
         case APDU_FIDO_U2F_AUTHENTICATE:
+			printf1(TAG_NFC, "U2F Authenticate command.\r\n");
+        break;
+
+        case APDU_FIDO_EXCHANGE:
+			printf1(TAG_NFC, "FIDO2 Exchange command.\r\n");
         break;
 
         case APDU_INS_READ_BINARY:
