@@ -8,6 +8,9 @@
 #include "util.h"
 #include "device.h"
 
+#include "ctap_errors.h"
+
+
 // Capability container
 
 
@@ -57,6 +60,36 @@ void nfc_write_frame(uint8_t * data, uint8_t len)
     ams_write_buffer(data,len);
     ams_write_command(AMS_CMD_TRANSMIT_BUFFER);
 
+    printf1(TAG_NFC,"<< "); dump_hex1(TAG_NFC, data, len);
+}
+
+void nfc_write_response_chaining(uint8_t req0, uint8_t * data, uint8_t len)
+{
+	nfc_write_frame(data, len);
+}
+
+bool nfc_write_response_ex(uint8_t req0, uint8_t * data, uint8_t len, uint16_t resp)
+{
+    uint8_t res[32];
+
+	if (len > 32 - 3)
+		return false;
+	
+	res[0] = NFC_CMD_IBLOCK | (req0 & 3);
+	
+	if (len)
+		memcpy(&res[1], data, len);
+	
+	res[len + 1] = resp >> 8;
+	res[len + 2] = resp & 0xff;
+	nfc_write_frame(res, 3 + len);
+	
+	return true;
+}
+
+bool nfc_write_response(uint8_t req0, uint16_t resp)
+{
+	return nfc_write_response_ex(req0, NULL, 0, resp);
 }
 
 int answer_rats(uint8_t parameter)
@@ -142,8 +175,8 @@ void nfc_process_iblock(uint8_t * buf, int len)
             //     NFC_STATE.selected_applet = APP_NDEF_TAG;
             //     // Select NDEF file!
             //     res[0] = NFC_CMD_IBLOCK | (buf[0] & 1);
-            //     res[1] = APDU_STATUS_SUCCESS>>8;
-            //     res[2] = APDU_STATUS_SUCCESS & 0xff;
+            //     res[1] = SW_SUCCESS>>8;
+            //     res[2] = SW_SUCCESS & 0xff;
             //     nfc_write_frame(res, 3);
             //     printf1(TAG_NFC,"<< "); dump_hex1(TAG_NFC,res, 3);
             // }
@@ -156,19 +189,11 @@ void nfc_process_iblock(uint8_t * buf, int len)
                     // block = NFC_STATE.block_num;
                     // block = !block;
                     // NFC_STATE.block_num = block;
-                    res[0] = NFC_CMD_IBLOCK | (buf[0] & 3);
-					memcpy(&res[1], (uint8_t *)"U2F_V2", 6);
-                    res[7] = APDU_STATUS_SUCCESS >> 8;
-                    res[8] = APDU_STATUS_SUCCESS & 0xff;
-                    nfc_write_frame(res, 3 + 6);
-                    printf1(TAG_NFC,"<< "); dump_hex1(TAG_NFC,res, 3 + 6);
+					nfc_write_response_ex(buf[0], (uint8_t *)"U2F_V2", 6, SW_SUCCESS);
                 }
                 else
                 {
-                    res[0] = NFC_CMD_IBLOCK | (buf[0] & 3);
-                    res[1] = 0x6a;
-                    res[2] = 0x82;
-                    nfc_write_frame(res, 3);
+					nfc_write_response(buf[0], SW_FILE_NOT_FOUND);
                     printf1(TAG_NFC, "NOT selected\r\n"); dump_hex1(TAG_NFC,res, 3);
                 }
             }
@@ -177,12 +202,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
         case APDU_FIDO_U2F_VERSION:
 			printf1(TAG_NFC, "U2F GetVersion command.\r\n");
 
-			res[0] = NFC_CMD_IBLOCK | (buf[0] & 3);
-			memcpy(&res[1], (uint8_t *)"U2F_V2", 6);
-			res[7] = APDU_STATUS_SUCCESS >> 8;
-			res[8] = APDU_STATUS_SUCCESS & 0xff;
-			nfc_write_frame(res, 3 + 6);
-			printf1(TAG_NFC,"<< "); dump_hex1(TAG_NFC,res, 3 + 6);
+			nfc_write_response_ex(buf[0], (uint8_t *)"U2F_V2", 6, SW_SUCCESS);
         break;
 
         case APDU_FIDO_U2F_REGISTER:
@@ -201,8 +221,12 @@ void nfc_process_iblock(uint8_t * buf, int len)
             status = ctap_request(payload, plen, &ctap_resp);
 			printf1(TAG_NFC, "status: %d\r\n", status);
 			
-			nfc_write_frame(ctap_resp.data, ctap_resp.length);
-			printf1(TAG_NFC, "<< "); dump_hex1(TAG_NFC, ctap_resp.data, ctap_resp.length);
+			if (status == CTAP1_ERR_SUCCESS) 
+			{
+				nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+			} else {
+				nfc_write_response(buf[0], SW_INTERNAL_EXCEPTION | status);
+			}
         break;
 
         case APDU_INS_READ_BINARY:
@@ -235,14 +259,15 @@ void nfc_process_iblock(uint8_t * buf, int len)
             }
             res[0] = NFC_CMD_IBLOCK | (buf[0] & 1);
 
-            res[1+plen] = APDU_STATUS_SUCCESS>>8;
-            res[2+plen] = APDU_STATUS_SUCCESS & 0xff;
+            res[1+plen] = SW_SUCCESS>>8;
+            res[2+plen] = SW_SUCCESS & 0xff;
             nfc_write_frame(res, 3+plen);
             printf1(TAG_NFC,"APDU_INS_READ_BINARY\r\n");
             printf1(TAG_NFC,"<< "); dump_hex1(TAG_NFC,res, 3+plen);
         break;
         default:
             printf1(TAG_NFC, "Unknown INS %02x\r\n", apdu->ins);
+			nfc_write_response(buf[0], SW_INS_INVALID);
         break;
     }
 

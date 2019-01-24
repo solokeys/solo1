@@ -66,6 +66,9 @@ typedef enum
 	APP_FIDO,
 } APPLETS;
 
-#define APDU_STATUS_SUCCESS           0x9000
+#define SW_SUCCESS                    0x9000
+#define SW_FILE_NOT_FOUND             0x6a82
+#define SW_INS_INVALID                0x6d00
+#define SW_INTERNAL_EXCEPTION         0x6f00
 
 #endif
