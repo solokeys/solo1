@@ -342,7 +342,10 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			
 			if (status == CTAP1_ERR_SUCCESS) 
 			{
-				nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, SW_SUCCESS);
+				uint8_t ctapdata[1024] = {0};
+				ctapdata[0] = status;
+				memcpy(&ctapdata[1], ctap_resp.data, ctap_resp.length);
+				nfc_write_response_chaining(buf[0], ctapdata, ctap_resp.length + 1, SW_SUCCESS);
 			} else {
 				nfc_write_response(buf[0], SW_INTERNAL_EXCEPTION | status);
 			}
