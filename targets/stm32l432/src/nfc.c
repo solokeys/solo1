@@ -44,10 +44,65 @@ void nfc_state_init()
 
 void nfc_init()
 {
-
-
     nfc_state_init();
     ams_init();
+}
+void process_int0(uint8_t int0)
+{
+	
+}
+
+bool ams_wait_for_tx(uint32_t timeout_ms)
+{
+	uint32_t tstart = millis();
+	while (tstart + timeout_ms > millis())
+	{
+		uint8_t int0 = ams_read_reg(AMS_REG_INT0);
+		if (int0) process_int0(int0);
+		if (int0 & AMS_INT_TXE)
+			return true;
+
+		delay(1);
+	}
+	
+	return false;
+}
+
+//bool ams_receive_with_timeout(10, recbuf, sizeof(recbuf), &reclen))
+bool ams_receive_with_timeout(uint32_t timeout_ms, uint8_t * data, int maxlen, int *dlen)
+{
+	uint8_t buf[32];
+	*dlen = 0;
+	
+	uint32_t tstart = millis();
+	while (tstart + timeout_ms > millis())
+	{
+		uint8_t int0 = ams_read_reg(AMS_REG_INT0);
+		uint8_t buffer_status2 = ams_read_reg(AMS_REG_BUF2);
+		
+        if (buffer_status2 && (int0 & AMS_INT_RXE))
+        {
+            if (buffer_status2 & AMS_BUF_INVALID)
+            {
+                printf1(TAG_NFC,"Buffer being updated!\r\n");
+            }
+            else
+            {
+                uint8_t len = buffer_status2 & AMS_BUF_LEN_MASK;
+                ams_read_buffer(buf, len);
+				printf1(TAG_NFC,">> "); dump_hex1(TAG_NFC, buf, len);
+
+				*dlen = MIN(32, MIN(maxlen, len));
+				memcpy(data, buf, *dlen);
+
+				return true;
+            }
+        }
+		
+		delay(1);
+	}
+	
+	return false;
 }
 
 void nfc_write_frame(uint8_t * data, uint8_t len)
@@ -61,11 +116,6 @@ void nfc_write_frame(uint8_t * data, uint8_t len)
     ams_write_command(AMS_CMD_TRANSMIT_BUFFER);
 
     printf1(TAG_NFC,"<< "); dump_hex1(TAG_NFC, data, len);
-}
-
-void nfc_write_response_chaining(uint8_t req0, uint8_t * data, uint8_t len)
-{
-	nfc_write_frame(data, len);
 }
 
 bool nfc_write_response_ex(uint8_t req0, uint8_t * data, uint8_t len, uint16_t resp)
@@ -90,6 +140,72 @@ bool nfc_write_response_ex(uint8_t req0, uint8_t * data, uint8_t len, uint16_t r
 bool nfc_write_response(uint8_t req0, uint16_t resp)
 {
 	return nfc_write_response_ex(req0, NULL, 0, resp);
+}
+
+void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len, uint16_t resp)
+{
+    uint8_t res[32 + 2];
+	int sendlen = 0;
+	uint8_t iBlock = NFC_CMD_IBLOCK | (req0 & 3);
+printf1(TAG_NFC,"-- chain \r\n");
+	if (len <= 32)
+	{
+		nfc_write_response_ex(req0, data, len, resp);
+	} else {
+		do {
+			// transmit I block
+			int vlen = MIN(31, len - sendlen);
+			res[0] = iBlock;
+			memcpy(&res[1], &data[sendlen], vlen);
+			if (vlen + sendlen < len) 
+			{
+				res[0] |= 0x10;
+			} else {
+				// here may be buffer overflow!!!
+				res[vlen + 1] = resp >> 8;
+				res[vlen + 2] = resp & 0xff;
+				vlen += 2;
+			}
+
+			nfc_write_frame(res, vlen + 1);
+			sendlen += vlen;
+			
+			printf1(TAG_NFC,"-- slen: %d res0: %02x\r\n", sendlen, res[0]);
+			
+			// wait for transmit (32 bytes aprox 2,5ms)
+			if (!ams_wait_for_tx(10))
+			{
+				printf1(TAG_NFC, "TX timeout. slen: %d \r\n", sendlen);
+				break;
+			}
+			
+			// receive R block
+			if (res[0] & 0x10)
+			{
+				uint8_t recbuf[32] = {0};
+				int reclen;
+				if (!ams_receive_with_timeout(100, recbuf, sizeof(recbuf), &reclen))
+				{
+					printf1(TAG_NFC, "R block RX timeout.\r\n");
+					break;
+				}
+				
+				if (reclen != 1)
+				{
+					printf1(TAG_NFC, "R block length error. len: %d \r\n", reclen);
+					break;
+				}
+
+				if (((recbuf[0] & 0x01) != (res[0] & 1)) && ((recbuf[0] & 0xf6) == 0xa2))
+				{
+					printf1(TAG_NFC, "R block error. txdata: %02x rxdata: %02x \r\n", res[0], recbuf[0]);
+					//break;
+				}
+			}
+			
+			iBlock ^= 0x01;
+		} while (sendlen < len);
+	}
 }
 
 int answer_rats(uint8_t parameter)
@@ -226,7 +342,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			
 			if (status == CTAP1_ERR_SUCCESS) 
 			{
-				nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+				nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, SW_SUCCESS);
 			} else {
 				nfc_write_response(buf[0], SW_INTERNAL_EXCEPTION | status);
 			}
@@ -329,6 +445,9 @@ void nfc_loop()
     {
         t1 = millis();
         read_reg_block(&ams);
+		
+		process_int0(ams.regs.int0);
+		
         // if (memcmp(def,ams.buf,sizeof(AMS_DEVICE)) != 0)
         // {
         //     printf1(TAG_NFC,"regs: "); dump_hex1(TAG_NFC,ams.buf,sizeof(AMS_DEVICE));
