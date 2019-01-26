@@ -326,8 +326,13 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
         case APDU_FIDO_U2F_REGISTER:
 			printf1(TAG_NFC, "U2F Register command.\r\n");
+            ctap_response_init(&ctap_resp);
+			u2f_request(apdu, &ctap_resp);
+			status = ctap_resp.data[0];
+			printf1(TAG_NFC, "U2F resp: %d  len: %d\r\n", status, ctap_resp.length);
 
-			nfc_write_response(buf[0], SW_COND_USE_NOT_SATISFIED);
+//			nfc_write_response(buf[0], SW_COND_USE_NOT_SATISFIED);
+			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
         break;
 
         case APDU_FIDO_U2F_AUTHENTICATE:

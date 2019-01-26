@@ -38,7 +38,7 @@
 
 //#define ENABLE_U2F_EXTENSIONS
 
-// #define ENABLE_U2F
+#define ENABLE_U2F
 
 #define DISABLE_CTAPHID_PING
 #define DISABLE_CTAPHID_WINK
