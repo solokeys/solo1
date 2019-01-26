@@ -31,6 +31,10 @@ import tempfile
 from binascii import hexlify, unhexlify
 from hashlib import sha256
 
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
+
 from fido2.hid import CtapHidDevice, CTAPHID
 from fido2.client import Fido2Client, ClientError
 from fido2.ctap import CtapError
@@ -120,6 +124,7 @@ class SoloBootloader:
 class SoloClient:
     def __init__(self,):
         self.origin = 'https://example.org'
+        self.host = 'example.org'
         self.exchange = self.exchange_hid
         self.do_reboot = True
 
@@ -147,6 +152,7 @@ class SoloClient:
         self.dev = dev
         self.ctap1 = CTAP1(dev)
         self.ctap2 = CTAP2(dev)
+        self.client = Fido2Client(dev, self.origin)
 
         if self.exchange == self.exchange_hid:
             self.send_data_hid(CTAPHID.INIT, '\x11\x11\x11\x11\x11\x11\x11\x11')
@@ -226,6 +232,21 @@ class SoloClient:
 
     def reset(self,):
         self.ctap2.reset()
+
+    def make_credential(self,):
+        rp = {'id': self.host, 'name': 'example site'}
+        user = {'id': b'abcdef', 'name': 'example user'}
+        challenge = 'Y2hhbGxlbmdl'
+        attest, data = self.client.make_credential(
+            rp, user, challenge, exclude_list=[]
+        )
+        attest.verify(data.hash)
+        print('Register valid')
+        x5c = attest.att_statement['x5c'][0]
+        cert = x509.load_der_x509_certificate(x5c, default_backend())
+
+        return cert
+
 
     def enter_solo_bootloader(self,):
         """
@@ -566,6 +587,7 @@ def solo_main():
     )
     parser.add_argument("--wink", action="store_true", help='HID Wink command.')
     parser.add_argument("--reset", action="store_true", help='Issue a FIDO2 reset command.  Warning: your credentials will be lost.')
+    parser.add_argument("--verify-solo", action="store_true", help='Verify that the Solo firmware is from SoloKeys.')
     args = parser.parse_args()
 
     p = SoloClient()
@@ -583,6 +605,15 @@ def solo_main():
     if args.wink:
         p.wink()
         sys.exit(0)
+
+    if args.verify_solo:
+        cert = p.make_credential()
+        solo_fingerprint = b'r\xd5\x831&\xac\xfc\xe9\xa8\xe8&`\x18\xe6AI4\xc8\xbeJ\xb8h_\x91\xb0\x99!\x13\xbb\xd42\x95'
+
+        if (cert.fingerprint(hashes.SHA256()) == solo_fingerprint):
+            print('Valid firmware from SoloKeys')
+        else:
+            print('This is either a Solo Hacker or a invalid Solo.')
 
 
 def asked_for_help():
