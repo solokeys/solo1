@@ -239,6 +239,7 @@ int answer_rats(uint8_t parameter)
 	memcpy(&res[3], (uint8_t *)"SoloKey tap", 11);
 	
     nfc_write_frame(res, sizeof(res));
+	ams_wait_for_tx(10);
     return 0;
 }
 
@@ -268,6 +269,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
     uint8_t plen = apdu->lc;
     int selected;
     uint8_t res[32];
+	uint32_t t1; 
 
     CTAP_RESPONSE ctap_resp;	
     int status;
@@ -306,7 +308,8 @@ void nfc_process_iblock(uint8_t * buf, int len)
                     // block = !block;
                     // NFC_STATE.block_num = block;
 					nfc_write_response_ex(buf[0], (uint8_t *)"U2F_V2", 6, SW_SUCCESS);
-                }
+					printf1(TAG_NFC, "FIDO applet selected.\r\n");
+               }
                 else
                 {
 					nfc_write_response(buf[0], SW_FILE_NOT_FOUND);
@@ -334,13 +337,13 @@ void nfc_process_iblock(uint8_t * buf, int len)
         break;
 
         case APDU_FIDO_NFCCTAP_MSG:
-			printf1(TAG_NFC, "FIDO2 CTAP message.\r\n");
+			t1 = millis();
+			printf1(TAG_NFC, "FIDO2 CTAP message. %d\r\n", t1);
 			
             ctap_response_init(&ctap_resp);
             status = ctap_request(payload, plen, &ctap_resp);
 			printf1(TAG_NFC, "CTAP resp: %d  len: %d\r\n", status, ctap_resp.length);
 			
-			int ctaplen = ctap_resp.length + 3;
 			if (status == CTAP1_ERR_SUCCESS)
 			{
 				memmove(&ctap_resp.data[1], &ctap_resp.data[0], ctap_resp.length);
@@ -352,7 +355,9 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			ctap_resp.data[ctap_resp.length - 2] = SW_SUCCESS >> 8;
 			ctap_resp.data[ctap_resp.length - 1] = SW_SUCCESS & 0xff;
 			
+            printf1(TAG_NFC,"CTAP processing %d (took %d)\r\n", millis(), millis() - t1);
 			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+            printf1(TAG_NFC,"CTAP answered %d (took %d)\r\n", millis(), millis() - t1);
         break;
 
         case APDU_INS_READ_BINARY:
@@ -503,6 +508,7 @@ void nfc_loop()
                     printf1(TAG_NFC, "HLTA/Halt\r\n");
                 break;
                 case NFC_CMD_RATS:
+                    printf1(TAG_NFC,"RATS\r\n");
                     t1 = millis();
                     answer_rats(buf[1]);
                     NFC_STATE.block_num = 1;
