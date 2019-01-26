@@ -7,6 +7,7 @@
 #include "log.h"
 #include "util.h"
 #include "device.h"
+#include "u2f.h"
 
 #include "ctap_errors.h"
 
@@ -326,12 +327,23 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
         case APDU_FIDO_U2F_REGISTER:
 			printf1(TAG_NFC, "U2F Register command.\r\n");
+			
+			if (plen != 64)
+			{
+				printf1(TAG_NFC, "U2F Register request length error. len=%d.\r\n", plen);
+				nfc_write_response(buf[0], SW_WRONG_LENGTH);
+				return;
+			}
+			
+			uint8_t u2fbuffer[7 + 64 + 1] = {0};
+			memcpy(u2fbuffer, &buf[1], 4);
+			memcpy(&u2fbuffer[6], &buf[5], plen + 1);
+			dump_hex1(TAG_NFC,u2fbuffer, 7 + 64 + 1);
+			
             ctap_response_init(&ctap_resp);
-			u2f_request(apdu, &ctap_resp);
-			status = ctap_resp.data[0];
-			printf1(TAG_NFC, "U2F resp: %d  len: %d\r\n", status, ctap_resp.length);
-
-//			nfc_write_response(buf[0], SW_COND_USE_NOT_SATISFIED);
+			u2f_request((struct u2f_request_apdu *)u2fbuffer, &ctap_resp);
+			
+			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
 			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
         break;
 

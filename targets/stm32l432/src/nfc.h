@@ -69,6 +69,7 @@ typedef enum
 
 #define SW_SUCCESS                    0x9000
 #define SW_GET_RESPONSE               0x6100  // Command successfully executed; 'XX' bytes of data are available and can be requested using GET RESPONSE.
+#define SW_WRONG_LENGTH               0x6700
 #define SW_COND_USE_NOT_SATISFIED     0x6985
 #define SW_FILE_NOT_FOUND             0x6a82
 #define SW_INS_INVALID                0x6d00  // Instruction code not supported or invalid
