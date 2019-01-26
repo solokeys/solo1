@@ -35,6 +35,7 @@ from fido2.hid import CtapHidDevice, CTAPHID
 from fido2.client import Fido2Client, ClientError
 from fido2.ctap import CtapError
 from fido2.ctap1 import CTAP1, ApduError
+from fido2.ctap2 import CTAP2
 from fido2.utils import Timeout
 
 import usb.core
@@ -145,6 +146,7 @@ class SoloClient:
             raise RuntimeError('No FIDO device found')
         self.dev = dev
         self.ctap1 = CTAP1(dev)
+        self.ctap2 = CTAP2(dev)
 
         if self.exchange == self.exchange_hid:
             self.send_data_hid(CTAPHID.INIT, '\x11\x11\x11\x11\x11\x11\x11\x11')
@@ -221,6 +223,9 @@ class SoloClient:
 
     def wink(self,):
         self.send_data_hid(CTAPHID.WINK, b'')
+
+    def reset(self,):
+        self.ctap2.reset()
 
     def enter_solo_bootloader(self,):
         """
@@ -560,10 +565,14 @@ def solo_main():
         help='Continuously dump random numbers generated from Solo.',
     )
     parser.add_argument("--wink", action="store_true", help='HID Wink command.')
+    parser.add_argument("--reset", action="store_true", help='Issue a FIDO2 reset command.  Warning: your credentials will be lost.')
     args = parser.parse_args()
 
     p = SoloClient()
     p.find_device()
+
+    if args.reset:
+        p.reset()
 
     if args.rng:
         while True:
