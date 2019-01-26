@@ -111,7 +111,7 @@ struct u2f_authenticate_request
 
 // u2f_request send a U2F message to U2F protocol
 //  @req U2F message
-void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp);
+void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp, bool fromNFC);
 
 
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);

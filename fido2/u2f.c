@@ -29,7 +29,7 @@
 #include APP_CONFIG
 
 // void u2f_response_writeback(uint8_t * buf, uint8_t len);
-static int16_t u2f_register(struct u2f_register_request * req);
+static int16_t u2f_register(struct u2f_register_request * req, bool fromNFC);
 static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control);
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
 void u2f_reset_response();
@@ -37,7 +37,7 @@ void u2f_reset_response();
 
 static CTAP_RESPONSE * _u2f_resp = NULL;
 
-void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
+void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp, bool fromNFC)
 {
     uint16_t rcode = 0;
     uint64_t t1,t2;
@@ -69,7 +69,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
                 else
                 {
                     t1 = millis();
-                    rcode = u2f_register((struct u2f_register_request*)req->payload);
+                    rcode = u2f_register((struct u2f_register_request*)req->payload, fromNFC);
                     t2 = millis();
                     printf1(TAG_TIME,"u2f_register time: %d ms\n", t2-t1);
                 }
@@ -254,7 +254,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
     return U2F_SW_NO_ERROR;
 }
 
-static int16_t u2f_register(struct u2f_register_request * req)
+static int16_t u2f_register(struct u2f_register_request * req, bool fromNFC)
 {
     uint8_t i[] = {0x0,U2F_EC_FMT_UNCOMPRESSED};
 
@@ -266,10 +266,13 @@ static int16_t u2f_register(struct u2f_register_request * req)
 
     const uint16_t attest_size = attestation_cert_der_size;
 
-    if ( ! ctap_user_presence_test())
-    {
-        return U2F_SW_CONDITIONS_NOT_SATISFIED;
-    }
+	if(!fromNFC)
+	{
+		if ( ! ctap_user_presence_test())
+		{
+			return U2F_SW_CONDITIONS_NOT_SATISFIED;
+		}
+	}
 
     if ( u2f_new_keypair(&key_handle, req->app, pubkey) == -1)
     {

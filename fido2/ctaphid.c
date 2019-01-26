@@ -670,7 +670,7 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             }
             is_busy = 1;
             ctap_response_init(&ctap_resp);
-            u2f_request((struct u2f_request_apdu*)ctap_buffer, &ctap_resp);
+            u2f_request((struct u2f_request_apdu*)ctap_buffer, &ctap_resp, false);
 
             ctaphid_write_buffer_init(&wb);
             wb.cid = cid;

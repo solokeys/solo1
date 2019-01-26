@@ -340,7 +340,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			memcpy(&u2fbuffer[6], &buf[5], plen + 1);
 			
             ctap_response_init(&ctap_resp);
-			u2f_request((struct u2f_request_apdu *)u2fbuffer, &ctap_resp);
+			u2f_request((struct u2f_request_apdu *)u2fbuffer, &ctap_resp, true);
 			
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
 			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
