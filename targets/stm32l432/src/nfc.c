@@ -171,9 +171,7 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 			// send data
 			nfc_write_frame(res, vlen + 1);
 			sendlen += vlen;
-			
-			printf1(TAG_NFC,"-- slen: %d res0: %02x\r\n", sendlen, res[0]);
-			
+						
 			// wait for transmit (32 bytes aprox 2,5ms)
 			if (!ams_wait_for_tx(10))
 			{
