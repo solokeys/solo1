@@ -142,31 +142,33 @@ bool nfc_write_response(uint8_t req0, uint16_t resp)
 	return nfc_write_response_ex(req0, NULL, 0, resp);
 }
 
-void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len, uint16_t resp)
+void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 {
     uint8_t res[32 + 2];
 	int sendlen = 0;
 	uint8_t iBlock = NFC_CMD_IBLOCK | (req0 & 3);
-printf1(TAG_NFC,"-- chain \r\n");
-	if (len <= 32)
+
+	if (len <= 31)
 	{
-		nfc_write_response_ex(req0, data, len, resp);
+		uint8_t res[32] = {0};
+		res[0] = iBlock;
+		if (len && data)
+			memcpy(&res[1], data, len);
+		nfc_write_frame(res, len + 1);
 	} else {
 		do {
 			// transmit I block
 			int vlen = MIN(31, len - sendlen);
 			res[0] = iBlock;
 			memcpy(&res[1], &data[sendlen], vlen);
+			
+			// if not a last block
 			if (vlen + sendlen < len) 
 			{
 				res[0] |= 0x10;
-			} else {
-				// here may be buffer overflow!!!
-				res[vlen + 1] = resp >> 8;
-				res[vlen + 2] = resp & 0xff;
-				vlen += 2;
 			}
 
+			// send data
 			nfc_write_frame(res, vlen + 1);
 			sendlen += vlen;
 			
@@ -179,7 +181,7 @@ printf1(TAG_NFC,"-- chain \r\n");
 				break;
 			}
 			
-			// receive R block
+			// if needs to receive R block (not a last block)
 			if (res[0] & 0x10)
 			{
 				uint8_t recbuf[32] = {0};
@@ -196,10 +198,10 @@ printf1(TAG_NFC,"-- chain \r\n");
 					break;
 				}
 
-				if (((recbuf[0] & 0x01) != (res[0] & 1)) && ((recbuf[0] & 0xf6) == 0xa2))
+				if (((recbuf[0] & 0x01) == (res[0] & 1)) && ((recbuf[0] & 0xf6) == 0xa2))
 				{
 					printf1(TAG_NFC, "R block error. txdata: %02x rxdata: %02x \r\n", res[0], recbuf[0]);
-					//break;
+					break;
 				}
 			}
 			
@@ -340,15 +342,19 @@ void nfc_process_iblock(uint8_t * buf, int len)
             status = ctap_request(payload, plen, &ctap_resp);
 			printf1(TAG_NFC, "CTAP resp: %d  len: %d\r\n", status, ctap_resp.length);
 			
-			if (status == CTAP1_ERR_SUCCESS) 
+			int ctaplen = ctap_resp.length + 3;
+			if (status == CTAP1_ERR_SUCCESS)
 			{
-				uint8_t ctapdata[1024] = {0};
-				ctapdata[0] = status;
-				memcpy(&ctapdata[1], ctap_resp.data, ctap_resp.length);
-				nfc_write_response_chaining(buf[0], ctapdata, ctap_resp.length + 1, SW_SUCCESS);
+				memmove(&ctap_resp.data[1], &ctap_resp.data[0], ctap_resp.length);
+				ctap_resp.length += 3;
 			} else {
-				nfc_write_response(buf[0], SW_INTERNAL_EXCEPTION | status);
+				ctap_resp.length = 3;
 			}
+			ctap_resp.data[0] = status;
+			ctap_resp.data[ctap_resp.length - 2] = SW_SUCCESS >> 8;
+			ctap_resp.data[ctap_resp.length - 1] = SW_SUCCESS & 0xff;
+			
+			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
         break;
 
         case APDU_INS_READ_BINARY:
