@@ -338,7 +338,6 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			uint8_t u2fbuffer[7 + 64 + 1] = {0};
 			memcpy(u2fbuffer, &buf[1], 4);
 			memcpy(&u2fbuffer[6], &buf[5], plen + 1);
-			dump_hex1(TAG_NFC,u2fbuffer, 7 + 64 + 1);
 			
             ctap_response_init(&ctap_resp);
 			u2f_request((struct u2f_request_apdu *)u2fbuffer, &ctap_resp);
