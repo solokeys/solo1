@@ -37,6 +37,7 @@ typedef struct
 #define NFC_CMD_IBLOCK                0x00
 #define IS_IBLOCK(x)                  ( (((x) & 0xc0) == NFC_CMD_IBLOCK) && (((x) & 0x02) == 0x02) )
 #define NFC_CMD_RBLOCK                0x80
+#define NFC_CMD_RBLOCK_ACK            0x20
 #define IS_RBLOCK(x)                  ( (((x) & 0xc0) == NFC_CMD_RBLOCK) && (((x) & 0x02) == 0x02) )
 #define NFC_CMD_SBLOCK                0xc0
 #define IS_SBLOCK(x)                  ( (((x) & 0xc0) == NFC_CMD_SBLOCK) && (((x) & 0x02) == 0x02) )
@@ -67,10 +68,10 @@ typedef enum
 } APPLETS;
 
 #define SW_SUCCESS                    0x9000
-#define SW_GET_RESPONSE               0x6100  //Command successfully executed; 'XX' bytes of data are available and can be requested using GET RESPONSE.
+#define SW_GET_RESPONSE               0x6100  // Command successfully executed; 'XX' bytes of data are available and can be requested using GET RESPONSE.
 #define SW_COND_USE_NOT_SATISFIED     0x6985
 #define SW_FILE_NOT_FOUND             0x6a82
-#define SW_INS_INVALID                0x6d00
+#define SW_INS_INVALID                0x6d00  // Instruction code not supported or invalid
 #define SW_INTERNAL_EXCEPTION         0x6f00
 
 #endif

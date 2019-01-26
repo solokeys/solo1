@@ -407,14 +407,65 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 void nfc_process_block(uint8_t * buf, int len)
 {
+	static uint8_t ibuf[1024];
+	static int ibuflen = 0;
+	
+	if (!len)
+		return;
+	
     if (IS_PPSS_CMD(buf[0]))
     {
         printf1(TAG_NFC, "NFC_CMD_PPSS\r\n");
     }
     else if (IS_IBLOCK(buf[0]))
     {
-        printf1(TAG_NFC, "NFC_CMD_IBLOCK\r\n");
-        nfc_process_iblock(buf, len);
+		if (buf[0] & 0x10)
+		{
+			printf1(TAG_NFC, "NFC_CMD_IBLOCK chaining blen=%d len=%d\r\n", ibuflen, len);
+			if (ibuflen + len > sizeof(ibuf))
+			{
+				printf1(TAG_NFC, "I block memory error! must have %d but have only %d\r\n", ibuflen + len, sizeof(ibuf));
+				nfc_write_response(buf[0], SW_INTERNAL_EXCEPTION);
+				return;
+			}
+
+			printf1(TAG_NFC,"i> "); 
+			dump_hex1(TAG_NFC, buf, len);	
+			
+			if (len)
+			{
+				memcpy(&ibuf[ibuflen], &buf[1], len - 1);
+				ibuflen += len - 1;
+			}
+			
+			// send R block
+			uint8_t rb = NFC_CMD_RBLOCK | NFC_CMD_RBLOCK_ACK | (buf[0] & 3);
+			nfc_write_frame(&rb, 1);
+		} else {
+			if (ibuflen)
+			{
+				if (len)
+				{
+					memcpy(&ibuf[ibuflen], &buf[1], len - 1);
+					ibuflen += len - 1;
+				}
+				
+				memmove(&ibuf[1], ibuf, ibuflen);
+				ibuf[0] = buf[0];
+				ibuflen++;
+				
+				printf1(TAG_NFC, "NFC_CMD_IBLOCK chaining last block. blen=%d len=%d\r\n", ibuflen, len);
+				
+				printf1(TAG_NFC,"i> "); 
+				dump_hex1(TAG_NFC, buf, len);	
+				
+				nfc_process_iblock(ibuf, ibuflen);
+			} else {
+				printf1(TAG_NFC, "NFC_CMD_IBLOCK\r\n");
+				nfc_process_iblock(buf, len);
+			}
+			ibuflen = 0;
+		}
     }
     else if (IS_RBLOCK(buf[0]))
     {
