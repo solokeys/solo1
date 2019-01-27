@@ -356,7 +356,13 @@ void nfc_process_iblock(uint8_t * buf, int len)
 				return;
 			}
 			
+			t1 = millis();
 			u2f_request_nfc(&buf[1], len, &ctap_resp);
+			
+			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
+            printf1(TAG_NFC,"U2F Authenticate processing %d (took %d)\r\n", millis(), millis() - t1);
+			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+            printf1(TAG_NFC,"U2F Authenticate answered %d (took %d)\r\n", millis(), millis() - t1);
         break;
 
         case APDU_FIDO_NFCCTAP_MSG:

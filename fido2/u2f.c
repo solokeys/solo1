@@ -31,7 +31,7 @@
 
 // void u2f_response_writeback(uint8_t * buf, uint8_t len);
 static int16_t u2f_register(struct u2f_register_request * req, bool fromNFC);
-static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control);
+static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control, bool fromNFC);
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
 void u2f_reset_response();
 
@@ -78,7 +78,7 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
             case U2F_AUTHENTICATE:
                 printf1(TAG_U2F, "U2F_AUTHENTICATE\n");
                 t1 = millis();
-                rcode = u2f_authenticate((struct u2f_authenticate_request*)payload, req->p1);
+                rcode = u2f_authenticate((struct u2f_authenticate_request*)payload, req->p1, fromNFC);
                 t2 = millis();
                 printf1(TAG_TIME,"u2f_authenticate time: %d ms\n", t2-t1);
                 break;
@@ -213,7 +213,7 @@ static int8_t u2f_appid_eq(struct u2f_key_handle * kh, uint8_t * appid)
 
 
 
-static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control)
+static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control, bool fromNFC)
 {
 
     uint8_t up = 1;
@@ -245,10 +245,13 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 
 
 
-    if (ctap_user_presence_test() == 0)
-    {
-        return U2F_SW_CONDITIONS_NOT_SATISFIED;
-    }
+	if(!fromNFC)
+	{
+		if (ctap_user_presence_test() == 0)
+		{
+			return U2F_SW_CONDITIONS_NOT_SATISFIED;
+		}
+	}
 
     count = ctap_atomic_count(0);
 
