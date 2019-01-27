@@ -41,6 +41,7 @@ from fido2.ctap import CtapError
 from fido2.ctap1 import CTAP1, ApduError
 from fido2.ctap2 import CTAP2
 from fido2.utils import Timeout
+from fido2.attestation import Attestation
 
 import usb.core
 import usb.util
@@ -240,7 +241,15 @@ class SoloClient:
         attest, data = self.client.make_credential(
             rp, user, challenge, exclude_list=[]
         )
-        attest.verify(data.hash)
+        try:
+            attest.verify(data.hash)
+        except AttributeError:
+            verifier = Attestation.for_type(attest.fmt)
+            verifier().verify(
+                attest.att_statement,
+                attest.auth_data,
+                data.hash
+            )
         print('Register valid')
         x5c = attest.att_statement['x5c'][0]
         cert = x509.load_der_x509_certificate(x5c, default_backend())
