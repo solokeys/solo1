@@ -43,11 +43,12 @@ void nfc_state_init()
     NFC_STATE.block_num = 1;
 }
 
-void nfc_init()
+bool nfc_init()
 {
     nfc_state_init();
-    ams_init();
+    return ams_init();
 }
+
 void process_int0(uint8_t int0)
 {
 	

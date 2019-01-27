@@ -2,10 +2,11 @@
 #define _NFC_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "apdu.h"
 
 void nfc_loop();
-void nfc_init();
+bool nfc_init();
 
 typedef struct
 {

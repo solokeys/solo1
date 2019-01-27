@@ -135,7 +135,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
 {
     uint32_t len = ((req->LC3) | ((uint32_t)req->LC2 << 8) | ((uint32_t)req->LC1 << 16));
 	
-	u2f_request_ex((APDU_HEADER *)req, &req[7], len, resp, false);	
+	u2f_request_ex((APDU_HEADER *)req, req->payload, len, resp, false);	
 }
 
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len)

@@ -48,6 +48,7 @@ uint32_t __90_ms = 0;
 uint32_t __device_status = 0;
 uint32_t __last_update = 0;
 extern PCD_HandleTypeDef hpcd;
+bool haveNFC = false;
 
 #define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
 
@@ -118,6 +119,12 @@ void device_init()
 #else
     flash_option_bytes_init(0);
 #endif
+    printf1(TAG_GEN,"init nfc\n");
+    haveNFC = nfc_init();
+	if (haveNFC)
+		printf1(TAG_GEN,"NFC OK.\n");
+	else
+		printf1(TAG_GEN,"NFC not found.\n");
 #endif
 
     printf1(TAG_GEN,"hello solo\r\n");
@@ -397,7 +404,8 @@ void device_manage()
     }
 #endif
 #ifndef IS_BOOTLOADER
-    nfc_loop();
+	if(haveNFC)
+		nfc_loop();
 #endif
 }
 

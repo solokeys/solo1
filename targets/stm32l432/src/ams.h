@@ -1,8 +1,12 @@
+// AS3956 interface
+// https://ams.com/as3956
+// https://ams.com/documents/20143/36005/AS3956_DS000546_7-00.pdf
+
 #ifndef _AMS_H_
 #define _AMS_H_
 
 #include <stdint.h>
-#include <stdint.h>
+#include <stdbool.h>
 #include "stm32l4xx_ll_gpio.h"
 
 
@@ -35,7 +39,7 @@ typedef union
 #define SELECT() LL_GPIO_ResetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN)
 #define UNSELECT() LL_GPIO_SetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN)
 
-void ams_init();
+bool ams_init();
 
 void ams_read_buffer(uint8_t * data, int len);
 void ams_write_buffer(uint8_t * data, int len);
@@ -92,7 +96,14 @@ void ams_write_reg(uint8_t addr, uint8_t tx);
 #define AMS_REG_BUF2                    0x0c
     #define AMS_BUF_LEN_MASK            0x1f
     #define AMS_BUF_INVALID             0x80
+#define AMS_REG_BUF1                    0x0d
+// ... //
+#define AMS_REG_PRODUCT_TYPE            0x1c
+#define AMS_REG_PRODUCT_SUBTYPE         0x1d
+#define AMS_REG_VERSION_MAJOR           0x1e
+#define AMS_REG_VERSION_MINOR           0x1f
 
+#define AMS_CONFIG_UID_ADDR				0x00
 #define AMS_CONFIG_BLOCK0_ADDR          0x7e
 #define AMS_CONFIG_BLOCK1_ADDR          0x7f
 

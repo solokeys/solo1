@@ -28,7 +28,7 @@ static void wait_for_rx()
 }
 
 
-static void ams_print_device(AMS_DEVICE * dev)
+void ams_print_device(AMS_DEVICE * dev)
 {
     printf1(TAG_NFC, "AMS_DEVICE:\r\n");
     printf1(TAG_NFC, "    io_conf:        %02x\r\n",dev->regs.io_conf);
@@ -252,7 +252,7 @@ void ams_print_int1(uint8_t int0)
     printf1(tag,"\r\n");
 }
 
-void ams_init()
+bool ams_init()
 {
 
     uint8_t block[4];
@@ -273,13 +273,19 @@ void ams_init()
     ams_write_command(AMS_CMD_DEFAULT);
     ams_write_command(AMS_CMD_CLEAR_BUFFER);
 
+	// check connection
+	uint8_t productType = ams_read_reg(AMS_REG_PRODUCT_TYPE);
+	if (!productType)
+	{
+		printf1(TAG_NFC,"Have no product type. Connection error.");
+		return false;
+	}
+	printf1(TAG_NFC,"Product type 0x%02x.", productType);
+	
     // enable tunneling mode and RF configuration
     ams_write_reg(AMS_REG_IC_CONF2, AMS_RFCFG_EN | AMS_TUN_MOD);
 
-    ams_read_eeprom_block(0, block);
-    printf1(TAG_NFC,"UID: "); dump_hex1(TAG_NFC,block,4);
-
-    ams_read_eeprom_block(0, block);
+    ams_read_eeprom_block(AMS_CONFIG_UID_ADDR, block);
     printf1(TAG_NFC,"UID: "); dump_hex1(TAG_NFC,block,4);
 
     ams_read_eeprom_block(AMS_CONFIG_BLOCK0_ADDR, block);
@@ -336,5 +342,6 @@ void ams_init()
         ams_read_eeprom_block(0x7F, block);
         printf1(TAG_NFC,"conf1: "); dump_hex1(TAG_NFC,block,4);
     }
-
+	
+	return true;
 }
