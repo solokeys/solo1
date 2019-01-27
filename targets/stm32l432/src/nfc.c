@@ -348,11 +348,12 @@ void nfc_process_iblock(uint8_t * buf, int len)
         case APDU_FIDO_U2F_AUTHENTICATE:
 			printf1(TAG_NFC, "U2F Authenticate command.\r\n");
 			
-			if (plen != 1 + 64 + 1 + buf[65])
+			if (plen != 64 + 1 + buf[6 + 64])
 			{
-				printf1(TAG_NFC, "U2F Authenticate request length error. len=%d keyhlen=%d.\r\n", plen, buf[65]);
+				delay(5);
+				printf1(TAG_NFC, "U2F Authenticate request length error. len=%d keyhlen=%d.\r\n", plen, buf[6 + 64]);
 				nfc_write_response(buf[0], SW_WRONG_LENGTH);
-				//return;
+				return;
 			}
 			
 			u2f_request_nfc(&buf[1], len, &ctap_resp);
