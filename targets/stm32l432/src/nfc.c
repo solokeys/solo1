@@ -336,12 +336,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			}
 			
 			t1 = millis();
-			uint8_t u2fbuffer[7 + 64 + 1] = {0};
-			memcpy(u2fbuffer, &buf[1], 4);
-			memcpy(&u2fbuffer[6], &buf[5], plen + 1);
-			
-            ctap_response_init(&ctap_resp);
-			u2f_request((struct u2f_request_apdu *)u2fbuffer, &ctap_resp, true);
+			u2f_request_nfc(&buf[1], len, &ctap_resp);
 			
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Register processing %d (took %d)\r\n", millis(), millis() - t1);
@@ -356,10 +351,10 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			{
 				printf1(TAG_NFC, "U2F Authenticate request length error. len=%d keyhlen=%d.\r\n", plen, buf[65]);
 				nfc_write_response(buf[0], SW_WRONG_LENGTH);
-				return;
+				//return;
 			}
 			
-			nfc_write_response(buf[0], SW_COND_USE_NOT_SATISFIED);
+			u2f_request_nfc(&buf[1], len, &ctap_resp);
         break;
 
         case APDU_FIDO_NFCCTAP_MSG:
