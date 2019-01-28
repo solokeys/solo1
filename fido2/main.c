@@ -50,7 +50,7 @@ int main(int argc, char * argv[])
             // TAG_CP |
             // TAG_CTAP|
            // TAG_HID|
-            /*TAG_U2F|*/
+            //TAG_U2F|
             // TAG_PARSE |
            // TAG_TIME|
             // TAG_DUMP|
@@ -64,8 +64,6 @@ int main(int argc, char * argv[])
 
     usbhid_init();
     printf1(TAG_GEN,"init usb\n");
-
-    nfc_init();
 
     ctaphid_init();
     printf1(TAG_GEN,"init ctaphid\n");

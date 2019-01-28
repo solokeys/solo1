@@ -26,24 +26,25 @@
 #include "log.h"
 #include "device.h"
 #include "wallet.h"
+#include "apdu.h"
 #include APP_CONFIG
 
 // void u2f_response_writeback(uint8_t * buf, uint8_t len);
-static int16_t u2f_register(struct u2f_register_request * req);
-static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control);
+static int16_t u2f_register(struct u2f_register_request * req, bool fromNFC);
+static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control, bool fromNFC);
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
 void u2f_reset_response();
 
 
 static CTAP_RESPONSE * _u2f_resp = NULL;
 
-void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
+void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPONSE * resp, bool fromNFC)
 {
     uint16_t rcode = 0;
     uint64_t t1,t2;
-    uint32_t len = ((req->LC3) | ((uint32_t)req->LC2 << 8) | ((uint32_t)req->LC1 << 16));
     uint8_t byte;
 
+    ctap_response_init(resp);
     u2f_set_writeback_buffer(resp);
 
     if (req->cla != 0)
@@ -69,7 +70,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
                 else
                 {
                     t1 = millis();
-                    rcode = u2f_register((struct u2f_register_request*)req->payload);
+                    rcode = u2f_register((struct u2f_register_request*)payload, fromNFC);
                     t2 = millis();
                     printf1(TAG_TIME,"u2f_register time: %d ms\n", t2-t1);
                 }
@@ -77,7 +78,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
             case U2F_AUTHENTICATE:
                 printf1(TAG_U2F, "U2F_AUTHENTICATE\n");
                 t1 = millis();
-                rcode = u2f_authenticate((struct u2f_authenticate_request*)req->payload, req->p1);
+                rcode = u2f_authenticate((struct u2f_authenticate_request*)payload, req->p1, fromNFC);
                 t2 = millis();
                 printf1(TAG_TIME,"u2f_authenticate time: %d ms\n", t2-t1);
                 break;
@@ -120,6 +121,22 @@ end:
     printf1(TAG_U2F,"u2f resp: "); dump_hex1(TAG_U2F, _u2f_resp->data, _u2f_resp->length);
 }
 
+void u2f_request_nfc(uint8_t * req, int len, CTAP_RESPONSE * resp)
+{
+	if (len < 5 || !req)
+		return;
+	
+    uint32_t alen = req[4];
+	
+	u2f_request_ex((APDU_HEADER *)req, &req[5], alen, resp, true);	
+}
+
+void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
+{
+    uint32_t len = ((req->LC3) | ((uint32_t)req->LC2 << 8) | ((uint32_t)req->LC1 << 16));
+	
+	u2f_request_ex((APDU_HEADER *)req, req->payload, len, resp, false);	
+}
 
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len)
 {
@@ -196,7 +213,7 @@ static int8_t u2f_appid_eq(struct u2f_key_handle * kh, uint8_t * appid)
 
 
 
-static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control)
+static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control, bool fromNFC)
 {
 
     uint8_t up = 1;
@@ -228,10 +245,13 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 
 
 
-    if (ctap_user_presence_test() == 0)
-    {
-        return U2F_SW_CONDITIONS_NOT_SATISFIED;
-    }
+	if(!fromNFC)
+	{
+		if (ctap_user_presence_test() == 0)
+		{
+			return U2F_SW_CONDITIONS_NOT_SATISFIED;
+		}
+	}
 
     count = ctap_atomic_count(0);
 
@@ -254,7 +274,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
     return U2F_SW_NO_ERROR;
 }
 
-static int16_t u2f_register(struct u2f_register_request * req)
+static int16_t u2f_register(struct u2f_register_request * req, bool fromNFC)
 {
     uint8_t i[] = {0x0,U2F_EC_FMT_UNCOMPRESSED};
 
@@ -266,10 +286,13 @@ static int16_t u2f_register(struct u2f_register_request * req)
 
     const uint16_t attest_size = attestation_cert_der_size;
 
-    if ( ! ctap_user_presence_test())
-    {
-        return U2F_SW_CONDITIONS_NOT_SATISFIED;
-    }
+	if(!fromNFC)
+	{
+		if ( ! ctap_user_presence_test())
+		{
+			return U2F_SW_CONDITIONS_NOT_SATISFIED;
+		}
+	}
 
     if ( u2f_new_keypair(&key_handle, req->app, pubkey) == -1)
     {
