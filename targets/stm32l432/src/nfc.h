@@ -35,8 +35,8 @@ typedef struct
 #define NFC_CMD_SBLOCK                0xc0
 #define IS_SBLOCK(x)                  ( (((x) & 0xc0) == NFC_CMD_SBLOCK) && (((x) & 0x02) == 0x02) )
 
-#define NFC_SBLOCK_DESELECT           0x32
-#define NFC_SBLOCK_WTX                0xf2
+#define NFC_SBLOCK_DESELECT           0x30
+#define NFC_SBLOCK_WTX                0x30
 
 #define AID_NDEF_TYPE_4               "\xD2\x76\x00\x00\x85\x01\x01"
 #define AID_NDEF_MIFARE_TYPE_4        "\xD2\x76\x00\x00\x85\x01\x00"
@@ -46,6 +46,7 @@ typedef struct
 
 typedef enum
 {
+    APP_NOTHING = 0,
     APP_NDEF_TYPE_4 = 1,
     APP_MIFARE_TYPE_4,
     APP_CAPABILITY_CONTAINER,

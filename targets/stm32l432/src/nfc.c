@@ -508,6 +508,8 @@ void nfc_process_block(uint8_t * buf, int len)
         {
             nfc_write_frame(buf, 1);
             printf1(TAG_NFC, "NFC_CMD_SBLOCK, DESELECTED\r\n");
+            ams_wait_for_tx(2);
+            ams_write_command(AMS_CMD_SLEEP);
             nfc_state_init();
         }
         else
