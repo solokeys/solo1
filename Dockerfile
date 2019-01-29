@@ -26,7 +26,7 @@ RUN . solo/env3/bin/activate && cd solo/targets/stm32l432 && \
     make cbor && \
     make build-hacker
 
-# Would prefer `FROM scratch`, not sure how to copy firmware out though?
+# would prefer `FROM scratch`, not sure how to copy firmware out though?
 FROM alpine
 COPY --from=0 /solo/targets/stm32l432/solo.elf .
 COPY --from=0 /solo/targets/stm32l432/solo.hex .
