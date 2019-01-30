@@ -26,7 +26,7 @@ const CAPABILITY_CONTAINER NFC_CC = {
             0x00,0x00 }
 };
 
-uint8_t NDEF_SAMPLE[] = "\x00\x13\xD1\x01\x0ET\x02enHello World";
+uint8_t NDEF_SAMPLE[] = "\x00\x14\xd1\x01\x0eU\x04solokeys.com/";
 
 static struct
 {
