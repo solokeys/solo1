@@ -41,7 +41,7 @@ typedef struct
 #define AID_NDEF_TYPE_4               "\xD2\x76\x00\x00\x85\x01\x01"
 #define AID_NDEF_MIFARE_TYPE_4        "\xD2\x76\x00\x00\x85\x01\x00"
 #define AID_CAPABILITY_CONTAINER      "\xE1\x03"
-#define AID_NDEF_TAG                  "\x11\x11"
+#define AID_NDEF_TAG                  "\xE1\x04"
 #define AID_FIDO                      "\xa0\x00\x00\x06\x47\x2f\x00\x01"
 
 typedef enum
