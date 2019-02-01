@@ -401,11 +401,7 @@ class Tester:
         challenge = 'Y2hhbGxlbmdl'
         PIN = pin_token
 
-        fake_id1 = array.array('B', [randint(0, 255) for i in range(0, 150)]).tobytes()
-        fake_id2 = array.array('B', [randint(0, 255) for i in range(0, 73)]).tobytes()
-
-        exclude_list.append({'id': fake_id1, 'type': 'public-key'})
-        exclude_list.append({'id': fake_id2, 'type': 'public-key'})
+        self.helper_populate_exclude_list(exclude_list)
 
         print('MC')
         t1 = time.time() * 1000
