@@ -564,49 +564,49 @@ class Tester:
         exclude_list.append({'id': fake_id1, 'type': 'public-key'})
         exclude_list.append({'id': fake_id2, 'type': 'public-key'})
 
+    def test_fido2_helper(self, PIN: str = None):
+        creds: List[Any] = []
+        exclude_list: List[Any] = []
+        rp = {'id': self.host, 'name': 'ExaRP'}
+        user = {'id': b'usee_od', 'name': 'AB User'}
+        challenge: str = 'Y2hhbGxlbmdl'
+
+        # make two fake IDs for exclude list
+        self.helper_populate_exclude_list(exclude_list)
+
+        # test make credential
+        print('make 3 credentials')
+        self.helper_make_credentials(PIN, challenge, creds, rp, user)
+        print('PASS')
+
+        if PIN is not None:
+            print('make credential with wrong pin code')
+            self.helper_make_credential_with_wrong_PIN(PIN, challenge, rp, user)
+            print('PASS')
+
+        print('make credential with exclude list')
+        cred = self.helper_make_credential_with_exclude_list(PIN, challenge, creds, exclude_list, rp, user)
+        print('PASS')
+
+        print('make credential with exclude list including real credential')
+        self.helper_make_credential_with_exclude_list_real(PIN, challenge, cred, exclude_list, rp, user)
+        print('PASS')
+
+        for i, x in enumerate(creds):
+            print('get assertion %d' % i)
+            allow_list = self.helper_get_one_assertion(PIN, challenge, rp, x)
+            print('PASS')
+
+        if PIN is not None:
+            print('get assertion with wrong pin code')
+            self.helper_get_assertion_wrong_pin(PIN, allow_list, challenge, rp)
+            print('PASS')
+
+        print('get multiple assertions')
+        self.helper_get_multiple_assertions(PIN, challenge, creds, i, rp)
+        print('PASS')
+
     def test_fido2(self):
-        def test(self, PIN: str = None):
-            creds: List[Any] = []
-            exclude_list: List[Any] = []
-            rp = {'id': self.host, 'name': 'ExaRP'}
-            user = {'id': b'usee_od', 'name': 'AB User'}
-            challenge: str = 'Y2hhbGxlbmdl'
-
-            # make two fake IDs for exclude list
-            self.helper_populate_exclude_list(exclude_list)
-
-            # test make credential
-            print('make 3 credentials')
-            self.helper_make_credentials(PIN, challenge, creds, rp, user)
-            print('PASS')
-
-            if PIN is not None:
-                print('make credential with wrong pin code')
-                self.helper_make_credential_with_wrong_PIN(PIN, challenge, rp, user)
-                print('PASS')
-
-            print('make credential with exclude list')
-            cred = self.helper_make_credential_with_exclude_list(PIN, challenge, creds, exclude_list, rp, user)
-            print('PASS')
-
-            print('make credential with exclude list including real credential')
-            self.helper_make_credential_with_exclude_list_real(PIN, challenge, cred, exclude_list, rp, user)
-            print('PASS')
-
-            for i, x in enumerate(creds):
-                print('get assertion %d' % i)
-                allow_list = self.helper_get_one_assertion(PIN, challenge, rp, x)
-                print('PASS')
-
-            if PIN is not None:
-                print('get assertion with wrong pin code')
-                self.helper_get_assertion_wrong_pin(PIN, allow_list, challenge, rp)
-                print('PASS')
-
-            print('get multiple assertions')
-            self.helper_get_multiple_assertions(PIN, challenge, creds, i, rp)
-            print('PASS')
-
         print('Reset device')
         try:
             self.ctap.reset()
@@ -615,7 +615,7 @@ class Tester:
             pass
         print('PASS')
 
-        test(self, None)
+        self.test_fido2_helper(None)
 
         print('Set a pin code')
         PIN: str = '1122aabbwfg0h9g !@#=='
@@ -656,7 +656,7 @@ class Tester:
         self.test_fido2_simple(PIN)
 
         print('Re-run make_credential and get_assertion tests with pin code')
-        test(self, PIN)
+        self.test_fido2_helper(PIN)
 
         print('Reset device')
         try:
