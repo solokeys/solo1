@@ -215,11 +215,16 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 // WTX: f2 01 91 40 === f2(S-block + WTX, frame without CID) 01(from iso - multiply WTX from ATS by 1) <2b crc16>
 static bool WTX_sent;
 static bool WTX_fail;
-bool WTX_on(int WTX_time)
+
+void WTX_clear()
 {
 	WTX_sent = false;
 	WTX_fail = false;
-	
+}
+
+bool WTX_on(int WTX_time)
+{
+	WTX_clear();
 	return true;
 }
 
@@ -434,7 +439,8 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			t1 = millis();
 			WTX_on(WTX_TIME_DEFAULT);
 			u2f_request_nfc(&buf[1], len, &ctap_resp);
-			WTX_off();
+			if (!WTX_off())
+				return;
 
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Register processing %d (took %d)\r\n", millis(), millis() - t1);
@@ -461,7 +467,8 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			t1 = millis();
 			WTX_on(WTX_TIME_DEFAULT);
 			u2f_request_nfc(&buf[1], len, &ctap_resp);
-			WTX_off();
+			if (!WTX_off())
+				return;
 
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Authenticate processing %d (took %d)\r\n", millis(), millis() - t1);
@@ -481,7 +488,8 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			WTX_on(WTX_TIME_DEFAULT);
             ctap_response_init(&ctap_resp);
             status = ctap_request(payload, plen, &ctap_resp);
-			WTX_off();
+			if (!WTX_off())
+				return;
 			printf1(TAG_NFC, "CTAP resp: %d  len: %d\r\n", status, ctap_resp.length);
 
 			if (status == CTAP1_ERR_SUCCESS)
@@ -626,6 +634,7 @@ void nfc_process_block(uint8_t * buf, int len)
             ams_write_command(AMS_CMD_SLEEP);
             nfc_state_init();
 			clear_ibuf();
+			WTX_clear();
         }
         else
         {
@@ -710,6 +719,7 @@ void nfc_loop()
                     answer_rats(buf[1]);
                     NFC_STATE.block_num = 1;
 					clear_ibuf();
+					WTX_clear();
                     printf1(TAG_NFC,"RATS answered %d (took %d)\r\n",millis(), millis() - t1);
                 break;
                 default:
