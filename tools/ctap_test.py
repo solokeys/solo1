@@ -24,16 +24,12 @@
 
 # Script for testing correctness of CTAP2/CTAP1 security token
 
-from __future__ import print_function, absolute_import, unicode_literals
-
 from typing import List, Any
 
-from fido2.hid import CtapHidDevice, CTAPHID
+from fido2.hid import CtapHidDevice
 from fido2.client import Fido2Client, ClientError
-from fido2.ctap import CtapError
 from fido2.ctap1 import CTAP1
 from fido2.ctap2 import *
-from fido2.cose import *
 from fido2.utils import Timeout
 import sys, os, time
 from random import randint
