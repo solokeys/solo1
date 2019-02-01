@@ -54,20 +54,6 @@ void process_int0(uint8_t int0)
 
 }
 
-// WTX on/off:
-// sends/receives WTX frame to reader every `WTX_time` time in ms
-// works via timer interrupts
-// WTX: f2 01 91 40 === f2(S-block + WTX, frame without CID) 01(from iso - multiply WTX from ATS by 1) <2b crc16>
-bool WTX_on(int WTX_time)
-{
-	return true;
-}
-
-bool WTX_off()
-{
-	return true;
-}
-
 bool ams_wait_for_tx(uint32_t timeout_ms)
 {
 	uint32_t tstart = millis();
@@ -221,6 +207,62 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 			iBlock ^= 0x01;
 		} while (sendlen < len);
 	}
+}
+
+// WTX on/off:
+// sends/receives WTX frame to reader every `WTX_time` time in ms
+// works via timer interrupts
+// WTX: f2 01 91 40 === f2(S-block + WTX, frame without CID) 01(from iso - multiply WTX from ATS by 1) <2b crc16>
+static bool WTX_sent;
+static bool WTX_fail;
+bool WTX_on(int WTX_time)
+{
+	WTX_sent = false;
+	WTX_fail = false;
+	
+	return true;
+}
+
+bool WTX_off()
+{
+	if (WTX_fail)
+		return false;
+	
+	return true;
+}
+
+// executes twice a period. 1st for send WTX, 2nd for check the result
+bool WTX_process()
+{
+	uint8_t wtx[] = {0xf2, 0x01};
+	if (WTX_fail)
+		return false;
+	
+	if (!WTX_sent)
+	{
+		nfc_write_frame(wtx, sizeof(wtx));
+		WTX_sent = true;
+		return true;
+	}
+	else
+	{
+		uint8_t data[32];
+		int len;
+		if (ams_receive_with_timeout(0, data, sizeof(data), &len))
+		{
+			WTX_fail = true;
+			return false;
+		}
+		
+		if (len != 2 || data[0] != 0xf2 || data[1] != 0x01)
+		{
+			WTX_fail = true;
+			return false;
+		}
+		
+		WTX_sent = false;
+		return true;
+	}	
 }
 
 int answer_rats(uint8_t parameter)
