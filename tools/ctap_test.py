@@ -449,15 +449,7 @@ class Tester:
 
             challenge = ''.join([abc[randint(0, len(abc) - 1)] for x in range(0, 32)])
 
-            fake_id1 = array.array(
-                'B', [randint(0, 255) for i in range(0, 150)]
-            ).tostring()
-            fake_id2 = array.array(
-                'B', [randint(0, 255) for i in range(0, 73)]
-            ).tostring()
-
-            exclude_list.append({'id': fake_id1, 'type': 'public-key'})
-            exclude_list.append({'id': fake_id2, 'type': 'public-key'})
+            self.helper_populate_exclude_list(exclude_list)
 
             # for i in range(0,2048**2):
             for i in range(0, 1):
@@ -848,11 +840,11 @@ def test_find_brute_force():
 if __name__ == '__main__':
     t = Tester()
     t.find_device()
-    # t.test_hid()
-    # t.test_long_ping()
-    t.test_fido2()
-    # t.test_rk()
-    # t.test_responses()
-    # test_find_brute_force()
-    # t.test_fido2_simple()
-    # t.test_fido2_brute_force()
+    # t.test_hid()  # works for virtual device
+    # t.test_long_ping()  # works for virtual device
+    t.test_fido2() # works for virtual device
+    # t.test_rk() # not implemented for virtual device
+    # t.test_responses() # works for virtual device
+    # test_find_brute_force()  # does not work for virtual device
+    # t.test_fido2_simple() # works for virtual device
+    # t.test_fido2_brute_force() # works for virtual device
