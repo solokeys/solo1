@@ -39,6 +39,13 @@ import array, struct, socket
 # Set up a FIDO 2 client using the origin https://example.com
 
 
+from logging import getLogger, basicConfig, INFO
+
+basicConfig(format='* %(relativeCreated)6dms %(filename)s:%(lineno)d %(message)s',level=INFO)
+log = getLogger('ctap_test')
+print = log.info
+
+
 def ForceU2F(client, device):
     client.ctap = CTAP1(device)
     client.pin_protocol = None
