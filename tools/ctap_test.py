@@ -601,17 +601,42 @@ class Tester:
 
     def test_fido2(self):
         print('Reset device')
-        try:
-            self.ctap.reset()
-        except CtapError as e:
-            print('Warning, reset failed: ', e)
-            pass
+        self.helper_ctap_reset()
         print('PASS')
 
         self.helper_test_fido2(None)
 
-        print('Set a pin code')
         PIN: str = '1122aabbwfg0h9g !@#=='
+        PIN = self.helper_test_PIN_management(PIN)
+
+        print('MC using wrong pin')
+        try:
+            self.test_fido2_simple('abcd3')
+        except ClientError as e:
+            assert e.cause.code == CtapError.ERR.PIN_INVALID
+        print('PASS')
+
+        print('get info')
+        inf = self.ctap.get_info()
+        print('PASS')
+
+        self.test_fido2_simple(PIN)
+
+        print('Re-run make_credential and get_assertion tests with pin code')
+        self.helper_test_fido2(PIN)
+
+        print('Reset device')
+        self.helper_ctap_reset()
+        print('PASS')
+
+    def helper_ctap_reset(self):
+        try:
+            self.ctap.reset()
+        except CtapError as e:
+            print('Warning, reset failed: ', e)
+
+    def helper_test_PIN_management(self, PIN: str):
+        print('Set a pin code')
         self.client.pin_protocol.set_pin(PIN)
         print('PASS')
 
@@ -635,28 +660,7 @@ class Tester:
             assert e.code == CtapError.ERR.PIN_INVALID
         print('PASS')
 
-        print('MC using wrong pin')
-        try:
-            self.test_fido2_simple('abcd3')
-        except ClientError as e:
-            assert e.cause.code == CtapError.ERR.PIN_INVALID
-        print('PASS')
-
-        print('get info')
-        inf = self.ctap.get_info()
-        print('PASS')
-
-        self.test_fido2_simple(PIN)
-
-        print('Re-run make_credential and get_assertion tests with pin code')
-        self.helper_test_fido2(PIN)
-
-        print('Reset device')
-        try:
-            self.ctap.reset()
-        except CtapError as e:
-            print('Warning, reset failed: ', e)
-        print('PASS')
+        return PIN
 
     def test_rk(self,):
         creds = []
