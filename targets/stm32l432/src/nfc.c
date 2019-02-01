@@ -68,7 +68,6 @@ bool WTX_off()
 	return true;
 }
 
-
 bool ams_wait_for_tx(uint32_t timeout_ms)
 {
 	uint32_t tstart = millis();
@@ -85,7 +84,6 @@ bool ams_wait_for_tx(uint32_t timeout_ms)
 	return false;
 }
 
-//bool ams_receive_with_timeout(10, recbuf, sizeof(recbuf), &reclen))
 bool ams_receive_with_timeout(uint32_t timeout_ms, uint8_t * data, int maxlen, int *dlen)
 {
 	uint8_t buf[32];
