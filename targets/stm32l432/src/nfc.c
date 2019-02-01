@@ -341,12 +341,22 @@ void nfc_process_iblock(uint8_t * buf, int len)
         break;
 
         case APDU_FIDO_U2F_VERSION:
+			if (NFC_STATE.selected_applet != APP_FIDO) {
+				nfc_write_response(buf[0], SW_INS_INVALID);
+				break;
+			}
+			
 			printf1(TAG_NFC, "U2F GetVersion command.\r\n");
 
 			nfc_write_response_ex(buf[0], (uint8_t *)"U2F_V2", 6, SW_SUCCESS);
         break;
 
         case APDU_FIDO_U2F_REGISTER:
+			if (NFC_STATE.selected_applet != APP_FIDO) {
+				nfc_write_response(buf[0], SW_INS_INVALID);
+				break;
+			}
+
 			printf1(TAG_NFC, "U2F Register command.\r\n");
 
 			if (plen != 64)
@@ -366,6 +376,11 @@ void nfc_process_iblock(uint8_t * buf, int len)
        break;
 
         case APDU_FIDO_U2F_AUTHENTICATE:
+			if (NFC_STATE.selected_applet != APP_FIDO) {
+				nfc_write_response(buf[0], SW_INS_INVALID);
+				break;
+			}
+
 			printf1(TAG_NFC, "U2F Authenticate command.\r\n");
 
 			if (plen != 64 + 1 + buf[6 + 64])
@@ -386,6 +401,11 @@ void nfc_process_iblock(uint8_t * buf, int len)
         break;
 
         case APDU_FIDO_NFCCTAP_MSG:
+			if (NFC_STATE.selected_applet != APP_FIDO) {
+				nfc_write_response(buf[0], SW_INS_INVALID);
+				break;
+			}
+
 			t1 = millis();
 			printf1(TAG_NFC, "FIDO2 CTAP message. %d\r\n", t1);
 
@@ -421,7 +441,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
                         printf1(TAG_ERR, "Truncating requested CC length %d\r\n", apdu->lc);
                         plen = 15;
                     }
-                    nfc_write_response_ex(buf[0], &NFC_CC, plen, SW_SUCCESS);
+                    nfc_write_response_ex(buf[0], (uint8_t *)&NFC_CC, plen, SW_SUCCESS);
                     ams_wait_for_tx(10);
                 break;
                 case APP_NDEF_TAG:
@@ -450,10 +470,17 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 }
 
+static uint8_t ibuf[1024];
+static int ibuflen = 0;
+
+void clear_ibuf()
+{
+	ibuflen = 0;
+	memset(ibuf, 0, sizeof(ibuf));
+}
+
 void nfc_process_block(uint8_t * buf, int len)
 {
-	static uint8_t ibuf[1024];
-	static int ibuflen = 0;
 
 	if (!len)
 		return;
@@ -509,7 +536,7 @@ void nfc_process_block(uint8_t * buf, int len)
 				// printf1(TAG_NFC, "NFC_CMD_IBLOCK\r\n");
 				nfc_process_iblock(buf, len);
 			}
-			ibuflen = 0;
+			clear_ibuf();
 		}
     }
     else if (IS_RBLOCK(buf[0]))
@@ -527,6 +554,7 @@ void nfc_process_block(uint8_t * buf, int len)
             ams_wait_for_tx(2);
             ams_write_command(AMS_CMD_SLEEP);
             nfc_state_init();
+			clear_ibuf();
         }
         else
         {
@@ -610,6 +638,7 @@ void nfc_loop()
                     t1 = millis();
                     answer_rats(buf[1]);
                     NFC_STATE.block_num = 1;
+					clear_ibuf();
                     printf1(TAG_NFC,"RATS answered %d (took %d)\r\n",millis(), millis() - t1);
                 break;
                 default:
