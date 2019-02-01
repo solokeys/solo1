@@ -54,6 +54,21 @@ void process_int0(uint8_t int0)
 
 }
 
+// WTX on/off:
+// sends/receives WTX frame to reader every `WTX_time` time in ms
+// works via timer interrupts
+// WTX: f2 01 91 40 === f2(S-block + WTX, frame without CID) 01(from iso - multiply WTX from ATS by 1) <2b crc16>
+bool WTX_on(int WTX_time)
+{
+	return true;
+}
+
+bool WTX_off()
+{
+	return true;
+}
+
+
 bool ams_wait_for_tx(uint32_t timeout_ms)
 {
 	uint32_t tstart = millis();
@@ -367,7 +382,9 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			}
 
 			t1 = millis();
+			WTX_on(WTX_TIME_DEFAULT);
 			u2f_request_nfc(&buf[1], len, &ctap_resp);
+			WTX_off();
 
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Register processing %d (took %d)\r\n", millis(), millis() - t1);
@@ -392,7 +409,9 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			}
 
 			t1 = millis();
+			WTX_on(WTX_TIME_DEFAULT);
 			u2f_request_nfc(&buf[1], len, &ctap_resp);
+			WTX_off();
 
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Authenticate processing %d (took %d)\r\n", millis(), millis() - t1);
@@ -409,8 +428,10 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			t1 = millis();
 			printf1(TAG_NFC, "FIDO2 CTAP message. %d\r\n", t1);
 
+			WTX_on(WTX_TIME_DEFAULT);
             ctap_response_init(&ctap_resp);
             status = ctap_request(payload, plen, &ctap_resp);
+			WTX_off();
 			printf1(TAG_NFC, "CTAP resp: %d  len: %d\r\n", status, ctap_resp.length);
 
 			if (status == CTAP1_ERR_SUCCESS)
