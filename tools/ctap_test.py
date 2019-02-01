@@ -558,13 +558,14 @@ class Tester:
             creds.append(cred)
             print(cred)
 
-    def helper_populate_exclude_list(self, exclude_list: List[dict]):
+    @staticmethod
+    def helper_populate_exclude_list(exclude_list: List[dict]):
         fake_id1 = os.urandom(150)
         fake_id2 = os.urandom(73)
         exclude_list.append({'id': fake_id1, 'type': 'public-key'})
         exclude_list.append({'id': fake_id2, 'type': 'public-key'})
 
-    def test_fido2_helper(self, PIN: str = None):
+    def helper_test_fido2(self, PIN: str = None):
         creds: List[Any] = []
         exclude_list: List[Any] = []
         rp = {'id': self.host, 'name': 'ExaRP'}
@@ -615,7 +616,7 @@ class Tester:
             pass
         print('PASS')
 
-        self.test_fido2_helper(None)
+        self.helper_test_fido2(None)
 
         print('Set a pin code')
         PIN: str = '1122aabbwfg0h9g !@#=='
@@ -656,7 +657,7 @@ class Tester:
         self.test_fido2_simple(PIN)
 
         print('Re-run make_credential and get_assertion tests with pin code')
-        self.test_fido2_helper(PIN)
+        self.helper_test_fido2(PIN)
 
         print('Reset device')
         try:
