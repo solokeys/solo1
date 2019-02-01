@@ -53,6 +53,7 @@
 // U2F Authenticate
 #define U2F_AUTHENTICATE_CHECK              0x7
 #define U2F_AUTHENTICATE_SIGN               0x3
+#define U2F_AUTHENTICATE_SIGN_NO_USER       0x8
 
 
 // Command status responses
