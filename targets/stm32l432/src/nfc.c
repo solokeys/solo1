@@ -223,16 +223,26 @@ bool WTX_on(int WTX_time)
 	return true;
 }
 
+bool WTX_process(int read_timeout);
+
 bool WTX_off()
 {
 	if (WTX_fail)
 		return false;
 	
+	// read data if we sent WTX
+	if (WTX_sent)
+	{
+		if (!WTX_process(10))
+			return false;
+	}
+	
 	return true;
 }
 
 // executes twice a period. 1st for send WTX, 2nd for check the result
-bool WTX_process()
+// read timeout must be 0 to call from int
+bool WTX_process(int read_timeout)
 {
 	uint8_t wtx[] = {0xf2, 0x01};
 	if (WTX_fail)
@@ -248,7 +258,7 @@ bool WTX_process()
 	{
 		uint8_t data[32];
 		int len;
-		if (ams_receive_with_timeout(0, data, sizeof(data), &len))
+		if (ams_receive_with_timeout(read_timeout, data, sizeof(data), &len))
 		{
 			WTX_fail = true;
 			return false;
