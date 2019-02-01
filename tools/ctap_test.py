@@ -391,7 +391,7 @@ class Tester:
         print('Pass: cid broadcast')
 
     def test_u2f(self,):
-        pass
+        raise NotImplemented('U2F tests are not yet implemented')
 
     def test_fido2_simple(self, pin_token=None):
         creds = []
