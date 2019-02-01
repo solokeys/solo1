@@ -229,7 +229,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
         }
         else
         {
-            return U2F_SW_WRONG_DATA;
+            return U2F_SW_WRONG_PAYLOAD;
         }
     }
     if (
