@@ -71,6 +71,12 @@ wink: venv
 fido2-test: venv
 	venv/bin/python tools/ctap_test.py
 
+DOCKER_IMAGE := "solokeys/solo-firmware:latest"
+docker-build:
+	docker build -t $(DOCKER_IMAGE) .
+	# docker build --no-cache -t $(DOCKER_IMAGE) .
+	docker run -rm -v$(PWD):/out $(DOCKER_IMAGE)
+
 CPPCHECK_FLAGS=--quiet --error-exitcode=2
 
 cppcheck:
