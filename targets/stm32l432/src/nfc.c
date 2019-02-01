@@ -225,6 +225,9 @@ void WTX_clear()
 bool WTX_on(int WTX_time)
 {
 	WTX_clear();
+	
+	// TODO: start interrupt
+	
 	return true;
 }
 
@@ -232,8 +235,7 @@ bool WTX_process(int read_timeout);
 
 bool WTX_off()
 {
-	if (WTX_fail)
-		return false;
+	// TODO: stop interrupt
 	
 	// read data if we sent WTX
 	if (WTX_sent)
@@ -241,6 +243,9 @@ bool WTX_off()
 		if (!WTX_process(10))
 			return false;
 	}
+
+	if (WTX_fail)
+		return false;
 	
 	return true;
 }
