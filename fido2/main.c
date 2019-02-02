@@ -41,7 +41,7 @@ int main(int argc, char * argv[])
 
     set_logging_mask(
             /*0*/
-           // TAG_GEN|
+           TAG_GEN|
             // TAG_MC |
             // TAG_GA |
             // TAG_WALLET |
@@ -60,20 +60,20 @@ int main(int argc, char * argv[])
             );
 
     device_init();
-    printf1(TAG_GEN,"init device\n");
+    // printf1(TAG_GEN,"init device\n");
 
     usbhid_init();
-    printf1(TAG_GEN,"init usb\n");
+    // printf1(TAG_GEN,"init usb\n");
 
     ctaphid_init();
-    printf1(TAG_GEN,"init ctaphid\n");
+    // printf1(TAG_GEN,"init ctaphid\n");
 
-    ctap_init();
-    printf1(TAG_GEN,"init ctap\n");
+    // ctap_init();
+    // printf1(TAG_GEN,"init ctap\n");
 
     memset(hidmsg,0,sizeof(hidmsg));
 
-    printf1(TAG_GEN,"recv'ing hid msg \n");
+    // printf1(TAG_GEN,"recv'ing hid msg \n");
 
 
     while(1)
