@@ -113,8 +113,8 @@ void device_reboot()
 }
 void device_init()
 {
-    hw_init(LOW_FREQUENCY);
-    isLowFreq = 1;
+    hw_init(HIGH_FREQUENCY);
+    // isLowFreq = 1;
 
 #ifndef IS_BOOTLOADER
 #if BOOT_TO_DFU
