@@ -265,83 +265,86 @@ bool ams_init()
     LL_SPI_SetRxFIFOThreshold(SPI1,LL_SPI_RX_FIFO_TH_QUARTER);
     LL_SPI_Enable(SPI1);
 
-    delay(10);
+    // delay(10);
     SELECT();
-    delay(10);
+    // delay(10);
 
-
-    ams_write_command(AMS_CMD_DEFAULT);
-    ams_write_command(AMS_CMD_CLEAR_BUFFER);
-
-	// check connection
-	uint8_t productType = ams_read_reg(AMS_REG_PRODUCT_TYPE);
-	if (!productType)
-	{
-		printf1(TAG_NFC,"Have no product type. Connection error.");
-		return false;
-	}
-	printf1(TAG_NFC,"Product type 0x%02x.", productType);
-	
-    // enable tunneling mode and RF configuration
-    ams_write_reg(AMS_REG_IC_CONF2, AMS_RFCFG_EN | AMS_TUN_MOD);
-
-    ams_read_eeprom_block(AMS_CONFIG_UID_ADDR, block);
-    printf1(TAG_NFC,"UID: "); dump_hex1(TAG_NFC,block,4);
-
-    ams_read_eeprom_block(AMS_CONFIG_BLOCK0_ADDR, block);
-    printf1(TAG_NFC,"conf0: "); dump_hex1(TAG_NFC,block,4);
-
-    uint8_t sense1 = 0x44;
-    uint8_t sense2 = 0x00;
-    uint8_t selr = 0x20;    // SAK
-
-    if(block[0] != sense1 || block[1] != sense2 || block[2] != selr)
+    //
+    if (1)
     {
-        printf1(TAG_NFC,"Writing config block 0\r\n");
-        block[0] = sense1;
-        block[1] = sense2;
-        block[2] = selr;
-        block[3] = 0x00;
+        ams_write_command(AMS_CMD_DEFAULT);
+        ams_write_command(AMS_CMD_CLEAR_BUFFER);
 
-        ams_write_eeprom_block(AMS_CONFIG_BLOCK0_ADDR, block);
-        UNSELECT();
-        delay(10);
-        SELECT();
-        delay(10);
+    	// check connection
+    	uint8_t productType = ams_read_reg(AMS_REG_PRODUCT_TYPE);
+    	if (!productType)
+    	{
+    		printf1(TAG_NFC,"Have no product type. Connection error.");
+    		return false;
+    	}
+    	printf1(TAG_NFC,"Product type 0x%02x.", productType);
+
+        // enable tunneling mode and RF configuration
+        ams_write_reg(AMS_REG_IC_CONF2, AMS_RFCFG_EN | AMS_TUN_MOD);
+
+        ams_read_eeprom_block(AMS_CONFIG_UID_ADDR, block);
+        printf1(TAG_NFC,"UID: "); dump_hex1(TAG_NFC,block,4);
 
         ams_read_eeprom_block(AMS_CONFIG_BLOCK0_ADDR, block);
         printf1(TAG_NFC,"conf0: "); dump_hex1(TAG_NFC,block,4);
-    }
 
-    ams_read_eeprom_block(AMS_CONFIG_BLOCK1_ADDR, block);
-    printf1(TAG_NFC,"conf1: "); dump_hex1(TAG_NFC,block,4);
+        uint8_t sense1 = 0x44;
+        uint8_t sense2 = 0x00;
+        uint8_t selr = 0x20;    // SAK
 
-    uint8_t ic_cfg1 = AMS_CFG1_OUTPUT_RESISTANCE_100 | AMS_CFG1_VOLTAGE_LEVEL_2V0;
-    uint8_t ic_cfg2 = AMS_CFG2_TUN_MOD;
+        if(block[0] != sense1 || block[1] != sense2 || block[2] != selr)
+        {
+            printf1(TAG_NFC,"Writing config block 0\r\n");
+            block[0] = sense1;
+            block[1] = sense2;
+            block[2] = selr;
+            block[3] = 0x00;
 
-    if (block[0] != ic_cfg1 || block[1] != ic_cfg2)
-    {
-        printf1(TAG_NFC,"Writing config block 1\r\n");
-        // set IC_CFG1
-        block[0] = ic_cfg1;
+            ams_write_eeprom_block(AMS_CONFIG_BLOCK0_ADDR, block);
+            UNSELECT();
+            delay(10);
+            SELECT();
+            delay(10);
 
-        // set IC_CFG2
-        block[1] = ic_cfg2;
+            ams_read_eeprom_block(AMS_CONFIG_BLOCK0_ADDR, block);
+            printf1(TAG_NFC,"conf0: "); dump_hex1(TAG_NFC,block,4);
+        }
 
-        // mask interrupt bits
-        block[2] = 0x80;
-        block[3] = 0;
-
-        ams_write_eeprom_block(AMS_CONFIG_BLOCK1_ADDR, block);
-
-        UNSELECT();
-        delay(10);
-        SELECT();
-        delay(10);
-
-        ams_read_eeprom_block(0x7F, block);
+        ams_read_eeprom_block(AMS_CONFIG_BLOCK1_ADDR, block);
         printf1(TAG_NFC,"conf1: "); dump_hex1(TAG_NFC,block,4);
+
+        uint8_t ic_cfg1 = AMS_CFG1_OUTPUT_RESISTANCE_100 | AMS_CFG1_VOLTAGE_LEVEL_2V0;
+        uint8_t ic_cfg2 = AMS_CFG2_TUN_MOD;
+
+        if (block[0] != ic_cfg1 || block[1] != ic_cfg2)
+        {
+            printf1(TAG_NFC,"Writing config block 1\r\n");
+            // set IC_CFG1
+            block[0] = ic_cfg1;
+
+            // set IC_CFG2
+            block[1] = ic_cfg2;
+
+            // mask interrupt bits
+            block[2] = 0x80;
+            block[3] = 0;
+
+            ams_write_eeprom_block(AMS_CONFIG_BLOCK1_ADDR, block);
+
+            UNSELECT();
+            delay(10);
+            SELECT();
+            delay(10);
+
+            ams_read_eeprom_block(0x7F, block);
+            printf1(TAG_NFC,"conf1: "); dump_hex1(TAG_NFC,block,4);
+        }
     }
-	
+
 	return true;
 }
