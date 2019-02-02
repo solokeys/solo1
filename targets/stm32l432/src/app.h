@@ -45,7 +45,7 @@
 #define DISABLE_CTAPHID_CBOR
 
 void printing_init();
-void hw_init(void);
+void hw_init(int lf);
 
 //#define TEST
 //#define TEST_POWER
