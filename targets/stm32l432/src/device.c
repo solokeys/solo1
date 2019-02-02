@@ -43,12 +43,17 @@
 #include "stm32l4xx_ll_iwdg.h"
 #include "usbd_cdc_if.h"
 #include "nfc.h"
+#include "init.h"
+
+#define LOW_FREQUENCY        1
+#define HIGH_FREQUENCY       0
 
 uint32_t __90_ms = 0;
 uint32_t __device_status = 0;
 uint32_t __last_update = 0;
 extern PCD_HandleTypeDef hpcd;
 bool haveNFC = false;
+bool isLowFreq = 0;
 
 #define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
 
@@ -108,10 +113,8 @@ void device_reboot()
 }
 void device_init()
 {
-    hw_init();
-
-    LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
-    LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
+    hw_init(LOW_FREQUENCY);
+    isLowFreq = 1;
 
 #ifndef IS_BOOTLOADER
 #if BOOT_TO_DFU
@@ -121,37 +124,39 @@ void device_init()
 #endif
     printf1(TAG_GEN,"init nfc\n");
     haveNFC = nfc_init();
-	if (haveNFC)
-		printf1(TAG_GEN,"NFC OK.\n");
-	else
-		printf1(TAG_GEN,"NFC not found.\n");
+	// if (haveNFC)
+	// 	printf1(TAG_GEN,"NFC OK.\n");
+	// else
+	// 	printf1(TAG_GEN,"NFC not found.\n");
 #endif
 
-    printf1(TAG_GEN,"hello solo\r\n");
+    // printf1(TAG_GEN,"hello solo\r\n");
 }
-
-void usb_init(void);
-void usbhid_init()
-{
-    usb_init();
-
-#if DEBUG_LEVEL>1
-    wait_for_usb_tether();
-#endif
-}
-
-
 
 void wait_for_usb_tether()
 {
-    while (USBD_OK != CDC_Transmit_FS("tethered\r\n", 10) )
+    while (USBD_OK != CDC_Transmit_FS((uint8_t*)"tethered\r\n", 10) )
         ;
-    while (USBD_OK != CDC_Transmit_FS("tethered\r\n", 10) )
+    while (USBD_OK != CDC_Transmit_FS((uint8_t*)"tethered\r\n", 10) )
         ;
     delay(10);
-    while (USBD_OK != CDC_Transmit_FS("tethered\r\n", 10) )
+    while (USBD_OK != CDC_Transmit_FS((uint8_t*)"tethered\r\n", 10) )
         ;
 }
+
+void usbhid_init()
+{
+    if (!isLowFreq)
+    {
+        init_usb();
+
+#if DEBUG_LEVEL>1
+        wait_for_usb_tether();
+#endif
+    }
+}
+
+
 
 int usbhid_recv(uint8_t * msg)
 {
