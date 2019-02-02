@@ -45,31 +45,20 @@
 #include "usbd_composite.h"
 #include "usbd_cdc_if.h"
 #include "device.h"
+#include "init.h"
 #include APP_CONFIG
 
-/* USER CODE BEGIN Includes */
 
-/* USER CODE END Includes */
-
-/* Private variables ---------------------------------------------------------*/
 
 USBD_HandleTypeDef Solo_USBD_Device;
 
-/* Private function prototypes -----------------------------------------------*/
 static void LL_Init(void);
-void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_USART1_UART_Init(void);
-static void MX_TIM2_Init(void);
-static void MX_TIM6_Init(void);
-static void MX_RNG_Init(void);
-static void MX_SPI1_Init(void);
 
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
 void _Error_Handler(char *file, int line);
 
 
-void hw_init(void)
+void hw_init(int lowfreq)
 {
 #ifdef IS_BOOTLOADER
     SCB->VTOR = FLASH_BASE;
@@ -77,25 +66,33 @@ void hw_init(void)
 #endif
     LL_Init();
 
-    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
+    if (lowfreq)
+    {
+        SystemClock_Config_LF();
+    }
+    else
+    {
+        SystemClock_Config();
+    }
 
-    SystemClock_Config(); // TODO bootloader should not change clk freq.
 
-    MX_GPIO_Init();
-    MX_TIM2_Init();       // PWM for LEDs
+    init_gpio();
 
-    MX_TIM6_Init();       // ~1 ms timer
+    if (!lowfreq)
+    {
+        init_pwm();
+    }
+
+    init_millisecond_timer(lowfreq);
 
 
 #if DEBUG_LEVEL > 0
-    MX_USART1_UART_Init();// debug uart
+    init_debug_uart();
 #endif
 
-    MX_RNG_Init();
-    MX_SPI1_Init();
-    TIM6->SR = 0;
-    __enable_irq();
-    NVIC_EnableIRQ(TIM6_IRQn);
+    init_rng();
+    init_spi();
+
 }
 
 static void LL_Init(void)
@@ -122,259 +119,253 @@ static void LL_Init(void)
     NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
 
 }
-static int NFC = 0;
+
 /**
   * @brief System Clock Configuration
   * @retval None
   */
 void SystemClock_Config(void)
 {
-    if (!NFC)
-    {
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
 
-          LL_FLASH_SetLatency(LL_FLASH_LATENCY_2);
+      LL_FLASH_SetLatency(LL_FLASH_LATENCY_2);
 
-           if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_2)
-          {
-          Error_Handler();
-          }
-          LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
+       if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_2)
+      {
+      Error_Handler();
+      }
+      LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
 
-          LL_RCC_HSI48_Enable();
+      LL_RCC_HSI48_Enable();
 
-           /* Wait till HSI48 is ready */
-          while(LL_RCC_HSI48_IsReady() != 1)
-          {
+       /* Wait till HSI48 is ready */
+      while(LL_RCC_HSI48_IsReady() != 1)
+      {
 
-          }
+      }
 
-          LL_RCC_LSI_Enable();
+      LL_RCC_LSI_Enable();
 
-           /* Wait till LSI is ready */
-          while(LL_RCC_LSI_IsReady() != 1)
-          {
+       /* Wait till LSI is ready */
+      while(LL_RCC_LSI_IsReady() != 1)
+      {
 
-          }
-          LL_RCC_MSI_Enable();
-           /* Wait till MSI is ready */
-          while(LL_RCC_MSI_IsReady() != 1)
-          {
+      }
+      LL_RCC_MSI_Enable();
+       /* Wait till MSI is ready */
+      while(LL_RCC_MSI_IsReady() != 1)
+      {
 
-          }
-          LL_RCC_MSI_EnableRangeSelection();
+      }
+      LL_RCC_MSI_EnableRangeSelection();
 
-          LL_RCC_MSI_SetRange(LL_RCC_MSIRANGE_11);
+      LL_RCC_MSI_SetRange(LL_RCC_MSIRANGE_11);
 
-          LL_RCC_MSI_SetCalibTrimming(0);
+      LL_RCC_MSI_SetCalibTrimming(0);
 
-          LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_MSI);
+      LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_MSI);
 
-           /* Wait till System clock is ready */
-          while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
-          {
+       /* Wait till System clock is ready */
+      while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
+      {
 
-          }
-          LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+      }
+      LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
 
-          LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+      LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
 
-          LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_16);
+      LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_16);
 
-          LL_Init1msTick(48000000);
+      LL_Init1msTick(48000000);
 
-          LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
+      LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
 
-          LL_SetSystemCoreClock(48000000);
+      LL_SetSystemCoreClock(48000000);
 
-          LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
+      LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
 
-          LL_RCC_SetUSBClockSource(LL_RCC_USB_CLKSOURCE_HSI48);
+      LL_RCC_SetUSBClockSource(LL_RCC_USB_CLKSOURCE_HSI48);
 
-          LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_CRS);
+      LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_CRS);
 
-          LL_APB1_GRP1_ForceReset(LL_APB1_GRP1_PERIPH_CRS);
+      LL_APB1_GRP1_ForceReset(LL_APB1_GRP1_PERIPH_CRS);
 
-          LL_APB1_GRP1_ReleaseReset(LL_APB1_GRP1_PERIPH_CRS);
+      LL_APB1_GRP1_ReleaseReset(LL_APB1_GRP1_PERIPH_CRS);
 
-          LL_CRS_SetSyncDivider(LL_CRS_SYNC_DIV_1);
+      LL_CRS_SetSyncDivider(LL_CRS_SYNC_DIV_1);
 
-          LL_CRS_SetSyncPolarity(LL_CRS_SYNC_POLARITY_RISING);
+      LL_CRS_SetSyncPolarity(LL_CRS_SYNC_POLARITY_RISING);
 
-          LL_CRS_SetSyncSignalSource(LL_CRS_SYNC_SOURCE_USB);
+      LL_CRS_SetSyncSignalSource(LL_CRS_SYNC_SOURCE_USB);
 
-          LL_CRS_SetReloadCounter(__LL_CRS_CALC_CALCULATE_RELOADVALUE(48000000,1000));
+      LL_CRS_SetReloadCounter(__LL_CRS_CALC_CALCULATE_RELOADVALUE(48000000,1000));
 
-          LL_CRS_SetFreqErrorLimit(34);
+      LL_CRS_SetFreqErrorLimit(34);
 
-          LL_CRS_SetHSI48SmoothTrimming(32);
+      LL_CRS_SetHSI48SmoothTrimming(32);
 
-          /* SysTick_IRQn interrupt configuration */
-          NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-    }
-    else
-    {
-        LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
-
-        if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_0)
-        {
-        Error_Handler();
-        }
-        LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
-
-        LL_RCC_LSI_Enable();
-
-         /* Wait till LSI is ready */
-        while(LL_RCC_LSI_IsReady() != 1)
-        {
-
-        }
-        LL_RCC_MSI_Enable();
-
-         /* Wait till MSI is ready */
-        while(LL_RCC_MSI_IsReady() != 1)
-        {
-
-        }
-        LL_RCC_MSI_EnableRangeSelection();
-
-        LL_RCC_MSI_SetRange(LL_RCC_MSIRANGE_6);
-
-        LL_RCC_MSI_SetCalibTrimming(0);
-
-        LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_MSI);
-
-         /* Wait till System clock is ready */
-        while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
-        {
-
-        }
-        LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
-
-        LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
-
-        LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
-
-        LL_Init1msTick(4000000);
-
-        LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
-
-        LL_SetSystemCoreClock(4000000);
-
-        LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
-
-        LL_RCC_SetRNGClockSource(LL_RCC_RNG_CLKSOURCE_MSI);
-
-        /* SysTick_IRQn interrupt configuration */
-        NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-    }
-
+      /* SysTick_IRQn interrupt configuration */
+      NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
 }
 
-void usb_init()
+void SystemClock_Config_LF(void)
 {
-    if (!NFC)
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
+
+    LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
+
+    if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_0)
     {
-        // enable USB power
-        SET_BIT(PWR->CR2, PWR_CR2_USV);
-
-        // Enable USB Clock
-        SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
-
-
-        USBD_Composite_Set_Classes(&USBD_HID, &USBD_CDC);
-        in_endpoint_to_class[HID_EPIN_ADDR & 0x7F] = 0;
-        out_endpoint_to_class[HID_EPOUT_ADDR & 0x7F] = 0;
-
-        in_endpoint_to_class[CDC_IN_EP & 0x7F] = 1;
-        out_endpoint_to_class[CDC_OUT_EP & 0x7F] = 1;
-
-        USBD_Init(&Solo_USBD_Device, &Solo_Desc, 0);
-        USBD_RegisterClass(&Solo_USBD_Device, &USBD_Composite);
-        // USBD_RegisterClass(&Solo_USBD_Device, &USBD_HID);
-        //
-        // USBD_RegisterClass(&Solo_USBD_Device, &USBD_CDC);
-        USBD_CDC_RegisterInterface(&Solo_USBD_Device, &USBD_Interface_fops_FS);
-
-        USBD_Start(&Solo_USBD_Device);
+    Error_Handler();
     }
+    LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
+
+    LL_RCC_LSI_Enable();
+
+     /* Wait till LSI is ready */
+    while(LL_RCC_LSI_IsReady() != 1)
+    {
+
+    }
+    LL_RCC_MSI_Enable();
+
+     /* Wait till MSI is ready */
+    while(LL_RCC_MSI_IsReady() != 1)
+    {
+
+    }
+    LL_RCC_MSI_EnableRangeSelection();
+
+    LL_RCC_MSI_SetRange(LL_RCC_MSIRANGE_6);
+
+    LL_RCC_MSI_SetCalibTrimming(0);
+
+    LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_MSI);
+
+     /* Wait till System clock is ready */
+    while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
+    {
+
+    }
+    LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+
+    LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+
+    LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
+
+    LL_Init1msTick(4000000);
+
+    LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
+
+    LL_SetSystemCoreClock(4000000);
+
+    LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
+
+    LL_RCC_SetRNGClockSource(LL_RCC_RNG_CLKSOURCE_MSI);
+
+    /* SysTick_IRQn interrupt configuration */
+    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+
 }
 
-/* TIM2 init function */
-static void MX_TIM2_Init(void)
+void init_usb()
 {
-    // if(!NFC)
-    {
-        LL_TIM_InitTypeDef TIM_InitStruct;
-        LL_TIM_OC_InitTypeDef TIM_OC_InitStruct;
+    // enable USB power
+    SET_BIT(PWR->CR2, PWR_CR2_USV);
 
-        LL_GPIO_InitTypeDef GPIO_InitStruct;
+    // Enable USB Clock
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
 
-        /* Peripheral clock enable */
-        LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM2);
 
-        TIM2->SR = 0 ;
+    USBD_Composite_Set_Classes(&USBD_HID, &USBD_CDC);
+    in_endpoint_to_class[HID_EPIN_ADDR & 0x7F] = 0;
+    out_endpoint_to_class[HID_EPOUT_ADDR & 0x7F] = 0;
 
-        TIM_InitStruct.Prescaler = 0;
-        TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-        TIM_InitStruct.Autoreload = 1000;
-        TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
-        LL_TIM_Init(TIM2, &TIM_InitStruct);
+    in_endpoint_to_class[CDC_IN_EP & 0x7F] = 1;
+    out_endpoint_to_class[CDC_OUT_EP & 0x7F] = 1;
 
-        LL_TIM_EnableARRPreload(TIM2);
+    USBD_Init(&Solo_USBD_Device, &Solo_Desc, 0);
+    USBD_RegisterClass(&Solo_USBD_Device, &USBD_Composite);
+    // USBD_RegisterClass(&Solo_USBD_Device, &USBD_HID);
+    //
+    // USBD_RegisterClass(&Solo_USBD_Device, &USBD_CDC);
+    USBD_CDC_RegisterInterface(&Solo_USBD_Device, &USBD_Interface_fops_FS);
 
-        LL_TIM_SetClockSource(TIM2, LL_TIM_CLOCKSOURCE_INTERNAL);
+    USBD_Start(&Solo_USBD_Device);
+}
 
-        TIM_OC_InitStruct.OCMode = LL_TIM_OCMODE_PWM1;
-        TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_ENABLE;
-        TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_ENABLE;
-        TIM_OC_InitStruct.CompareValue = 1000;
-        TIM_OC_InitStruct.OCPolarity = LL_TIM_OCPOLARITY_HIGH;
-        LL_TIM_OC_Init(TIM2, LL_TIM_CHANNEL_CH2, &TIM_OC_InitStruct);
+void init_pwm(void)
+{
 
-        LL_TIM_OC_DisableFast(TIM2, LL_TIM_CHANNEL_CH2);
+    LL_TIM_InitTypeDef TIM_InitStruct;
+    LL_TIM_OC_InitTypeDef TIM_OC_InitStruct;
 
-        TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_ENABLE;
-        TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_ENABLE;
-        LL_TIM_OC_Init(TIM2, LL_TIM_CHANNEL_CH3, &TIM_OC_InitStruct);
+    LL_GPIO_InitTypeDef GPIO_InitStruct;
 
-        LL_TIM_OC_DisableFast(TIM2, LL_TIM_CHANNEL_CH3);
+    /* Peripheral clock enable */
+    LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM2);
 
-        TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_ENABLE;
-        TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_ENABLE;
-        LL_TIM_OC_Init(TIM2, LL_TIM_CHANNEL_CH4, &TIM_OC_InitStruct);
+    TIM2->SR = 0 ;
 
-        LL_TIM_OC_DisableFast(TIM2, LL_TIM_CHANNEL_CH4);
+    TIM_InitStruct.Prescaler = 0;
+    TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
+    TIM_InitStruct.Autoreload = 1000;
+    TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
+    LL_TIM_Init(TIM2, &TIM_InitStruct);
 
-        LL_TIM_SetOCRefClearInputSource(TIM2, LL_TIM_OCREF_CLR_INT_NC);
+    LL_TIM_EnableARRPreload(TIM2);
 
-        LL_TIM_DisableExternalClock(TIM2);
+    LL_TIM_SetClockSource(TIM2, LL_TIM_CLOCKSOURCE_INTERNAL);
 
-        LL_TIM_ConfigETR(TIM2, LL_TIM_ETR_POLARITY_NONINVERTED, LL_TIM_ETR_PRESCALER_DIV1, LL_TIM_ETR_FILTER_FDIV1);
+    TIM_OC_InitStruct.OCMode = LL_TIM_OCMODE_PWM1;
+    TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_ENABLE;
+    TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_ENABLE;
+    TIM_OC_InitStruct.CompareValue = 1000;
+    TIM_OC_InitStruct.OCPolarity = LL_TIM_OCPOLARITY_HIGH;
+    LL_TIM_OC_Init(TIM2, LL_TIM_CHANNEL_CH2, &TIM_OC_InitStruct);
 
-        LL_TIM_SetTriggerOutput(TIM2, LL_TIM_TRGO_RESET);
+    LL_TIM_OC_DisableFast(TIM2, LL_TIM_CHANNEL_CH2);
 
-        LL_TIM_DisableMasterSlaveMode(TIM2);
+    TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_ENABLE;
+    TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_ENABLE;
+    LL_TIM_OC_Init(TIM2, LL_TIM_CHANNEL_CH3, &TIM_OC_InitStruct);
 
-        /**TIM2 GPIO Configuration
-        PA1   ------> TIM2_CH2
-        PA2   ------> TIM2_CH3
-        PA3   ------> TIM2_CH4
-        */
-        GPIO_InitStruct.Pin = LL_GPIO_PIN_1|LL_GPIO_PIN_2|LL_GPIO_PIN_3;
-        GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-        GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-        GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-        GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-        GPIO_InitStruct.Alternate = LL_GPIO_AF_1;
-        LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    LL_TIM_OC_DisableFast(TIM2, LL_TIM_CHANNEL_CH3);
 
-        LL_TIM_EnableCounter(TIM2);
-    }
+    TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_ENABLE;
+    TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_ENABLE;
+    LL_TIM_OC_Init(TIM2, LL_TIM_CHANNEL_CH4, &TIM_OC_InitStruct);
+
+    LL_TIM_OC_DisableFast(TIM2, LL_TIM_CHANNEL_CH4);
+
+    LL_TIM_SetOCRefClearInputSource(TIM2, LL_TIM_OCREF_CLR_INT_NC);
+
+    LL_TIM_DisableExternalClock(TIM2);
+
+    LL_TIM_ConfigETR(TIM2, LL_TIM_ETR_POLARITY_NONINVERTED, LL_TIM_ETR_PRESCALER_DIV1, LL_TIM_ETR_FILTER_FDIV1);
+
+    LL_TIM_SetTriggerOutput(TIM2, LL_TIM_TRGO_RESET);
+
+    LL_TIM_DisableMasterSlaveMode(TIM2);
+
+    /**TIM2 GPIO Configuration
+    PA1   ------> TIM2_CH2
+    PA2   ------> TIM2_CH3
+    PA3   ------> TIM2_CH4
+    */
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_1|LL_GPIO_PIN_2|LL_GPIO_PIN_3;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    GPIO_InitStruct.Alternate = LL_GPIO_AF_1;
+    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    LL_TIM_EnableCounter(TIM2);
 
 }
 
-/* USART1 init function */
-static void MX_USART1_UART_Init(void)
+void init_debug_uart(void)
 {
 
   LL_USART_InitTypeDef USART_InitStruct;
@@ -411,20 +402,18 @@ static void MX_USART1_UART_Init(void)
 
 }
 
-/** Pinout Configuration
-*/
-static void MX_GPIO_Init(void)
+void init_gpio(void)
 {
 
   /* GPIO Ports Clock Enable */
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
 
+  LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
+  LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
 }
 
-
-/* TIM6 init function */
-static void MX_TIM6_Init(void)
+void init_millisecond_timer(int lf)
 {
 
     LL_TIM_InitTypeDef TIM_InitStruct;
@@ -434,7 +423,7 @@ static void MX_TIM6_Init(void)
 
     // 48 MHz sys clock --> 6 MHz timer clock
     // 48 MHz / 48000 == 1000 Hz
-    if (!NFC)
+    if (!lf)
         TIM_InitStruct.Prescaler = 48000;
     else
         TIM_InitStruct.Prescaler = 4000;
@@ -454,39 +443,14 @@ static void MX_TIM6_Init(void)
 
     // Start immediately
     LL_TIM_EnableCounter(TIM6);
+
+    TIM6->SR = 0;
+    __enable_irq();
+    NVIC_EnableIRQ(TIM6_IRQn);
 }
 
-/* TIM7 init function */
-// static void MX_TIM7_Init(void)
-// {
-//
-//   LL_TIM_InitTypeDef TIM_InitStruct;
-//
-//   /* Peripheral clock enable */
-//   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM7);
-//
-//   // 48 MHz sys clock --> 6 MHz timer clock
-//   // 6 MHz / 6000 == 1000 Hz
-//   TIM_InitStruct.Prescaler = 48000;
-//   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-//   TIM_InitStruct.Autoreload = 0xffff;
-//   LL_TIM_Init(TIM6, &TIM_InitStruct);
-//
-//   LL_TIM_DisableARRPreload(TIM7);
-//
-//   LL_TIM_SetTriggerOutput(TIM7, LL_TIM_TRGO_RESET);
-//
-//   LL_TIM_DisableMasterSlaveMode(TIM7);
-//
-//   // enable interrupt
-//   TIM7->DIER |= 1;
-//
-//   // Start immediately
-//   LL_TIM_EnableCounter(TIM7);
-// }
 
-/* RNG init function */
-static void MX_RNG_Init(void)
+void init_rng(void)
 {
 
   /* Peripheral clock enable */
@@ -497,7 +461,7 @@ static void MX_RNG_Init(void)
 }
 
 /* SPI1 init function */
-static void MX_SPI1_Init(void)
+void init_spi(void)
 {
 
     LL_SPI_InitTypeDef SPI_InitStruct;
@@ -527,18 +491,13 @@ static void MX_SPI1_Init(void)
     SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_LOW;
     SPI_InitStruct.ClockPhase = LL_SPI_PHASE_2EDGE;
     SPI_InitStruct.NSS = LL_SPI_NSS_SOFT;
-    // if (!NFC)
-    //     SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV64;
-    // else
-        SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV2;
+    SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV2;
     SPI_InitStruct.BitOrder = LL_SPI_MSB_FIRST;
     SPI_InitStruct.CRCCalculation = LL_SPI_CRCCALCULATION_DISABLE;
     SPI_InitStruct.CRCPoly = 7;
     LL_SPI_Init(SPI1, &SPI_InitStruct);
 
     LL_SPI_SetStandard(SPI1, LL_SPI_PROTOCOL_MOTOROLA);
-
-    // LL_SPI_EnableNSSPulseMgt(SPI1);
 
 
 }
