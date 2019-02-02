@@ -1,8 +1,8 @@
-![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)
-[![Kickstarter](https://img.shields.io/badge/kickstarter-back%20us-red.svg)](https://solokeys.com/kickstarter)
-[![Build Status](https://travis-ci.com/SoloKeysSec/solo.svg?branch=master)](https://travis-ci.com/SoloKeysSec/solo)
-[![Discourse Status](https://img.shields.io/discourse/https/meta.discourse.org/status.svg)](https://discourse.solokeys.com)
+[![License](https://img.shields.io/github/license/solokeys/solo.svg)](https://github.com/solokeys/solo/blob/master/LICENSE)
+[![Build Status](https://travis-ci.com/solokeys/solo.svg?branch=master)](https://travis-ci.com/solokeys/solo)
+[![Discourse Users](https://img.shields.io/discourse/https/discourse.solokeys.com/users.svg)](https://discourse.solokeys.com)
 [![Keybase Chat](https://img.shields.io/badge/chat-on%20keybase-brightgreen.svg)](https://keybase.io/team/solokeys.public)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fsolokeys%2Fsolo.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fsolokeys%2Fsolo?ref=badge_shield)
 
 
 # Solo
@@ -35,20 +35,25 @@ Solo for Hacker is a special version of Solo that let you customize its firmware
 
 You can only buy Solo for Hacker at [solokeys.com](https://solokeys.com), as we don't sell it on Amazon and other places to avoid confusing customers. If you buy a Hacker, you can permanently lock it into a regular Solo, but viceversa you can NOT take a regular Solo and turn it a Hacker.
 
-If you have a Solo for Hacker, here's how you can load your own code on it. You can find more details, including how to permanently lock it, in our [documentation](https://solo.solokeys.io/building/).
+If you have a Solo for Hacker, here's how you can load your own code on it. You can find more details, including how to permanently lock it, in our [documentation](https://docs.solokeys.io/solo/building/).
 
 ```bash
-git clone --recurse-submodules https://github.com/SoloKeysSec/solo
+git clone --recurse-submodules https://github.com/solokeys/solo
 cd solo
 
 cd targets/stm32l432
 make cbor
 make all-hacker
-python ../../tools/solotool.py program solo.hex
+cd ../..
+
+make env3
+source env3/bin/activate
+python tools/solotool.py program targets/stm32l432/solo.hex
 ```
 
 If you forgot the `--recurse-submodules` when cloning, simply `git submodule update --init --recursive`.
-For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/SoloKeysSec/solo/blob/master/targets/stm32l432/src/led.c#L15) and force:
+
+For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/solokeys/solo/blob/master/targets/stm32l432/src/led.c#L15) and force:
 ```
 uint32_t b = 0;
 ```
@@ -65,7 +70,7 @@ A frequently asked question is whether Solo for Hacker is less secure than regul
 Clone Solo and build it
 
 ```bash
-git clone --recurse-submodules https://github.com/SoloKeysSec/solo
+git clone --recurse-submodules https://github.com/solokeys/solo
 cd solo
 make all
 ```
@@ -93,12 +98,12 @@ Or any client example such as:
 python python-fido2/examples/credential.py
 ```
 
-You can find more details in our [documentation](https://solo.solokeys.io), including how to build on the the NUCLEO-L432KC development board.
+You can find more details in our [documentation](https://docs.solokeys.io/solo/), including how to build on the the NUCLEO-L432KC development board.
 
 
 # Documentation
 
-Check out our [official documentation](https://solo.solokeys.io).
+Check out our [official documentation](https://docs.solokeys.io/solo/).
 
 
 # Contributors
@@ -116,6 +121,9 @@ Solo is fully open source.
 All software is licensed under GPLv3, and hardware under CC BY-SA 4.0.
 Software and hardware are available under licenses for commercial use. Please contact SoloKeys for more information.
 
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fsolokeys%2Fsolo.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fsolokeys%2Fsolo?ref=badge_large)
 
 # Where To Buy Solo
 

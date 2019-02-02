@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 language: c
 compiler: gcc
 addons:
@@ -7,6 +7,7 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - gcc-7
+      - cppcheck
 script:
   - export CC=gcc-7
   - make test

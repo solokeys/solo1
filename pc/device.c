@@ -54,7 +54,11 @@ void device_set_status(int status)
 
 int udp_server()
 {
-    int fd;
+    static bool run_already = false;
+    static int fd = -1;
+    if (run_already && fd >= 0) return fd;
+    run_already = true;
+
     if ( (fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
         perror( "socket failed" );
         return 1;

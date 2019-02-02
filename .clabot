@@ -1,0 +1,4 @@
+{
+  "contributors": "https://raw.githubusercontent.com/solokeys/contributors/master/contributors.json",
+  "message": "We require contributors to sign our Copyright License Agreement, and we don't have {{usersWithoutCLA}} on file. In order for us to review and merge your code, please visit https://solokeys.com/legal/contributors, or contact @nickray, @conorpp or @0x0ece for further information or help."
+}

@@ -1,21 +1,21 @@
 /*
  * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- * 
+ *
  * This file is part of Solo.
- * 
+ *
  * Solo is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Solo is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- * 
+ *
  * This code is available under licenses for commercial use.
  * Please contact SoloKeys for more information.
  */
@@ -125,17 +125,17 @@ void u2f_request_nfc(uint8_t * req, int len, CTAP_RESPONSE * resp)
 {
 	if (len < 5 || !req)
 		return;
-	
+
     uint32_t alen = req[4];
-	
-	u2f_request_ex((APDU_HEADER *)req, &req[5], alen, resp, true);	
+
+	u2f_request_ex((APDU_HEADER *)req, &req[5], alen, resp, true);
 }
 
 void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
 {
     uint32_t len = ((req->LC3) | ((uint32_t)req->LC2 << 8) | ((uint32_t)req->LC1 << 16));
-	
-	u2f_request_ex((APDU_HEADER *)req, req->payload, len, resp, false);	
+
+	u2f_request_ex((APDU_HEADER *)req, req->payload, len, resp, false);
 }
 
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len)

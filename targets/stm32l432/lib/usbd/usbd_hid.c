@@ -114,15 +114,10 @@ USBD_ClassTypeDef  USBD_HID =
   NULL,
 
 
-
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  // USBD_HID_GetFSCfgDesc,
-  // USBD_HID_GetFSCfgDesc,
-  // USBD_HID_GetFSCfgDesc,
-  // USBD_HID_GetDeviceQualifierDesc,
+  USBD_HID_GetFSCfgDesc,
+  USBD_HID_GetFSCfgDesc,
+  USBD_HID_GetFSCfgDesc,
+  USBD_HID_GetDeviceQualifierDesc,
 };
 
 #define USBD_HID_CfgHSDesc USBD_HID_OtherSpeedCfgDesc
