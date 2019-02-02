@@ -20,6 +20,9 @@ typedef struct
     uint8_t tlv[8];
 } __attribute__((packed)) CAPABILITY_CONTAINER;
 
+// WTX time in ms
+#define WTX_TIME_DEFAULT              300
+
 #define NFC_CMD_REQA                  0x26
 #define NFC_CMD_WUPA                  0x52
 #define NFC_CMD_HLTA                  0x50

@@ -70,7 +70,6 @@ bool ams_wait_for_tx(uint32_t timeout_ms)
 	return false;
 }
 
-//bool ams_receive_with_timeout(10, recbuf, sizeof(recbuf), &reclen))
 bool ams_receive_with_timeout(uint32_t timeout_ms, uint8_t * data, int maxlen, int *dlen)
 {
 	uint8_t buf[32];
@@ -210,6 +209,82 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 	}
 }
 
+// WTX on/off:
+// sends/receives WTX frame to reader every `WTX_time` time in ms
+// works via timer interrupts
+// WTX: f2 01 91 40 === f2(S-block + WTX, frame without CID) 01(from iso - multiply WTX from ATS by 1) <2b crc16>
+static bool WTX_sent;
+static bool WTX_fail;
+
+void WTX_clear()
+{
+	WTX_sent = false;
+	WTX_fail = false;
+}
+
+bool WTX_on(int WTX_time)
+{
+	WTX_clear();
+	
+	// TODO: start interrupt
+	
+	return true;
+}
+
+bool WTX_process(int read_timeout);
+
+bool WTX_off()
+{
+	// TODO: stop interrupt
+	
+	// read data if we sent WTX
+	if (WTX_sent)
+	{
+		if (!WTX_process(10))
+			return false;
+	}
+
+	if (WTX_fail)
+		return false;
+	
+	return true;
+}
+
+// executes twice a period. 1st for send WTX, 2nd for check the result
+// read timeout must be 0 to call from int
+bool WTX_process(int read_timeout)
+{
+	uint8_t wtx[] = {0xf2, 0x01};
+	if (WTX_fail)
+		return false;
+	
+	if (!WTX_sent)
+	{
+		nfc_write_frame(wtx, sizeof(wtx));
+		WTX_sent = true;
+		return true;
+	}
+	else
+	{
+		uint8_t data[32];
+		int len;
+		if (ams_receive_with_timeout(read_timeout, data, sizeof(data), &len))
+		{
+			WTX_fail = true;
+			return false;
+		}
+		
+		if (len != 2 || data[0] != 0xf2 || data[1] != 0x01)
+		{
+			WTX_fail = true;
+			return false;
+		}
+		
+		WTX_sent = false;
+		return true;
+	}	
+}
+
 int answer_rats(uint8_t parameter)
 {
 
@@ -341,12 +416,22 @@ void nfc_process_iblock(uint8_t * buf, int len)
         break;
 
         case APDU_FIDO_U2F_VERSION:
+			if (NFC_STATE.selected_applet != APP_FIDO) {
+				nfc_write_response(buf[0], SW_INS_INVALID);
+				break;
+			}
+			
 			printf1(TAG_NFC, "U2F GetVersion command.\r\n");
 
 			nfc_write_response_ex(buf[0], (uint8_t *)"U2F_V2", 6, SW_SUCCESS);
         break;
 
         case APDU_FIDO_U2F_REGISTER:
+			if (NFC_STATE.selected_applet != APP_FIDO) {
+				nfc_write_response(buf[0], SW_INS_INVALID);
+				break;
+			}
+
 			printf1(TAG_NFC, "U2F Register command.\r\n");
 
 			if (plen != 64)
@@ -357,7 +442,10 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			}
 
 			t1 = millis();
+			WTX_on(WTX_TIME_DEFAULT);
 			u2f_request_nfc(&buf[1], len, &ctap_resp);
+			if (!WTX_off())
+				return;
 
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Register processing %d (took %d)\r\n", millis(), millis() - t1);
@@ -366,6 +454,11 @@ void nfc_process_iblock(uint8_t * buf, int len)
        break;
 
         case APDU_FIDO_U2F_AUTHENTICATE:
+			if (NFC_STATE.selected_applet != APP_FIDO) {
+				nfc_write_response(buf[0], SW_INS_INVALID);
+				break;
+			}
+
 			printf1(TAG_NFC, "U2F Authenticate command.\r\n");
 
 			if (plen != 64 + 1 + buf[6 + 64])
@@ -377,7 +470,10 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			}
 
 			t1 = millis();
+			WTX_on(WTX_TIME_DEFAULT);
 			u2f_request_nfc(&buf[1], len, &ctap_resp);
+			if (!WTX_off())
+				return;
 
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Authenticate processing %d (took %d)\r\n", millis(), millis() - t1);
@@ -386,11 +482,19 @@ void nfc_process_iblock(uint8_t * buf, int len)
         break;
 
         case APDU_FIDO_NFCCTAP_MSG:
+			if (NFC_STATE.selected_applet != APP_FIDO) {
+				nfc_write_response(buf[0], SW_INS_INVALID);
+				break;
+			}
+
 			t1 = millis();
 			printf1(TAG_NFC, "FIDO2 CTAP message. %d\r\n", t1);
 
+			WTX_on(WTX_TIME_DEFAULT);
             ctap_response_init(&ctap_resp);
             status = ctap_request(payload, plen, &ctap_resp);
+			if (!WTX_off())
+				return;
 			printf1(TAG_NFC, "CTAP resp: %d  len: %d\r\n", status, ctap_resp.length);
 
 			if (status == CTAP1_ERR_SUCCESS)
@@ -421,7 +525,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
                         printf1(TAG_ERR, "Truncating requested CC length %d\r\n", apdu->lc);
                         plen = 15;
                     }
-                    nfc_write_response_ex(buf[0], &NFC_CC, plen, SW_SUCCESS);
+                    nfc_write_response_ex(buf[0], (uint8_t *)&NFC_CC, plen, SW_SUCCESS);
                     ams_wait_for_tx(10);
                 break;
                 case APP_NDEF_TAG:
@@ -450,10 +554,17 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 }
 
+static uint8_t ibuf[1024];
+static int ibuflen = 0;
+
+void clear_ibuf()
+{
+	ibuflen = 0;
+	memset(ibuf, 0, sizeof(ibuf));
+}
+
 void nfc_process_block(uint8_t * buf, int len)
 {
-	static uint8_t ibuf[1024];
-	static int ibuflen = 0;
 
 	if (!len)
 		return;
@@ -509,7 +620,7 @@ void nfc_process_block(uint8_t * buf, int len)
 				// printf1(TAG_NFC, "NFC_CMD_IBLOCK\r\n");
 				nfc_process_iblock(buf, len);
 			}
-			ibuflen = 0;
+			clear_ibuf();
 		}
     }
     else if (IS_RBLOCK(buf[0]))
@@ -527,6 +638,8 @@ void nfc_process_block(uint8_t * buf, int len)
             ams_wait_for_tx(2);
             ams_write_command(AMS_CMD_SLEEP);
             nfc_state_init();
+			clear_ibuf();
+			WTX_clear();
         }
         else
         {
@@ -610,6 +723,8 @@ void nfc_loop()
                     t1 = millis();
                     answer_rats(buf[1]);
                     NFC_STATE.block_num = 1;
+					clear_ibuf();
+					WTX_clear();
                     printf1(TAG_NFC,"RATS answered %d (took %d)\r\n",millis(), millis() - t1);
                 break;
                 default:
