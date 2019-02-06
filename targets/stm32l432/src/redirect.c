@@ -45,9 +45,9 @@ int _write (int fd, const void *buf, long int len)
     uint8_t * data = (uint8_t *) buf;
 	static uint8_t logbuf[1000] = {0};
 	static int logbuflen = 0;
-	if (logbuflen + len > 1000) {
-		int mlen = logbuflen + len - 1000;
-		memmove(logbuf, &logbuf[mlen], mlen);
+	if (logbuflen + len > sizeof(logbuf)) {
+		int mlen = logbuflen + len - sizeof(logbuf);
+		memmove(logbuf, &logbuf[mlen], sizeof(logbuf) - mlen);
 		logbuflen -= mlen;
 	}
 	memcpy(&logbuf[logbuflen], data, len);
