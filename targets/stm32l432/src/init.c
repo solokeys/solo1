@@ -65,6 +65,7 @@ void hw_init(int lowfreq)
 #else
 #endif
     LL_Init();
+    init_gpio();
 
     if (lowfreq)
     {
@@ -76,7 +77,6 @@ void hw_init(int lowfreq)
     }
 
 
-    init_gpio();
 
     if (!lowfreq)
     {
@@ -84,7 +84,6 @@ void hw_init(int lowfreq)
     }
 
     init_millisecond_timer(lowfreq);
-
 
 #if DEBUG_LEVEL > 0
     init_debug_uart();
@@ -208,7 +207,7 @@ void SystemClock_Config(void)
       NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
 }
 
-void SystemClock_Config_LF(void)
+void SystemClock_Config_LF4(void)
 {
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
 
@@ -258,6 +257,130 @@ void SystemClock_Config_LF(void)
     LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
 
     LL_SetSystemCoreClock(4000000);
+
+    LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
+
+    LL_RCC_SetRNGClockSource(LL_RCC_RNG_CLKSOURCE_MSI);
+
+    /* SysTick_IRQn interrupt configuration */
+    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+
+
+
+}
+
+// 8MHz
+void SystemClock_Config_LF(void)
+{
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
+
+    LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
+
+    if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_0)
+    {
+        Error_Handler();
+    }
+    LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
+
+    LL_RCC_LSI_Enable();
+
+     /* Wait till LSI is ready */
+    // while(LL_RCC_LSI_IsReady() != 1)
+    // {
+    //
+    // }
+    LL_RCC_MSI_Enable();
+
+     /* Wait till MSI is ready */
+    // while(LL_RCC_MSI_IsReady() != 1)
+    // {
+    //
+    // }
+    LL_RCC_MSI_EnableRangeSelection();
+
+    LL_RCC_MSI_SetRange(LL_RCC_MSIRANGE_7);
+
+    LL_RCC_MSI_SetCalibTrimming(0);
+
+    LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_MSI);
+
+     /* Wait till System clock is ready */
+    // while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
+    // {
+    //
+    // }
+    LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+
+    LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+
+    LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
+
+    LL_Init1msTick(8000000);
+
+    LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
+
+    LL_SetSystemCoreClock(8000000);
+
+    LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
+
+    LL_RCC_SetRNGClockSource(LL_RCC_RNG_CLKSOURCE_MSI);
+
+    /* SysTick_IRQn interrupt configuration */
+    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+
+}
+
+// 16MHz
+void SystemClock_Config_LF16(void)
+{
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
+
+    LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
+
+    if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_0)
+    {
+    Error_Handler();
+    }
+    LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
+
+    LL_RCC_LSI_Enable();
+
+     /* Wait till LSI is ready */
+    while(LL_RCC_LSI_IsReady() != 1)
+    {
+
+    }
+    LL_RCC_MSI_Enable();
+
+     /* Wait till MSI is ready */
+    while(LL_RCC_MSI_IsReady() != 1)
+    {
+
+    }
+    LL_RCC_MSI_EnableRangeSelection();
+
+    LL_RCC_MSI_SetRange(LL_RCC_MSIRANGE_8);
+
+    LL_RCC_MSI_SetCalibTrimming(0);
+
+    LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_MSI);
+
+     /* Wait till System clock is ready */
+    while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
+    {
+
+    }
+    LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+
+    LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+
+    LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
+
+    LL_Init1msTick(16000000);
+
+    LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
+
+    LL_SetSystemCoreClock(16000000);
 
     LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
 
@@ -413,8 +536,25 @@ void init_gpio(void)
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
 
+
+
   LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
   LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
+
+#ifdef SOLO_AMS_IRQ_PORT
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOC);
+  /**/
+  LL_GPIO_InitTypeDef GPIO_InitStruct;
+  GPIO_InitStruct.Pin = SOLO_AMS_IRQ_PIN;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(SOLO_AMS_IRQ_PORT, &GPIO_InitStruct);
+
+
+  LL_GPIO_SetPinMode(SOLO_AMS_IRQ_PORT,SOLO_AMS_IRQ_PIN,LL_GPIO_MODE_INPUT);
+  LL_GPIO_SetPinPull(SOLO_AMS_IRQ_PORT,SOLO_AMS_IRQ_PIN,LL_GPIO_PULL_UP);
+#endif
+
 }
 
 void init_millisecond_timer(int lf)
@@ -430,7 +570,7 @@ void init_millisecond_timer(int lf)
     if (!lf)
         TIM_InitStruct.Prescaler = 48000;
     else
-        TIM_InitStruct.Prescaler = 4000;
+        TIM_InitStruct.Prescaler = 8000;
 
     TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
     TIM_InitStruct.Autoreload = 90;
