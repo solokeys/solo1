@@ -111,10 +111,15 @@ void device_reboot()
 {
     NVIC_SystemReset();
 }
+
 void device_init()
 {
-    hw_init(HIGH_FREQUENCY);
+
+    // hw_init(LOW_FREQUENCY);
     // isLowFreq = 1;
+
+    hw_init(HIGH_FREQUENCY);
+    isLowFreq = 0;
 
 #ifndef IS_BOOTLOADER
 #if BOOT_TO_DFU
@@ -153,6 +158,12 @@ void usbhid_init()
 #if DEBUG_LEVEL>1
         wait_for_usb_tether();
 #endif
+    }
+    else
+    {
+
+
+
     }
 }
 

@@ -11,10 +11,9 @@
 
 #include "ctap_errors.h"
 
+#define IS_IRQ_ACTIVE()         (1  == (LL_GPIO_ReadInputPort(SOLO_AMS_IRQ_PORT) & SOLO_AMS_IRQ_PIN))
 
 // Capability container
-
-
 const CAPABILITY_CONTAINER NFC_CC = {
     .cclen_hi = 0x00, .cclen_lo = 0x0f,
     .version = 0x20,
@@ -26,7 +25,18 @@ const CAPABILITY_CONTAINER NFC_CC = {
             0x00,0x00 }
 };
 
+// 13 chars
 uint8_t NDEF_SAMPLE[] = "\x00\x14\xd1\x01\x0eU\x04solokeys.com/";
+
+#include <stdarg.h>
+void nprintf(const char *format, ...)
+{
+    memmove((char*)NDEF_SAMPLE + sizeof(NDEF_SAMPLE) - 1 - 13,"             ", 13);
+    va_list args;
+    va_start (args, format);
+    vsnprintf ((char*)NDEF_SAMPLE + sizeof(NDEF_SAMPLE) - 1 - 13, 13, format, args);
+    va_end (args);
+}
 
 static struct
 {
@@ -225,9 +235,9 @@ void WTX_clear()
 bool WTX_on(int WTX_time)
 {
 	WTX_clear();
-	
+
 	// TODO: start interrupt
-	
+
 	return true;
 }
 
@@ -236,7 +246,7 @@ bool WTX_process(int read_timeout);
 bool WTX_off()
 {
 	// TODO: stop interrupt
-	
+
 	// read data if we sent WTX
 	if (WTX_sent)
 	{
@@ -246,7 +256,7 @@ bool WTX_off()
 
 	if (WTX_fail)
 		return false;
-	
+
 	return true;
 }
 
@@ -257,7 +267,7 @@ bool WTX_process(int read_timeout)
 	uint8_t wtx[] = {0xf2, 0x01};
 	if (WTX_fail)
 		return false;
-	
+
 	if (!WTX_sent)
 	{
 		nfc_write_frame(wtx, sizeof(wtx));
@@ -273,16 +283,16 @@ bool WTX_process(int read_timeout)
 			WTX_fail = true;
 			return false;
 		}
-		
+
 		if (len != 2 || data[0] != 0xf2 || data[1] != 0x01)
 		{
 			WTX_fail = true;
 			return false;
 		}
-		
+
 		WTX_sent = false;
 		return true;
-	}	
+	}
 }
 
 int answer_rats(uint8_t parameter)
@@ -315,8 +325,11 @@ int answer_rats(uint8_t parameter)
 	// historical bytes
 	memcpy(&res[3], (uint8_t *)"SoloKey tap", 11);
 
+
     nfc_write_frame(res, sizeof(res));
 	ams_wait_for_tx(10);
+
+
     return 0;
 }
 
@@ -420,7 +433,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 				nfc_write_response(buf[0], SW_INS_INVALID);
 				break;
 			}
-			
+
 			printf1(TAG_NFC, "U2F GetVersion command.\r\n");
 
 			nfc_write_response_ex(buf[0], (uint8_t *)"U2F_V2", 6, SW_SUCCESS);
@@ -657,49 +670,51 @@ void nfc_process_block(uint8_t * buf, int len)
 void nfc_loop()
 {
     static uint32_t t1 = 0;
+    static uint32_t t2 = 0;
     uint8_t buf[32];
     AMS_DEVICE ams;
     int len = 0;
-    // uint8_t def[] = "\x00\x00\x05\x40\x00\x00\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x14\x02\x01\x00";
 
 
-    // if (millis() - t1 > interval)
     if (1)
     {
-        t1 = millis();
         read_reg_block(&ams);
+        uint8_t state = AMS_STATE_MASK & ams.regs.rfid_status;
 
-		process_int0(ams.regs.int0);
+        if (state != AMS_STATE_SELECTED && state != AMS_STATE_SELECTEDX)
+        {
+            // delay(1);  // sleep ?
+            return;
+        }
 
-        // if (memcmp(def,ams.buf,sizeof(AMS_DEVICE)) != 0)
-        // {
-        //     printf1(TAG_NFC,"regs: "); dump_hex1(TAG_NFC,ams.buf,sizeof(AMS_DEVICE));
-        // }
         if (ams.regs.rfid_status)
         {
-            // uint8_t state = AMS_STATE_MASK & ams.regs.rfid_status;
             // if (state != AMS_STATE_SENSE)
-            //     printf1(TAG_NFC,"    %s  %d\r\n", ams_get_state_string(ams.regs.rfid_status), millis());
+            //      printf1(TAG_NFC,"    %s  x%02x\r\n", ams_get_state_string(ams.regs.rfid_status), state);
         }
         if (ams.regs.int0 & AMS_INT_INIT)
         {
-            // Initialize chip!
             nfc_state_init();
+            t1 = millis();
         }
         if (ams.regs.int1)
         {
             // ams_print_int1(ams.regs.int1);
         }
-        if (ams.regs.buffer_status2 && (ams.regs.int0 & AMS_INT_RXE))
+
+        if ((ams.regs.int0 & AMS_INT_RXE))
         {
-            if (ams.regs.buffer_status2 & AMS_BUF_INVALID)
+            if (ams.regs.buffer_status2)
             {
-                printf1(TAG_NFC,"Buffer being updated!\r\n");
-            }
-            else
-            {
-                len = ams.regs.buffer_status2 & AMS_BUF_LEN_MASK;
-                ams_read_buffer(buf, len);
+                if (ams.regs.buffer_status2 & AMS_BUF_INVALID)
+                {
+                    printf1(TAG_NFC,"Buffer being updated!\r\n");
+                }
+                else
+                {
+                    len = ams.regs.buffer_status2 & AMS_BUF_LEN_MASK;
+                    ams_read_buffer(buf, len);
+                }
             }
         }
 
@@ -719,12 +734,17 @@ void nfc_loop()
                     printf1(TAG_NFC, "HLTA/Halt\r\n");
                 break;
                 case NFC_CMD_RATS:
-                    printf1(TAG_NFC,"RATS\r\n");
-                    t1 = millis();
+                    t2 = millis();
+
                     answer_rats(buf[1]);
+                    nprintf("R:%x-%x:%d:%d",firstbuf[0],firstbuf[1],t2-t1,inits);
+                    ///
+                    LL_GPIO_SetOutputPin(GPIOA,LL_GPIO_PIN_12);
+                    ///
+
                     NFC_STATE.block_num = 1;
-					clear_ibuf();
-					WTX_clear();
+    				clear_ibuf();
+    				WTX_clear();
                     printf1(TAG_NFC,"RATS answered %d (took %d)\r\n",millis(), millis() - t1);
                 break;
                 default:
@@ -736,10 +756,8 @@ void nfc_loop()
                 break;
             }
 
-
-
         }
-    }
 
+    }
 
 }
