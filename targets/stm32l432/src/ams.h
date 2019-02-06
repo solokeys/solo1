@@ -52,6 +52,9 @@ uint8_t ams_read_reg(uint8_t addr);
 
 void ams_write_reg(uint8_t addr, uint8_t tx);
 
+const char * ams_get_state_string(uint8_t regval);
+int ams_state_is_valid(uint8_t regval);
+
 
 #define AMS_REG_IO_CONF                 0x00
 #define AMS_REG_IC_CONF0                0x01
@@ -70,11 +73,21 @@ void ams_write_reg(uint8_t addr, uint8_t tx);
     #define AMS_STATE_SELECTED          (6 << 3)
     #define AMS_STATE_SECTOR2           (7 << 3)
     #define AMS_STATE_SECTORX_2         (0xf << 3)
-    #define AMS_STATE_SELECTEDX         (0xd << 3)
+    #define AMS_STATE_SELECTEDX         (0xe << 3)
     #define AMS_STATE_SENSEX_L2         (0xa << 3)
     #define AMS_STATE_SENSEX            (0xb << 3)
     #define AMS_STATE_SLEEP             (0x9 << 3)
 // ... //
+#define AMS_REG_MASK_INT0               0x08
+    #define AMS_MASK0_PU                (1<<7)  // power up
+    #define AMS_MASK0_WU_A              (1<<6)  // selected INT
+    #define AMS_MASK0_SLP               (1<<5)
+    #define AMS_MASK0_EEW_RF            (1<<4)
+    #define AMS_MASK0_EER_RF            (1<<3)
+    #define AMS_MASK0_RXE               (1<<2)
+    #define AMS_MASK0_TXE               (1<<1)
+    #define AMS_MASK0_XRF               (1<<0)
+#define AMS_REG_MASK_INT1               0x09
 #define AMS_REG_INT0                    0x0a
     #define AMS_INT_XRF                 (1<<0)
     #define AMS_INT_TXE                 (1<<1)
@@ -109,6 +122,11 @@ void ams_write_reg(uint8_t addr, uint8_t tx);
 
 #define AMS_CFG1_VOLTAGE_LEVEL_1V9      (0x00<<2)
 #define AMS_CFG1_VOLTAGE_LEVEL_2V0      (0x01<<2)
+#define AMS_CFG1_VOLTAGE_LEVEL_2V1      (0x02<<2)
+#define AMS_CFG1_VOLTAGE_LEVEL_2V2      (0x03<<2)
+#define AMS_CFG1_VOLTAGE_LEVEL_2V3      (0x04<<2)
+#define AMS_CFG1_VOLTAGE_LEVEL_2V4      (0x05<<2)
+#define AMS_CFG1_VOLTAGE_LEVEL_2V5      (0x06<<2)
 
 #define AMS_CFG1_OUTPUT_RESISTANCE_ZZ   0x00
 #define AMS_CFG1_OUTPUT_RESISTANCE_100  0x01

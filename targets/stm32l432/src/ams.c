@@ -79,27 +79,16 @@ uint8_t ams_read_reg(uint8_t addr)
     return data;
 }
 
-// data must be 14 bytes long
-void read_reg_block2(AMS_DEVICE * dev)
-{
-	int i;
-
-    for (i = 0; i < 0x20; i++)
-	{
-		dev->buf[i] = ams_read_reg(i);
-	}
-}
-
 
 // data must be 14 bytes long
 void read_reg_block(AMS_DEVICE * dev)
 {
 	int i;
-	uint8_t mode = 0x20 | (0 );
+	uint8_t mode = 0x20 | (4 );
     flush_rx();
 
 	send_recv(mode);
-	for (i = 0; i < 0x20; i++)
+	for (i = 0x04; i < 0x0d; i++)
 	{
 		dev->buf[i] = send_recv(0);
 	}
@@ -204,6 +193,30 @@ const char * ams_get_state_string(uint8_t regval)
     return "STATE_WRONG";
 }
 
+int ams_state_is_valid(uint8_t regval)
+{
+    if (regval & AMS_STATE_INVALID)
+    {
+        return 0;
+    }
+    switch (regval & AMS_STATE_MASK)
+    {
+        case AMS_STATE_OFF:
+        case AMS_STATE_SENSE:
+        case AMS_STATE_RESOLUTION:
+        case AMS_STATE_RESOLUTION_L2:
+        case AMS_STATE_SELECTED:
+        case AMS_STATE_SECTOR2:
+        case AMS_STATE_SECTORX_2:
+        case AMS_STATE_SELECTEDX:
+        case AMS_STATE_SENSEX_L2:
+        case AMS_STATE_SENSEX:
+        case AMS_STATE_SLEEP:
+            return 1;
+    }
+    return 0;
+}
+
 void ams_print_int0(uint8_t int0)
 {
     uint32_t tag = (TAG_NFC)|(TAG_NO_TAG);
@@ -252,6 +265,7 @@ void ams_print_int1(uint8_t int0)
     printf1(tag,"\r\n");
 }
 
+
 bool ams_init()
 {
 
@@ -270,7 +284,7 @@ bool ams_init()
     // delay(10);
 
     //
-    if (1)
+    if (0)
     {
         ams_write_command(AMS_CMD_DEFAULT);
         ams_write_command(AMS_CMD_CLEAR_BUFFER);
@@ -287,6 +301,7 @@ bool ams_init()
         // enable tunneling mode and RF configuration
         ams_write_reg(AMS_REG_IC_CONF2, AMS_RFCFG_EN | AMS_TUN_MOD);
 
+
         ams_read_eeprom_block(AMS_CONFIG_UID_ADDR, block);
         printf1(TAG_NFC,"UID: "); dump_hex1(TAG_NFC,block,4);
 
@@ -295,7 +310,7 @@ bool ams_init()
 
         uint8_t sense1 = 0x44;
         uint8_t sense2 = 0x00;
-        uint8_t selr = 0x20;    // SAK
+        uint8_t selr   = 0x20;    // SAK
 
         if(block[0] != sense1 || block[1] != sense2 || block[2] != selr)
         {
@@ -318,7 +333,7 @@ bool ams_init()
         ams_read_eeprom_block(AMS_CONFIG_BLOCK1_ADDR, block);
         printf1(TAG_NFC,"conf1: "); dump_hex1(TAG_NFC,block,4);
 
-        uint8_t ic_cfg1 = AMS_CFG1_OUTPUT_RESISTANCE_100 | AMS_CFG1_VOLTAGE_LEVEL_2V0;
+        uint8_t ic_cfg1 = AMS_CFG1_OUTPUT_RESISTANCE_100 | AMS_CFG1_VOLTAGE_LEVEL_2V1;
         uint8_t ic_cfg2 = AMS_CFG2_TUN_MOD;
 
         if (block[0] != ic_cfg1 || block[1] != ic_cfg2)
