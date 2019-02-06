@@ -8,7 +8,7 @@ all:
 	$(MAKE) -f application.mk -j8 solo.hex PREFIX=$(PREFIX) DEBUG=$(DEBUG) EXTRA_DEFINES='-DFLASH_ROP=1'
 
 all-hacker:
-	$(MAKE) -f application.mk  solo.hex PREFIX=$(PREFIX) DEBUG=$(DEBUG) EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0'
+	$(MAKE) -f application.mk  -j8 solo.hex PREFIX=$(PREFIX) DEBUG=$(DEBUG) EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0'
 
 all-locked:
 	$(MAKE) -f application.mk -j8 solo.hex PREFIX=$(PREFIX) EXTRA_DEFINES='-DFLASH_ROP=2'
@@ -44,7 +44,6 @@ clean2:
 	rm -f solo.hex bootloader.hex all.hex
 	$(MAKE) -f application.mk clean
 	$(MAKE) -f bootloader.mk clean
-
 
 flash: solo.hex bootloader.hex
 	$(merge_hex) solo.hex bootloader.hex all.hex
