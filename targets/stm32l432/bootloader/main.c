@@ -24,6 +24,7 @@
 #include <stdint.h>
 
 #include "stm32l4xx_ll_rcc.h"
+#include "stm32l4xx_ll_gpio.h"
 #include "stm32l4xx.h"
 
 #include "cbor.h"
@@ -85,8 +86,9 @@ int main(int argc, char * argv[])
             );
 
     // device_init();
-    SystemClock_Config_LF();
+    
     init_gpio();
+
     init_millisecond_timer(1);
 
 #if DEBUG_LEVEL > 0
