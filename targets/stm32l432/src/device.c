@@ -65,6 +65,12 @@ void TIM6_DAC_IRQHandler()
             ctaphid_update_status(__device_status);
         }
     }
+	
+	// NFC sending WTX if needs
+	if (haveNFC) 
+	{
+		WTX_timer_exec();
+	}
 }
 
 // Global USB interrupt handler
