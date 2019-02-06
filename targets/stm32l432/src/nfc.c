@@ -91,7 +91,8 @@ bool ams_receive_with_timeout(uint32_t timeout_ms, uint8_t * data, int maxlen, i
             {
                 uint8_t len = buffer_status2 & AMS_BUF_LEN_MASK;
                 ams_read_buffer(buf, len);
-				printf1(TAG_NFC,">> "); dump_hex1(TAG_NFC, buf, len);
+				printf1(TAG_NFC_APDU, ">> "); 
+				dump_hex1(TAG_NFC_APDU, buf, len);
 
 				*dlen = MIN(32, MIN(maxlen, len));
 				memcpy(data, buf, *dlen);
@@ -116,7 +117,8 @@ void nfc_write_frame(uint8_t * data, uint8_t len)
     ams_write_buffer(data,len);
     ams_write_command(AMS_CMD_TRANSMIT_BUFFER);
 
-    printf1(TAG_NFC,"<< "); dump_hex1(TAG_NFC, data, len);
+    printf1(TAG_NFC_APDU, "<< "); 
+	dump_hex1(TAG_NFC_APDU, data, len);
 }
 
 bool nfc_write_response_ex(uint8_t req0, uint8_t * data, uint8_t len, uint16_t resp)
@@ -600,7 +602,7 @@ void nfc_process_block(uint8_t * buf, int len)
     {
 		if (buf[0] & 0x10)
 		{
-			printf1(TAG_NFC, "NFC_CMD_IBLOCK chaining blen=%d len=%d\r\n", ibuflen, len);
+			printf1(TAG_NFC_APDU, "NFC_CMD_IBLOCK chaining blen=%d len=%d\r\n", ibuflen, len);
 			if (ibuflen + len > sizeof(ibuf))
 			{
 				printf1(TAG_NFC, "I block memory error! must have %d but have only %d\r\n", ibuflen + len, sizeof(ibuf));
@@ -608,8 +610,8 @@ void nfc_process_block(uint8_t * buf, int len)
 				return;
 			}
 
-			printf1(TAG_NFC,"i> ");
-			dump_hex1(TAG_NFC, buf, len);
+			printf1(TAG_NFC_APDU,"i> ");
+			dump_hex1(TAG_NFC_APDU, buf, len);
 
 			if (len)
 			{
@@ -635,8 +637,8 @@ void nfc_process_block(uint8_t * buf, int len)
 
 				printf1(TAG_NFC, "NFC_CMD_IBLOCK chaining last block. blen=%d len=%d\r\n", ibuflen, len);
 
-				printf1(TAG_NFC,"i> ");
-				dump_hex1(TAG_NFC, buf, len);
+				printf1(TAG_NFC_APDU,"i> ");
+				dump_hex1(TAG_NFC_APDU, buf, len);
 
 				nfc_process_iblock(ibuf, ibuflen);
 			} else {

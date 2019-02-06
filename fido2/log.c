@@ -63,6 +63,7 @@ struct logtag tagtable[] = {
     {TAG_BOOT,"[1;36mBOOT[0m"},
     {TAG_EXT,"[1;37mEXT[0m"},
     {TAG_NFC,"[1;38mNFC[0m"},
+    {TAG_NFC_APDU, "NAPDU"},
 };
 
 
