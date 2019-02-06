@@ -43,11 +43,22 @@ static int NFC = 0;
 int _write (int fd, const void *buf, long int len)
 {
     uint8_t * data = (uint8_t *) buf;
+	static uint8_t logbuf[1000] = {0};
+	static int logbuflen = 0;
+	if (logbuflen + len > 1000) {
+		int mlen = logbuflen + len - 1000;
+		memmove(logbuf, &logbuf[mlen], mlen);
+		logbuflen -= mlen;
+	}
+	memcpy(&logbuf[logbuflen], data, len);
+	logbuflen += len;
 
     if (!NFC)
     {
         // Send out USB serial
-        CDC_Transmit_FS(data, len);
+		uint8_t res = CDC_Transmit_FS(logbuf, logbuflen);
+		if (res == USBD_OK)
+			logbuflen = 0;
     }
 
     // Send out UART serial
