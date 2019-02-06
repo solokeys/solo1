@@ -244,13 +244,18 @@ bool WTX_off()
 	// read data if we sent WTX
 	if (WTX_sent)
 	{
-printf1(TAG_NFC, "WTX_process from WTX_off\n");
 		if (!WTX_process(100))
+		{
+			printf1(TAG_NFC, "WTX-off get last WTX error\n");
 			return false;
+		}
 	}
 
 	if (WTX_fail)
+	{
+		printf1(TAG_NFC, "WTX-off fail\n");
 		return false;
+	}
 	
 	WTX_clear();
 	return true;
@@ -258,7 +263,7 @@ printf1(TAG_NFC, "WTX_process from WTX_off\n");
 
 void WTX_timer_exec()
 {
-	// timer on and expired (300ms)
+	// condition: (timer on) or (not expired[300ms])
 	if ((WTX_timer <= 0) || WTX_timer + 300 > millis())
 		return;
 	
@@ -267,7 +272,7 @@ void WTX_timer_exec()
 }
 
 // executes twice a period. 1st for send WTX, 2nd for check the result
-// read timeout must be 0 to call from int
+// read timeout must be 10 ms to call from interrupt
 bool WTX_process(int read_timeout)
 {
 	uint8_t wtx[] = {0xf2, 0x01};
@@ -278,7 +283,6 @@ bool WTX_process(int read_timeout)
 	{
 		nfc_write_frame(wtx, sizeof(wtx));
 		WTX_sent = true;
-printf1(TAG_NFC, "+ %d\n",  millis());
 		return true;
 	}
 	else
@@ -287,19 +291,16 @@ printf1(TAG_NFC, "+ %d\n",  millis());
 		int len;
 		if (!ams_receive_with_timeout(read_timeout, data, sizeof(data), &len))
 		{
-printf1(TAG_NFC, "ft len=%d ms=%d\n", len,  millis());
 			WTX_fail = true;
 			return false;
 		}
 		
 		if (len != 2 || data[0] != 0xf2 || data[1] != 0x01)
 		{
-printf1(TAG_NFC, "fl %d [%02x]\n", len, data[0]);
 			WTX_fail = true;
 			return false;
 		}
 		
-printf1(TAG_NFC, "- %d\n",  millis());
 		WTX_sent = false;
 		return true;
 	}	
@@ -386,7 +387,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
     CTAP_RESPONSE ctap_resp;
     int status;
 
-    printf1(TAG_NFC,">> ");
+    printf1(TAG_NFC,"Iblock: ");
 	dump_hex1(TAG_NFC, buf, len);
 
     // TODO this needs to be organized better
@@ -465,10 +466,8 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			t1 = millis();
 			WTX_on(WTX_TIME_DEFAULT);
 			u2f_request_nfc(&buf[1], len, &ctap_resp);
-			if (!WTX_off()) {
-printf1(TAG_NFC, "WRX-off err\n");
+			if (!WTX_off())
 				return;
-			}
 
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Register processing %d (took %d)\r\n", millis(), millis() - t1);
@@ -516,10 +515,9 @@ printf1(TAG_NFC, "WRX-off err\n");
 			WTX_on(WTX_TIME_DEFAULT);
             ctap_response_init(&ctap_resp);
             status = ctap_request(payload, plen, &ctap_resp, true);
-			if (!WTX_off()){
-printf1(TAG_NFC, "WTX-off err\n");
+			if (!WTX_off())
 				return;
-	}
+
 			printf1(TAG_NFC, "CTAP resp: 0x%02õ  len: %d\r\n", status, ctap_resp.length);
 
 			if (status == CTAP1_ERR_SUCCESS)
@@ -635,7 +633,7 @@ void nfc_process_block(uint8_t * buf, int len)
 				ibuf[0] = buf[0];
 				ibuflen++;
 
-				printf1(TAG_NFC, "NFC_CMD_IBLOCK chaining last block. blen=%d len=%d\r\n", ibuflen, len);
+				printf1(TAG_NFC_APDU, "NFC_CMD_IBLOCK chaining last block. blen=%d len=%d\r\n", ibuflen, len);
 
 				printf1(TAG_NFC_APDU,"i> ");
 				dump_hex1(TAG_NFC_APDU, buf, len);
