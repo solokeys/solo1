@@ -28,6 +28,7 @@ const CAPABILITY_CONTAINER NFC_CC = {
 // 13 chars
 uint8_t NDEF_SAMPLE[] = "\x00\x14\xd1\x01\x0eU\x04solokeys.com/";
 
+// Poor way to get some info while in passive operation
 #include <stdarg.h>
 void nprintf(const char *format, ...)
 {
@@ -737,7 +738,7 @@ void nfc_loop()
                     t2 = millis();
 
                     answer_rats(buf[1]);
-                    nprintf("R:%x-%x:%d:%d",firstbuf[0],firstbuf[1],t2-t1,inits);
+                    nprintf("R:%d",t2-t1);
                     ///
                     LL_GPIO_SetOutputPin(GPIOA,LL_GPIO_PIN_12);
                     ///
