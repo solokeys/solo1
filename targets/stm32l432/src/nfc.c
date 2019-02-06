@@ -513,12 +513,12 @@ printf1(TAG_NFC, "WRX-off err\n");
 
 			WTX_on(WTX_TIME_DEFAULT);
             ctap_response_init(&ctap_resp);
-            status = ctap_request(payload, plen, &ctap_resp);
+            status = ctap_request(payload, plen, &ctap_resp, true);
 			if (!WTX_off()){
 printf1(TAG_NFC, "WTX-off err\n");
 				return;
 	}
-			printf1(TAG_NFC, "CTAP resp: %d  len: %d\r\n", status, ctap_resp.length);
+			printf1(TAG_NFC, "CTAP resp: 0x%02õ  len: %d\r\n", status, ctap_resp.length);
 
 			if (status == CTAP1_ERR_SUCCESS)
 			{

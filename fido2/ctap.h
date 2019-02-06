@@ -275,7 +275,7 @@ typedef struct
 
 void ctap_response_init(CTAP_RESPONSE * resp);
 
-uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp);
+uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp, bool fromNFC);
 
 // Encodes R,S signature to 2 der sequence of two integers.  Sigder must be at least 72 bytes.
 // @return length of der signature
