@@ -52,7 +52,7 @@ int _write (int fd, const void *buf, long int len)
 	memcpy(&logbuf[logbuflen], data, len);
 	logbuflen += len;
 
-  // Send out USB serial
+	// Send out USB serial
 	uint8_t res = CDC_Transmit_FS(logbuf, logbuflen);
 	if (res == USBD_OK)
 		logbuflen = 0;

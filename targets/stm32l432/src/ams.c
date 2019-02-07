@@ -268,7 +268,6 @@ void ams_print_int1(uint8_t int0)
 
 bool ams_init()
 {
-
     uint8_t block[4];
 
     LL_GPIO_SetPinMode(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN,LL_GPIO_MODE_OUTPUT);
@@ -290,7 +289,7 @@ bool ams_init()
 	uint8_t productType = ams_read_reg(AMS_REG_PRODUCT_TYPE);
 	if (productType != 0x14)
 	{
-		printf1(TAG_NFC, "Have no product type [0x%02x]. AMS3956 connection error.\n", productType);
+		printf1(TAG_NFC, "Have wrong product type [0x%02x]. AMS3956 connection error.\n", productType);
 		return false;
 	}
 	printf1(TAG_NFC,"AMS3956 product type 0x%02x.\n", productType);
@@ -298,10 +297,8 @@ bool ams_init()
     // enable tunneling mode and RF configuration
     ams_write_reg(AMS_REG_IC_CONF2, AMS_RFCFG_EN | AMS_TUN_MOD);
 
-        // enable tunneling mode and RF configuration
-        ams_write_reg(AMS_REG_IC_CONF2, AMS_RFCFG_EN | AMS_TUN_MOD);
-
-
+	if (1) 
+	{
         ams_read_eeprom_block(AMS_CONFIG_UID_ADDR, block);
         printf1(TAG_NFC,"UID: "); dump_hex1(TAG_NFC,block,4);
 
