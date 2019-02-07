@@ -23,6 +23,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "stm32l4xx_ll_rcc.h"
+#include "stm32l4xx_ll_gpio.h"
+#include "stm32l4xx.h"
+
 #include "cbor.h"
 #include "device.h"
 #include "ctaphid.h"
@@ -32,9 +36,8 @@
 #include "ctap.h"
 #include "app.h"
 #include "memory_layout.h"
-#include "stm32l4xx_ll_rcc.h"
+#include "init.h"
 
-#include "stm32l4xx.h"
 
 uint8_t REBOOT_FLAG = 0;
 
@@ -82,7 +85,16 @@ int main(int argc, char * argv[])
             TAG_ERR
             );
 
-    device_init();
+    // device_init();
+    
+    init_gpio();
+
+    init_millisecond_timer(1);
+
+#if DEBUG_LEVEL > 0
+        init_debug_uart();
+#endif
+
     printf1(TAG_GEN,"init device\n");
 
     t1 = millis();
@@ -118,7 +130,14 @@ int main(int argc, char * argv[])
         printf1(TAG_RED,"Not authorized to boot (%08x == %08lx)\r\n", AUTH_WORD_ADDR, *(uint32_t*)AUTH_WORD_ADDR);
     }
     start_bootloader:
+
+    SystemClock_Config();
+    init_gpio();
+    init_millisecond_timer(0);
+    init_pwm();
+    init_rng();
     usbhid_init();
+
     printf1(TAG_GEN,"init usb\n");
 
     ctaphid_init();

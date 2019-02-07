@@ -22,5 +22,5 @@ In order to boot the application, a valid signature must be provided to the boot
 signature using a public key stored in the bootloader section, and the data in the application section.  If the signature
 is valid, the boot flag in the data section will be changed to allow boot.
 
-Signature checks and checks to the data section boot flag are made redundantly to make glitching attacks more difficult.  Random delays
-between redundant checks are also made.
+We are working to make the signature checking process redundantly to make glitching attacks more difficult.  Also random delays
+between redundant checks.

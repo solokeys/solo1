@@ -106,6 +106,7 @@
   */
 
 #include "stm32l4xx.h"
+#include "init.h"
 
 #if !defined  (HSE_VALUE)
   #define HSE_VALUE    8000000U  /*!< Value of the External oscillator in Hz */
@@ -218,6 +219,8 @@ void SystemInit(void)
 
   /* Disable all interrupts */
   RCC->CIER = 0x00000000U;
+
+  SystemClock_Config_LF();
 
 }
 

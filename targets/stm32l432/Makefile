@@ -8,7 +8,7 @@ all:
 	$(MAKE) -f application.mk -j8 solo.hex PREFIX=$(PREFIX) DEBUG=$(DEBUG) EXTRA_DEFINES='-DFLASH_ROP=1'
 
 all-hacker:
-	$(MAKE) -f application.mk  solo.hex PREFIX=$(PREFIX) DEBUG=$(DEBUG) EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0'
+	$(MAKE) -f application.mk  -j8 solo.hex PREFIX=$(PREFIX) DEBUG=$(DEBUG) EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0'
 
 all-locked:
 	$(MAKE) -f application.mk -j8 solo.hex PREFIX=$(PREFIX) EXTRA_DEFINES='-DFLASH_ROP=2'
@@ -45,7 +45,6 @@ clean2:
 	$(MAKE) -f application.mk clean
 	$(MAKE) -f bootloader.mk clean
 
-
 flash: solo.hex bootloader.hex
 	$(merge_hex) solo.hex bootloader.hex all.hex
 	STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
@@ -56,8 +55,7 @@ flash_dfu: solo.hex bootloader.hex
 	# STM32_Programmer_CLI -c port=usb1 -halt -e all --readunprotect
 	STM32_Programmer_CLI -c port=usb1 -halt -rdu  -d all.hex
 
-flashboot: solo.hex bootloader.hex
-	$(merge_hex) solo.hex bootloader.hex all.hex
+flashboot:
 	STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
 	STM32_Programmer_CLI -c port=SWD -halt  -d bootloader.hex -rst
 
