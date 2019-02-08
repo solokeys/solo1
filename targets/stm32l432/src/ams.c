@@ -280,7 +280,7 @@ bool ams_init()
 
     // delay(10);
     SELECT();
-    // delay(1);
+    delay(2);
 
     // Needs to be disabled for passive operation
     // if (0)
@@ -293,7 +293,7 @@ bool ams_init()
     		printf1(TAG_NFC, "Have wrong product type [0x%02x]. AMS3956 connection error.\n", productType);
     		return false;
     	}
-        
+
     	printf1(TAG_NFC,"AMS3956 product type 0x%02x.\n", productType);
 
         ams_read_eeprom_block(AMS_CONFIG_UID_ADDR, block);
