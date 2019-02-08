@@ -280,25 +280,22 @@ bool ams_init()
 
     // delay(10);
     SELECT();
-    // delay(10);
+    // delay(1);
 
-    ams_write_command(AMS_CMD_DEFAULT);
-    ams_write_command(AMS_CMD_CLEAR_BUFFER);
-
-	// check connection
-	uint8_t productType = ams_read_reg(AMS_REG_PRODUCT_TYPE);
-	if (productType != 0x14)
+    // Needs to be disabled for passive operation
+    // if (0)
+    if (1)
 	{
-		printf1(TAG_NFC, "Have wrong product type [0x%02x]. AMS3956 connection error.\n", productType);
-		return false;
-	}
-	printf1(TAG_NFC,"AMS3956 product type 0x%02x.\n", productType);
-	
-    // enable tunneling mode and RF configuration
-    ams_write_reg(AMS_REG_IC_CONF2, AMS_RFCFG_EN | AMS_TUN_MOD);
+    	// check connection
+    	uint8_t productType = ams_read_reg(AMS_REG_PRODUCT_TYPE);
+    	if (productType != 0x14)
+    	{
+    		printf1(TAG_NFC, "Have wrong product type [0x%02x]. AMS3956 connection error.\n", productType);
+    		return false;
+    	}
+        
+    	printf1(TAG_NFC,"AMS3956 product type 0x%02x.\n", productType);
 
-	if (1) 
-	{
         ams_read_eeprom_block(AMS_CONFIG_UID_ADDR, block);
         printf1(TAG_NFC,"UID: "); dump_hex1(TAG_NFC,block,4);
 
@@ -335,7 +332,12 @@ bool ams_init()
 
         if (block[0] != ic_cfg1 || block[1] != ic_cfg2)
         {
+
             printf1(TAG_NFC,"Writing config block 1\r\n");
+
+            ams_write_reg(AMS_REG_IC_CONF1,ic_cfg1);
+            ams_write_reg(AMS_REG_IC_CONF2,ic_cfg2);
+
             // set IC_CFG1
             block[0] = ic_cfg1;
 
