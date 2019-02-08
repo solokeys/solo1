@@ -738,10 +738,6 @@ void nfc_loop()
                     t2 = millis();
 
                     answer_rats(buf[1]);
-                    nprintf("R:%d",t2-t1);
-                    ///
-                    LL_GPIO_SetOutputPin(GPIOA,LL_GPIO_PIN_12);
-                    ///
 
                     NFC_STATE.block_num = 1;
     				clear_ibuf();
