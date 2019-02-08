@@ -57,4 +57,6 @@ typedef enum
 	APP_FIDO,
 } APPLETS;
 
+void WTX_timer_exec();
+
 #endif

@@ -324,7 +324,7 @@ static int is_matching_rk(CTAP_residentKey * rk, CTAP_residentKey * rk2)
 }
 
 
-static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, int len, CTAP_userEntity * user, uint8_t credtype, int32_t algtype, int32_t * sz, int store)
+static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, int len, CTAP_userEntity * user, uint8_t credtype, int32_t algtype, int32_t * sz, int store, bool fromNFC)
 {
     CborEncoder cose_key;
     int auth_data_sz, ret;
@@ -350,8 +350,13 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     count = auth_data_update_count(&authData->head);
 
     device_set_status(CTAPHID_STATUS_UPNEEDED);
-    int but = ctap_user_presence_test();
-
+	// if NFC - not need to click a button
+    int but = 1; 
+	if(!fromNFC)
+	{
+		but = ctap_user_presence_test();
+	} 
+	
     if (!but)
     {
         return CTAP2_ERR_OPERATION_DENIED;
@@ -551,7 +556,7 @@ int ctap_authenticate_credential(struct rpId * rp, CTAP_credentialDescriptor * d
 
 
 
-uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
+uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length, bool fromNFC)
 {
     CTAP_makeCredential MC;
     int ret, i;
@@ -621,7 +626,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     int32_t auth_data_sz;
 
     ret = ctap_make_auth_data(&MC.rp, &map, auth_data_buf, sizeof(auth_data_buf),
-            &MC.user, MC.publicKeyCredentialType, MC.COSEAlgorithmIdentifier, &auth_data_sz, MC.rk);
+            &MC.user, MC.publicKeyCredentialType, MC.COSEAlgorithmIdentifier, &auth_data_sz, MC.rk, fromNFC);
 
     check_retr(ret);
 
@@ -940,7 +945,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
     return 0;
 }
 
-uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
+uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length, bool fromNFC)
 {
     CTAP_getAssertion GA;
     uint8_t auth_data_buf[sizeof(CTAP_authDataHeader)];
@@ -992,7 +997,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     ret = cbor_encoder_create_map(encoder, &map, map_size);
     check_ret(ret);
 
-    ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, sizeof(auth_data_buf), NULL, 0,0,NULL, 0);
+    ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, sizeof(auth_data_buf), NULL, 0,0,NULL, 0, fromNFC);
     check_retr(ret);
 
     /*for (int j = 0; j < GA.credLen; j++)*/
@@ -1358,7 +1363,7 @@ void ctap_response_init(CTAP_RESPONSE * resp)
 }
 
 
-uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
+uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp, bool fromNFC)
 {
     CborEncoder encoder;
     uint8_t status = 0;
@@ -1398,7 +1403,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             device_set_status(CTAPHID_STATUS_PROCESSING);
             printf1(TAG_CTAP,"CTAP_MAKE_CREDENTIAL\n");
             t1 = millis();
-            status = ctap_make_credential(&encoder, pkt_raw, length);
+            status = ctap_make_credential(&encoder, pkt_raw, length, fromNFC);
             t2 = millis();
             printf1(TAG_TIME,"make_credential time: %d ms\n", t2-t1);
 
@@ -1410,7 +1415,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             device_set_status(CTAPHID_STATUS_PROCESSING);
             printf1(TAG_CTAP,"CTAP_GET_ASSERTION\n");
             t1 = millis();
-            status = ctap_get_assertion(&encoder, pkt_raw, length);
+            status = ctap_get_assertion(&encoder, pkt_raw, length, fromNFC);
             t2 = millis();
             printf1(TAG_TIME,"get_assertion time: %d ms\n", t2-t1);
 

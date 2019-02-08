@@ -102,7 +102,8 @@ bool ams_receive_with_timeout(uint32_t timeout_ms, uint8_t * data, int maxlen, i
             {
                 uint8_t len = buffer_status2 & AMS_BUF_LEN_MASK;
                 ams_read_buffer(buf, len);
-				printf1(TAG_NFC,">> "); dump_hex1(TAG_NFC, buf, len);
+				printf1(TAG_NFC_APDU, ">> "); 
+				dump_hex1(TAG_NFC_APDU, buf, len);
 
 				*dlen = MIN(32, MIN(maxlen, len));
 				memcpy(data, buf, *dlen);
@@ -127,7 +128,8 @@ void nfc_write_frame(uint8_t * data, uint8_t len)
     ams_write_buffer(data,len);
     ams_write_command(AMS_CMD_TRANSMIT_BUFFER);
 
-    printf1(TAG_NFC,"<< "); dump_hex1(TAG_NFC, data, len);
+    printf1(TAG_NFC_APDU, "<< "); 
+	dump_hex1(TAG_NFC_APDU, data, len);
 }
 
 bool nfc_write_response_ex(uint8_t req0, uint8_t * data, uint8_t len, uint16_t resp)
@@ -226,43 +228,61 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 // WTX: f2 01 91 40 === f2(S-block + WTX, frame without CID) 01(from iso - multiply WTX from ATS by 1) <2b crc16>
 static bool WTX_sent;
 static bool WTX_fail;
+static uint32_t WTX_timer;
+
+bool WTX_process(int read_timeout);
 
 void WTX_clear()
 {
 	WTX_sent = false;
 	WTX_fail = false;
+	WTX_timer = 0;
 }
 
 bool WTX_on(int WTX_time)
 {
 	WTX_clear();
-
-	// TODO: start interrupt
-
+	WTX_timer = millis();
+	
 	return true;
 }
-
-bool WTX_process(int read_timeout);
 
 bool WTX_off()
 {
-	// TODO: stop interrupt
-
+	WTX_timer = 0;
+	
 	// read data if we sent WTX
 	if (WTX_sent)
 	{
-		if (!WTX_process(10))
+		if (!WTX_process(100))
+		{
+			printf1(TAG_NFC, "WTX-off get last WTX error\n");
 			return false;
+		}
 	}
 
 	if (WTX_fail)
+	{
+		printf1(TAG_NFC, "WTX-off fail\n");
 		return false;
-
+	}
+	
+	WTX_clear();
 	return true;
 }
 
+void WTX_timer_exec()
+{
+	// condition: (timer on) or (not expired[300ms])
+	if ((WTX_timer <= 0) || WTX_timer + 300 > millis())
+		return;
+	
+	WTX_process(10);
+	WTX_timer = millis();
+}
+
 // executes twice a period. 1st for send WTX, 2nd for check the result
-// read timeout must be 0 to call from int
+// read timeout must be 10 ms to call from interrupt
 bool WTX_process(int read_timeout)
 {
 	uint8_t wtx[] = {0xf2, 0x01};
@@ -279,7 +299,7 @@ bool WTX_process(int read_timeout)
 	{
 		uint8_t data[32];
 		int len;
-		if (ams_receive_with_timeout(read_timeout, data, sizeof(data), &len))
+		if (!ams_receive_with_timeout(read_timeout, data, sizeof(data), &len))
 		{
 			WTX_fail = true;
 			return false;
@@ -380,7 +400,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
     CTAP_RESPONSE ctap_resp;
     int status;
 
-    printf1(TAG_NFC,">> ");
+    printf1(TAG_NFC,"Iblock: ");
 	dump_hex1(TAG_NFC, buf, len);
 
     // TODO this needs to be organized better
@@ -412,6 +432,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
                     // block = buf[0] & 1;
                     // block = NFC_STATE.block_num;
                     // block = !block;
+                    // NFC_STATE.block_num = block;
                     // NFC_STATE.block_num = block;
 					nfc_write_response_ex(buf[0], (uint8_t *)"U2F_V2", 6, SW_SUCCESS);
 					printf1(TAG_NFC, "FIDO applet selected.\r\n");
@@ -506,10 +527,11 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			WTX_on(WTX_TIME_DEFAULT);
             ctap_response_init(&ctap_resp);
-            status = ctap_request(payload, plen, &ctap_resp);
+            status = ctap_request(payload, plen, &ctap_resp, true);
 			if (!WTX_off())
 				return;
-			printf1(TAG_NFC, "CTAP resp: %d  len: %d\r\n", status, ctap_resp.length);
+
+			printf1(TAG_NFC, "CTAP resp: 0x%02�  len: %d\r\n", status, ctap_resp.length);
 
 			if (status == CTAP1_ERR_SUCCESS)
 			{
@@ -591,7 +613,7 @@ void nfc_process_block(uint8_t * buf, int len)
     {
 		if (buf[0] & 0x10)
 		{
-			printf1(TAG_NFC, "NFC_CMD_IBLOCK chaining blen=%d len=%d\r\n", ibuflen, len);
+			printf1(TAG_NFC_APDU, "NFC_CMD_IBLOCK chaining blen=%d len=%d\r\n", ibuflen, len);
 			if (ibuflen + len > sizeof(ibuf))
 			{
 				printf1(TAG_NFC, "I block memory error! must have %d but have only %d\r\n", ibuflen + len, sizeof(ibuf));
@@ -599,8 +621,8 @@ void nfc_process_block(uint8_t * buf, int len)
 				return;
 			}
 
-			printf1(TAG_NFC,"i> ");
-			dump_hex1(TAG_NFC, buf, len);
+			printf1(TAG_NFC_APDU,"i> ");
+			dump_hex1(TAG_NFC_APDU, buf, len);
 
 			if (len)
 			{
@@ -624,10 +646,10 @@ void nfc_process_block(uint8_t * buf, int len)
 				ibuf[0] = buf[0];
 				ibuflen++;
 
-				printf1(TAG_NFC, "NFC_CMD_IBLOCK chaining last block. blen=%d len=%d\r\n", ibuflen, len);
+				printf1(TAG_NFC_APDU, "NFC_CMD_IBLOCK chaining last block. blen=%d len=%d\r\n", ibuflen, len);
 
-				printf1(TAG_NFC,"i> ");
-				dump_hex1(TAG_NFC, buf, len);
+				printf1(TAG_NFC_APDU,"i> ");
+				dump_hex1(TAG_NFC_APDU, buf, len);
 
 				nfc_process_iblock(ibuf, ibuflen);
 			} else {
@@ -657,7 +679,7 @@ void nfc_process_block(uint8_t * buf, int len)
         }
         else
         {
-            printf1(TAG_NFC, "NFC_CMD_SBLOCK, Unknown\r\n");
+            printf1(TAG_NFC, "NFC_CMD_SBLOCK, Unknown. len[%d]\r\n", len);
         }
         dump_hex1(TAG_NFC, buf, len);
     }
