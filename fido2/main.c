@@ -69,7 +69,7 @@ int main(int argc, char * argv[])
     ctaphid_init();
     // printf1(TAG_GEN,"init ctaphid\n");
 
-    // ctap_init();
+    ctap_init();
     // printf1(TAG_GEN,"init ctap\n");
 
     memset(hidmsg,0,sizeof(hidmsg));
