@@ -40,9 +40,9 @@
 
 #define ENABLE_U2F
 
-#define DISABLE_CTAPHID_PING
-#define DISABLE_CTAPHID_WINK
-#define DISABLE_CTAPHID_CBOR
+// #define DISABLE_CTAPHID_PING
+// #define DISABLE_CTAPHID_WINK
+// #define DISABLE_CTAPHID_CBOR
 
 void printing_init();
 void hw_init(int lf);
