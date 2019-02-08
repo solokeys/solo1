@@ -70,12 +70,13 @@ void TIM6_DAC_IRQHandler()
             ctaphid_update_status(__device_status);
         }
     }
-	
+#ifndef IS_BOOTLOADER
 	// NFC sending WTX if needs
-	if (haveNFC) 
+	if (haveNFC)
 	{
 		WTX_timer_exec();
 	}
+#endif
 }
 
 // Global USB interrupt handler
@@ -127,6 +128,7 @@ void device_init()
     hw_init(HIGH_FREQUENCY);
     isLowFreq = 0;
 
+
 #ifndef IS_BOOTLOADER
 #if BOOT_TO_DFU
     flash_option_bytes_init(1);
@@ -135,13 +137,8 @@ void device_init()
 #endif
     printf1(TAG_GEN,"init nfc\n");
     haveNFC = nfc_init();
-	// if (haveNFC)
-	// 	printf1(TAG_GEN,"NFC OK.\n");
-	// else
-	// 	printf1(TAG_GEN,"NFC not found.\n");
 #endif
 
-    // printf1(TAG_GEN,"hello solo\r\n");
 }
 
 void wait_for_usb_tether()
