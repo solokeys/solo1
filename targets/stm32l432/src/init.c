@@ -69,7 +69,7 @@ void hw_init(int lowfreq)
 
     if (lowfreq)
     {
-        SystemClock_Config_LF();
+        SystemClock_Config_LF16();
     }
     else
     {
@@ -270,7 +270,7 @@ void SystemClock_Config_LF4(void)
 }
 
 // 8MHz
-void SystemClock_Config_LF(void)
+void SystemClock_Config_LF8(void)
 {
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
 
@@ -381,6 +381,130 @@ void SystemClock_Config_LF16(void)
     LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
 
     LL_SetSystemCoreClock(16000000);
+
+    LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
+
+    LL_RCC_SetRNGClockSource(LL_RCC_RNG_CLKSOURCE_MSI);
+
+    /* SysTick_IRQn interrupt configuration */
+    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+
+}
+
+
+
+// 24 MHz
+void SystemClock_Config_LF24(void)
+{
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
+
+    LL_FLASH_SetLatency(LL_FLASH_LATENCY_1);
+
+    if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_1)
+    {
+    Error_Handler();
+    }
+    LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
+
+    LL_RCC_LSI_Enable();
+
+     /* Wait till LSI is ready */
+    while(LL_RCC_LSI_IsReady() != 1)
+    {
+
+    }
+    LL_RCC_MSI_Enable();
+
+     /* Wait till MSI is ready */
+    while(LL_RCC_MSI_IsReady() != 1)
+    {
+
+    }
+    LL_RCC_MSI_EnableRangeSelection();
+
+    LL_RCC_MSI_SetRange(LL_RCC_MSIRANGE_9);
+
+    LL_RCC_MSI_SetCalibTrimming(0);
+
+    LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_MSI);
+
+     /* Wait till System clock is ready */
+    while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
+    {
+
+    }
+    LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+
+    LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+
+    LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_8);
+
+    LL_Init1msTick(24000000);
+
+    LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
+
+    LL_SetSystemCoreClock(24000000);
+
+    LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
+
+    LL_RCC_SetRNGClockSource(LL_RCC_RNG_CLKSOURCE_MSI);
+
+    /* SysTick_IRQn interrupt configuration */
+    NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+
+}
+
+// 32 MHz
+void SystemClock_Config_LF32(void)
+{
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
+
+    LL_FLASH_SetLatency(LL_FLASH_LATENCY_1);
+
+    if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_1)
+    {
+    Error_Handler();
+    }
+    LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
+
+    LL_RCC_LSI_Enable();
+
+     /* Wait till LSI is ready */
+    while(LL_RCC_LSI_IsReady() != 1)
+    {
+
+    }
+    LL_RCC_MSI_Enable();
+
+     /* Wait till MSI is ready */
+    while(LL_RCC_MSI_IsReady() != 1)
+    {
+
+    }
+    LL_RCC_MSI_EnableRangeSelection();
+
+    LL_RCC_MSI_SetRange(LL_RCC_MSIRANGE_10);
+
+    LL_RCC_MSI_SetCalibTrimming(0);
+
+    LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_MSI);
+
+     /* Wait till System clock is ready */
+    while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
+    {
+
+    }
+    LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+
+    LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+
+    LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_16);
+
+    LL_Init1msTick(32000000);
+
+    LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
+
+    LL_SetSystemCoreClock(32000000);
 
     LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
 
@@ -570,7 +694,7 @@ void init_millisecond_timer(int lf)
     if (!lf)
         TIM_InitStruct.Prescaler = 48000;
     else
-        TIM_InitStruct.Prescaler = 8000;
+        TIM_InitStruct.Prescaler = 24000;
 
     TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
     TIM_InitStruct.Autoreload = 90;

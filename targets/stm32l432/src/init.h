@@ -24,6 +24,7 @@
 
 void SystemClock_Config(void);
 void SystemClock_Config_LF(void);
+void SystemClock_Config_LF16(void);
 
 void init_usb();
 void init_gpio(void);
