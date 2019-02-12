@@ -444,36 +444,46 @@ done_rk:
 }
 
 
-int ctap_encode_der_sig(uint8_t * sigbuf, uint8_t * sigder)
+/**
+ *
+ * @param in_sigbuf IN location to deposit signature (must be 64 bytes)
+ * @param out_sigder OUT location to deposit der signature (must be 72 bytes)
+ * @return length of der signature
+ * // FIXME add tests for maximum and minimum length of the input and output
+ */
+int ctap_encode_der_sig(const uint8_t * const in_sigbuf, uint8_t * const out_sigder)
 {
     // Need to caress into dumb der format ..
-    int i;
-    int8_t lead_s = 0;  // leading zeros
-    int8_t lead_r = 0;
+    uint8_t i;
+    uint8_t lead_s = 0;  // leading zeros
+    uint8_t lead_r = 0;
     for (i=0; i < 32; i++)
-        if (sigbuf[i] == 0) lead_r++;
+        if (in_sigbuf[i] == 0) lead_r++;
         else break;
 
     for (i=0; i < 32; i++)
-        if (sigbuf[i+32] == 0) lead_s++;
+        if (in_sigbuf[i+32] == 0) lead_s++;
         else break;
 
-    int8_t pad_s = ((sigbuf[32 + lead_s] & 0x80) == 0x80);
-    int8_t pad_r = ((sigbuf[0 + lead_r] & 0x80) == 0x80);
+    int8_t pad_s = ((in_sigbuf[32 + lead_s] & 0x80) == 0x80);
+    int8_t pad_r = ((in_sigbuf[0 + lead_r] & 0x80) == 0x80);
 
-    sigder[0] = 0x30;
-    sigder[1] = 0x44 + pad_s + pad_r - lead_s - lead_r;
+    memset(out_sigder, 0, 72);
+    out_sigder[0] = 0x30;
+    out_sigder[1] = 0x44 + pad_s + pad_r - lead_s - lead_r;
 
-    sigder[2] = 0x02;
-    sigder[3 + pad_r] = 0;
-    sigder[3] = 0x20 + pad_r - lead_r;
-    memmove(sigder + 4 + pad_r, sigbuf + lead_r, 32);
+    // R ingredient
+    out_sigder[2] = 0x02;
+    out_sigder[3 + pad_r] = 0;
+    out_sigder[3] = 0x20 + pad_r - lead_r;
+    memmove(out_sigder + 4 + pad_r, in_sigbuf + lead_r, 32u - lead_r);
 
-    sigder[4 + 32 + pad_r - lead_r] = 0x02;
-    sigder[5 + 32 + pad_r + pad_s - lead_r] = 0;
-    sigder[5 + 32 + pad_r - lead_r] = 0x20 + pad_s - lead_s;
-    memmove(sigder + 6 + 32 + pad_r + pad_s - lead_r, sigbuf + 32 + lead_s, 32);
-    //
+    // S ingredient
+    out_sigder[4 + 32 + pad_r - lead_r] = 0x02;
+    out_sigder[5 + 32 + pad_r + pad_s - lead_r] = 0;
+    out_sigder[5 + 32 + pad_r - lead_r] = 0x20 + pad_s - lead_s;
+    memmove(out_sigder + 6 + 32 + pad_r + pad_s - lead_r, in_sigbuf + 32u + lead_s, 32u - lead_s);
+
     return 0x46 + pad_s + pad_r - lead_r - lead_s;
 }
 
@@ -481,8 +491,8 @@ int ctap_encode_der_sig(uint8_t * sigbuf, uint8_t * sigder)
 // @data data to hash before signature
 // @clientDataHash for signature
 // @tmp buffer for hash.  (can be same as data if data >= 32 bytes)
-// @sigbuf location to deposit signature (must be 64 bytes)
-// @sigder location to deposit der signature (must be 72 bytes)
+// @sigbuf OUT location to deposit signature (must be 64 bytes)
+// @sigder OUT location to deposit der signature (must be 72 bytes)
 // @return length of der signature
 int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHash, uint8_t * hashbuf, uint8_t * sigbuf, uint8_t * sigder)
 {
