@@ -22,6 +22,7 @@
 #ifndef _APP_H_
 #define _APP_H_
 #include <stdint.h>
+#include "version.h"
 
 #define DEBUG_UART      USART1
 
@@ -65,12 +66,7 @@
 #define SKIP_BUTTON_CHECK_WITH_DELAY        0
 #define SKIP_BUTTON_CHECK_FAST              1
 
-
-#define BOOT_VERSION_MAJ    1
-#define BOOT_VERSION_MIN    0
-#define __STR_HELPER(x) #x
-#define __STR(x) __STR_HELPER(x)
-#define SOLO_PRODUCT_NAME "Solo Bootloader " __STR(BOOT_VERSION_MAJ) "." __STR(BOOT_VERSION_MIN)
+#define SOLO_PRODUCT_NAME "Solo Bootloader " VERSION
 
 void printing_init();
 void hw_init(void);

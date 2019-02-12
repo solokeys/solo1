@@ -22,6 +22,7 @@
 #ifndef _APP_H_
 #define _APP_H_
 #include <stdint.h>
+#include "version.h"
 
 #define DEBUG_UART      USART1
 
@@ -43,15 +44,12 @@
 // #define DISABLE_CTAPHID_PING
 // #define DISABLE_CTAPHID_WINK
 // #define DISABLE_CTAPHID_CBOR
-#define SOLO_VERSION_MAJ    1
-#define SOLO_VERSION_MIN    0
-#define __STR_HELPER(x) #x
-#define __STR(x) __STR_HELPER(x)
+
 
 #if defined(SOLO_HACKER)
-#define SOLO_PRODUCT_NAME "Solo Hacker " __STR(SOLO_VERSION_MAJ) "." __STR(SOLO_VERSION_MIN)
+#define SOLO_PRODUCT_NAME "Solo Hacker " VERSION
 #else
-#define SOLO_PRODUCT_NAME "Solo " __STR(SOLO_VERSION_MAJ) "." __STR(SOLO_VERSION_MIN)
+#define SOLO_PRODUCT_NAME "Solo " VERSION
 #endif
 
 void printing_init();
