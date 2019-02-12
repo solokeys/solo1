@@ -128,6 +128,11 @@ void device_init()
     hw_init(HIGH_FREQUENCY);
     isLowFreq = 0;
 
+    usbhid_init();
+
+    ctaphid_init();
+
+    ctap_init( 1 );
 
 #ifndef IS_BOOTLOADER
 #if BOOT_TO_DFU
