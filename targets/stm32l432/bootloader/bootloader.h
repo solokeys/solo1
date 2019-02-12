@@ -4,9 +4,11 @@
 // http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
+
 #ifndef _APP_H_
 #define _APP_H_
 #include <stdint.h>
+#include "version.h"
 
 #define DEBUG_UART      USART1
 
@@ -49,6 +51,8 @@
 
 #define SKIP_BUTTON_CHECK_WITH_DELAY        0
 #define SKIP_BUTTON_CHECK_FAST              1
+
+#define SOLO_PRODUCT_NAME "Solo Bootloader " VERSION
 
 void printing_init();
 void hw_init(void);

@@ -90,6 +90,9 @@ def get_firmware_object(sk_name, hex_file):
     msg = {'firmware': fw, 'signature': sig}
     return msg
 
+class SoloExtension:
+    version= 0x14
+    rng = 0x15
 
 class SoloBootloader:
     write = 0x40
@@ -196,9 +199,15 @@ class SoloClient:
 
         return res.signature[1:]
 
-    def version(self,):
+    def bootloader_version(self,):
         data = self.exchange(SoloBootloader.version)
+        if len(data) > 2:
+            return (data[0],data[1],data[2])
         return data[0]
+
+    def solo_version(self,):
+        data = self.exchange_u2f(SoloExtension.version)
+        return (data[0],data[1],data[2])
 
     def write_flash(self, addr, data):
         self.exchange(SoloBootloader.write, addr, data)
@@ -256,7 +265,7 @@ class SoloClient:
 
     def is_solo_bootloader(self,):
         try:
-            self.version()
+            self.bootloader_version()
             return True
         except CtapError as e:
             if e.code == CtapError.ERR.INVALID_COMMAND:
@@ -583,7 +592,7 @@ def solo_main():
     )
     parser.add_argument("--wink", action="store_true", help='HID Wink command.')
     parser.add_argument("--reset", action="store_true", help='Issue a FIDO2 reset command.  Warning: your credentials will be lost.')
-    parser.add_argument("--verify-solo", action="store_true", help='Verify that the Solo firmware is from SoloKeys.')
+    parser.add_argument("--verify-solo", action="store_true", help='Verify that the Solo firmware is from SoloKeys.  Check firmware version.')
     args = parser.parse_args()
 
     p = SoloClient()
@@ -604,12 +613,22 @@ def solo_main():
 
     if args.verify_solo:
         cert = p.make_credential()
+
         solo_fingerprint = b'r\xd5\x831&\xac\xfc\xe9\xa8\xe8&`\x18\xe6AI4\xc8\xbeJ\xb8h_\x91\xb0\x99!\x13\xbb\xd42\x95'
+        hacker_fingerprint = b"\xd0ml\xcb\xda}\xe5j\x16'\xc2\xa7\x89\x9c5\xa2\xa3\x16\xc8Q\xb3j\xd8\xed~\xd7\x84y\xbbx~\xf7"
 
         if (cert.fingerprint(hashes.SHA256()) == solo_fingerprint):
-            print('Valid firmware from SoloKeys')
+            print('Valid SOLO firmware from SoloKeys')
+        elif (cert.fingerprint(hashes.SHA256()) == hacker_fingerprint):
+            print('Valid HACKER firmware')
         else:
-            print('This is either a Solo Hacker or a invalid Solo.')
+            print('Unknown fingerprint! ', cert.fingerprint(hashes.SHA256()))
+
+        try:
+            v = p.solo_version()
+            print('Version: ', v)
+        except ApduError:
+            print('Firmware is out of date.')
 
 
 def asked_for_help():
@@ -909,7 +928,7 @@ def programmer_main():
         sys.exit(1)
 
     try:
-        p.version()
+        p.bootloader_version()
     except CtapError as e:
         if e.code == CtapError.ERR.INVALID_COMMAND:
             print('Bootloader not active.  Attempting to boot into bootloader mode...')

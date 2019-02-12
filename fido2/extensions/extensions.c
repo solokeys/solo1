@@ -4,10 +4,12 @@
 // http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
+
 #include <stdint.h>
 #include "extensions.h"
 #include "u2f.h"
 #include "wallet.h"
+#include "solo.h"
 #include "device.h"
 
 #include "log.h"
@@ -54,6 +56,8 @@ int16_t bridge_u2f_to_extensions(uint8_t * _chal, uint8_t * _appid, uint8_t klen
     ret = bootloader_bridge(klen, keyh);
 #elif  defined(WALLET_EXTENSION)
     ret = bridge_u2f_to_wallet(_chal, _appid, klen, keyh);
+#else
+    ret = bridge_u2f_to_solo(_chal, _appid, klen, keyh);
 #endif
 
     if (ret != 0)

@@ -1,7 +1,4 @@
-CC=$(PREFIX)arm-none-eabi-gcc
-CP=$(PREFIX)arm-none-eabi-objcopy
-SZ=$(PREFIX)arm-none-eabi-size
-AR=$(PREFIX)arm-none-eabi-ar
+include build/common.mk
 
 # ST related
 SRC = src/main.c src/init.c src/redirect.c src/flash.c src/rng.c src/led.c src/device.c
@@ -13,6 +10,7 @@ SRC += $(wildcard lib/*.c) $(wildcard lib/usbd/*.c)
 SRC += ../../fido2/util.c ../../fido2/u2f.c ../../fido2/test_power.c
 SRC += ../../fido2/stubs.c ../../fido2/log.c  ../../fido2/ctaphid.c  ../../fido2/ctap.c
 SRC += ../../fido2/ctap_parse.c ../../fido2/main.c
+SRC += ../../fido2/extensions/extensions.c ../../fido2/extensions/solo.c
 
 # Crypto libs
 SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c
@@ -45,7 +43,7 @@ endif
 DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAPP_CONFIG=\"app.h\" $(EXTRA_DEFINES)
 # DEFINES += -DTEST_SOLO_STM32 -DTEST -DTEST_FIFO=1
 
-CFLAGS=$(INC) -c $(DEFINES)   -Wall -fdata-sections -ffunction-sections $(HW) -g
+CFLAGS=$(INC) -c $(DEFINES)   -Wall -fdata-sections -ffunction-sections $(HW) -g $(VERSION_FLAGS)
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -u _printf_float -lnosys
 LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor
 
