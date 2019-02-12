@@ -39,27 +39,27 @@ import serial
 
 
 def to_websafe(data):
-    data = data.replace('+', '-')
-    data = data.replace('/', '_')
-    data = data.replace('=', '')
+    data = data.replace("+", "-")
+    data = data.replace("/", "_")
+    data = data.replace("=", "")
     return data
 
 
 def from_websafe(data):
-    data = data.replace('-', '+')
-    data = data.replace('_', '/')
-    return data + '=='[: (3 * len(data)) % 4]
+    data = data.replace("-", "+")
+    data = data.replace("_", "/")
+    return data + "=="[: (3 * len(data)) % 4]
 
 
 def get_firmware_object(sk_name, hex_file):
     from ecdsa import SigningKey, NIST256p
 
     sk = SigningKey.from_pem(open(sk_name).read())
-    fw = open(hex_file, 'r').read()
+    fw = open(hex_file, "r").read()
     fw = base64.b64encode(fw.encode())
     fw = to_websafe(fw.decode())
     ih = IntelHex()
-    ih.fromfile(hex_file, format='hex')
+    ih.fromfile(hex_file, format="hex")
     # start of firmware and the size of the flash region allocated for it.
     # TODO put this somewhere else.
     START = ih.segments()[0][0]
@@ -71,28 +71,30 @@ def get_firmware_object(sk_name, hex_file):
 
     im_size = END - START
 
-    print('im_size: ', im_size)
-    print('firmware_size: ', len(arr))
+    print("im_size: ", im_size)
+    print("firmware_size: ", len(arr))
 
-    byts = (arr).tobytes() if hasattr(arr, 'tobytes') else (arr).tostring()
+    byts = (arr).tobytes() if hasattr(arr, "tobytes") else (arr).tostring()
     h = sha256()
     h.update(byts)
     sig = binascii.unhexlify(h.hexdigest())
-    print('hash', binascii.hexlify(sig))
+    print("hash", binascii.hexlify(sig))
     sig = sk.sign_digest(sig)
 
-    print('sig', binascii.hexlify(sig))
+    print("sig", binascii.hexlify(sig))
 
     sig = base64.b64encode(sig)
     sig = to_websafe(sig.decode())
 
     # msg = {'data': read()}
-    msg = {'firmware': fw, 'signature': sig}
+    msg = {"firmware": fw, "signature": sig}
     return msg
 
+
 class SoloExtension:
-    version= 0x14
+    version = 0x14
     rng = 0x15
+
 
 class SoloBootloader:
     write = 0x40
@@ -109,13 +111,13 @@ class SoloBootloader:
     HIDCommandEnterSTBoot = 0x52
     HIDCommandRNG = 0x60
 
-    TAG = b'\x8C\x27\x90\xf6'
+    TAG = b"\x8C\x27\x90\xf6"
 
 
 class SoloClient:
     def __init__(self,):
-        self.origin = 'https://example.org'
-        self.host = 'example.org'
+        self.origin = "https://example.org"
+        self.host = "example.org"
         self.exchange = self.exchange_hid
         self.do_reboot = True
 
@@ -139,52 +141,52 @@ class SoloClient:
     def find_device(self,):
         dev = next(CtapHidDevice.list_devices(), None)
         if not dev:
-            raise RuntimeError('No FIDO device found')
+            raise RuntimeError("No FIDO device found")
         self.dev = dev
         self.ctap1 = CTAP1(dev)
         self.ctap2 = CTAP2(dev)
         self.client = Fido2Client(dev, self.origin)
 
         if self.exchange == self.exchange_hid:
-            self.send_data_hid(CTAPHID.INIT, '\x11\x11\x11\x11\x11\x11\x11\x11')
+            self.send_data_hid(CTAPHID.INIT, "\x11\x11\x11\x11\x11\x11\x11\x11")
 
     @staticmethod
-    def format_request(cmd, addr=0, data=b'A' * 16):
-        arr = b'\x00' * 9
-        addr = struct.pack('<L', addr)
-        cmd = struct.pack('B', cmd)
-        length = struct.pack('>H', len(data))
+    def format_request(cmd, addr=0, data=b"A" * 16):
+        arr = b"\x00" * 9
+        addr = struct.pack("<L", addr)
+        cmd = struct.pack("B", cmd)
+        length = struct.pack(">H", len(data))
 
         return cmd + addr[:3] + SoloBootloader.TAG + length + data
 
     def send_only_hid(self, cmd, data):
-        if type(data) != type(b''):
-            data = struct.pack('%dB' % len(data), *[ord(x) for x in data])
+        if type(data) != type(b""):
+            data = struct.pack("%dB" % len(data), *[ord(x) for x in data])
         self.dev._dev.InternalSend(0x80 | cmd, bytearray(data))
 
     def send_data_hid(self, cmd, data):
-        if type(data) != type(b''):
-            data = struct.pack('%dB' % len(data), *[ord(x) for x in data])
+        if type(data) != type(b""):
+            data = struct.pack("%dB" % len(data), *[ord(x) for x in data])
         with Timeout(1.0) as event:
             return self.dev.call(cmd, data, event)
 
-    def exchange_hid(self, cmd, addr=0, data=b'A' * 16):
+    def exchange_hid(self, cmd, addr=0, data=b"A" * 16):
         req = SoloClient.format_request(cmd, addr, data)
 
         data = self.send_data_hid(SoloBootloader.HIDCommandBoot, req)
 
         ret = data[0]
         if ret != CtapError.ERR.SUCCESS:
-            str = ''
+            str = ""
             if ret == CtapError.ERR.NOT_ALLOWED:
-                str = 'Out of bounds write'
-            raise RuntimeError('Device returned non-success code %02x: %s' % (ret, str))
+                str = "Out of bounds write"
+            raise RuntimeError("Device returned non-success code %02x: %s" % (ret, str))
 
         return data[1:]
 
-    def exchange_u2f(self, cmd, addr=0, data=b'A' * 16):
-        appid = b'A' * 32
-        chal = b'B' * 32
+    def exchange_u2f(self, cmd, addr=0, data=b"A" * 16):
+        appid = b"A" * 32
+        chal = b"B" * 32
 
         req = SoloClient.format_request(cmd, addr, data)
 
@@ -192,28 +194,28 @@ class SoloClient:
 
         ret = res.signature[0]
         if ret != CtapError.ERR.SUCCESS:
-            str = ''
+            str = ""
             if ret == CtapError.ERR.NOT_ALLOWED:
-                str = 'Out of bounds write'
-            raise RuntimeError('Device returned non-success code %02x: %s' % (ret, str))
+                str = "Out of bounds write"
+            raise RuntimeError("Device returned non-success code %02x: %s" % (ret, str))
 
         return res.signature[1:]
 
     def bootloader_version(self,):
         data = self.exchange(SoloBootloader.version)
         if len(data) > 2:
-            return (data[0],data[1],data[2])
+            return (data[0], data[1], data[2])
         return data[0]
 
     def solo_version(self,):
         data = self.exchange_u2f(SoloExtension.version)
-        return (data[0],data[1],data[2])
+        return (data[0], data[1], data[2])
 
     def write_flash(self, addr, data):
         self.exchange(SoloBootloader.write, addr, data)
 
     def get_rng(self, num=0):
-        ret = self.send_data_hid(SoloBootloader.HIDCommandRNG, struct.pack('B', num))
+        ret = self.send_data_hid(SoloBootloader.HIDCommandRNG, struct.pack("B", num))
         return ret
 
     def verify_flash(self, sig):
@@ -225,33 +227,26 @@ class SoloClient:
         self.exchange(SoloBootloader.done, 0, sig)
 
     def wink(self,):
-        self.send_data_hid(CTAPHID.WINK, b'')
+        self.send_data_hid(CTAPHID.WINK, b"")
 
     def reset(self,):
         self.ctap2.reset()
 
     def make_credential(self,):
-        rp = {'id': self.host, 'name': 'example site'}
-        user = {'id': b'abcdef', 'name': 'example user'}
-        challenge = 'Y2hhbGxlbmdl'
-        attest, data = self.client.make_credential(
-            rp, user, challenge, exclude_list=[]
-        )
+        rp = {"id": self.host, "name": "example site"}
+        user = {"id": b"abcdef", "name": "example user"}
+        challenge = "Y2hhbGxlbmdl"
+        attest, data = self.client.make_credential(rp, user, challenge, exclude_list=[])
         try:
             attest.verify(data.hash)
         except AttributeError:
             verifier = Attestation.for_type(attest.fmt)
-            verifier().verify(
-                attest.att_statement,
-                attest.auth_data,
-                data.hash
-            )
-        print('Register valid')
-        x5c = attest.att_statement['x5c'][0]
+            verifier().verify(attest.att_statement, attest.auth_data, data.hash)
+        print("Register valid")
+        x5c = attest.att_statement["x5c"][0]
         cert = x509.load_der_x509_certificate(x5c, default_backend())
 
         return cert
-
 
     def enter_solo_bootloader(self,):
         """
@@ -260,8 +255,8 @@ class SoloClient:
         so it can be reprogrammed
         """
         if self.exchange != self.exchange_hid:
-            self.send_data_hid(CTAPHID.INIT, '\x11\x11\x11\x11\x11\x11\x11\x11')
-        self.send_data_hid(SoloBootloader.HIDCommandEnterBoot, '')
+            self.send_data_hid(CTAPHID.INIT, "\x11\x11\x11\x11\x11\x11\x11\x11")
+        self.send_data_hid(SoloBootloader.HIDCommandEnterBoot, "")
 
     def is_solo_bootloader(self,):
         try:
@@ -286,7 +281,7 @@ class SoloClient:
             req = SoloClient.format_request(SoloBootloader.st_dfu)
             self.send_only_hid(SoloBootloader.HIDCommandBoot, req)
         else:
-            self.send_only_hid(SoloBootloader.HIDCommandEnterSTBoot, '')
+            self.send_only_hid(SoloBootloader.HIDCommandEnterSTBoot, "")
 
     def disable_solo_bootloader(self,):
         """
@@ -295,10 +290,10 @@ class SoloClient:
         If you've started from a solo hacker, make you you've programmed a final/production build!
         """
         ret = self.exchange(
-            SoloBootloader.disable, 0, b'\xcd\xde\xba\xaa'
+            SoloBootloader.disable, 0, b"\xcd\xde\xba\xaa"
         )  # magic number
         if ret[0] != CtapError.ERR.SUCCESS:
-            print('Failed to disable bootloader')
+            print("Failed to disable bootloader")
             return False
         time.sleep(0.1)
         self.exchange(SoloBootloader.do_reboot)
@@ -306,22 +301,22 @@ class SoloClient:
 
     def program_file(self, name):
 
-        if name.lower().endswith('.json'):
-            data = json.loads(open(name, 'r').read())
-            fw = base64.b64decode(from_websafe(data['firmware']).encode())
-            sig = base64.b64decode(from_websafe(data['signature']).encode())
+        if name.lower().endswith(".json"):
+            data = json.loads(open(name, "r").read())
+            fw = base64.b64decode(from_websafe(data["firmware"]).encode())
+            sig = base64.b64decode(from_websafe(data["signature"]).encode())
             ih = IntelHex()
             tmp = tempfile.NamedTemporaryFile(delete=False)
             tmp.write(fw)
             tmp.seek(0)
             tmp.close()
-            ih.fromfile(tmp.name, format='hex')
+            ih.fromfile(tmp.name, format="hex")
         else:
-            if not name.lower().endswith('.hex'):
+            if not name.lower().endswith(".hex"):
                 print('Warning, assuming "%s" is an Intel Hex file.' % name)
             sig = None
             ih = IntelHex()
-            ih.fromfile(name, format='hex')
+            ih.fromfile(name, format="hex")
 
         if self.exchange == self.exchange_hid:
             chunk = 2048
@@ -332,7 +327,7 @@ class SoloClient:
         size = seg[1] - seg[0]
         total = 0
         t1 = time.time() * 1000
-        print('erasing...')
+        print("erasing...")
         for i in range(seg[0], seg[1], chunk):
             s = i
             e = min(i + chunk, seg[1])
@@ -340,17 +335,17 @@ class SoloClient:
             self.write_flash(i, data)
             total += chunk
             progress = total / float(size) * 100
-            sys.stdout.write('downloading %.2f%%...\r' % progress)
-        sys.stdout.write('downloaded 100%             \r\n')
+            sys.stdout.write("downloading %.2f%%...\r" % progress)
+        sys.stdout.write("downloaded 100%             \r\n")
         t2 = time.time() * 1000
-        print('time: %.2f s' % ((t2 - t1) / 1000.0))
+        print("time: %.2f s" % ((t2 - t1) / 1000.0))
 
-        print('Verifying...')
+        print("Verifying...")
         if self.do_reboot:
             if sig is not None:
                 self.verify_flash(sig)
             else:
-                self.verify_flash(b'A' * 64)
+                self.verify_flash(b"A" * 64)
 
 
 class DFU:
@@ -431,14 +426,14 @@ class DFUDevice:
             devs = usb.core.find(idVendor=0x0483, idProduct=0xDF11, find_all=1)
             for x in devs:
                 if ser == (usb.util.get_string(x, x.iSerialNumber)):
-                    print('connecting to ', ser)
+                    print("connecting to ", ser)
                     self.dev = x
                     break
         else:
             self.dev = usb.core.find(idVendor=0x0483, idProduct=0xDF11)
 
         if self.dev is None:
-            raise RuntimeError('No ST DFU devices found.')
+            raise RuntimeError("No ST DFU devices found.")
         self.dev.set_configuration()
 
         for cfg in self.dev:
@@ -449,7 +444,7 @@ class DFUDevice:
                     self.intNum = intf.bInterfaceNumber
                     return self.dev
 
-        raise RuntimeError('No ST DFU alternate-%d found.' % altsetting)
+        raise RuntimeError("No ST DFU alternate-%d found." % altsetting)
 
     def init(self,):
         if self.state() == DFU.state.ERROR:
@@ -510,7 +505,7 @@ class DFUDevice:
             self.clear_status()
             self.clear_status()
         if self.state() not in (DFU.state.IDLE, DFU.state.DOWNLOAD_IDLE):
-            raise RuntimeError('DFU device not in correct state for writing memory.')
+            raise RuntimeError("DFU device not in correct state for writing memory.")
 
         oldaddr = addr
         addr = DFUDevice.addr2block(addr, len(data))
@@ -527,7 +522,7 @@ class DFUDevice:
             self.clear_status()
             self.clear_status()
         if self.state() not in (DFU.state.IDLE, DFU.state.UPLOAD_IDLE):
-            raise RuntimeError('DFU device not in correct state for reading memory.')
+            raise RuntimeError("DFU device not in correct state for reading memory.")
 
         return self.upload(addr, size)
 
@@ -542,7 +537,7 @@ class DFUDevice:
             self.clear_status()
             self.clear_status()
         if self.state() not in (DFU.state.IDLE, DFU.state.DOWNLOAD_IDLE):
-            raise RuntimeError('DFU device not in correct state for detaching.')
+            raise RuntimeError("DFU device not in correct state for detaching.")
         # self.set_addr(0x08000000)
         # self.block_on_state(DFU.state.DOWNLOAD_BUSY)
         # assert(DFU.state.DOWNLOAD_IDLE == self.state())
@@ -572,15 +567,15 @@ def attempt_to_boot_bootloader(p):
     except CtapError as e:
         if e.code == CtapError.ERR.INVALID_COMMAND:
             print(
-                'Solo appears to not be a solo hacker.  Try holding down the button for 2 while you plug token in.'
+                "Solo appears to not be a solo hacker.  Try holding down the button for 2 while you plug token in."
             )
             sys.exit(1)
         else:
             raise (e)
-    print('Solo rebooted.  Reconnecting...')
+    print("Solo rebooted.  Reconnecting...")
     time.sleep(0.500)
     if not attempt_to_find_device(p):
-        raise RuntimeError('Failed to reconnect!')
+        raise RuntimeError("Failed to reconnect!")
 
 
 def solo_main():
@@ -588,11 +583,19 @@ def solo_main():
     parser.add_argument(
         "--rng",
         action="store_true",
-        help='Continuously dump random numbers generated from Solo.',
+        help="Continuously dump random numbers generated from Solo.",
     )
-    parser.add_argument("--wink", action="store_true", help='HID Wink command.')
-    parser.add_argument("--reset", action="store_true", help='Issue a FIDO2 reset command.  Warning: your credentials will be lost.')
-    parser.add_argument("--verify-solo", action="store_true", help='Verify that the Solo firmware is from SoloKeys.  Check firmware version.')
+    parser.add_argument("--wink", action="store_true", help="HID Wink command.")
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="Issue a FIDO2 reset command.  Warning: your credentials will be lost.",
+    )
+    parser.add_argument(
+        "--verify-solo",
+        action="store_true",
+        help="Verify that the Solo firmware is from SoloKeys.  Check firmware version.",
+    )
     args = parser.parse_args()
 
     p = SoloClient()
@@ -614,26 +617,26 @@ def solo_main():
     if args.verify_solo:
         cert = p.make_credential()
 
-        solo_fingerprint = b'r\xd5\x831&\xac\xfc\xe9\xa8\xe8&`\x18\xe6AI4\xc8\xbeJ\xb8h_\x91\xb0\x99!\x13\xbb\xd42\x95'
+        solo_fingerprint = b"r\xd5\x831&\xac\xfc\xe9\xa8\xe8&`\x18\xe6AI4\xc8\xbeJ\xb8h_\x91\xb0\x99!\x13\xbb\xd42\x95"
         hacker_fingerprint = b"\xd0ml\xcb\xda}\xe5j\x16'\xc2\xa7\x89\x9c5\xa2\xa3\x16\xc8Q\xb3j\xd8\xed~\xd7\x84y\xbbx~\xf7"
 
-        if (cert.fingerprint(hashes.SHA256()) == solo_fingerprint):
-            print('Valid SOLO firmware from SoloKeys')
-        elif (cert.fingerprint(hashes.SHA256()) == hacker_fingerprint):
-            print('Valid HACKER firmware')
+        if cert.fingerprint(hashes.SHA256()) == solo_fingerprint:
+            print("Valid SOLO firmware from SoloKeys")
+        elif cert.fingerprint(hashes.SHA256()) == hacker_fingerprint:
+            print("Valid HACKER firmware")
         else:
-            print('Unknown fingerprint! ', cert.fingerprint(hashes.SHA256()))
+            print("Unknown fingerprint! ", cert.fingerprint(hashes.SHA256()))
 
         try:
             v = p.solo_version()
-            print('Version: ', v)
+            print("Version: ", v)
         except ApduError:
-            print('Firmware is out of date.')
+            print("Firmware is out of date.")
 
 
 def asked_for_help():
     for i, v in enumerate(sys.argv):
-        if v == '-h' or v == '--help':
+        if v == "-h" or v == "--help":
             return True
     return False
 
@@ -668,9 +671,9 @@ def monitor_main():
         try:
             d = ser.read(1)
         except serial.SerialException:
-            print('reconnecting...')
+            print("reconnecting...")
             ser = reconnect()
-            print('done')
+            print("done")
         sys.stdout.buffer.write(d)
         sys.stdout.flush()
 
@@ -695,26 +698,26 @@ def genkey_main():
 
     if len(sys.argv) > 2:
         seed = sys.argv[2]
-        print('using input seed file ', seed)
-        rng = open(seed, 'rb').read()
+        print("using input seed file ", seed)
+        rng = open(seed, "rb").read()
         secexp = randrange_from_seed__trytryagain(rng, NIST256p.order)
         sk = SigningKey.from_secret_exponent(secexp, curve=NIST256p)
     else:
         sk = SigningKey.generate(curve=NIST256p)
 
     sk_name = sys.argv[1]
-    print('Signing key for signing device firmware: ' + sk_name)
-    open(sk_name, 'wb+').write(sk.to_pem())
+    print("Signing key for signing device firmware: " + sk_name)
+    open(sk_name, "wb+").write(sk.to_pem())
 
     vk = sk.get_verifying_key()
 
-    print('Public key in various formats:')
+    print("Public key in various formats:")
     print()
     print([c for c in vk.to_string()])
     print()
-    print(''.join(['%02x' % c for c in vk.to_string()]))
+    print("".join(["%02x" % c for c in vk.to_string()]))
     print()
-    print('"\\x' + '\\x'.join(['%02x' % c for c in vk.to_string()]) + '"')
+    print('"\\x' + "\\x".join(["%02x" % c for c in vk.to_string()]) + '"')
     print()
 
 
@@ -722,20 +725,20 @@ def sign_main():
 
     if asked_for_help() or len(sys.argv) != 4:
         print(
-            'Signs a firmware hex file, outputs a .json file that can be used for signed update.'
+            "Signs a firmware hex file, outputs a .json file that can be used for signed update."
         )
-        print('usage: %s <signing-key.pem> <app.hex> <output.json> [-h]' % sys.argv[0])
+        print("usage: %s <signing-key.pem> <app.hex> <output.json> [-h]" % sys.argv[0])
         print()
         sys.exit(1)
     msg = get_firmware_object(sys.argv[1], sys.argv[2])
-    print('Saving signed firmware to', sys.argv[3])
-    wfile = open(sys.argv[3], 'wb+')
+    print("Saving signed firmware to", sys.argv[3])
+    wfile = open(sys.argv[3], "wb+")
     wfile.write(json.dumps(msg).encode())
     wfile.close()
 
 
 def use_dfu(args):
-    fw = args.__dict__['[firmware]']
+    fw = args.__dict__["[firmware]"]
 
     for i in range(0, 8):
         dfu = DFUDevice()
@@ -746,15 +749,15 @@ def use_dfu(args):
             dfu = None
 
     if dfu is None:
-        print('No STU DFU device found. ')
+        print("No STU DFU device found. ")
         if args.dfu_serial:
-            print('Serial number used: ', args.dfu_serial)
+            print("Serial number used: ", args.dfu_serial)
         sys.exit(1)
     dfu.init()
 
     if fw:
         ih = IntelHex()
-        ih.fromfile(fw, format='hex')
+        ih.fromfile(fw, format="hex")
 
         chunk = 2048
         seg = ih.segments()[0]
@@ -762,11 +765,11 @@ def use_dfu(args):
         total = 0
         t1 = time.time() * 1000
 
-        print('erasing...')
+        print("erasing...")
         try:
             dfu.mass_erase()
         except usb.core.USBError:
-            dfu.write_page(0x08000000 + 2048 * 10, 'ZZFF' * (2048 // 4))
+            dfu.write_page(0x08000000 + 2048 * 10, "ZZFF" * (2048 // 4))
             dfu.mass_erase()
 
         page = 0
@@ -780,7 +783,7 @@ def use_dfu(args):
                 progress = total / float(size) * 100
 
                 sys.stdout.write(
-                    'downloading %.2f%%  %08x - %08x ...         \r'
+                    "downloading %.2f%%  %08x - %08x ...         \r"
                     % (progress, i, i + page)
                 )
                 # time.sleep(0.100)
@@ -789,8 +792,8 @@ def use_dfu(args):
             # print(dfu.read_mem(i,16))
         t2 = time.time() * 1000
         print()
-        print('time: %d ms' % (t2 - t1))
-        print('verifying...')
+        print("time: %d ms" % (t2 - t1))
+        print("verifying...")
         progress = 0
         for start, end in ih.segments():
             for i in range(start, end, chunk):
@@ -799,13 +802,13 @@ def use_dfu(args):
                 total += chunk
                 progress = total / float(size) * 100
                 sys.stdout.write(
-                    'reading %.2f%%  %08x - %08x ...         \r'
+                    "reading %.2f%%  %08x - %08x ...         \r"
                     % (progress, i, i + page)
                 )
                 if (end - start) == chunk:
                     assert data1 == data2
         print()
-        print('firmware readback verified.')
+        print("firmware readback verified.")
     if args.detach:
         dfu.detach()
 
@@ -815,71 +818,71 @@ def programmer_main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "[firmware]",
-        nargs='?',
-        default='',
-        help='firmware file.  Either a JSON or hex file.  JSON file contains signature while hex does not.',
+        nargs="?",
+        default="",
+        help="firmware file.  Either a JSON or hex file.  JSON file contains signature while hex does not.",
     )
     parser.add_argument(
         "--use-hid",
         action="store_true",
-        help='Programs using custom HID command (default).  Quicker than using U2F authenticate which is what a browser has to use.',
+        help="Programs using custom HID command (default).  Quicker than using U2F authenticate which is what a browser has to use.",
     )
     parser.add_argument(
         "--use-u2f",
         action="store_true",
-        help='Programs using U2F authenticate. This is what a web application will use.',
+        help="Programs using U2F authenticate. This is what a web application will use.",
     )
     parser.add_argument(
         "--no-reset",
         action="store_true",
-        help='Don\'t reset after writing firmware.  Stay in bootloader mode.',
+        help="Don't reset after writing firmware.  Stay in bootloader mode.",
     )
     parser.add_argument(
         "--reset-only",
         action="store_true",
-        help='Don\'t write anything, try to boot without a signature.',
+        help="Don't write anything, try to boot without a signature.",
     )
     parser.add_argument(
-        "--reboot", action="store_true", help='Tell bootloader to reboot.'
+        "--reboot", action="store_true", help="Tell bootloader to reboot."
     )
     parser.add_argument(
         "--enter-bootloader",
         action="store_true",
-        help='Don\'t write anything, try to enter bootloader.  Typically only supported by Solo Hacker builds.',
+        help="Don't write anything, try to enter bootloader.  Typically only supported by Solo Hacker builds.",
     )
     parser.add_argument(
         "--st-dfu",
         action="store_true",
-        help='Don\'t write anything, try to enter ST DFU.  Warning, you could brick your Solo if you overwrite everything.  You should reprogram the option bytes just to be safe (boot to Solo bootloader first, then run this command).',
+        help="Don't write anything, try to enter ST DFU.  Warning, you could brick your Solo if you overwrite everything.  You should reprogram the option bytes just to be safe (boot to Solo bootloader first, then run this command).",
     )
     parser.add_argument(
         "--disable",
         action="store_true",
-        help='Disable the Solo bootloader.  Cannot be undone.  No future updates can be applied.',
+        help="Disable the Solo bootloader.  Cannot be undone.  No future updates can be applied.",
     )
     parser.add_argument(
         "--detach",
         action="store_true",
-        help='Detach from ST DFU and boot from main flash.  Must be in DFU mode.',
+        help="Detach from ST DFU and boot from main flash.  Must be in DFU mode.",
     )
     parser.add_argument(
         "--dfu-serial",
-        default='',
-        help='Specify a serial number for a specific DFU device to connect to.',
+        default="",
+        help="Specify a serial number for a specific DFU device to connect to.",
     )
     parser.add_argument(
-        "--use-dfu", action="store_true", help='Boot to ST-DFU before continuing.'
+        "--use-dfu", action="store_true", help="Boot to ST-DFU before continuing."
     )
     args = parser.parse_args()
 
-    fw = args.__dict__['[firmware]']
+    fw = args.__dict__["[firmware]"]
 
     p = SoloClient()
 
     try:
         p.find_device()
         if args.use_dfu:
-            print('entering dfu..')
+            print("entering dfu..")
             try:
                 attempt_to_boot_bootloader(p)
                 p.enter_st_dfu()
@@ -887,7 +890,7 @@ def programmer_main():
                 # already in DFU mode?
                 pass
     except RuntimeError:
-        print('No Solo device detected.')
+        print("No Solo device detected.")
         if fw or args.detach:
             use_dfu(args)
             sys.exit(0)
@@ -905,7 +908,7 @@ def programmer_main():
         p.set_reboot(False)
 
     if args.enter_bootloader:
-        print('Attempting to boot into bootloader mode...')
+        print("Attempting to boot into bootloader mode...")
         attempt_to_boot_bootloader(p)
         sys.exit(0)
 
@@ -914,7 +917,7 @@ def programmer_main():
         sys.exit(0)
 
     if args.st_dfu:
-        print('Sending command to boot into ST DFU...')
+        print("Sending command to boot into ST DFU...")
         p.enter_st_dfu()
         sys.exit(0)
 
@@ -922,8 +925,8 @@ def programmer_main():
         p.disable_solo_bootloader()
         sys.exit(0)
 
-    if fw == '' and not args.reset_only:
-        print('Need to supply firmware filename, or see help for more options.')
+    if fw == "" and not args.reset_only:
+        print("Need to supply firmware filename, or see help for more options.")
         parser.print_help()
         sys.exit(1)
 
@@ -931,16 +934,16 @@ def programmer_main():
         p.bootloader_version()
     except CtapError as e:
         if e.code == CtapError.ERR.INVALID_COMMAND:
-            print('Bootloader not active.  Attempting to boot into bootloader mode...')
+            print("Bootloader not active.  Attempting to boot into bootloader mode...")
             attempt_to_boot_bootloader(p)
         else:
             raise (e)
     except ApduError:
-        print('Bootloader not active.  Attempting to boot into bootloader mode...')
+        print("Bootloader not active.  Attempting to boot into bootloader mode...")
         attempt_to_boot_bootloader(p)
 
     if args.reset_only:
-        p.exchange(SoloBootloader.done, 0, b'A' * 64)
+        p.exchange(SoloBootloader.done, 0, b"A" * 64)
     else:
         p.program_file(fw)
 
@@ -948,7 +951,7 @@ def programmer_main():
 def main_mergehex():
     if len(sys.argv) < 3:
         print(
-            'usage: %s <file1.hex> <file2.hex> [...] [-s <secret_attestation_key>] <output.hex>'
+            "usage: %s <file1.hex> <file2.hex> [...] [-s <secret_attestation_key>] <output.hex>"
         )
         sys.exit(1)
 
@@ -964,7 +967,7 @@ def main_mergehex():
 
     # user supplied, optional
     for i, x in enumerate(args):
-        if x == '-s':
+        if x == "-s":
             secret_attestation_key = args[i + 1]
             args = args[:i] + args[i + 2 :]
             break
@@ -977,8 +980,8 @@ def main_mergehex():
 
     first = IntelHex(args[1])
     for i in range(2, len(args) - 1):
-        print('merging %s with ' % (args[1]), args[i])
-        first.merge(IntelHex(args[i]), overlap='replace')
+        print("merging %s with " % (args[1]), args[i])
+        first.merge(IntelHex(args[i]), overlap="replace")
 
     first[flash_addr(APPLICATION_END_PAGE - 1)] = 0x41
     first[flash_addr(APPLICATION_END_PAGE - 1) + 1] = 0x41
@@ -1004,19 +1007,19 @@ def main_mergehex():
         for i, x in enumerate(key):
             first[ATTEST_ADDR + i] = x
 
-    first.tofile(args[len(args) - 1], format='hex')
+    first.tofile(args[len(args) - 1], format="hex")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     if sys.version_info[0] < 3:
-        print('Sorry, python3 is required.')
+        print("Sorry, python3 is required.")
         sys.exit(1)
 
     if len(sys.argv) < 2 or (len(sys.argv) == 2 and asked_for_help()):
-        print('Diverse command line tool for working with Solo')
-        print('usage: %s <command> [options] [-h]' % sys.argv[0])
-        print('commands: program, solo, monitor, sign, genkey, mergehex')
+        print("Diverse command line tool for working with Solo")
+        print("usage: %s <command> [options] [-h]" % sys.argv[0])
+        print("commands: program, solo, monitor, sign, genkey, mergehex")
         print(
             """
 Examples:
@@ -1039,19 +1042,19 @@ Examples:
 
     c = sys.argv[1]
     sys.argv = sys.argv[:1] + sys.argv[2:]
-    sys.argv[0] = sys.argv[0] + ' ' + c
+    sys.argv[0] = sys.argv[0] + " " + c
 
-    if c == 'program':
+    if c == "program":
         programmer_main()
-    elif c == 'solo':
+    elif c == "solo":
         solo_main()
-    elif c == 'monitor':
+    elif c == "monitor":
         monitor_main()
-    elif c == 'sign':
+    elif c == "sign":
         sign_main()
-    elif c == 'genkey':
+    elif c == "genkey":
         genkey_main()
-    elif c == 'mergehex':
+    elif c == "mergehex":
         main_mergehex()
     else:
-        print('invalid command: %s' % c)
+        print("invalid command: %s" % c)
