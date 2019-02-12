@@ -13,7 +13,9 @@
 #define __STR_HELPER(x) #x
 #define __STR(x) __STR_HELPER(x)
 
+#ifndef VERSION
 #define VERSION     __STR(SOLO_VERSION_MAJ) "." __STR(SOLO_VERSION_MIN) "." __STR(SOLO_VERSION_PATCH)
+#endif
 
 
 #endif
