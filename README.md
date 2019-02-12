@@ -118,9 +118,8 @@ Look at the issues to see what is currently being worked on. Feel free to add is
 # License
 
 Solo is fully open source.
-All software is licensed under GPLv3, and hardware under CC BY-SA 4.0.
-Software and hardware are available under licenses for commercial use. Please contact SoloKeys for more information.
-
+All software, unless otherwise noted, is dual licensed under Apache 2.0 and MIT.
+You may use Solo under the terms of either the Apache 2.0 license or MIT license.
 
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fsolokeys%2Fsolo.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fsolokeys%2Fsolo?ref=badge_large)
