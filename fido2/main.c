@@ -61,16 +61,8 @@ int main(int argc, char * argv[])
 	);
 
     device_init();
-    // printf1(TAG_GEN,"init device\n");
 
-    usbhid_init();
-    // printf1(TAG_GEN,"init usb\n");
 
-    ctaphid_init();
-    // printf1(TAG_GEN,"init ctaphid\n");
-
-    ctap_init();
-    // printf1(TAG_GEN,"init ctap\n");
 
     memset(hidmsg,0,sizeof(hidmsg));
 
