@@ -195,6 +195,8 @@ int bootloader_bridge(int klen, uint8_t * keyh)
             u2f_response_writeback(&version,1);
             version = BOOT_VERSION_MIN;
             u2f_response_writeback(&version,1);
+            version = BOOT_VERSION_PATCH;
+            u2f_response_writeback(&version,1);
             break;
         case BootReboot:
             printf1(TAG_BOOT, "BootReboot.\r\n");

@@ -47,7 +47,8 @@ int16_t bridge_u2f_to_solo(uint8_t * _chal, uint8_t * _appid, uint8_t klen, uint
         case WalletVersion:
             msg_buf[0] = SOLO_VERSION_MAJ;
             msg_buf[1] = SOLO_VERSION_MIN;
-            u2f_response_writeback(msg_buf, 2);
+            msg_buf[2] = SOLO_VERSION_PATCH;
+            u2f_response_writeback(msg_buf, 3);
             break;
         case WalletRng:
             printf1(TAG_WALLET,"SoloRng\n");
