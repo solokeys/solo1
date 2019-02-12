@@ -80,3 +80,13 @@ env3/
 .tags*
 targets/*/docs/
 main
+targets/efm32/.project
+targets/efm32/.settings/com.silabs.ss.framework.ide.project.sls.core.prefs
+targets/efm32/.settings/org.eclipse.cdt.codan.core.prefs
+targets/efm32/CMSIS/EFM32PG1B/startup_gcc_efm32pg1b.s
+targets/efm32/CMSIS/EFM32PG1B/system_efm32pg1b.c
+targets/efm32/EFM32.hwconf
+targets/efm32/EFM32_EFM32JG1B200F128GM32.hwconf
+targets/efm32/emlib/em_adc.c
+targets/efm32/emlib/em_assert.c
+targets/efm32/emlib/em_cmu.c
