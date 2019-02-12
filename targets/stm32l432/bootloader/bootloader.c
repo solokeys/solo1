@@ -1,21 +1,21 @@
 /*
  * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- * 
+ *
  * This file is part of Solo.
- * 
+ *
  * Solo is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Solo is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- * 
+ *
  * This code is available under licenses for commercial use.
  * Please contact SoloKeys for more information.
  */
@@ -191,8 +191,12 @@ int bootloader_bridge(int klen, uint8_t * keyh)
         case BootVersion:
             has_erased = 0;
             printf1(TAG_BOOT, "BootVersion.\r\n");
+            version = BOOT_VERSION_MAJ;
             u2f_response_writeback(&version,1);
-            return 0;
+            version = BOOT_VERSION_MIN;
+            u2f_response_writeback(&version,1);
+            version = BOOT_VERSION_PATCH;
+            u2f_response_writeback(&version,1);
             break;
         case BootReboot:
             printf1(TAG_BOOT, "BootReboot.\r\n");
