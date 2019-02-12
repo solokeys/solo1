@@ -220,7 +220,7 @@ void SystemInit(void)
   /* Disable all interrupts */
   RCC->CIER = 0x00000000U;
 
-  SystemClock_Config_LF16();
+  SystemClock_Config_LF24();
 
 }
 
