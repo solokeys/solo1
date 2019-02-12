@@ -214,13 +214,13 @@ class SoloClient:
 
     def bootloader_version(self,):
         data = self.exchange(SoloBootloader.version)
-        if len(data) > 1:
-            return (data[0],data[1])
+        if len(data) > 2:
+            return (data[0],data[1],data[2])
         return data[0]
 
     def solo_version(self,):
         data = self.exchange_u2f(SoloExtension.version)
-        return (data[0],data[1])
+        return (data[0],data[1],data[2])
 
     def write_flash(self, addr, data):
         self.exchange(SoloBootloader.write, addr, data)
