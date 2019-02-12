@@ -38,16 +38,16 @@ int16_t bridge_u2f_to_solo(uint8_t * _chal, uint8_t * _appid, uint8_t klen, uint
     int i;
     int8_t ret = 0;
 
-    wallet_request * req = (wallet_request *) msg_buf;
+    wallet_request * req = (wallet_request *) keyh;
 
-    printf1(TAG_WALLET, "u2f-solo [%d]: ", reqlen); dump_hex1(TAG_WALLET, msg_buf, reqlen);
+    printf1(TAG_WALLET, "u2f-solo [%d]: ", reqlen); dump_hex1(TAG_WALLET, keyh, reqlen);
 
     switch(req->operation)
     {
         case WalletVersion:
             msg_buf[0] = SOLO_VERSION_MAJ;
-            msg_buf[0] = SOLO_VERSION_MIN;
-            u2f_response_writeback((uint8_t*)WALLET_VERSION, sizeof(WALLET_VERSION)-1);
+            msg_buf[1] = SOLO_VERSION_MIN;
+            u2f_response_writeback(msg_buf, 2);
             break;
         case WalletRng:
             printf1(TAG_WALLET,"SoloRng\n");
