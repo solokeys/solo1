@@ -10,6 +10,10 @@
 
 #endif
 
+#define BOOT_VERSION_MAJ    1
+#define BOOT_VERSION_MIN    0
+#define BOOT_VERSION_PATCH    0
+
 #define __STR_HELPER(x) #x
 #define __STR(x) __STR_HELPER(x)
 
