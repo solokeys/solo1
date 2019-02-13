@@ -91,3 +91,5 @@ targets/efm32/EFM32_EFM32JG1B200F128GM32.hwconf
 targets/efm32/emlib/em_adc.c
 targets/efm32/emlib/em_assert.c
 targets/efm32/emlib/em_cmu.c
+
+builds/*
