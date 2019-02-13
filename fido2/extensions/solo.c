@@ -34,13 +34,11 @@
 int16_t bridge_u2f_to_solo(uint8_t * _chal, uint8_t * _appid, uint8_t klen, uint8_t * keyh)
 {
     static uint8_t msg_buf[72];
-    int reqlen = klen;
-    int i;
     int8_t ret = 0;
 
     wallet_request * req = (wallet_request *) keyh;
 
-    printf1(TAG_WALLET, "u2f-solo [%d]: ", reqlen); dump_hex1(TAG_WALLET, keyh, reqlen);
+    printf1(TAG_WALLET, "u2f-solo [%d]: ", reqlen); dump_hex1(TAG_WALLET, keyh, klen);
 
     switch(req->operation)
     {

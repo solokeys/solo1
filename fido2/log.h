@@ -55,6 +55,8 @@ void set_logging_mask(uint32_t mask);
 
 #define dump_hex1(tag,data,len) LOG_HEX(tag,data,len)
 
+uint32_t timestamp();
+
 #else
 
 #define set_logging_mask(mask)
@@ -62,6 +64,7 @@ void set_logging_mask(uint32_t mask);
 #define printf2(tag,fmt, ...)
 #define printf3(tag,fmt, ...)
 #define dump_hex1(tag,data,len)
+#define timestamp()
 
 #endif
 

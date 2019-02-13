@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include "log.h"
 #include "util.h"
+#include "device.h"
 
 #if DEBUG_LEVEL > 0
 
@@ -99,4 +100,14 @@ void LOG_HEX(uint32_t tag, uint8_t * data, int length)
     set_logging_tag(tag);
     dump_hex(data,length);
 }
+
+uint32_t timestamp()
+{
+    static uint32_t t1 = 0;
+    uint32_t t2 = millis();
+    uint32_t diff = t2 - t1;
+    t1 = t2;
+    return t2;
+}
+
 #endif
