@@ -107,7 +107,7 @@ uint32_t timestamp()
     uint32_t t2 = millis();
     uint32_t diff = t2 - t1;
     t1 = t2;
-    return t2;
+    return diff;
 }
 
 #endif
