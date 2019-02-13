@@ -52,7 +52,7 @@
 #define SKIP_BUTTON_CHECK_WITH_DELAY        0
 #define SKIP_BUTTON_CHECK_FAST              1
 
-#define SOLO_PRODUCT_NAME "Solo Bootloader " VERSION
+#define SOLO_PRODUCT_NAME "Solo Bootloader " SOLO_VERSION
 
 void printing_init();
 void hw_init(void);

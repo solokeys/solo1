@@ -32,9 +32,9 @@
 
 
 #if defined(SOLO_HACKER)
-#define SOLO_PRODUCT_NAME "Solo Hacker " VERSION
+#define SOLO_PRODUCT_NAME "Solo Hacker " SOLO_VERSION
 #else
-#define SOLO_PRODUCT_NAME "Solo " VERSION
+#define SOLO_PRODUCT_NAME "Solo " SOLO_VERSION
 #endif
 
 void printing_init();

@@ -10,15 +10,11 @@
 
 #endif
 
-#define BOOT_VERSION_MAJ    1
-#define BOOT_VERSION_MIN    0
-#define BOOT_VERSION_PATCH    0
-
 #define __STR_HELPER(x) #x
 #define __STR(x) __STR_HELPER(x)
 
-#ifndef VERSION
-#define VERSION     __STR(SOLO_VERSION_MAJ) "." __STR(SOLO_VERSION_MIN) "." __STR(SOLO_VERSION_PATCH)
+#ifndef SOLO_VERSION
+#define SOLO_VERSION     __STR(SOLO_VERSION_MAJ) "." __STR(SOLO_VERSION_MIN) "." __STR(SOLO_VERSION_PATCH)
 #endif
 
 
