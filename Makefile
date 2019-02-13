@@ -30,7 +30,7 @@ CFLAGS += -DAES256=1 -DAPP_CONFIG=\"app.h\"
 
 name = main
 
-.PHONY: all $(LIBCBOR) black blackcheck cppcheck wink fido2-test clean full-clean travis test clean
+.PHONY: all $(LIBCBOR) black blackcheck cppcheck wink fido2-test clean full-clean travis test clean version
 all: main
 
 tinycbor/Makefile crypto/tiny-AES-c/aes.c:
@@ -41,6 +41,9 @@ cbor: $(LIBCBOR)
 
 $(LIBCBOR):
 	cd tinycbor/ && $(MAKE) clean && $(MAKE) -j8
+
+version:
+	@git describe
 
 test: venv
 	$(MAKE) clean
@@ -71,11 +74,11 @@ wink: venv
 fido2-test: venv
 	venv/bin/python tools/ctap_test.py
 
-DOCKER_IMAGE := "solokeys/solo-firmware:latest"
+DOCKER_IMAGE := "solokeys/solo-firmware:local"
+SOLO_VERSION := "master"
 docker-build:
 	docker build -t $(DOCKER_IMAGE) .
-	# docker build --no-cache -t $(DOCKER_IMAGE) .
-	docker run -rm -v$(PWD):/out $(DOCKER_IMAGE)
+	docker run --rm -v$(PWD)/builds:/builds -v$(PWD)/docker-build.sh:/build.sh $(DOCKER_IMAGE) /build.sh $(SOLO_VERSION)
 
 CPPCHECK_FLAGS=--quiet --error-exitcode=2
 
