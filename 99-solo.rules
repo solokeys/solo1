@@ -8,8 +8,8 @@ ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ENV{ID_MM_DEVICE_IGNORE}="1"
 LABEL="mm_usb_device_blacklist_end"
 
 # Solo
-ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo",                   TAG+="uaccess", GROUP="plugdev", SYMLINK+="solokey"
-ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo HACKER (Unlocked)", TAG+="uaccess", GROUP="plugdev", SYMLINK+="solohacker"
+SUBSYSTEM=="hidraw" ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo [1-9]*",        TAG+="uaccess", GROUP="plugdev", SYMLINK+="solokey"
+SUBSYSTEM=="hidraw" ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo Hacker [1-9]*", TAG+="uaccess", GROUP="plugdev", SYMLINK+="solohacker"
 
 SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", GROUP="plugdev", SYMLINK+="solokey-serial"
 

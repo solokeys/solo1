@@ -88,10 +88,11 @@ const uint8_t USBD_DeviceDesc[USB_LEN_DEV_DESC]= {
   USB_MAX_EP0_SIZE,           /* bMaxPacketSize */
   LOBYTE(USBD_VID),           /* idVendor */
   HIBYTE(USBD_VID),           /* idVendor */
-  LOBYTE(USBD_PID),           /* idVendor */
-  HIBYTE(USBD_PID),           /* idVendor */
-  0x00,                       /* bcdDevice rel. 2.00 */
-  0x02,
+  LOBYTE(USBD_PID),           /* idProduct */
+  HIBYTE(USBD_PID),           /* idProduct */
+  // should put SOLO_VERSION_MAJ/MIN here too, but binary coded decimal
+  0x00,                       /* bcdDevice version */
+  0x01,
   USBD_IDX_MFC_STR,           /* Index of manufacturer string */
   USBD_IDX_PRODUCT_STR,       /* Index of product string */
   USBD_IDX_SERIAL_STR,        /* Index of serial number string */
