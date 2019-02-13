@@ -46,7 +46,7 @@ void device_manage();
 
 // sets status that's uses for sending status updates ~100ms.
 // A timer should be set up to call `ctaphid_update_status`
-void device_set_status(int status);
+void device_set_status(uint32_t status);
 
 // Returns if button is currently pressed
 int device_is_button_pressed();

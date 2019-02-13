@@ -24,12 +24,6 @@ Enter the `stm32l4xx` target directory.
 cd targets/stm32l432
 ```
 
-Build the cbor library.
-
-```bash
-make cbor
-```
-
 Now build Solo.
 
 ```

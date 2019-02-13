@@ -58,9 +58,9 @@ void set_logging_mask(uint32_t mask);
 #else
 
 #define set_logging_mask(mask)
-#define printf1(fmt, ...)
-#define printf2(fmt, ...)
-#define printf3(fmt, ...)
+#define printf1(tag,fmt, ...)
+#define printf2(tag,fmt, ...)
+#define printf3(tag,fmt, ...)
 #define dump_hex1(tag,data,len)
 
 #endif

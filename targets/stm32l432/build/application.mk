@@ -43,7 +43,7 @@ endif
 DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAPP_CONFIG=\"app.h\" $(EXTRA_DEFINES)
 # DEFINES += -DTEST_SOLO_STM32 -DTEST -DTEST_FIFO=1
 
-CFLAGS=$(INC) -c $(DEFINES)   -Wall -fdata-sections -ffunction-sections $(HW) -g $(VERSION_FLAGS)
+CFLAGS=$(INC) -c $(DEFINES)   -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections $(HW) -g $(VERSION_FLAGS)
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -u _printf_float -lnosys
 LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor
 
@@ -69,7 +69,7 @@ all: $(TARGET).elf
 	$(CP) -O ihex $^ $(TARGET).hex
 
 clean:
-	rm -f *.o src/*.o src/*.elf  bootloader/*.o $(OBJ)
+	rm -f *.o src/*.o *.elf  bootloader/*.o $(OBJ)
 
 
 cbor:

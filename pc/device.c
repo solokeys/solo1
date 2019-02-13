@@ -26,7 +26,7 @@
 void authenticator_initialize();
 
 uint32_t __device_status = 0;
-void device_set_status(int status)
+void device_set_status(uint32_t status)
 {
     if (status != CTAPHID_STATUS_IDLE && __device_status != status)
     {

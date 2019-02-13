@@ -13,7 +13,7 @@ EFM32_DEBUGGER= -s 440083537 --device EFM32JG1B200F128GM32
 #EFM32_DEBUGGER= -s 440121060    #dev board
 
 src = $(wildcard pc/*.c) $(wildcard fido2/*.c) $(wildcard crypto/sha256/*.c) crypto/tiny-AES-c/aes.c
-obj = $(src:.c=.o) uECC.o
+obj = $(src:.c=.o) crypto/micro-ecc/uECC.o
 
 LIBCBOR = tinycbor/lib/libtinycbor.a
 
@@ -33,7 +33,7 @@ CFLAGS += -DAES256=1 -DAPP_CONFIG=\"app.h\"
 
 name = main
 
-.PHONY: all
+.PHONY: all $(LIBCBOR) env2 env3 black wink2 wink3 fido2-test clean full-clean travis
 all: main
 
 tinycbor/Makefile crypto/tiny-AES-c/aes.c:
@@ -42,8 +42,16 @@ tinycbor/Makefile crypto/tiny-AES-c/aes.c:
 .PHONY: cbor
 cbor: $(LIBCBOR)
 
-$(LIBCBOR): tinycbor/Makefile
+$(LIBCBOR):
 	cd tinycbor/ && $(MAKE) clean && $(MAKE) -j8
+
+test: env3
+	$(MAKE) clean
+	$(MAKE) -C . main
+	$(MAKE) clean
+	$(MAKE) -C ./targets/stm32l432 test PREFIX=$(PREFIX) "VENV=$(VENV)"
+	$(MAKE) clean
+	$(MAKE) cppcheck
 
 .PHONY: efm8prog
 efm8prog:
@@ -64,7 +72,7 @@ efm32bootprog: efm32com
 $(name): $(obj) $(LIBCBOR)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
 
-uECC.o: ./crypto/micro-ecc/uECC.c
+crypto/micro-ecc/uECC.o: ./crypto/micro-ecc/uECC.c
 	$(CC) -c -o $@ $^ -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform) -I./crypto/micro-ecc/
 
 env2:
@@ -73,18 +81,14 @@ env2:
 	env2/bin/pip install -r tools/requirements.txt
 
 env3:
-	# black requires >=py3.6
-	virtualenv --python=python3.6 env3 
-	env3/bin/pip --version
-	env3/bin/pip install -r tools/requirements.txt
-	env3/bin/pip install black
+	python3 -m venv env3
+	env3/bin/pip -q install --upgrade -r tools/requirements.txt
+	env3/bin/pip -q install --upgrade black
 
 .PHONY: black blackcheck wink2 wink3 fido2-test cppcheck test clean
 # selectively reformat our own code
-
-blackcheck: export BLACK_CHECK_FLAG := --check
-black blackcheck: env3
-	env3/bin/black --skip-string-normalization $(BLACK_CHECK_FLAG) tools/
+black: env3
+	env3/bin/black --skip-string-normalization --check tools/
 
 wink2 wink3: wink% : env%
 	$</bin/python tools/solotool.py solo --wink
@@ -100,13 +104,17 @@ cppcheck:
 	cppcheck $(CPPCHECK_FLAGS) fido2
 	cppcheck $(CPPCHECK_FLAGS) pc
 
-test: main cppcheck blackcheck
-
 clean:
 	rm -f *.o main.exe main $(obj)
-	rm -rf env2 env3
 	for f in crypto/tiny-AES-c/Makefile tinycbor/Makefile ; do \
 	    if [ -f "$$f" ]; then \
 	    	(cd `dirname $$f` ; git checkout -- .) ;\
 	    fi ;\
 	done
+
+full-clean: clean
+	rm -rf env2 env3
+
+travis:
+	$(MAKE) test VENV=". ../../env3/bin/activate;"
+	$(MAKE) black

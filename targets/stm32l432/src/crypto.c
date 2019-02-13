@@ -99,7 +99,7 @@ void crypto_sha256_final(uint8_t * hash)
 void crypto_sha256_hmac_init(uint8_t * key, uint32_t klen, uint8_t * hmac)
 {
     uint8_t buf[64];
-    int i;
+    unsigned int i;
     memset(buf, 0, sizeof(buf));
 
     if (key == CRYPTO_MASTER_KEY)
@@ -133,7 +133,7 @@ void crypto_sha256_hmac_init(uint8_t * key, uint32_t klen, uint8_t * hmac)
 void crypto_sha256_hmac_final(uint8_t * key, uint32_t klen, uint8_t * hmac)
 {
     uint8_t buf[64];
-    int i;
+    unsigned int i;
     crypto_sha256_final(hmac);
     memset(buf, 0, sizeof(buf));
     if (key == CRYPTO_MASTER_KEY)

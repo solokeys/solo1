@@ -309,7 +309,7 @@ static int is_matching_rk(CTAP_residentKey * rk, CTAP_residentKey * rk2)
 }
 
 
-static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, int len, CTAP_userEntity * user, uint8_t credtype, int32_t algtype, int32_t * sz, int store)
+static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, unsigned int len, CTAP_userEntity * user, uint8_t credtype, int32_t algtype, int32_t * sz, int store)
 {
     CborEncoder cose_key;
     int auth_data_sz, ret;
@@ -380,8 +380,8 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
             memmove(&rk.id, &authData->attest.id, sizeof(CredentialId));
             memmove(&rk.user, user, sizeof(CTAP_userEntity));
 
-            int index = STATE.rk_stored;
-            int i;
+            unsigned int index = STATE.rk_stored;
+            unsigned int i;
             for (i = 0; i < index; i++)
             {
                 ctap_load_rk(i, &rk2);
@@ -549,7 +549,8 @@ int ctap_authenticate_credential(struct rpId * rp, CTAP_credentialDescriptor * d
 uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_makeCredential MC;
-    int ret, i;
+    int ret;
+    unsigned int i;
     uint8_t auth_data_buf[300];
     CTAP_credentialDescriptor * excl_cred = (CTAP_credentialDescriptor *) auth_data_buf;
     uint8_t * sigbuf = auth_data_buf + 32;
@@ -1358,8 +1359,9 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     CborEncoder encoder;
     uint8_t status = 0;
     uint8_t cmd = *pkt_raw;
-    uint64_t t1;
-    uint64_t t2;
+#if DEBUG_LEVEL > 0
+    uint64_t t1,t2;
+#endif
     pkt_raw++;
     length--;
 
@@ -1392,10 +1394,14 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
         case CTAP_MAKE_CREDENTIAL:
             device_set_status(CTAPHID_STATUS_PROCESSING);
             printf1(TAG_CTAP,"CTAP_MAKE_CREDENTIAL\n");
+#if DEBUG_LEVEL > 0
             t1 = millis();
+#endif
             status = ctap_make_credential(&encoder, pkt_raw, length);
+#if DEBUG_LEVEL > 0
             t2 = millis();
             printf1(TAG_TIME,"make_credential time: %d ms\n", t2-t1);
+#endif
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
             dump_hex1(TAG_DUMP, buf, resp->length);
@@ -1404,10 +1410,14 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
         case CTAP_GET_ASSERTION:
             device_set_status(CTAPHID_STATUS_PROCESSING);
             printf1(TAG_CTAP,"CTAP_GET_ASSERTION\n");
+#if DEBUG_LEVEL > 0
             t1 = millis();
+#endif
             status = ctap_get_assertion(&encoder, pkt_raw, length);
+#if DEBUG_LEVEL > 0
             t2 = millis();
             printf1(TAG_TIME,"get_assertion time: %d ms\n", t2-t1);
+#endif
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
 
