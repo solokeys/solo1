@@ -17,8 +17,8 @@ ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", GROUP="plugde
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo [1-9]*", SYMLINK+="solokey"
 ## Solo Hacker symlink
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo Hacker [1-9]*", SYMLINK+="solohacker"
-## Solo Serial symlink
-SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", SYMLINK+="soloserial"
+## Solo Serial access + symlink
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", GROUP="plugdev", SYMLINK+="soloserial"
 
 
 # U2F Zero
