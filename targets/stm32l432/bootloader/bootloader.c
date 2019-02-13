@@ -1,24 +1,10 @@
-/*
- * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- * 
- * This file is part of Solo.
- * 
- * Solo is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * Solo is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- * 
- * This code is available under licenses for commercial use.
- * Please contact SoloKeys for more information.
- */
+// Copyright 2019 SoloKeys Developers
+//
+// Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
+// http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
+// http://opensource.org/licenses/MIT>, at your option. This file may not be
+// copied, modified, or distributed except according to those terms.
+
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -126,9 +112,10 @@ int is_bootloader_disabled()
 int bootloader_bridge(int klen, uint8_t * keyh)
 {
     static int has_erased = 0;
-    int i;
     BootloaderReq * req =  (BootloaderReq *  )keyh;
+#ifndef SOLO_HACKER
     uint8_t hash[32];
+#endif
     uint8_t version = 1;
     uint16_t len = (req->lenh << 8) | (req->lenl);
 
@@ -137,12 +124,14 @@ int bootloader_bridge(int klen, uint8_t * keyh)
         printf1(TAG_BOOT,"Invalid length %d / %d\r\n", len, klen-9);
         return CTAP1_ERR_INVALID_LENGTH;
     }
-
+#ifndef SOLO_HACKER
     uint8_t * pubkey = (uint8_t*)"\xd2\xa4\x2f\x8f\xb2\x31\x1c\xc1\xf7\x0c\x7e\x64\x32\xfb\xbb\xb4\xa3\xdd\x32\x20"
                                  "\x0f\x1b\x88\x9c\xda\x62\xc2\x83\x25\x93\xdd\xb8\x75\x9d\xf9\x86\xee\x03\x6c\xce"
                                  "\x34\x47\x71\x36\xb3\xb2\xad\x6d\x12\xb7\xbe\x49\x3e\x20\xa4\x61\xac\xc7\x71\xc7"
                                  "\x1f\xa8\x14\xf2";
+
     const struct uECC_Curve_t * curve = NULL;
+#endif
 
     // Translate and enclose the requested address in the MCU flash space, starting from 0x8000000
     uint32_t addr = ((*((uint32_t*)req->addr)) & 0xffffff) | 0x8000000;
@@ -220,8 +209,12 @@ int bootloader_bridge(int klen, uint8_t * keyh)
         case BootVersion:
             has_erased = 0;
             printf1(TAG_BOOT, "BootVersion.\r\n");
+            version = BOOT_VERSION_MAJ;
             u2f_response_writeback(&version,1);
-            return 0;
+            version = BOOT_VERSION_MIN;
+            u2f_response_writeback(&version,1);
+            version = BOOT_VERSION_PATCH;
+            u2f_response_writeback(&version,1);
             break;
         case BootReboot:
             printf1(TAG_BOOT, "BootReboot.\r\n");

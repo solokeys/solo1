@@ -9,6 +9,7 @@ copyright: 'Copyright &copy; 2018 - 2019 SoloKeys'
 nav:
     - Home: solo/index.md
     - FIDO2 Implementation: solo/fido2-impl.md
+    - Metadata Statements: solo/metadata-statements.md
     - Build instructions: solo/building.md
     - Signed update process: solo/signed-updates.md
     - Code documentation: solo/code-overview.md
@@ -21,3 +22,6 @@ theme:
   name: material
   logo: 'solo/images/logo.svg'
   favicon: 'solo/images/favicon.ico'
+
+markdown_extensions:
+  - markdown_include.include

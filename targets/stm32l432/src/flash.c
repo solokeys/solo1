@@ -1,24 +1,9 @@
-/*
- * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- * 
- * This file is part of Solo.
- * 
- * Solo is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * Solo is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- * 
- * This code is available under licenses for commercial use.
- * Please contact SoloKeys for more information.
- */
+// Copyright 2019 SoloKeys Developers
+//
+// Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
+// http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
+// http://opensource.org/licenses/MIT>, at your option. This file may not be
+// copied, modified, or distributed except according to those terms.
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -28,6 +13,11 @@
 #include "flash.h"
 #include "log.h"
 #include "device.h"
+
+static void flash_lock()
+{
+    FLASH->CR |= (1U<<31);
+}
 
 static void flash_unlock()
 {
@@ -143,7 +133,7 @@ void flash_write_dword(uint32_t addr, uint64_t data)
 
 void flash_write(uint32_t addr, uint8_t * data, size_t sz)
 {
-    int i;
+    unsigned int i;
     uint8_t buf[8];
     while (FLASH->SR & (1<<16))
         ;
@@ -196,9 +186,4 @@ void flash_write_fast(uint32_t addr, uint32_t * data)
     FLASH->CR &= ~(1<<18);
     __enable_irq();
 
-}
-
-void flash_lock()
-{
-    FLASH->CR |= (1U<<31);
 }

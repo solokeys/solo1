@@ -1,24 +1,9 @@
-/*
- * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- * 
- * This file is part of Solo.
- * 
- * Solo is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * Solo is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- * 
- * This code is available under licenses for commercial use.
- * Please contact SoloKeys for more information.
- */
+// Copyright 2019 SoloKeys Developers
+//
+// Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
+// http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
+// http://opensource.org/licenses/MIT>, at your option. This file may not be
+// copied, modified, or distributed except according to those terms.
 #include <stdint.h>
 #include <stdio.h>
 
@@ -29,27 +14,48 @@
 #include "device.h"
 #include "log.h"
 
+// normalization formula: 16.06*x^0.33 = (0%-100%)
+// here values: value * 10
+uint8_t norm_k[] = {
+	0,   80,  101, 115, 127, 137, 145, 153, 159, 166,
+	172, 177, 182, 187, 192, 196, 200, 205, 208, 212,
+	216, 219, 223, 226, 229, 232, 235, 238, 241, 245};
+#define norm_k_len sizeof(norm_k)
+
+uint32_t led_normalization(uint8_t value)
+{
+	if (value > norm_k_len - 1)
+	{
+		return value * 10;
+	} else {
+		return norm_k[value];
+	}
+}
+
 void led_rgb(uint32_t hex)
 {
-    uint32_t r = hex >> 16;
-    uint32_t g = (hex >> 8)&0xff;
-    uint32_t b = hex & 0xff;
+    uint32_t r = led_normalization((hex >> 16) & 0xff);
+    uint32_t g = led_normalization((hex >> 8) & 0xff);
+    uint32_t b = led_normalization(hex & 0xff);
 
     // CCR2 == blue
     // CCR3 == red
     // CCR4 == green
 
     // map and scale colors
-    TIM2->CCR2 = 1000 - (b * 1000)/(256);
-    TIM2->CCR3 = 1000 - (r * 1000)/(256*6);
-    TIM2->CCR4 = 1000 - (g * 1000)/(256);
+	// normalization table values: value * 10
+    TIM2->CCR2 = 1000 - (b * 100)/(256);
+    TIM2->CCR3 = 1000 - (r * 100)/(256*6);
+    TIM2->CCR4 = 1000 - (g * 100)/(256);
 }
 
 void led_test_colors()
 {
     // Should produce pulsing of various colors
     int i = 0;
+#if DEBUG_LEVEL > 0
     int j = 0;
+#endif
     int inc = 1;
     uint32_t time = 0;
 #define update() do {\

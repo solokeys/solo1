@@ -1,24 +1,9 @@
-/*
- * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- * 
- * This file is part of Solo.
- * 
- * Solo is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * Solo is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- * 
- * This code is available under licenses for commercial use.
- * Please contact SoloKeys for more information.
- */
+// Copyright 2019 SoloKeys Developers
+//
+// Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
+// http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
+// http://opensource.org/licenses/MIT>, at your option. This file may not be
+// copied, modified, or distributed except according to those terms.
 #include <stdlib.h>
 #include "u2f.h"
 #include "ctap.h"
@@ -26,11 +11,16 @@
 #include "log.h"
 #include "device.h"
 #include "wallet.h"
+#ifdef ENABLE_U2F_EXTENSIONS
+#include "extensions.h"
+#endif
 #include APP_CONFIG
 
 // void u2f_response_writeback(uint8_t * buf, uint8_t len);
+#ifdef ENABLE_U2F
 static int16_t u2f_register(struct u2f_register_request * req);
 static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control);
+#endif
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
 void u2f_reset_response();
 
@@ -40,7 +30,6 @@ static CTAP_RESPONSE * _u2f_resp = NULL;
 void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
 {
     uint16_t rcode = 0;
-    uint64_t t1,t2;
     uint32_t len = ((req->LC3) | ((uint32_t)req->LC2 << 8) | ((uint32_t)req->LC1 << 16));
     uint8_t byte;
 
@@ -68,18 +57,18 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
                 }
                 else
                 {
-                    t1 = millis();
+
+                    timestamp();
                     rcode = u2f_register((struct u2f_register_request*)req->payload);
-                    t2 = millis();
-                    printf1(TAG_TIME,"u2f_register time: %d ms\n", t2-t1);
+                    printf1(TAG_TIME,"u2f_register time: %d ms\n", timestamp());
+
                 }
                 break;
             case U2F_AUTHENTICATE:
                 printf1(TAG_U2F, "U2F_AUTHENTICATE\n");
-                t1 = millis();
+                timestamp();
                 rcode = u2f_authenticate((struct u2f_authenticate_request*)req->payload, req->p1);
-                t2 = millis();
-                printf1(TAG_TIME,"u2f_authenticate time: %d ms\n", t2-t1);
+                printf1(TAG_TIME,"u2f_authenticate time: %d ms\n", timestamp());
                 break;
             case U2F_VERSION:
                 printf1(TAG_U2F, "U2F_VERSION\n");
@@ -143,6 +132,7 @@ void u2f_set_writeback_buffer(CTAP_RESPONSE * resp)
     _u2f_resp = resp;
 }
 
+#ifdef ENABLE_U2F
 static void dump_signature_der(uint8_t * sig)
 {
     uint8_t sigder[72];
@@ -234,12 +224,15 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
     }
 
     count = ctap_atomic_count(0);
-
+    hash[0] = (count >> 24) & 0xff;
+    hash[1] = (count >> 16) & 0xff;
+    hash[2] = (count >> 8) & 0xff;
+    hash[3] = (count >> 0) & 0xff;
     crypto_sha256_init();
 
     crypto_sha256_update(req->app,32);
     crypto_sha256_update(&up,1);
-    crypto_sha256_update((uint8_t *)&count,4);
+    crypto_sha256_update(hash,4);
     crypto_sha256_update(req->chal,32);
 
     crypto_sha256_final(hash);
@@ -248,7 +241,11 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
     crypto_ecc256_sign(hash, 32, sig);
 
     u2f_response_writeback(&up,1);
-    u2f_response_writeback((uint8_t *)&count,4);
+    hash[0] = (count >> 24) & 0xff;
+    hash[1] = (count >> 16) & 0xff;
+    hash[2] = (count >> 8) & 0xff;
+    hash[3] = (count >> 0) & 0xff;
+    u2f_response_writeback(hash,4);
     dump_signature_der(sig);
 
     return U2F_SW_NO_ERROR;
@@ -308,6 +305,7 @@ static int16_t u2f_register(struct u2f_register_request * req)
 
     return U2F_SW_NO_ERROR;
 }
+#endif
 
 int16_t u2f_version()
 {

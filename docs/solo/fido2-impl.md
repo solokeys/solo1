@@ -15,13 +15,15 @@ A master secret, `M`, is generated at initialization.  This is only used for
 all key generation and derivation in FIDO2.  Solo uses a key wrapping method
 for FIDO2 operation.
 
+** NOTE: The masked implementation of AES is planned, but not yet implemented. Currently it is normal AES. **
+
 ## Key wrapping
 
 When you register a service with a FIDO2 or U2F authenticator, the
 authenticator must generate a new keypair unique to that service.  This keypair
 could be stored on the authenticator to be used in subsequent authentications,
 but now a certain amount of memory needs to be allocated for this.  On embedded
-devices, there isn't much memory to spare and users will always frustratingly
+devices, there isn't much memory to spare and users will allows frustratingly
 hit the limit of this memory.
 
 The answer to this problem is to do key wrapping.  The authenticator just
@@ -54,6 +56,8 @@ authentications.
 keys which are then used for FIDO2/U2F.  -->
 
 ## Key derivation
+
+** Planned, but not yet implemented. **
 
 Master secret `M` consists of 64 bytes, split into equal parts `M1` and `M2`.
 In theory, we should only need 32 bytes to achieve 256 security, but we also

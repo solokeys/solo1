@@ -1,24 +1,9 @@
-/*
- * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- *
- * This file is part of Solo.
- *
- * Solo is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Solo is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- *
- * This code is available under licenses for commercial use.
- * Please contact SoloKeys for more information.
- */
+// Copyright 2019 SoloKeys Developers
+//
+// Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
+// http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
+// http://opensource.org/licenses/MIT>, at your option. This file may not be
+// copied, modified, or distributed except according to those terms.
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -53,11 +38,13 @@ void  BOOT_boot(void)
   ((pFunction)bootAddress[1])();
 }
 
-int main(int argc, char * argv[])
+int main()
 {
     uint8_t hidmsg[64];
     uint32_t t1 = 0;
+#ifdef SOLO_HACKER
     uint32_t stboot_time = 0;
+#endif
     uint32_t boot = 1;
 
     set_logging_mask(
@@ -117,7 +104,9 @@ int main(int argc, char * argv[])
 
         printf1(TAG_RED,"Not authorized to boot (%08x == %08lx)\r\n", AUTH_WORD_ADDR, *(uint32_t*)AUTH_WORD_ADDR);
     }
+#ifdef SOLO_HACKER
     start_bootloader:
+#endif
     usbhid_init();
     printf1(TAG_GEN,"init usb\n");
 

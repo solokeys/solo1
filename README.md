@@ -2,6 +2,7 @@
 [![Build Status](https://travis-ci.com/solokeys/solo.svg?branch=master)](https://travis-ci.com/solokeys/solo)
 [![Discourse Users](https://img.shields.io/discourse/https/discourse.solokeys.com/users.svg)](https://discourse.solokeys.com)
 [![Keybase Chat](https://img.shields.io/badge/chat-on%20keybase-brightgreen.svg)](https://keybase.io/team/solokeys.public)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fsolokeys%2Fsolo.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fsolokeys%2Fsolo?ref=badge_shield)
 
 
 # Solo
@@ -117,9 +118,11 @@ Look at the issues to see what is currently being worked on. Feel free to add is
 # License
 
 Solo is fully open source.
-All software is licensed under GPLv3, and hardware under CC BY-SA 4.0.
-Software and hardware are available under licenses for commercial use. Please contact SoloKeys for more information.
+All software, unless otherwise noted, is dual licensed under Apache 2.0 and MIT.
+You may use Solo under the terms of either the Apache 2.0 license or MIT license.
 
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fsolokeys%2Fsolo.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fsolokeys%2Fsolo?ref=badge_large)
 
 # Where To Buy Solo
 

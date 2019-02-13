@@ -1,24 +1,9 @@
-/*
- * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- *
- * This file is part of Solo.
- *
- * Solo is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Solo is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- *
- * This code is available under licenses for commercial use.
- * Please contact SoloKeys for more information.
- */
+// Copyright 2019 SoloKeys Developers
+//
+// Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
+// http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
+// http://opensource.org/licenses/MIT>, at your option. This file may not be
+// copied, modified, or distributed except according to those terms.
 #include <stdint.h>
 #include "stm32l4xx.h"
 #include "stm32l4xx_ll_gpio.h"
@@ -58,7 +43,9 @@ USBD_HandleTypeDef Solo_USBD_Device;
 static void LL_Init(void);
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+#if DEBUG_LEVEL > 0
 static void MX_USART1_UART_Init(void);
+#endif
 static void MX_TIM2_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_RNG_Init(void);
@@ -208,7 +195,7 @@ void usb_init()
     // Enable USB Clock
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
 
-
+#if DEBUG_LEVEL > 0
     USBD_Composite_Set_Classes(&USBD_HID, &USBD_CDC);
     in_endpoint_to_class[HID_EPIN_ADDR & 0x7F] = 0;
     out_endpoint_to_class[HID_EPOUT_ADDR & 0x7F] = 0;
@@ -222,6 +209,10 @@ void usb_init()
     //
     // USBD_RegisterClass(&Solo_USBD_Device, &USBD_CDC);
     USBD_CDC_RegisterInterface(&Solo_USBD_Device, &USBD_Interface_fops_FS);
+#else
+    USBD_Init(&Solo_USBD_Device, &Solo_Desc, 0);
+    USBD_RegisterClass(&Solo_USBD_Device, &USBD_HID);
+#endif
 
     USBD_Start(&Solo_USBD_Device);
 }
@@ -298,6 +289,7 @@ static void MX_TIM2_Init(void)
 
 }
 
+#if DEBUG_LEVEL > 0
 /* USART1 init function */
 static void MX_USART1_UART_Init(void)
 {
@@ -335,6 +327,7 @@ static void MX_USART1_UART_Init(void)
   LL_USART_Enable(USART1);
 
 }
+#endif
 
 /** Pinout Configuration
 */

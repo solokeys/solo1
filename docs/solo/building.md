@@ -24,12 +24,6 @@ Enter the `stm32l4xx` target directory.
 cd targets/stm32l432
 ```
 
-Build the cbor library.
-
-```bash
-make cbor
-```
-
 Now build Solo.
 
 ```
@@ -67,6 +61,10 @@ reconnect each time you program Solo.
 ```
 python tools/solotool.py monitor <serial-port>
 ```
+
+#### Linux Users:
+
+[See issue 62](https://github.com/solokeys/solo/issues/62).
 
 ### Building a Solo release
 

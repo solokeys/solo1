@@ -1,24 +1,9 @@
-/*
- * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- *
- * This file is part of Solo.
- *
- * Solo is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Solo is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- *
- * This code is available under licenses for commercial use.
- * Please contact SoloKeys for more information.
- */
+// Copyright 2019 SoloKeys Developers
+//
+// Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
+// http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
+// http://opensource.org/licenses/MIT>, at your option. This file may not be
+// copied, modified, or distributed except according to those terms.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -324,7 +309,7 @@ static int is_matching_rk(CTAP_residentKey * rk, CTAP_residentKey * rk2)
 }
 
 
-static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, int len, CTAP_userEntity * user, uint8_t credtype, int32_t algtype, int32_t * sz, int store)
+static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, unsigned int len, CTAP_userEntity * user, uint8_t credtype, int32_t algtype, int32_t * sz, int store)
 {
     CborEncoder cose_key;
     int auth_data_sz, ret;
@@ -395,8 +380,8 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
             memmove(&rk.id, &authData->attest.id, sizeof(CredentialId));
             memmove(&rk.user, user, sizeof(CTAP_userEntity));
 
-            int index = STATE.rk_stored;
-            int i;
+            unsigned int index = STATE.rk_stored;
+            unsigned int i;
             for (i = 0; i < index; i++)
             {
                 ctap_load_rk(i, &rk2);
@@ -444,36 +429,46 @@ done_rk:
 }
 
 
-int ctap_encode_der_sig(uint8_t * sigbuf, uint8_t * sigder)
+/**
+ *
+ * @param in_sigbuf IN location to deposit signature (must be 64 bytes)
+ * @param out_sigder OUT location to deposit der signature (must be 72 bytes)
+ * @return length of der signature
+ * // FIXME add tests for maximum and minimum length of the input and output
+ */
+int ctap_encode_der_sig(const uint8_t * const in_sigbuf, uint8_t * const out_sigder)
 {
     // Need to caress into dumb der format ..
-    int i;
-    int8_t lead_s = 0;  // leading zeros
-    int8_t lead_r = 0;
+    uint8_t i;
+    uint8_t lead_s = 0;  // leading zeros
+    uint8_t lead_r = 0;
     for (i=0; i < 32; i++)
-        if (sigbuf[i] == 0) lead_r++;
+        if (in_sigbuf[i] == 0) lead_r++;
         else break;
 
     for (i=0; i < 32; i++)
-        if (sigbuf[i+32] == 0) lead_s++;
+        if (in_sigbuf[i+32] == 0) lead_s++;
         else break;
 
-    int8_t pad_s = ((sigbuf[32 + lead_s] & 0x80) == 0x80);
-    int8_t pad_r = ((sigbuf[0 + lead_r] & 0x80) == 0x80);
+    int8_t pad_s = ((in_sigbuf[32 + lead_s] & 0x80) == 0x80);
+    int8_t pad_r = ((in_sigbuf[0 + lead_r] & 0x80) == 0x80);
 
-    sigder[0] = 0x30;
-    sigder[1] = 0x44 + pad_s + pad_r - lead_s - lead_r;
+    memset(out_sigder, 0, 72);
+    out_sigder[0] = 0x30;
+    out_sigder[1] = 0x44 + pad_s + pad_r - lead_s - lead_r;
 
-    sigder[2] = 0x02;
-    sigder[3 + pad_r] = 0;
-    sigder[3] = 0x20 + pad_r - lead_r;
-    memmove(sigder + 4 + pad_r, sigbuf + lead_r, 32);
+    // R ingredient
+    out_sigder[2] = 0x02;
+    out_sigder[3 + pad_r] = 0;
+    out_sigder[3] = 0x20 + pad_r - lead_r;
+    memmove(out_sigder + 4 + pad_r, in_sigbuf + lead_r, 32u - lead_r);
 
-    sigder[4 + 32 + pad_r - lead_r] = 0x02;
-    sigder[5 + 32 + pad_r + pad_s - lead_r] = 0;
-    sigder[5 + 32 + pad_r - lead_r] = 0x20 + pad_s - lead_s;
-    memmove(sigder + 6 + 32 + pad_r + pad_s - lead_r, sigbuf + 32 + lead_s, 32);
-    //
+    // S ingredient
+    out_sigder[4 + 32 + pad_r - lead_r] = 0x02;
+    out_sigder[5 + 32 + pad_r + pad_s - lead_r] = 0;
+    out_sigder[5 + 32 + pad_r - lead_r] = 0x20 + pad_s - lead_s;
+    memmove(out_sigder + 6 + 32 + pad_r + pad_s - lead_r, in_sigbuf + 32u + lead_s, 32u - lead_s);
+
     return 0x46 + pad_s + pad_r - lead_r - lead_s;
 }
 
@@ -481,8 +476,8 @@ int ctap_encode_der_sig(uint8_t * sigbuf, uint8_t * sigder)
 // @data data to hash before signature
 // @clientDataHash for signature
 // @tmp buffer for hash.  (can be same as data if data >= 32 bytes)
-// @sigbuf location to deposit signature (must be 64 bytes)
-// @sigder location to deposit der signature (must be 72 bytes)
+// @sigbuf OUT location to deposit signature (must be 64 bytes)
+// @sigder OUT location to deposit der signature (must be 72 bytes)
 // @return length of der signature
 int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHash, uint8_t * hashbuf, uint8_t * sigbuf, uint8_t * sigder)
 {
@@ -554,7 +549,8 @@ int ctap_authenticate_credential(struct rpId * rp, CTAP_credentialDescriptor * d
 uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_makeCredential MC;
-    int ret, i;
+    int ret;
+    unsigned int i;
     uint8_t auth_data_buf[300];
     CTAP_credentialDescriptor * excl_cred = (CTAP_credentialDescriptor *) auth_data_buf;
     uint8_t * sigbuf = auth_data_buf + 32;
@@ -1363,8 +1359,6 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     CborEncoder encoder;
     uint8_t status = 0;
     uint8_t cmd = *pkt_raw;
-    uint64_t t1;
-    uint64_t t2;
     pkt_raw++;
     length--;
 
@@ -1397,10 +1391,9 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
         case CTAP_MAKE_CREDENTIAL:
             device_set_status(CTAPHID_STATUS_PROCESSING);
             printf1(TAG_CTAP,"CTAP_MAKE_CREDENTIAL\n");
-            t1 = millis();
+            timestamp();
             status = ctap_make_credential(&encoder, pkt_raw, length);
-            t2 = millis();
-            printf1(TAG_TIME,"make_credential time: %d ms\n", t2-t1);
+            printf1(TAG_TIME,"make_credential time: %d ms\n", timestamp());
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
             dump_hex1(TAG_DUMP, buf, resp->length);
@@ -1409,10 +1402,9 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
         case CTAP_GET_ASSERTION:
             device_set_status(CTAPHID_STATUS_PROCESSING);
             printf1(TAG_CTAP,"CTAP_GET_ASSERTION\n");
-            t1 = millis();
+            timestamp();
             status = ctap_get_assertion(&encoder, pkt_raw, length);
-            t2 = millis();
-            printf1(TAG_TIME,"get_assertion time: %d ms\n", t2-t1);
+            printf1(TAG_TIME,"get_assertion time: %d ms\n", timestamp());
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
 

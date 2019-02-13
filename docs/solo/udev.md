@@ -1,6 +1,6 @@
 # tl;dr
 
-Create [`/etc/udev/99-solo.rules`](https://github.com/solokeys/solo/blob/master/99-solo.rules) and add the following (which assumes your user is in group `plugdev`):
+Create [`/etc/udev/rules.d/99-solo.rules`](https://github.com/solokeys/solo/blob/master/99-solo.rules) and add the following (which assumes your user is in group `plugdev`):
 
 ```
 # Solo
@@ -13,7 +13,7 @@ KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", ATTRS{idProduct
 Then run
 
 ```
-udevadm trigger
+sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
 # How do udev rules work and why are they needed
@@ -65,8 +65,8 @@ udevadm trigger
 ## What about vendor and product ID for Solo?
 | Key | Vendor ID | Product ID |
 | --- | --- | --- |
-| Solo | 10c4 | 8acf |
-| U2F Zero | 0483 | a2ca |
+| Solo | 0483 | a2ca |
+| U2F Zero | 10c4 | 8acf |
 
 ## You got this all wrong, I can't believe it!
 Are you suffering from [us being wrong](https://xkcd.com/386/)? Please, send us a [pull request](https://github.com/solokeys/solo/pulls) and prove us wrong :D
