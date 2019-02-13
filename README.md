@@ -46,8 +46,8 @@ make cbor
 make all-hacker
 cd ../..
 
-make env3
-source env3/bin/activate
+make venv
+source venv/bin/activate
 python tools/solotool.py program targets/stm32l432/solo.hex
 ```
 

@@ -9,9 +9,6 @@
 
 ecc_platform=2
 
-EFM32_DEBUGGER= -s 440083537 --device EFM32JG1B200F128GM32
-#EFM32_DEBUGGER= -s 440121060    #dev board
-
 src = $(wildcard pc/*.c) $(wildcard fido2/*.c) $(wildcard crypto/sha256/*.c) crypto/tiny-AES-c/aes.c
 obj = $(src:.c=.o) crypto/micro-ecc/uECC.o
 
@@ -33,7 +30,7 @@ CFLAGS += -DAES256=1 -DAPP_CONFIG=\"app.h\"
 
 name = main
 
-.PHONY: all $(LIBCBOR) env2 env3 black wink2 wink3 fido2-test clean full-clean travis
+.PHONY: all $(LIBCBOR) black blackcheck cppcheck wink fido2-test clean full-clean travis test clean
 all: main
 
 tinycbor/Makefile crypto/tiny-AES-c/aes.c:
@@ -45,7 +42,7 @@ cbor: $(LIBCBOR)
 $(LIBCBOR):
 	cd tinycbor/ && $(MAKE) clean && $(MAKE) -j8
 
-test: env3
+test: venv
 	$(MAKE) clean
 	$(MAKE) -C . main
 	$(MAKE) clean
@@ -53,48 +50,26 @@ test: env3
 	$(MAKE) clean
 	$(MAKE) cppcheck
 
-.PHONY: efm8prog
-efm8prog:
-	cd './targets/efm8\Keil 8051 v9.53 - Debug' && $(MAKE) all
-	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -erase
-	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -upload './targets/efm8/Keil 8051 v9.53 - Debug/efm8.hex'
-
-.PHONY: efm32com efm32prog efm32read efm32bootprog
-efm32com:
-	cd './targets/efm32/GNU ARM v7.2.1 - Debug' && $(MAKE) all
-efm32prog: efm32com
-	commander flash './targets/efm32/GNU ARM v7.2.1 - Debug/EFM32.hex' $(EFM32_DEBUGGER)  -p "0x1E7FC:0x00000000:4"
-efm32read: efm32com
-	commander swo read $(EFM32_DEBUGGER)
-efm32bootprog: efm32com
-	commander flash './efm32boot/GNU ARM v7.2.1 - Debug/efm32boot.hex' $(EFM32_DEBUGGER) --masserase
-
 $(name): $(obj) $(LIBCBOR)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
 
 crypto/micro-ecc/uECC.o: ./crypto/micro-ecc/uECC.c
 	$(CC) -c -o $@ $^ -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform) -I./crypto/micro-ecc/
 
-env2:
-	virtualenv --python=python2.7 env2
-	env3/bin/pip --version
-	env2/bin/pip install -r tools/requirements.txt
+venv:
+	python3 -m venv venv
+	venv/bin/pip -q install --upgrade -r tools/requirements.txt
+	venv/bin/pip -q install --upgrade black
 
-env3:
-	python3 -m venv env3
-	env3/bin/pip -q install --upgrade -r tools/requirements.txt
-	env3/bin/pip -q install --upgrade black
-
-.PHONY: black blackcheck wink2 wink3 fido2-test cppcheck test clean
 # selectively reformat our own code
-black: env3
-	env3/bin/black --skip-string-normalization --check tools/
+black: venv
+	venv/bin/black --skip-string-normalization --check tools/
 
-wink2 wink3: wink% : env%
-	$</bin/python tools/solotool.py solo --wink
+wink: venv
+	venv/bin/python tools/solotool.py solo --wink
 
-fido2-test: env3
-	env3/bin/python tools/ctap_test.py
+fido2-test: venv
+	venv/bin/python tools/ctap_test.py
 
 CPPCHECK_FLAGS=--quiet --error-exitcode=2
 
@@ -113,8 +88,8 @@ clean:
 	done
 
 full-clean: clean
-	rm -rf env2 env3
+	rm -rf venv
 
 travis:
-	$(MAKE) test VENV=". ../../env3/bin/activate;"
+	$(MAKE) test VENV=". ../../venv/bin/activate;"
 	$(MAKE) black
