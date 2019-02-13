@@ -4,10 +4,12 @@ compiler: gcc
 addons:
   apt:
     sources:
+      - deadsnakes
       - ubuntu-toolchain-r-test
     packages:
       - gcc-7
       - cppcheck
+      - python3.6
 script:
   - export CC=gcc-7
   - make test
