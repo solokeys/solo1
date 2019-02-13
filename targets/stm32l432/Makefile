@@ -79,7 +79,7 @@ solo.hex:
 	echo "You need to build the application first."
 
 cbor:
-	$(MAKE) -f application.mk -j8 cbor
+	$(MAKE) -f $(APPMAKE) -j8 cbor
 
 test:
 	$(MAKE) build-release-locked

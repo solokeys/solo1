@@ -12,7 +12,6 @@ void flash_write_dword(uint32_t addr, uint64_t data);
 void flash_write(uint32_t addr, uint8_t * data, size_t sz);
 void flash_write_fast(uint32_t addr, uint32_t * data);
 void flash_option_bytes_init(int boot_from_dfu);
-void flash_lock();
 
 #define FLASH_PAGE_SIZE     2048
 
