@@ -19,7 +19,7 @@ from fido2.ctap import CtapError
 from fido2.ctap1 import CTAP1
 from fido2.ctap2 import *
 from fido2.cose import *
-from fido2.utils import Timeout
+from fido2.utils import Timeout, sha256
 import sys, os, time
 from random import randint
 from binascii import hexlify
@@ -61,6 +61,7 @@ class Tester:
         self.dev = dev
         self.client = Fido2Client(dev, self.origin)
         self.ctap = self.client.ctap2
+        self.ctap1 = CTAP1(dev)
 
         # consume timeout error
         # cmd,resp = self.recv_raw()
@@ -380,7 +381,15 @@ class Tester:
         print("Pass: cid broadcast")
 
     def test_u2f(self,):
-        pass
+        chal = sha256(b"AAA")
+        appid = sha256(b"BBB")
+        for i in range(0, 5):
+            reg = self.ctap1.register(chal, appid)
+            reg.verify(appid, chal)
+            auth = self.ctap1.authenticate(chal, appid, reg.key_handle)
+            # check endianness
+            assert auth.counter < 0x10000
+            print("U2F reg + auth pass %d/5" % (i + 1))
 
     def test_fido2_simple(self, pin_token=None):
         creds = []
@@ -499,6 +508,8 @@ class Tester:
                     rp, user, challenge, pin=PIN, exclude_list=[]
                 )
                 attest.verify(data.hash)
+                # verify endian-ness is correct
+                assert attest.auth_data.counter < 0x10000
                 cred = attest.auth_data.credential_data
                 creds.append(cred)
                 print(cred)
@@ -815,6 +826,7 @@ if __name__ == "__main__":
     # t.test_hid()
     # t.test_long_ping()
     t.test_fido2()
+    t.test_u2f()
     # t.test_rk()
     # t.test_responses()
     # test_find_brute_force()
