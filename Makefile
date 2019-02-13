@@ -77,22 +77,21 @@ crypto/micro-ecc/uECC.o: ./crypto/micro-ecc/uECC.c
 
 env2:
 	virtualenv --python=python2.7 env2
-	env2/bin/pip install --upgrade -r tools/requirements.txt
+	env3/bin/pip --version
+	env2/bin/pip install -r tools/requirements.txt
 
 env3:
 	python3 -m venv env3
 	env3/bin/pip -q install --upgrade -r tools/requirements.txt
 	env3/bin/pip -q install --upgrade black
 
+.PHONY: black blackcheck wink2 wink3 fido2-test cppcheck test clean
 # selectively reformat our own code
 black: env3
 	env3/bin/black --skip-string-normalization --check tools/
 
-wink2: env2
-	env2/bin/python tools/solotool.py solo --wink
-
-wink3: env3
-	env3/bin/python tools/solotool.py solo --wink
+wink2 wink3: wink% : env%
+	$</bin/python tools/solotool.py solo --wink
 
 fido2-test: env3
 	env3/bin/python tools/ctap_test.py

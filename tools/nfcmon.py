@@ -22,9 +22,9 @@ for p in Chameleon.Device.listDevices():
 if p:
     chameleon.connect(p)
 else:
-    raise RuntimeError('No chameleon mini connected')
+    raise RuntimeError("No chameleon mini connected")
 
-chameleon.execCmd('LOGMODE=LIVE')
+chameleon.execCmd("LOGMODE=LIVE")
 
 while 1:
     b = chameleon.read(1, 20)
@@ -33,4 +33,4 @@ while 1:
     sys.stdout.write(h)
     sys.stdout.flush()
 
-chameleon.execCmd('LOGMODE=NONE')
+chameleon.execCmd("LOGMODE=NONE")
