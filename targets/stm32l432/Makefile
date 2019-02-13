@@ -3,7 +3,7 @@ DEBUG=0
 endif
 
 APPMAKE=build/application.mk
-BOOTMAKE=build/application.mk
+BOOTMAKE=build/bootloader.mk
 
 merge_hex=../../tools/solotool.py mergehex
 
