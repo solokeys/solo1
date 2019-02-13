@@ -209,11 +209,11 @@ int bootloader_bridge(int klen, uint8_t * keyh)
         case BootVersion:
             has_erased = 0;
             printf1(TAG_BOOT, "BootVersion.\r\n");
-            version = BOOT_VERSION_MAJ;
+            version = SOLO_VERSION_MAJ;
             u2f_response_writeback(&version,1);
-            version = BOOT_VERSION_MIN;
+            version = SOLO_VERSION_MIN;
             u2f_response_writeback(&version,1);
-            version = BOOT_VERSION_PATCH;
+            version = SOLO_VERSION_PATCH;
             u2f_response_writeback(&version,1);
             break;
         case BootReboot:
