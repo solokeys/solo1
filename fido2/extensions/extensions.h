@@ -10,6 +10,10 @@
 
 int16_t extend_u2f(struct u2f_request_apdu* req, uint32_t len);
 
+int16_t extend_fido2(CredentialId * credid, uint8_t * output);
+
 int bootloader_bridge(int klen, uint8_t * keyh);
+
+int is_extension_request(uint8_t * kh, int len);
 
 #endif /* EXTENSIONS_H_ */

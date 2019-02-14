@@ -21,6 +21,7 @@
 #include "device.h"
 #include APP_CONFIG
 #include "wallet.h"
+#include "extensions.h"
 
 #include "device.h"
 
@@ -856,6 +857,7 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
     int ret;
     uint8_t sigbuf[64];
     uint8_t sigder[72];
+    int sigder_sz;
 
     if (add_user)
     {
@@ -869,7 +871,16 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
 
     crypto_ecc256_load_key((uint8_t*)&cred->credential.id, sizeof(CredentialId), NULL, 0);
 
-    int sigder_sz = ctap_calculate_signature(auth_data_buf, sizeof(CTAP_authDataHeader), clientDataHash, auth_data_buf, sigbuf, sigder);
+#ifdef ENABLE_U2F_EXTENSIONS
+    if ( extend_fido2(&cred->credential.id, sigder) )
+    {
+        sigder_sz = 72;
+    }
+    else
+#endif
+    {
+        sigder_sz = ctap_calculate_signature(auth_data_buf, sizeof(CTAP_authDataHeader), clientDataHash, auth_data_buf, sigbuf, sigder);
+    }
 
     {
         ret = cbor_encode_int(map, RESP_signature);
