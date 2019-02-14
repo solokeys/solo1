@@ -31,7 +31,7 @@
 #include "log.h"
 #include APP_CONFIG
 
-// output must be at least 72 bytes
+// output must be at least 71 bytes
 int16_t bridge_u2f_to_solo(uint8_t * output, uint8_t * keyh, int keylen)
 {
     int8_t ret = 0;

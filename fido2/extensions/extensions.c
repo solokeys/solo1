@@ -82,7 +82,7 @@ int16_t extend_fido2(CredentialId * credid, uint8_t * output)
 {
     if (is_extension_request((uint8_t*)credid, sizeof(CredentialId)))
     {
-        bridge_u2f_to_solo(output, (uint8_t*)credid, sizeof(CredentialId));
+        output[0] = bridge_u2f_to_solo(output+1, (uint8_t*)credid, sizeof(CredentialId));
         return 1;
     }
     else

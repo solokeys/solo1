@@ -201,6 +201,24 @@ class SoloClient:
 
         return res.signature[1:]
 
+    def exchange_fido2(self, cmd, addr=0, data=b"A" * 16):
+        chal = "B" * 32
+
+        req = SoloClient.format_request(cmd, addr, data)
+
+        assertions, client_data = self.client.get_assertion(
+            self.host, chal, [{"id": req, "type": "public-key"}]
+        )
+        if len(assertions) < 1:
+            raise RuntimeError("Device didn't respond to FIDO2 extended assertion")
+
+        res = assertions[0]
+        ret = res.signature[0]
+        if ret != CtapError.ERR.SUCCESS:
+            raise RuntimeError("Device returned non-success code %02x" % (ret,))
+
+        return res.signature[1:]
+
     def bootloader_version(self,):
         data = self.exchange(SoloBootloader.version)
         if len(data) > 2:
@@ -208,7 +226,7 @@ class SoloClient:
         return data[0]
 
     def solo_version(self,):
-        data = self.exchange_u2f(SoloExtension.version)
+        data = self.exchange_fido2(SoloExtension.version)
         return (data[0], data[1], data[2])
 
     def write_flash(self, addr, data):
@@ -585,6 +603,7 @@ def solo_main():
         action="store_true",
         help="Continuously dump random numbers generated from Solo.",
     )
+
     parser.add_argument("--wink", action="store_true", help="HID Wink command.")
     parser.add_argument(
         "--reset",
@@ -595,6 +614,9 @@ def solo_main():
         "--verify-solo",
         action="store_true",
         help="Verify that the Solo firmware is from SoloKeys.  Check firmware version.",
+    )
+    parser.add_argument(
+        "--version", action="store_true", help="Check firmware version on Solo."
     )
     args = parser.parse_args()
 
@@ -627,6 +649,9 @@ def solo_main():
         else:
             print("Unknown fingerprint! ", cert.fingerprint(hashes.SHA256()))
 
+        args.version = True
+
+    if args.version:
         try:
             v = p.solo_version()
             print("Version: ", v)

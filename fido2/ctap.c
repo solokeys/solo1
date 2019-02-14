@@ -777,7 +777,18 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
         if (! ctap_authenticate_credential(&GA->rp, &GA->creds[i]))
         {
             printf1(TAG_GA, "CRED #%d is invalid\n", GA->creds[i].credential.id.count);
-            GA->creds[i].credential.id.count = 0;      // invalidate
+#ifdef ENABLE_U2F_EXTENSIONS
+            if (is_extension_request((uint8_t*)&GA->creds[i].credential.id, sizeof(CredentialId)))
+            {
+                printf1(TAG_EXT, "CRED #%d is extension\n", GA->creds[i].credential.id.count);
+                count++;
+            }
+            else
+#endif
+            {
+                GA->creds[i].credential.id.count = 0;      // invalidate
+            }
+
         }
         else
         {
@@ -999,8 +1010,20 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     ret = cbor_encoder_create_map(encoder, &map, map_size);
     check_ret(ret);
 
-    ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, sizeof(auth_data_buf), NULL, 0,0,NULL, 0);
-    check_retr(ret);
+#ifdef ENABLE_U2F_EXTENSIONS
+    if ( is_extension_request((uint8_t*)&GA.creds[validCredCount - 1].credential.id, sizeof(CredentialId)) )
+    {
+        ret = cbor_encode_int(&map,RESP_authData);
+        check_ret(ret);
+        ret = cbor_encode_byte_string(&map, auth_data_buf, sizeof(CTAP_authDataHeader));
+        check_ret(ret);
+    }
+    else
+#endif
+    {
+        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, sizeof(auth_data_buf), NULL, 0,0,NULL, 0);
+        check_retr(ret);
+    }
 
     /*for (int j = 0; j < GA.credLen; j++)*/
     /*{*/
