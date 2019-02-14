@@ -50,7 +50,7 @@ int16_t bridge_u2f_to_solo(uint8_t * output, uint8_t * keyh, int keylen)
         case WalletRng:
             printf1(TAG_WALLET,"SoloRng\n");
 
-            ret = ctap_generate_rng(output, 72);
+            ret = ctap_generate_rng(output, 71);
             if (ret != 1)
             {
                 printf1(TAG_WALLET,"Rng failed\n");
