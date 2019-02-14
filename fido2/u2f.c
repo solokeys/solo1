@@ -44,7 +44,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
 #ifdef ENABLE_U2F_EXTENSIONS
     rcode = extend_u2f(req, len);
 #endif
-    if (rcode != U2F_SW_NO_ERROR)       // If the extension didn't do anything...
+    if (rcode != U2F_SW_NO_ERROR && rcode != U2F_SW_CONDITIONS_NOT_SATISFIED)       // If the extension didn't do anything...
     {
 #ifdef ENABLE_U2F
         switch(req->ins)
