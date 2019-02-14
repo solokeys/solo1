@@ -1015,7 +1015,8 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     {
         ret = cbor_encode_int(&map,RESP_authData);
         check_ret(ret);
-        ret = cbor_encode_byte_string(&map, auth_data_buf, sizeof(CTAP_authDataHeader));
+        memset(auth_data_buf,0,sizeof(auth_data_buf));
+        ret = cbor_encode_byte_string(&map, auth_data_buf, sizeof(auth_data_buf));
         check_ret(ret);
     }
     else
