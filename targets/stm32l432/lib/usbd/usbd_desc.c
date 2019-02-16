@@ -166,6 +166,31 @@ uint8_t *USBD_HID_ManufacturerStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *l
   */
 uint8_t *USBD_HID_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
-  USBD_GetString((uint8_t *)USBD_SERIAL_NUM, USBD_StrDesc, length);
-  return USBD_StrDesc;
+    volatile uint8_t * UUID = (volatile uint8_t *)0x1FFF7590;
+    uint8_t uuid[12];
+    uint8_t uuid_str[25];
+    char c;
+    int i;
+    uuid_str[24] = 0;
+    memmove(uuid,(uint8_t *)UUID,12);
+
+    // quick method to convert to hex string
+    for (i = 0; i < 12; i++)
+    {
+        c = uuid[i] & 0x0f;
+        if (c < 0x0a)
+            uuid_str[i * 2 + 1] = c + '0';
+        else
+            uuid_str[i * 2 + 1] = c + 'A' - 0x0a;
+
+        c = (uuid[i] & 0xf0) >> 4;
+        if (c < 0x0a)
+            uuid_str[i * 2] = c + '0';
+        else
+            uuid_str[i * 2] = c + 'A' - 0x0a;
+    }
+
+
+    USBD_GetString((uint8_t *)uuid_str, USBD_StrDesc, length);
+    return USBD_StrDesc;
 }
