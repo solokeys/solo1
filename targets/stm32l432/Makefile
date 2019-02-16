@@ -13,10 +13,10 @@ merge_hex=../../tools/solotool.py mergehex
 # The following are the main targets for reproducible builds.
 # TODO: better explanation
 firmware-hacker:
-	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=$(DEBUG) EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=1'
+	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=0 EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=1'
 
 firmware-secure:
-	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=$(DEBUG) EXTRA_DEFINES='-DUSE_SOLOKEYS_CERT -DFLASH_ROP=2'
+	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=0 EXTRA_DEFINES='-DUSE_SOLOKEYS_CERT -DFLASH_ROP=2'
 
 bootloader-nonverifying:
 	$(MAKE) -f $(BOOTMAKE) -j8 bootloader.hex PREFIX=$(PREFIX) EXTRA_DEFINES='-DSOLO_HACKER' DEBUG=0
