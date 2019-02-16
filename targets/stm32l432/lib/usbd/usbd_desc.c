@@ -166,28 +166,29 @@ uint8_t *USBD_HID_ManufacturerStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *l
   */
 uint8_t *USBD_HID_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
+    // Match the same alg as the DFU to make serial number
     volatile uint8_t * UUID = (volatile uint8_t *)0x1FFF7590;
-    uint8_t uuid[12];
-    uint8_t uuid_str[25];
-    char c;
+    const char hexdigit[] = "0123456789ABCDEF";
+    uint8_t uuid[6];
+    uint8_t uuid_str[13];
+    uint8_t c;
     int i;
-    uuid_str[24] = 0;
-    memmove(uuid,(uint8_t *)UUID,12);
+    uuid_str[12] = 0;
+
+    uuid[0] = UUID[11];
+    uuid[1] = UUID[10] + UUID[2];
+    uuid[2] = UUID[9];
+    uuid[3] = UUID[8] + UUID[0];
+    uuid[4] = UUID[7];
+    uuid[5] = UUID[6];
 
     // quick method to convert to hex string
-    for (i = 0; i < 12; i++)
+    for (i = 0; i < 6; i++)
     {
-        c = uuid[i] & 0x0f;
-        if (c < 0x0a)
-            uuid_str[i * 2 + 1] = c + '0';
-        else
-            uuid_str[i * 2 + 1] = c + 'A' - 0x0a;
-
-        c = (uuid[i] & 0xf0) >> 4;
-        if (c < 0x0a)
-            uuid_str[i * 2] = c + '0';
-        else
-            uuid_str[i * 2] = c + 'A' - 0x0a;
+        c = (uuid[i]>>4) & 0x0f;
+        uuid_str[i * 2 + 0] = hexdigit[ c ];
+        c = (uuid[i]>>0) & 0x0f;
+        uuid_str[i * 2 + 1] = hexdigit[ c ];
     }
 
 
