@@ -31,27 +31,26 @@
 #include "log.h"
 #include APP_CONFIG
 
-int16_t bridge_u2f_to_solo(uint8_t * _chal, uint8_t * _appid, uint8_t klen, uint8_t * keyh)
+// output must be at least 71 bytes
+int16_t bridge_u2f_to_solo(uint8_t * output, uint8_t * keyh, int keylen)
 {
-    static uint8_t msg_buf[72];
     int8_t ret = 0;
 
     wallet_request * req = (wallet_request *) keyh;
 
-    printf1(TAG_WALLET, "u2f-solo [%d]: ", klen); dump_hex1(TAG_WALLET, keyh, klen);
+    printf1(TAG_WALLET, "u2f-solo [%d]: ", keylen); dump_hex1(TAG_WALLET, keyh, keylen);
 
     switch(req->operation)
     {
         case WalletVersion:
-            msg_buf[0] = SOLO_VERSION_MAJ;
-            msg_buf[1] = SOLO_VERSION_MIN;
-            msg_buf[2] = SOLO_VERSION_PATCH;
-            u2f_response_writeback(msg_buf, 3);
+            output[0] = SOLO_VERSION_MAJ;
+            output[1] = SOLO_VERSION_MIN;
+            output[2] = SOLO_VERSION_PATCH;
             break;
         case WalletRng:
             printf1(TAG_WALLET,"SoloRng\n");
 
-            ret = ctap_generate_rng(msg_buf, 72);
+            ret = ctap_generate_rng(output, 71);
             if (ret != 1)
             {
                 printf1(TAG_WALLET,"Rng failed\n");
@@ -60,7 +59,6 @@ int16_t bridge_u2f_to_solo(uint8_t * _chal, uint8_t * _appid, uint8_t klen, uint
             }
             ret = 0;
 
-            u2f_response_writeback((uint8_t *)msg_buf,72);
             break;
 
         default:

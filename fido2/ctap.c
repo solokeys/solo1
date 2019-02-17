@@ -21,6 +21,7 @@
 #include "device.h"
 #include APP_CONFIG
 #include "wallet.h"
+#include "extensions.h"
 
 #include "device.h"
 
@@ -776,7 +777,18 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
         if (! ctap_authenticate_credential(&GA->rp, &GA->creds[i]))
         {
             printf1(TAG_GA, "CRED #%d is invalid\n", GA->creds[i].credential.id.count);
-            GA->creds[i].credential.id.count = 0;      // invalidate
+#ifdef ENABLE_U2F_EXTENSIONS
+            if (is_extension_request((uint8_t*)&GA->creds[i].credential.id, sizeof(CredentialId)))
+            {
+                printf1(TAG_EXT, "CRED #%d is extension\n", GA->creds[i].credential.id.count);
+                count++;
+            }
+            else
+#endif
+            {
+                GA->creds[i].credential.id.count = 0;      // invalidate
+            }
+
         }
         else
         {
@@ -856,6 +868,7 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
     int ret;
     uint8_t sigbuf[64];
     uint8_t sigder[72];
+    int sigder_sz;
 
     if (add_user)
     {
@@ -869,7 +882,16 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
 
     crypto_ecc256_load_key((uint8_t*)&cred->credential.id, sizeof(CredentialId), NULL, 0);
 
-    int sigder_sz = ctap_calculate_signature(auth_data_buf, sizeof(CTAP_authDataHeader), clientDataHash, auth_data_buf, sigbuf, sigder);
+#ifdef ENABLE_U2F_EXTENSIONS
+    if ( extend_fido2(&cred->credential.id, sigder) )
+    {
+        sigder_sz = 72;
+    }
+    else
+#endif
+    {
+        sigder_sz = ctap_calculate_signature(auth_data_buf, sizeof(CTAP_authDataHeader), clientDataHash, auth_data_buf, sigbuf, sigder);
+    }
 
     {
         ret = cbor_encode_int(map, RESP_signature);
@@ -988,8 +1010,21 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     ret = cbor_encoder_create_map(encoder, &map, map_size);
     check_ret(ret);
 
-    ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, sizeof(auth_data_buf), NULL, 0,0,NULL, 0);
-    check_retr(ret);
+#ifdef ENABLE_U2F_EXTENSIONS
+    if ( is_extension_request((uint8_t*)&GA.creds[validCredCount - 1].credential.id, sizeof(CredentialId)) )
+    {
+        ret = cbor_encode_int(&map,RESP_authData);
+        check_ret(ret);
+        memset(auth_data_buf,0,sizeof(auth_data_buf));
+        ret = cbor_encode_byte_string(&map, auth_data_buf, sizeof(auth_data_buf));
+        check_ret(ret);
+    }
+    else
+#endif
+    {
+        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, sizeof(auth_data_buf), NULL, 0,0,NULL, 0);
+        check_retr(ret);
+    }
 
     /*for (int j = 0; j < GA.credLen; j++)*/
     /*{*/

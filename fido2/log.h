@@ -41,7 +41,7 @@ typedef enum
     TAG_STOR = (1 << 15),
     TAG_DUMP2 = (1 << 16),
     TAG_BOOT = (1 << 17),
-    TAG_EXT = (1 << 17),
+    TAG_EXT = (1 << 18),
 
     TAG_FILENO = (1u << 31)
 } LOG_TAG;
