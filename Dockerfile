@@ -28,5 +28,4 @@ RUN ln -s /opt/conda/bin/python3 /usr/local/bin/python3
 RUN ln -s /opt/conda/bin/python3 /usr/local/bin/python
 
 # 3. Source code
-RUN git clone --recurse-submodules https://github.com/solokeys/solo /solo
-
+RUN git clone --recurse-submodules https://github.com/solokeys/solo /solo --config core.autocrlf=input
