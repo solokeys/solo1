@@ -383,12 +383,16 @@ class Tester:
     def test_u2f(self,):
         chal = sha256(b"AAA")
         appid = sha256(b"BBB")
+        lastc = 0
         for i in range(0, 5):
             reg = self.ctap1.register(chal, appid)
             reg.verify(appid, chal)
             auth = self.ctap1.authenticate(chal, appid, reg.key_handle)
             # check endianness
-            assert auth.counter < 0x10000
+            if lastc:
+                assert (auth.counter - lastc) < 10
+            lastc = auth.counter
+            print(hex(lastc))
             print("U2F reg + auth pass %d/5" % (i + 1))
 
     def test_fido2_simple(self, pin_token=None):

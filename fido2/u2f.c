@@ -224,7 +224,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
     }
 
     count = ctap_atomic_count(0);
-    hash[0] = (count >> 24) & 0xff;
+    hash[0] = 0xff;
     hash[1] = (count >> 16) & 0xff;
     hash[2] = (count >> 8) & 0xff;
     hash[3] = (count >> 0) & 0xff;
@@ -241,7 +241,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
     crypto_ecc256_sign(hash, 32, sig);
 
     u2f_response_writeback(&up,1);
-    hash[0] = (count >> 24) & 0xff;
+    hash[0] = 0xff;
     hash[1] = (count >> 16) & 0xff;
     hash[2] = (count >> 8) & 0xff;
     hash[3] = (count >> 0) & 0xff;
