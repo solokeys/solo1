@@ -5,7 +5,7 @@ version=${1:-master}
 export PREFIX=/opt/gcc-arm-none-eabi-8-2018-q4-major/bin/
 
 cd /solo/targets/stm32l432
-git fetch
+git fetch --tags
 git checkout ${version}
 version=$(git describe)
 
