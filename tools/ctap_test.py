@@ -12,6 +12,10 @@
 # Script for testing correctness of CTAP2/CTAP1 security token
 
 from __future__ import print_function, absolute_import, unicode_literals
+import sys, os, time
+from random import randint
+from binascii import hexlify
+import array, struct, socket
 
 from fido2.hid import CtapHidDevice, CTAPHID
 from fido2.client import Fido2Client, ClientError
@@ -21,10 +25,9 @@ from fido2.ctap2 import *
 from fido2.cose import *
 from fido2.utils import Timeout, sha256
 from fido2.attestation import Attestation
-import sys, os, time
-from random import randint
-from binascii import hexlify
-import array, struct, socket
+
+from solo.fido2 import forceUDPBackend
+
 
 # Set up a FIDO 2 client using the origin https://example.com
 
@@ -831,6 +834,10 @@ def test_find_brute_force():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "sim":
+        print("Using UDP backend.")
+        forceUDPBackend()
+
     t = Tester()
     t.find_device()
     # t.test_hid()
