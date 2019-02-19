@@ -297,7 +297,7 @@ bool ams_init()
     	printf1(TAG_NFC,"AMS3956 product type 0x%02x.\n", productType);
 
         ams_read_eeprom_block(AMS_CONFIG_UID_ADDR, block);
-        printf1(TAG_NFC,"UID: "); dump_hex1(TAG_NFC,block,4);
+        printf1(TAG_NFC,"UID: 3F 14 02 - "); dump_hex1(TAG_NFC,block,4);
 
         ams_read_eeprom_block(AMS_CONFIG_BLOCK0_ADDR, block);
         printf1(TAG_NFC,"conf0: "); dump_hex1(TAG_NFC,block,4);
