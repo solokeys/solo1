@@ -13,3 +13,6 @@
 [submodule "targets/stm32l442/dfuse-tool"]
 	path = targets/stm32l442/dfuse-tool
     url = https://github.com/solokeys/dfuse-tool
+[submodule "crypto/cifra"]
+	path = crypto/cifra
+	url = https://github.com/ctz/cifra.git

@@ -16,6 +16,12 @@
 #include "util.h"
 #include "log.h"
 #include "extensions.h"
+
+// move custom HASH512 command out,
+// and the following headers too
+#include "sha2.h"
+#include "crypto.h"
+
 #include APP_CONFIG
 
 typedef enum
@@ -715,6 +721,27 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             memset(ctap_buffer,0,wb.bcnt);
             ctap_generate_rng(ctap_buffer, wb.bcnt);
             ctaphid_write(&wb, &ctap_buffer, wb.bcnt);
+            ctaphid_write(&wb, NULL, 0);
+            is_busy = 0;
+        break;
+#endif
+#if defined(SOLO_HACKER)
+        case CTAPHID_HASH512:
+            // some random logging
+            printf1(TAG_HID,"CTAPHID_HASH512\n");
+            // initialise CTAP response object
+            ctap_response_init(&ctap_resp);
+            // initialise write buffer
+            ctaphid_write_buffer_init(&wb);
+            wb.cid = cid;
+            wb.cmd = CTAPHID_HASH512;
+            wb.bcnt = CF_SHA512_HASHSZ;  // 64 bytes
+            // calculate hash
+            crypto_sha512_init();
+            crypto_sha512_update(ctap_buffer, buffer_len());
+            crypto_sha512_final(ctap_buffer);
+            // copy to output
+            ctaphid_write(&wb, &ctap_buffer, CF_SHA512_HASHSZ);
             ctaphid_write(&wb, NULL, 0);
             is_busy = 0;
         break;
