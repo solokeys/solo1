@@ -30,6 +30,7 @@
 // #define DISABLE_CTAPHID_WINK
 // #define DISABLE_CTAPHID_CBOR
 
+// #define ENABLE_SERIAL_PRINTING
 
 #if defined(SOLO_HACKER)
 #define SOLO_PRODUCT_NAME "Solo Hacker " SOLO_VERSION

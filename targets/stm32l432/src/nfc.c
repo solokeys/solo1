@@ -444,7 +444,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
                 else
                 {
 					nfc_write_response(buf[0], SW_FILE_NOT_FOUND);
-                    printf1(TAG_NFC, "NOT selected\r\n"); dump_hex1(TAG_NFC,res, 3);
+                    printf1(TAG_NFC, "NOT selected\r\n"); dump_hex1(TAG_NFC,payload, plen);
                 }
             }
         break;
@@ -495,7 +495,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 
 
-            printf1(TAG_NFC,"U2F Register answered %d (took %d)\r\n", millis(), millis() - t1);
+            printf1(TAG_NFC,"U2F Register answered %d (took %d)\r\n", millis(), timestamp());
        break;
 
         case APDU_FIDO_U2F_AUTHENTICATE:
@@ -532,8 +532,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 				break;
 			}
 
-			timestamp();
-			printf1(TAG_NFC, "FIDO2 CTAP message. %d\r\n", t1);
+			printf1(TAG_NFC, "FIDO2 CTAP message. %d\r\n", timestamp());
 
 			WTX_on(WTX_TIME_DEFAULT);
             ctap_response_init(&ctap_resp);
