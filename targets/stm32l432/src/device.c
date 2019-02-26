@@ -60,7 +60,7 @@ void TIM6_DAC_IRQHandler()
     }
 #ifndef IS_BOOTLOADER
 	// NFC sending WTX if needs
-	if (haveNFC)
+	if (device_is_nfc())
 	{
 		WTX_timer_exec();
 	}
@@ -113,26 +113,32 @@ void device_init()
     hw_init(LOW_FREQUENCY);
     isLowFreq = 1;
 
-    printf1(TAG_NFC,"PWR->CR1: %04x\r\n", LL_PWR_GetRegulVoltageScaling());
+    haveNFC = nfc_init();
 
-    // hw_init(HIGH_FREQUENCY);
-    // isLowFreq = 0;
+    if (haveNFC)
+    {
+        printf1(TAG_NFC, "Have NFC\r\n");
+    }
+    else
+    {
+        printf1(TAG_NFC, "Have NO NFC\r\n");
+        hw_init(HIGH_FREQUENCY);
+
+        isLowFreq = 0;
+    }
 
     usbhid_init();
 
     ctaphid_init();
 
-    ctap_init( 0 );
+    ctap_init( !haveNFC );
 
-#ifndef IS_BOOTLOADER
 #if BOOT_TO_DFU
     flash_option_bytes_init(1);
 #else
     flash_option_bytes_init(0);
 #endif
-    printf1(TAG_GEN,"init nfc\n");
-    haveNFC = nfc_init();
-#endif
+
 
 }
 
@@ -430,7 +436,7 @@ void device_manage()
     }
 #endif
 #ifndef IS_BOOTLOADER
-	if(haveNFC)
+	// if(device_is_nfc())
 		nfc_loop();
 #endif
 }

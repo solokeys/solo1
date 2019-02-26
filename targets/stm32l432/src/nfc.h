@@ -5,7 +5,9 @@
 #include <stdbool.h>
 #include "apdu.h"
 
-void nfc_loop();
+// Return number of bytes read if any.
+int nfc_loop();
+
 bool nfc_init();
 
 typedef struct

@@ -808,6 +808,8 @@ void init_debug_uart(void)
   /* Peripheral clock enable */
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
 
+
+  LL_USART_DeInit(USART1);
   /**USART1 GPIO Configuration
   PB6   ------> USART1_TX
   PB7   ------> USART1_RX

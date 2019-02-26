@@ -267,7 +267,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp);
 int ctap_encode_der_sig(uint8_t const * const in_sigbuf, uint8_t * const out_sigder);
 
 // Run ctap related power-up procedures (init pinToken, generate shared secret)
-void ctap_init(int init_pin);
+void ctap_init();
 
 // Resets state between different accesses of different applications
 void ctap_reset_state();

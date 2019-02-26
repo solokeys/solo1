@@ -1536,7 +1536,7 @@ static void ctap_state_init()
     ctap_reset_rk();
 }
 
-void ctap_init(int init_pin)
+void ctap_init()
 {
     crypto_ecc256_init();
 
@@ -1591,7 +1591,7 @@ void ctap_init(int init_pin)
         exit(1);
     }
 
-    if (init_pin)
+    if (! device_is_nfc())
     {
         crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
     }

@@ -39,7 +39,8 @@ typedef union
 #define SELECT() LL_GPIO_ResetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN)
 #define UNSELECT() LL_GPIO_SetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN)
 
-bool ams_init();
+void ams_init();
+void ams_configure();
 
 void ams_read_buffer(uint8_t * data, int len);
 void ams_write_buffer(uint8_t * data, int len);

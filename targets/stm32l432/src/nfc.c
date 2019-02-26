@@ -57,8 +57,23 @@ void nfc_state_init()
 
 bool nfc_init()
 {
+    uint32_t t1;
     nfc_state_init();
-    return ams_init();
+    ams_init();
+
+    // Detect if we are powered by NFC field by listening for a message for
+    // first 25 ms.
+    t1 = millis();
+    while ((millis() - t1) < 25)
+    {
+        if (nfc_loop() > 0)
+            return 1;
+    }
+
+    // Under USB power.  Configure AMS chip.
+    ams_configure();
+
+    return 0;
 }
 
 void process_int0(uint8_t int0)
@@ -699,88 +714,86 @@ void nfc_process_block(uint8_t * buf, unsigned int len)
     }
 }
 
-void nfc_loop()
+int nfc_loop()
 {
     uint8_t buf[32];
     AMS_DEVICE ams;
     int len = 0;
 
 
-    if (1)
+    read_reg_block(&ams);
+    uint8_t state = AMS_STATE_MASK & ams.regs.rfid_status;
+
+    if (state != AMS_STATE_SELECTED && state != AMS_STATE_SELECTEDX)
     {
-        read_reg_block(&ams);
-        uint8_t state = AMS_STATE_MASK & ams.regs.rfid_status;
+        // delay(1);  // sleep ?
+        return 0;
+    }
 
-        if (state != AMS_STATE_SELECTED && state != AMS_STATE_SELECTEDX)
-        {
-            // delay(1);  // sleep ?
-            return;
-        }
+    if (ams.regs.rfid_status)
+    {
+        // if (state != AMS_STATE_SENSE)
+        //      printf1(TAG_NFC,"    %s  x%02x\r\n", ams_get_state_string(ams.regs.rfid_status), state);
+    }
+    if (ams.regs.int0 & AMS_INT_INIT)
+    {
+        nfc_state_init();
+    }
+    if (ams.regs.int1)
+    {
+        // ams_print_int1(ams.regs.int1);
+    }
 
-        if (ams.regs.rfid_status)
+    if ((ams.regs.int0 & AMS_INT_RXE))
+    {
+        if (ams.regs.buffer_status2)
         {
-            // if (state != AMS_STATE_SENSE)
-            //      printf1(TAG_NFC,"    %s  x%02x\r\n", ams_get_state_string(ams.regs.rfid_status), state);
-        }
-        if (ams.regs.int0 & AMS_INT_INIT)
-        {
-            nfc_state_init();
-        }
-        if (ams.regs.int1)
-        {
-            // ams_print_int1(ams.regs.int1);
-        }
-
-        if ((ams.regs.int0 & AMS_INT_RXE))
-        {
-            if (ams.regs.buffer_status2)
+            if (ams.regs.buffer_status2 & AMS_BUF_INVALID)
             {
-                if (ams.regs.buffer_status2 & AMS_BUF_INVALID)
-                {
-                    printf1(TAG_NFC,"Buffer being updated!\r\n");
-                }
-                else
-                {
-                    len = ams.regs.buffer_status2 & AMS_BUF_LEN_MASK;
-                    ams_read_buffer(buf, len);
-                }
+                printf1(TAG_NFC,"Buffer being updated!\r\n");
+            }
+            else
+            {
+                len = ams.regs.buffer_status2 & AMS_BUF_LEN_MASK;
+                ams_read_buffer(buf, len);
             }
         }
+    }
 
-        if (len)
+    if (len)
+    {
+
+        // ISO 14443-3
+        switch(buf[0])
         {
+            case NFC_CMD_REQA:
+                printf1(TAG_NFC, "NFC_CMD_REQA\r\n");
+            break;
+            case NFC_CMD_WUPA:
+                printf1(TAG_NFC, "NFC_CMD_WUPA\r\n");
+            break;
+            case NFC_CMD_HLTA:
+                printf1(TAG_NFC, "HLTA/Halt\r\n");
+            break;
+            case NFC_CMD_RATS:
 
-            // ISO 14443-3
-            switch(buf[0])
-            {
-                case NFC_CMD_REQA:
-                    printf1(TAG_NFC, "NFC_CMD_REQA\r\n");
-                break;
-                case NFC_CMD_WUPA:
-                    printf1(TAG_NFC, "NFC_CMD_WUPA\r\n");
-                break;
-                case NFC_CMD_HLTA:
-                    printf1(TAG_NFC, "HLTA/Halt\r\n");
-                break;
-                case NFC_CMD_RATS:
+                answer_rats(buf[1]);
 
-                    answer_rats(buf[1]);
+                NFC_STATE.block_num = 1;
+				clear_ibuf();
+				WTX_clear();
+            break;
+            default:
 
-                    NFC_STATE.block_num = 1;
-    				clear_ibuf();
-    				WTX_clear();
-                break;
-                default:
-
-                    // ISO 14443-4
-                    nfc_process_block(buf,len);
+                // ISO 14443-4
+                nfc_process_block(buf,len);
 
 
-                break;
-            }
-
+            break;
         }
 
     }
+
+    return len;
 
 }
