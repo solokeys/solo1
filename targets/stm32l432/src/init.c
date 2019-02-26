@@ -49,7 +49,7 @@
 #include APP_CONFIG
 
 // KHz
-#define CLOCK_RATE      24000
+#define CLOCK_RATE      16000
 
 USBD_HandleTypeDef Solo_USBD_Device;
 
@@ -360,7 +360,7 @@ void SystemClock_Config_LF16(void)
     {
     Error_Handler();
     }
-    LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
+    LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE2);
 
     LL_RCC_LSI_Enable();
 
@@ -423,7 +423,7 @@ void SystemClock_Config_LF24(void)
     {
     Error_Handler();
     }
-    LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
+    LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE2);
 
     LL_RCC_LSI_Enable();
 
@@ -927,7 +927,7 @@ void init_spi(void)
     SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_LOW;
     SPI_InitStruct.ClockPhase = LL_SPI_PHASE_2EDGE;
     SPI_InitStruct.NSS = LL_SPI_NSS_SOFT;
-    SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV2;
+    SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV8;
     SPI_InitStruct.BitOrder = LL_SPI_MSB_FIRST;
     SPI_InitStruct.CRCCalculation = LL_SPI_CRCCALCULATION_DISABLE;
     SPI_InitStruct.CRCPoly = 7;
