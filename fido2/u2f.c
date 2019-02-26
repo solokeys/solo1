@@ -278,7 +278,6 @@ static int16_t u2f_register(struct u2f_register_request * req, bool fromNFC)
     uint8_t i[] = {0x0,U2F_EC_FMT_UNCOMPRESSED};
 
     struct u2f_key_handle key_handle;
-    static uint32_t count = 0;
     uint8_t pubkey[64];
     uint8_t hash[32];
     uint8_t * sig = (uint8_t*)req;
@@ -293,7 +292,7 @@ static int16_t u2f_register(struct u2f_register_request * req, bool fromNFC)
 			return U2F_SW_CONDITIONS_NOT_SATISFIED;
 		}
 	}
-    
+
     if ( u2f_new_keypair(&key_handle, req->app, pubkey) == -1)
     {
         return U2F_SW_INSUFFICIENT_MEMORY;

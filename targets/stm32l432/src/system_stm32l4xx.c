@@ -106,6 +106,7 @@
   */
 
 #include "stm32l4xx.h"
+#include "device.h"
 #include "init.h"
 
 #if !defined  (HSE_VALUE)
@@ -220,7 +221,7 @@ void SystemInit(void)
   /* Disable all interrupts */
   RCC->CIER = 0x00000000U;
 
-  SystemClock_Config_LF16();
+  device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
 
 }
 

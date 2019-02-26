@@ -34,7 +34,31 @@
 #include APP_CONFIG
 
 // KHz
-#define CLOCK_RATE      16000
+#define MAX_CLOCK_RATE      24000
+
+#define SET_CLOCK_RATE2()        SystemClock_Config()
+
+#if MAX_CLOCK_RATE == 48000
+    #define SET_CLOCK_RATE0()        SystemClock_Config_LF32()
+    #define SET_CLOCK_RATE1()        SystemClock_Config_LF48()
+#elif MAX_CLOCK_RATE == 32000
+    #define SET_CLOCK_RATE0()        SystemClock_Config_LF24()
+    #define SET_CLOCK_RATE1()        SystemClock_Config_LF32()
+#elif MAX_CLOCK_RATE == 28000
+    #define SET_CLOCK_RATE0()        SystemClock_Config_LF24()
+    #define SET_CLOCK_RATE1()        SystemClock_Config_LF28()
+#elif MAX_CLOCK_RATE == 24000
+    #define SET_CLOCK_RATE0()        SystemClock_Config_LF16()
+    #define SET_CLOCK_RATE1()        SystemClock_Config_LF24()
+#elif MAX_CLOCK_RATE == 20000
+    #define SET_CLOCK_RATE0()        SystemClock_Config_LF16()
+    #define SET_CLOCK_RATE1()        SystemClock_Config_LF20()
+#elif MAX_CLOCK_RATE == 16000
+    #define SET_CLOCK_RATE0()        SystemClock_Config_LF8()
+    #define SET_CLOCK_RATE1()        SystemClock_Config_LF16()
+#else
+#error "Invalid clock rate selected"
+#endif
 
 USBD_HandleTypeDef Solo_USBD_Device;
 
@@ -42,6 +66,11 @@ static void LL_Init(void);
 
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
 void _Error_Handler(char *file, int line);
+
+void SystemClock_Config(void);
+void SystemClock_Config_LF16(void);
+void SystemClock_Config_LF20(void);
+void SystemClock_Config_LF24(void);
 void SystemClock_Config_LF28(void);
 void SystemClock_Config_LF48(void);
 
@@ -56,23 +85,8 @@ void hw_init(int lowfreq)
 
     if (lowfreq)
     {
-        // Under voltage
-        LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE2);
-#if CLOCK_RATE == 48000
-        SystemClock_Config_LF48();
-#elif CLOCK_RATE == 32000
-        SystemClock_Config_LF32();
-#elif CLOCK_RATE == 28000
-        SystemClock_Config_LF28();
-#elif CLOCK_RATE == 24000
-        SystemClock_Config_LF24();
-#elif CLOCK_RATE == 20000
-        SystemClock_Config_LF20();
-#elif CLOCK_RATE == 16000
-        SystemClock_Config_LF16();
-#else
-#error "Invalid clock rate selected"
-#endif
+        LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE2); // Under voltage
+        device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
         LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE2);
     }
     else
@@ -121,6 +135,22 @@ static void LL_Init(void)
     /* SysTick_IRQn interrupt configuration */
     NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
 
+}
+
+void device_set_clock_rate(DEVICE_CLOCK_RATE param)
+{
+    switch(param)
+    {
+        case DEVICE_LOW_POWER_IDLE:
+            SET_CLOCK_RATE0();
+        break;
+        case DEVICE_LOW_POWER_FAST:
+            SET_CLOCK_RATE1();
+        break;
+        case DEVICE_FAST:
+            SET_CLOCK_RATE2();
+        break;
+    }
 }
 
 /**
@@ -847,7 +877,7 @@ void init_millisecond_timer(int lf)
     if (!lf)
         TIM_InitStruct.Prescaler = 48000;
     else
-        TIM_InitStruct.Prescaler = CLOCK_RATE;
+        TIM_InitStruct.Prescaler = MAX_CLOCK_RATE;
 
     TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
     TIM_InitStruct.Autoreload = 90;

@@ -22,10 +22,6 @@
 #ifndef _INIT_H_
 #define _INIT_H_
 
-void SystemClock_Config(void);
-void SystemClock_Config_LF(void);
-void SystemClock_Config_LF16(void);
-
 void init_usb();
 void init_gpio(void);
 void init_debug_uart(void);
