@@ -99,4 +99,9 @@ typedef enum {
 // 2: fastest clock rate.  Generally for USB interface.
 void device_set_clock_rate(DEVICE_CLOCK_RATE param);
 
+// Returns 1 if operating in NFC mode.
+// 0 otherwise.
+bool device_is_nfc();
+
+
 #endif

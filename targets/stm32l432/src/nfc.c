@@ -157,7 +157,7 @@ bool nfc_write_response(uint8_t req0, uint16_t resp)
 	return nfc_write_response_ex(req0, NULL, 0, resp);
 }
 
-void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len, int keepgoing)
+void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 {
     uint8_t res[32 + 2];
 	int sendlen = 0;
@@ -178,7 +178,7 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len, int keep
 			memcpy(&res[1], &data[sendlen], vlen);
 
 			// if not a last block
-			if ((vlen + sendlen < len) || keepgoing)
+			if (vlen + sendlen < len)
 			{
 				res[0] |= 0x10;
 			}
@@ -488,7 +488,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			// 	return;
 
             printf1(TAG_NFC,"U2F Register P2 took %d\r\n", timestamp());
-            nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, 0 );
+            nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
 
 			// printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
 
@@ -522,7 +522,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Authenticate processing %d (took %d)\r\n", millis(), timestamp());
-			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, 0);
+			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
             printf1(TAG_NFC,"U2F Authenticate answered %d (took %d)\r\n", millis(), timestamp);
         break;
 
@@ -537,7 +537,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			WTX_on(WTX_TIME_DEFAULT);
             ctap_response_init(&ctap_resp);
-            status = ctap_request(payload, plen, &ctap_resp, true);
+            status = ctap_request(payload, plen, &ctap_resp);
 			if (!WTX_off())
 				return;
 
@@ -555,7 +555,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			ctap_resp.data[ctap_resp.length - 1] = SW_SUCCESS & 0xff;
 
             printf1(TAG_NFC,"CTAP processing %d (took %d)\r\n", millis(), timestamp());
-			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, 0);
+			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
             printf1(TAG_NFC,"CTAP answered %d (took %d)\r\n", millis(), timestamp());
         break;
 

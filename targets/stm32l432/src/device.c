@@ -40,8 +40,8 @@ uint32_t __90_ms = 0;
 uint32_t __device_status = 0;
 uint32_t __last_update = 0;
 extern PCD_HandleTypeDef hpcd;
-bool haveNFC = false;
-bool isLowFreq = 0;
+static bool haveNFC = 0;
+static bool isLowFreq = 0;
 
 #define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
 
@@ -134,6 +134,11 @@ void device_init()
     haveNFC = nfc_init();
 #endif
 
+}
+
+bool device_is_nfc()
+{
+    return haveNFC;
 }
 
 void wait_for_usb_tether()
