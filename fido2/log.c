@@ -1,29 +1,15 @@
-/*
- * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- *
- * This file is part of Solo.
- *
- * Solo is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Solo is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- *
- * This code is available under licenses for commercial use.
- * Please contact SoloKeys for more information.
- */
+// Copyright 2019 SoloKeys Developers
+//
+// Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
+// http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
+// http://opensource.org/licenses/MIT>, at your option. This file may not be
+// copied, modified, or distributed except according to those terms.
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include "log.h"
 #include "util.h"
+#include "device.h"
 
 #if DEBUG_LEVEL > 0
 
@@ -74,7 +60,7 @@ __attribute__((weak)) void set_logging_tag(uint32_t tag)
 
 void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...)
 {
-    int i;
+    unsigned int i;
 
     if (((tag & 0x7fffffff) & LOGMASK) == 0)
     {
@@ -116,4 +102,14 @@ void LOG_HEX(uint32_t tag, uint8_t * data, int length)
     set_logging_tag(tag);
     dump_hex(data,length);
 }
+
+uint32_t timestamp()
+{
+    static uint32_t t1 = 0;
+    uint32_t t2 = millis();
+    uint32_t diff = t2 - t1;
+    t1 = t2;
+    return diff;
+}
+
 #endif

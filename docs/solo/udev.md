@@ -1,13 +1,16 @@
 # tl;dr
 
-Create [`/etc/udev/rules.d/99-solo.rules`](https://github.com/solokeys/solo/blob/master/99-solo.rules) and add the following (which assumes your user is in group `plugdev`):
+Create a file like [`/etc/udev/rules.d/99-solo.rules`](https://github.com/solokeys/solo/blob/master/99-solo.rules), for instance the following rules should cover access in all cases:
 
 ```
-# Solo
-KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", GROUP="plugdev", SYMLINK+="solokey"
+# Solo bootloader + firmware
+ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", GROUP="plugdev"
+
+# ST DFU bootloader
+ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", TAG+="uaccess", GROUP="plugdev"
 
 # U2F Zero
-KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="8acf", TAG+="uaccess", GROUP="plugdev", SYMLINK+="u2fzero"
+ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="8acf", TAG+="uaccess", GROUP="plugdev"
 ```
 
 Then run
@@ -50,7 +53,7 @@ This contains rules for Yubico's keys, the U2F Zero, and many others. The releva
 ```
 KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="8acf", TAG+="uaccess"
 ```
-It matches on the correct vendor/product IDs of 10c4/8acf, and adds the TAG `uaccess`. Older versions of udev use rules such as 
+It matches on the correct vendor/product IDs of 10c4/8acf, and adds the TAG `uaccess`. Older versions of udev use rules such as
 ```
 KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", MODE="0644", GROUP="plugdev"
 ```

@@ -1,5 +1,6 @@
 ecdsa
+fido2
 intelhex
 pyserial
-fido2
 pyusb
+wheel

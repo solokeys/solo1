@@ -143,13 +143,13 @@ static uint8_t  USBD_CDC_DataOut (USBD_HandleTypeDef *pdev,
 
 static uint8_t  USBD_CDC_EP0_RxReady (USBD_HandleTypeDef *pdev);
 
-static uint8_t  *USBD_CDC_GetFSCfgDesc (uint16_t *length);
+//static uint8_t  *USBD_CDC_GetFSCfgDesc (uint16_t *length);
 
-static uint8_t  *USBD_CDC_GetHSCfgDesc (uint16_t *length);
+//static uint8_t  *USBD_CDC_GetHSCfgDesc (uint16_t *length);
 
-static uint8_t  *USBD_CDC_GetOtherSpeedCfgDesc (uint16_t *length);
+//static uint8_t  *USBD_CDC_GetOtherSpeedCfgDesc (uint16_t *length);
 
-static uint8_t  *USBD_CDC_GetOtherSpeedCfgDesc (uint16_t *length);
+//static uint8_t  *USBD_CDC_GetOtherSpeedCfgDesc (uint16_t *length);
 
 uint8_t  *USBD_CDC_GetDeviceQualifierDescriptor (uint16_t *length);
 
@@ -789,12 +789,12 @@ static uint8_t  USBD_CDC_EP0_RxReady (USBD_HandleTypeDef *pdev)
   * @param  length : pointer data length
   * @retval pointer to descriptor buffer
   */
-static uint8_t  *USBD_CDC_GetFSCfgDesc (uint16_t *length)
+/*static uint8_t  *USBD_CDC_GetFSCfgDesc (uint16_t *length)
 {
   *length = sizeof (USBD_CDC_CfgFSDesc);
   return USBD_CDC_CfgFSDesc;
 }
-
+*/
 /**
   * @brief  USBD_CDC_GetHSCfgDesc
   *         Return configuration descriptor
@@ -802,12 +802,12 @@ static uint8_t  *USBD_CDC_GetFSCfgDesc (uint16_t *length)
   * @param  length : pointer data length
   * @retval pointer to descriptor buffer
   */
-static uint8_t  *USBD_CDC_GetHSCfgDesc (uint16_t *length)
+/*static uint8_t  *USBD_CDC_GetHSCfgDesc (uint16_t *length)
 {
   *length = sizeof (USBD_CDC_CfgHSDesc);
   return USBD_CDC_CfgHSDesc;
 }
-
+*/
 /**
   * @brief  USBD_CDC_GetCfgDesc
   *         Return configuration descriptor
@@ -815,12 +815,12 @@ static uint8_t  *USBD_CDC_GetHSCfgDesc (uint16_t *length)
   * @param  length : pointer data length
   * @retval pointer to descriptor buffer
   */
-static uint8_t  *USBD_CDC_GetOtherSpeedCfgDesc (uint16_t *length)
+/*static uint8_t  *USBD_CDC_GetOtherSpeedCfgDesc (uint16_t *length)
 {
   *length = sizeof (USBD_CDC_OtherSpeedCfgDesc);
   return USBD_CDC_OtherSpeedCfgDesc;
 }
-
+*/
 /**
 * @brief  DeviceQualifierDescriptor
 *         return Device Qualifier descriptor

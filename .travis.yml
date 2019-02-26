@@ -8,6 +8,12 @@ addons:
     packages:
       - gcc-7
       - cppcheck
+before_install:
+    - sudo add-apt-repository -y ppa:team-gcc-arm-embedded/ppa
+    - sudo apt-get update -q
+    - sudo apt-get install -y gcc-arm-embedded
+    - sudo apt-get install -y python3-venv
 script:
   - export CC=gcc-7
-  - make test
+  - pyenv shell 3.6.7
+  - make travis

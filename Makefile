@@ -9,11 +9,8 @@
 
 ecc_platform=2
 
-EFM32_DEBUGGER= -s 440083537 --device EFM32JG1B200F128GM32
-#EFM32_DEBUGGER= -s 440121060    #dev board
-
 src = $(wildcard pc/*.c) $(wildcard fido2/*.c) $(wildcard crypto/sha256/*.c) crypto/tiny-AES-c/aes.c
-obj = $(src:.c=.o) uECC.o
+obj = $(src:.c=.o) crypto/micro-ecc/uECC.o
 
 LIBCBOR = tinycbor/lib/libtinycbor.a
 
@@ -33,7 +30,7 @@ CFLAGS += -DAES256=1 -DAPP_CONFIG=\"app.h\"
 
 name = main
 
-.PHONY: all
+.PHONY: all $(LIBCBOR) black blackcheck cppcheck wink fido2-test clean full-clean travis test clean version
 all: main
 
 tinycbor/Makefile crypto/tiny-AES-c/aes.c:
@@ -42,52 +39,48 @@ tinycbor/Makefile crypto/tiny-AES-c/aes.c:
 .PHONY: cbor
 cbor: $(LIBCBOR)
 
-$(LIBCBOR): tinycbor/Makefile
+$(LIBCBOR):
 	cd tinycbor/ && $(MAKE) clean && $(MAKE) -j8
 
-.PHONY: efm8prog
-efm8prog:
-	cd './targets/efm8\Keil 8051 v9.53 - Debug' && $(MAKE) all
-	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -erase
-	flashefm8.exe -part EFM8UB10F8G -sn 440105518 -upload './targets/efm8/Keil 8051 v9.53 - Debug/efm8.hex'
+version:
+	@git describe
 
-.PHONY: efm32com efm32prog efm32read efm32bootprog
-efm32com:
-	cd './targets/efm32/GNU ARM v7.2.1 - Debug' && $(MAKE) all
-efm32prog: efm32com
-	commander flash './targets/efm32/GNU ARM v7.2.1 - Debug/EFM32.hex' $(EFM32_DEBUGGER)  -p "0x1E7FC:0x00000000:4"
-efm32read: efm32com
-	commander swo read $(EFM32_DEBUGGER)
-efm32bootprog: efm32com
-	commander flash './efm32boot/GNU ARM v7.2.1 - Debug/efm32boot.hex' $(EFM32_DEBUGGER) --masserase
+test: venv
+	$(MAKE) clean
+	$(MAKE) -C . main
+	$(MAKE) clean
+	$(MAKE) -C ./targets/stm32l432 test PREFIX=$(PREFIX) "VENV=$(VENV)"
+	$(MAKE) clean
+	$(MAKE) cppcheck
 
 $(name): $(obj) $(LIBCBOR)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
 
-uECC.o: ./crypto/micro-ecc/uECC.c
+crypto/micro-ecc/uECC.o: ./crypto/micro-ecc/uECC.c
 	$(CC) -c -o $@ $^ -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform) -I./crypto/micro-ecc/
 
-env2:
-	virtualenv --python=python2.7 env2
-	env2/bin/pip install --upgrade -r tools/requirements.txt
-
-env3:
-	python3 -m venv env3
-	env3/bin/pip install --upgrade -r tools/requirements.txt
-	env3/bin/pip install --upgrade black
+venv:
+	python3 -m venv venv
+	venv/bin/pip -q install --upgrade -r tools/requirements.txt
+	venv/bin/pip -q install --upgrade black
 
 # selectively reformat our own code
-black: env3
-	env3/bin/black --skip-string-normalization tools/
+black: venv
+	venv/bin/black --skip-string-normalization --check tools/
 
-wink2: env2
-	env2/bin/python tools/solotool.py solo --wink
+wink: venv
+	venv/bin/python tools/solotool.py solo --wink
 
-wink3: env3
-	env3/bin/python tools/solotool.py solo --wink
+fido2-test: venv
+	venv/bin/python tools/ctap_test.py
 
-fido2-test: env3
-	env3/bin/python tools/ctap_test.py
+DOCKER_IMAGE := "solokeys/solo-firmware:local"
+SOLO_VERSIONISH := "master"
+docker-build:
+	docker build -t $(DOCKER_IMAGE) .
+	docker run --rm -v "$(CURDIR)/builds:/builds" \
+				    -v "$(CURDIR)/in-docker-build.sh:/in-docker-build.sh" \
+				    $(DOCKER_IMAGE) /in-docker-build.sh $(SOLO_VERSIONISH)
 
 CPPCHECK_FLAGS=--quiet --error-exitcode=2
 
@@ -97,13 +90,17 @@ cppcheck:
 	cppcheck $(CPPCHECK_FLAGS) fido2
 	cppcheck $(CPPCHECK_FLAGS) pc
 
-test: main cppcheck
-
 clean:
 	rm -f *.o main.exe main $(obj)
-	rm -rf env2 env3
 	for f in crypto/tiny-AES-c/Makefile tinycbor/Makefile ; do \
 	    if [ -f "$$f" ]; then \
 	    	(cd `dirname $$f` ; git checkout -- .) ;\
 	    fi ;\
 	done
+
+full-clean: clean
+	rm -rf venv
+
+travis:
+	$(MAKE) test VENV=". ../../venv/bin/activate;"
+	$(MAKE) black

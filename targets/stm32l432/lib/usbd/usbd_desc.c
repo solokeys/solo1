@@ -53,19 +53,10 @@
 #define USBD_VID                        0x0483
 #define USBD_PID                        0xA2CA
 #define USBD_LANGID_STRING              0x409
-#ifndef SOLO_HACKER
-#define USBD_MANUFACTURER_STRING        "Solo Keys"
-#define USBD_PRODUCT_FS_STRING          "Solo"
-#ifndef USBD_SERIAL_NUM
+#define USBD_MANUFACTURER_STRING        "SoloKeys"
+#define USBD_PRODUCT_FS_STRING          SOLO_PRODUCT_NAME
 #define USBD_SERIAL_NUM                 "0123456789ABCDEF"
-#endif
-#else
-#define USBD_MANUFACTURER_STRING        "Solo Keys"
-#define USBD_PRODUCT_FS_STRING          "Solo HACKER (Unlocked)"
-#ifndef USBD_SERIAL_NUM
-#define USBD_SERIAL_NUM                 "0123456789ABCDEF"
-#endif
-#endif
+
 
 uint8_t *USBD_HID_DeviceDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
 uint8_t *USBD_HID_LangIDStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
@@ -97,10 +88,11 @@ const uint8_t USBD_DeviceDesc[USB_LEN_DEV_DESC]= {
   USB_MAX_EP0_SIZE,           /* bMaxPacketSize */
   LOBYTE(USBD_VID),           /* idVendor */
   HIBYTE(USBD_VID),           /* idVendor */
-  LOBYTE(USBD_PID),           /* idVendor */
-  HIBYTE(USBD_PID),           /* idVendor */
-  0x00,                       /* bcdDevice rel. 2.00 */
-  0x02,
+  LOBYTE(USBD_PID),           /* idProduct */
+  HIBYTE(USBD_PID),           /* idProduct */
+  // should put SOLO_VERSION_MAJ/MIN here too, but binary coded decimal
+  0x00,                       /* bcdDevice version */
+  0x01,
   USBD_IDX_MFC_STR,           /* Index of manufacturer string */
   USBD_IDX_PRODUCT_STR,       /* Index of product string */
   USBD_IDX_SERIAL_STR,        /* Index of serial number string */
@@ -174,6 +166,32 @@ uint8_t *USBD_HID_ManufacturerStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *l
   */
 uint8_t *USBD_HID_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
-  USBD_GetString((uint8_t *)USBD_SERIAL_NUM, USBD_StrDesc, length);
-  return USBD_StrDesc;
+    // Match the same alg as the DFU to make serial number
+    volatile uint8_t * UUID = (volatile uint8_t *)0x1FFF7590;
+    const char hexdigit[] = "0123456789ABCDEF";
+    uint8_t uuid[6];
+    uint8_t uuid_str[13];
+    uint8_t c;
+    int i;
+    uuid_str[12] = 0;
+
+    uuid[0] = UUID[11];
+    uuid[1] = UUID[10] + UUID[2];
+    uuid[2] = UUID[9];
+    uuid[3] = UUID[8] + UUID[0];
+    uuid[4] = UUID[7];
+    uuid[5] = UUID[6];
+
+    // quick method to convert to hex string
+    for (i = 0; i < 6; i++)
+    {
+        c = (uuid[i]>>4) & 0x0f;
+        uuid_str[i * 2 + 0] = hexdigit[ c ];
+        c = (uuid[i]>>0) & 0x0f;
+        uuid_str[i * 2 + 1] = hexdigit[ c ];
+    }
+
+
+    USBD_GetString((uint8_t *)uuid_str, USBD_StrDesc, length);
+    return USBD_StrDesc;
 }

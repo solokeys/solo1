@@ -2,11 +2,11 @@ For information on what this is, see the [spec](https://fidoalliance.org/specs/f
 ## CTAP2
 
 ```
-{!metadata/solo-FIDO2-CTAP2-Authenticator.json!}
+{!metadata/Solo-FIDO2-CTAP2-Authenticator.json!}
 ```
 
 ## U2F
 
 ```
-{!metadata/solo-FIDO2-U2F-Authenticator.json!}
+{!metadata/Solo-FIDO2-U2F-Authenticator.json!}
 ```

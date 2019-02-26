@@ -1,24 +1,9 @@
-/*
- * Copyright (C) 2018 SoloKeys, Inc. <https://solokeys.com/>
- *
- * This file is part of Solo.
- *
- * Solo is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Solo is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Solo.  If not, see <https://www.gnu.org/licenses/>
- *
- * This code is available under licenses for commercial use.
- * Please contact SoloKeys for more information.
- */
+// Copyright 2019 SoloKeys Developers
+//
+// Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
+// http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
+// http://opensource.org/licenses/MIT>, at your option. This file may not be
+// copied, modified, or distributed except according to those terms.
 #include "device.h"
 #include "usbd_def.h"
 #include "stm32l4xx.h"
@@ -47,6 +32,9 @@
 
 #define LOW_FREQUENCY        1
 #define HIGH_FREQUENCY       0
+
+void wait_for_usb_tether();
+
 
 uint32_t __90_ms = 0;
 uint32_t __device_status = 0;
@@ -90,7 +78,7 @@ uint32_t millis()
     return (((uint32_t)TIM6->CNT) + (__90_ms * 90));
 }
 
-void device_set_status(int status)
+void device_set_status(uint32_t status)
 {
     __disable_irq();
     __last_update = millis();
@@ -221,7 +209,9 @@ void main_loop_delay()
 
 static int wink_time = 0;
 static uint32_t winkt1 = 0;
+#ifdef LED_WINK_VALUE
 static uint32_t winkt2 = 0;
+#endif
 void device_wink()
 {
     wink_time = 10;
@@ -246,9 +236,14 @@ void heartbeat()
         val++;
     }
 
-    if (val > LED_MAX_SCALER || val < LED_MIN_SCALER)
+    if (val >= LED_MAX_SCALER || val <= LED_MIN_SCALER)
     {
         state = !state;
+
+		if (val > LED_MAX_SCALER)
+			val = LED_MAX_SCALER;
+		if (val < LED_MIN_SCALER)
+			val = LED_MIN_SCALER;
     }
 
 #ifdef LED_WINK_VALUE
@@ -505,7 +500,9 @@ led_rgb(0x001040);
 delay(50);
 
 
+#if SKIP_BUTTON_CHECK_WITH_DELAY || SKIP_BUTTON_CHECK_FAST
 done:
+#endif
 return 1;
 
 fail:

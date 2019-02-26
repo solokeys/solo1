@@ -7,11 +7,22 @@ ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ENV{ID_MM_DEVICE_IGNORE}="1"
 
 LABEL="mm_usb_device_blacklist_end"
 
-# Solo
-ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo",                   TAG+="uaccess", GROUP="plugdev", SYMLINK+="solokey"
-ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo HACKER (Unlocked)", TAG+="uaccess", GROUP="plugdev", SYMLINK+="solohacker"
 
-SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", GROUP="plugdev", SYMLINK+="solokey-serial"
+# Solo
+
+## bootloader + firmware access
+ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", GROUP="plugdev"
+
+## DFU access
+ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", TAG+="uaccess", GROUP="plugdev"
+
+## Solo Secure symlink
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo [1-9]*", SYMLINK+="solokey"
+## Solo Hacker symlink
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo Hacker [1-9]*", SYMLINK+="solohacker"
+## Solo Serial access + symlink
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", GROUP="plugdev", SYMLINK+="soloserial"
+
 
 # U2F Zero
-KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="8acf", TAG+="uaccess", GROUP="plugdev", SYMLINK+="u2fzero"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="8acf", TAG+="uaccess", GROUP="plugdev", SYMLINK+="u2fzero"
