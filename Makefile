@@ -69,7 +69,7 @@ black: venv
 	venv/bin/black --skip-string-normalization --check tools/
 
 wink: venv
-	venv/bin/python tools/solotool.py solo --wink
+	venv/bin/solo key wink
 
 fido2-test: venv
 	venv/bin/python tools/ctap_test.py
