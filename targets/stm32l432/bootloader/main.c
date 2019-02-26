@@ -27,7 +27,7 @@
 uint8_t REBOOT_FLAG = 0;
 
 
-void  BOOT_boot(void)
+void BOOT_boot(void)
 {
   typedef void (*pFunction)(void);
 
@@ -79,7 +79,7 @@ int main()
     init_millisecond_timer(1);
 
 #if DEBUG_LEVEL > 0
-        init_debug_uart();
+    init_debug_uart();
 #endif
 
     printf1(TAG_GEN,"init device\n");
@@ -118,7 +118,7 @@ int main()
     }
 #ifdef SOLO_HACKER
     start_bootloader:
-
+#endif
     SystemClock_Config();
     init_gpio();
     init_millisecond_timer(0);

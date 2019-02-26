@@ -43,7 +43,7 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
         goto end;
     }
 #ifdef ENABLE_U2F_EXTENSIONS
-    rcode = extend_u2f(req, len);   // FIXME
+    rcode = extend_u2f(req, payload, len);
 #endif
     if (rcode != U2F_SW_NO_ERROR && rcode != U2F_SW_CONDITIONS_NOT_SATISFIED)       // If the extension didn't do anything...
     {
