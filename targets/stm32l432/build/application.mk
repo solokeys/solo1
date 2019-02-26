@@ -47,6 +47,9 @@ CFLAGS=$(INC) -c $(DEFINES)   -Wall -Wextra -Wno-unused-parameter -Wno-missing-f
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -u _printf_float -lnosys
 LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor
 
+ECC_CFLAGS = $(CFLAGS)
+ECC_CFLAGS += -DuECC_OPTIMIZATION_LEVEL=4 -fomit-frame-pointer -DuECC_SQUARE_FUNC=1
+
 
 .PRECIOUS: %.o
 
@@ -57,7 +60,7 @@ all: $(TARGET).elf
 	$(CC) $^ $(HW)  -Os $(CFLAGS) -o $@
 
 ../../crypto/micro-ecc/uECC.o: ../../crypto/micro-ecc/uECC.c
-	$(CC) $^ $(HW)  -O3 $(CFLAGS) -o $@
+	$(CC) $^ $(HW)  -O3 $(ECC_CFLAGS) -o $@
 
 %.o: %.s
 	$(CC) $^ $(HW)  -Os $(CFLAGS) -o $@
@@ -66,6 +69,7 @@ all: $(TARGET).elf
 	$(CC) $^ $(HW) $(LDFLAGS) -o $@
 
 %.hex: %.elf
+	# $(SZ) $^
 	$(CP) -O ihex $^ $(TARGET).hex
 
 clean:
