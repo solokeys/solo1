@@ -219,6 +219,7 @@ int ams_state_is_valid(uint8_t regval)
 
 void ams_print_int0(uint8_t int0)
 {
+#if DEBUG_LEVEL
     uint32_t tag = (TAG_NFC)|(TAG_NO_TAG);
     printf1(TAG_NFC,"    ");
     if (int0 & AMS_INT_XRF)
@@ -239,10 +240,12 @@ void ams_print_int0(uint8_t int0)
         printf1(tag," INIT");
 
     printf1(tag,"\r\n");
+#endif
 }
 
 void ams_print_int1(uint8_t int0)
 {
+#if DEBUG_LEVEL
     uint32_t tag = (TAG_NFC)|(TAG_NO_TAG);
     printf1(TAG_NFC,"    ");
     if (int0 & AMS_INT_ACC_ERR)
@@ -263,6 +266,7 @@ void ams_print_int1(uint8_t int0)
         printf1(tag," RXS");
 
     printf1(tag,"\r\n");
+#endif
 }
 
 

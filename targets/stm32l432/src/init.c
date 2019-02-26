@@ -804,7 +804,6 @@ void init_debug_uart(void)
   LL_USART_Enable(USART1);
 
 }
-#endif
 
 void init_gpio(void)
 {

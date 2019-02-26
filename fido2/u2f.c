@@ -10,6 +10,7 @@
 #include "crypto.h"
 #include "log.h"
 #include "device.h"
+#include "apdu.h"
 #include "wallet.h"
 #ifdef ENABLE_U2F_EXTENSIONS
 #include "extensions.h"
@@ -42,7 +43,7 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
         goto end;
     }
 #ifdef ENABLE_U2F_EXTENSIONS
-    rcode = extend_u2f(req, len);
+    rcode = extend_u2f(req, len);   // FIXME
 #endif
     if (rcode != U2F_SW_NO_ERROR && rcode != U2F_SW_CONDITIONS_NOT_SATISFIED)       // If the extension didn't do anything...
     {
@@ -59,7 +60,7 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
                 {
 
                     timestamp();
-                    rcode = u2f_register((struct u2f_register_request*)req->payload, fromNFC);
+                    rcode = u2f_register((struct u2f_register_request*)payload, fromNFC);
                     printf1(TAG_TIME,"u2f_register time: %d ms\n", timestamp());
 
                 }
@@ -67,7 +68,7 @@ void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPO
             case U2F_AUTHENTICATE:
                 printf1(TAG_U2F, "U2F_AUTHENTICATE\n");
                 timestamp();
-                rcode = u2f_authenticate((struct u2f_authenticate_request*)req->payload, req->p1, fromNFC);
+                rcode = u2f_authenticate((struct u2f_authenticate_request*)payload, req->p1, fromNFC);
                 printf1(TAG_TIME,"u2f_authenticate time: %d ms\n", timestamp());
                 break;
             case U2F_VERSION:
@@ -253,7 +254,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 
     crypto_sha256_update(req->app, 32);
     crypto_sha256_update(&up, 1);
-    crypto_sha256_update(vcount, 4);
+    crypto_sha256_update(hash, 4);
     crypto_sha256_update(req->chal, 32);
 
     crypto_sha256_final(hash);
@@ -292,12 +293,11 @@ static int16_t u2f_register(struct u2f_register_request * req, bool fromNFC)
 			return U2F_SW_CONDITIONS_NOT_SATISFIED;
 		}
 	}
-    uint32_t t1 = millis();
+    
     if ( u2f_new_keypair(&key_handle, req->app, pubkey) == -1)
     {
         return U2F_SW_INSUFFICIENT_MEMORY;
     }
-    printf1(TAG_NFC, "keygen time: %d ms\r\n", millis()-t1);
 
     crypto_sha256_init();
     crypto_sha256_update(i,1);
