@@ -22,7 +22,7 @@ OBJ=$(OBJ1:.s=.o)
 INC = -Ibootloader/ -Isrc/ -Isrc/cmsis/ -Ilib/ -Ilib/usbd/ -I../../fido2/ -I../../fido2/extensions
 INC += -I../../tinycbor/src -I../../crypto/sha256 -I../../crypto/micro-ecc
 INC += -I../../crypto/tiny-AES-c
-INC += -I../../crypto/cifra/src
+INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
 
 ifndef LDSCRIPT
 LDSCRIPT=linker/bootloader_stm32l4xx.ld
