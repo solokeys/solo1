@@ -17,7 +17,7 @@
 #include "log.h"
 #include "extensions.h"
 
-// move custom HASH512 command out,
+// move custom SHA512 command out,
 // and the following headers too
 #include "sha2.h"
 #include "crypto.h"
@@ -726,15 +726,15 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
         break;
 #endif
 #if defined(SOLO_HACKER)
-        case CTAPHID_HASH512:
+        case CTAPHID_SHA512:
             // some random logging
-            printf1(TAG_HID,"CTAPHID_HASH512\n");
+            printf1(TAG_HID,"CTAPHID_SHA512\n");
             // initialise CTAP response object
             ctap_response_init(&ctap_resp);
             // initialise write buffer
             ctaphid_write_buffer_init(&wb);
             wb.cid = cid;
-            wb.cmd = CTAPHID_HASH512;
+            wb.cmd = CTAPHID_SHA512;
             wb.bcnt = CF_SHA512_HASHSZ;  // 64 bytes
             // calculate hash
             crypto_sha512_init();
