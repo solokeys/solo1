@@ -283,8 +283,8 @@ bool ams_init()
     delay(2);
 
     // Needs to be disabled for passive operation
-    // if (0)
-    if (1)
+    if (0)
+    // if (1)
 	{
     	// check connection
     	uint8_t productType = ams_read_reg(AMS_REG_PRODUCT_TYPE);
@@ -327,7 +327,7 @@ bool ams_init()
         ams_read_eeprom_block(AMS_CONFIG_BLOCK1_ADDR, block);
         printf1(TAG_NFC,"conf1: "); dump_hex1(TAG_NFC,block,4);
 
-        uint8_t ic_cfg1 = AMS_CFG1_OUTPUT_RESISTANCE_100 | AMS_CFG1_VOLTAGE_LEVEL_2V1;
+        uint8_t ic_cfg1 = AMS_CFG1_OUTPUT_RESISTANCE_100 | AMS_CFG1_VOLTAGE_LEVEL_2V0;
         uint8_t ic_cfg2 = AMS_CFG2_TUN_MOD;
 
         if (block[0] != ic_cfg1 || block[1] != ic_cfg2)

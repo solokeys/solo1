@@ -80,3 +80,5 @@ env3/
 .tags*
 targets/*/docs/
 main
+
+builds/*

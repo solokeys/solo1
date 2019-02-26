@@ -42,6 +42,7 @@ void _putchar(char c)
 int _write (int fd, const void *buf, long int len)
 {
     uint8_t * data = (uint8_t *) buf;
+#if DEBUG_LEVEL>1
 	static uint8_t logbuf[1000] = {0};
 	static int logbuflen = 0;
 	if (logbuflen + len > sizeof(logbuf)) {
@@ -56,11 +57,11 @@ int _write (int fd, const void *buf, long int len)
 	uint8_t res = CDC_Transmit_FS(logbuf, logbuflen);
 	if (res == USBD_OK)
 		logbuflen = 0;
-
+#endif
     // Send out UART serial
     while(len--)
     {
-        // _putchar(*data++);
+        _putchar(*data++);
     }
     return 0;
 }

@@ -25,7 +25,7 @@
 #include "stm32l4xx_ll_gpio.h"
 #include "stm32l4xx_ll_tim.h"
 #include "stm32l4xx_ll_usart.h"
-
+#include "stm32l4xx_ll_pwr.h"
 #include "usbd_hid.h"
 
 #include APP_CONFIG
@@ -122,17 +122,19 @@ void device_reboot()
 void device_init()
 {
 
-    // hw_init(LOW_FREQUENCY);
-    // isLowFreq = 1;
+    hw_init(LOW_FREQUENCY);
+    isLowFreq = 1;
 
-    hw_init(HIGH_FREQUENCY);
-    isLowFreq = 0;
+    printf1(TAG_NFC,"PWR->CR1: %04x\r\n", LL_PWR_GetRegulVoltageScaling());
+
+    // hw_init(HIGH_FREQUENCY);
+    // isLowFreq = 0;
 
     usbhid_init();
 
     ctaphid_init();
 
-    ctap_init( 1 );
+    ctap_init( 0 );
 
 #ifndef IS_BOOTLOADER
 #if BOOT_TO_DFU

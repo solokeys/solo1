@@ -48,7 +48,8 @@
 #include "init.h"
 #include APP_CONFIG
 
-
+// KHz
+#define CLOCK_RATE      24000
 
 USBD_HandleTypeDef Solo_USBD_Device;
 
@@ -56,7 +57,8 @@ static void LL_Init(void);
 
 #define Error_Handler() _Error_Handler(__FILE__,__LINE__)
 void _Error_Handler(char *file, int line);
-
+void SystemClock_Config_LF28(void);
+void SystemClock_Config_LF48(void);
 
 void hw_init(int lowfreq)
 {
@@ -69,7 +71,24 @@ void hw_init(int lowfreq)
 
     if (lowfreq)
     {
+        // Under voltage
+        LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE2);
+#if CLOCK_RATE == 48000
+        SystemClock_Config_LF48();
+#elif CLOCK_RATE == 32000
+        SystemClock_Config_LF32();
+#elif CLOCK_RATE == 28000
+        SystemClock_Config_LF28();
+#elif CLOCK_RATE == 24000
+        SystemClock_Config_LF24();
+#elif CLOCK_RATE == 20000
+        SystemClock_Config_LF20();
+#elif CLOCK_RATE == 16000
         SystemClock_Config_LF16();
+#else
+#error "Invalid clock rate selected"
+#endif
+        LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE2);
     }
     else
     {
@@ -515,6 +534,154 @@ void SystemClock_Config_LF32(void)
 
 }
 
+// 28 MHz
+void SystemClock_Config_LF28(void)
+{
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
+  LL_FLASH_SetLatency(LL_FLASH_LATENCY_1);
+
+  if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_1)
+  {
+  Error_Handler();
+  }
+  LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
+
+  LL_RCC_HSI_Enable();
+
+   /* Wait till HSI is ready */
+  while(LL_RCC_HSI_IsReady() != 1)
+  {
+
+  }
+  LL_RCC_HSI_SetCalibTrimming(16);
+
+  LL_RCC_LSI_Enable();
+
+   /* Wait till LSI is ready */
+  while(LL_RCC_LSI_IsReady() != 1)
+  {
+
+  }
+  LL_RCC_MSI_Enable();
+
+   /* Wait till MSI is ready */
+  while(LL_RCC_MSI_IsReady() != 1)
+  {
+
+  }
+  LL_RCC_MSI_EnableRangeSelection();
+
+  LL_RCC_MSI_SetRange(LL_RCC_MSIRANGE_6);
+
+  LL_RCC_MSI_SetCalibTrimming(0);
+
+  LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI, LL_RCC_PLLM_DIV_2, 28, LL_RCC_PLLR_DIV_8);
+
+  LL_RCC_PLL_EnableDomain_SYS();
+
+  LL_RCC_PLL_Enable();
+
+   /* Wait till PLL is ready */
+  while(LL_RCC_PLL_IsReady() != 1)
+  {
+
+  }
+  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
+
+   /* Wait till System clock is ready */
+  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_PLL)
+  {
+
+  }
+  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+
+  LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+
+  LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_8);
+
+  LL_Init1msTick(28000000);
+
+  LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
+
+  LL_SetSystemCoreClock(28000000);
+
+  LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
+
+  LL_RCC_SetRNGClockSource(LL_RCC_RNG_CLKSOURCE_MSI);
+
+  /* SysTick_IRQn interrupt configuration */
+  NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+}
+
+// 48 MHz
+void SystemClock_Config_LF48(void)
+{
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
+
+
+    LL_FLASH_SetLatency(LL_FLASH_LATENCY_2);
+
+      if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_2)
+     {
+     Error_Handler();
+     }
+     LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
+
+     LL_RCC_LSI_Enable();
+
+      /* Wait till LSI is ready */
+     while(LL_RCC_LSI_IsReady() != 1)
+     {
+
+     }
+     LL_RCC_MSI_Enable();
+
+      /* Wait till MSI is ready */
+     while(LL_RCC_MSI_IsReady() != 1)
+     {
+
+     }
+     LL_RCC_MSI_EnableRangeSelection();
+
+     LL_RCC_MSI_SetRange(LL_RCC_MSIRANGE_11);
+
+     LL_RCC_MSI_SetCalibTrimming(0);
+
+     LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_MSI);
+
+      /* Wait till System clock is ready */
+     while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
+     {
+
+     }
+     LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+
+     LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+
+     LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_16);
+
+     LL_Init1msTick(48000000);
+
+     LL_SYSTICK_SetClkSource(LL_SYSTICK_CLKSOURCE_HCLK);
+
+     LL_SetSystemCoreClock(48000000);
+
+     LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
+
+     LL_RCC_SetRNGClockSource(LL_RCC_RNG_CLKSOURCE_MSI);
+
+     /* SysTick_IRQn interrupt configuration */
+     NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+
+
+}
+
+// 20 MHz
+void SystemClock_Config_LF20(void)
+{
+    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
+}
+
 void init_usb()
 {
     // enable USB power
@@ -666,17 +833,18 @@ void init_gpio(void)
   LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
 
 #ifdef SOLO_AMS_IRQ_PORT
-  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOC);
-  /**/
-  LL_GPIO_InitTypeDef GPIO_InitStruct;
-  GPIO_InitStruct.Pin = SOLO_AMS_IRQ_PIN;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(SOLO_AMS_IRQ_PORT, &GPIO_InitStruct);
-
-
-  LL_GPIO_SetPinMode(SOLO_AMS_IRQ_PORT,SOLO_AMS_IRQ_PIN,LL_GPIO_MODE_INPUT);
-  LL_GPIO_SetPinPull(SOLO_AMS_IRQ_PORT,SOLO_AMS_IRQ_PIN,LL_GPIO_PULL_UP);
+// SAVE POWER
+  // LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOC);
+  // /**/
+  // LL_GPIO_InitTypeDef GPIO_InitStruct;
+  // GPIO_InitStruct.Pin = SOLO_AMS_IRQ_PIN;
+  // GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+  // GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  // LL_GPIO_Init(SOLO_AMS_IRQ_PORT, &GPIO_InitStruct);
+  //
+  //
+  // LL_GPIO_SetPinMode(SOLO_AMS_IRQ_PORT,SOLO_AMS_IRQ_PIN,LL_GPIO_MODE_INPUT);
+  // LL_GPIO_SetPinPull(SOLO_AMS_IRQ_PORT,SOLO_AMS_IRQ_PIN,LL_GPIO_PULL_UP);
 #endif
 
 }
@@ -694,7 +862,7 @@ void init_millisecond_timer(int lf)
     if (!lf)
         TIM_InitStruct.Prescaler = 48000;
     else
-        TIM_InitStruct.Prescaler = 24000;
+        TIM_InitStruct.Prescaler = CLOCK_RATE;
 
     TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
     TIM_InitStruct.Autoreload = 90;

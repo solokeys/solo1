@@ -127,6 +127,11 @@ int ams_state_is_valid(uint8_t regval);
 #define AMS_CFG1_VOLTAGE_LEVEL_2V3      (0x04<<2)
 #define AMS_CFG1_VOLTAGE_LEVEL_2V4      (0x05<<2)
 #define AMS_CFG1_VOLTAGE_LEVEL_2V5      (0x06<<2)
+#define AMS_CFG1_VOLTAGE_LEVEL_2V6      (0x07<<2)
+#define AMS_CFG1_VOLTAGE_LEVEL_2V7      (0x08<<2)
+#define AMS_CFG1_VOLTAGE_LEVEL_2V8      (0x09<<2)
+#define AMS_CFG1_VOLTAGE_LEVEL_2V9      (0x0a<<2)
+#define AMS_CFG1_VOLTAGE_LEVEL_3V0      (0x0b<<2)
 
 #define AMS_CFG1_OUTPUT_RESISTANCE_ZZ   0x00
 #define AMS_CFG1_OUTPUT_RESISTANCE_100  0x01

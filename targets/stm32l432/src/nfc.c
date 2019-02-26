@@ -8,6 +8,7 @@
 #include "util.h"
 #include "device.h"
 #include "u2f.h"
+#include "crypto.h"
 
 #include "ctap_errors.h"
 
@@ -102,7 +103,7 @@ bool ams_receive_with_timeout(uint32_t timeout_ms, uint8_t * data, int maxlen, i
             {
                 uint8_t len = buffer_status2 & AMS_BUF_LEN_MASK;
                 ams_read_buffer(buf, len);
-				printf1(TAG_NFC_APDU, ">> "); 
+				printf1(TAG_NFC_APDU, ">> ");
 				dump_hex1(TAG_NFC_APDU, buf, len);
 
 				*dlen = MIN(32, MIN(maxlen, len));
@@ -128,7 +129,7 @@ void nfc_write_frame(uint8_t * data, uint8_t len)
     ams_write_buffer(data,len);
     ams_write_command(AMS_CMD_TRANSMIT_BUFFER);
 
-    printf1(TAG_NFC_APDU, "<< "); 
+    printf1(TAG_NFC_APDU, "<< ");
 	dump_hex1(TAG_NFC_APDU, data, len);
 }
 
@@ -156,7 +157,7 @@ bool nfc_write_response(uint8_t req0, uint16_t resp)
 	return nfc_write_response_ex(req0, NULL, 0, resp);
 }
 
-void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
+void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len, int keepgoing)
 {
     uint8_t res[32 + 2];
 	int sendlen = 0;
@@ -177,7 +178,7 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 			memcpy(&res[1], &data[sendlen], vlen);
 
 			// if not a last block
-			if (vlen + sendlen < len)
+			if ((vlen + sendlen < len) || keepgoing)
 			{
 				res[0] |= 0x10;
 			}
@@ -187,11 +188,11 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 			sendlen += vlen;
 
 			// wait for transmit (32 bytes aprox 2,5ms)
-			if (!ams_wait_for_tx(10))
-			{
-				printf1(TAG_NFC, "TX timeout. slen: %d \r\n", sendlen);
-				break;
-			}
+			// if (!ams_wait_for_tx(10))
+			// {
+			// 	printf1(TAG_NFC, "TX timeout. slen: %d \r\n", sendlen);
+			// 	break;
+			// }
 
 			// if needs to receive R block (not a last block)
 			if (res[0] & 0x10)
@@ -200,13 +201,14 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 				int reclen;
 				if (!ams_receive_with_timeout(100, recbuf, sizeof(recbuf), &reclen))
 				{
-					printf1(TAG_NFC, "R block RX timeout.\r\n");
+					printf1(TAG_NFC, "R block RX timeout %d/%d.\r\n",sendlen,len);
 					break;
 				}
 
 				if (reclen != 1)
 				{
-					printf1(TAG_NFC, "R block length error. len: %d \r\n", reclen);
+					printf1(TAG_NFC, "R block length error. len: %d. %d/%d \r\n", reclen,sendlen,len);
+                    dump_hex1(TAG_NFC, recbuf, reclen);
 					break;
 				}
 
@@ -243,14 +245,14 @@ bool WTX_on(int WTX_time)
 {
 	WTX_clear();
 	WTX_timer = millis();
-	
+
 	return true;
 }
 
 bool WTX_off()
 {
 	WTX_timer = 0;
-	
+
 	// read data if we sent WTX
 	if (WTX_sent)
 	{
@@ -266,7 +268,7 @@ bool WTX_off()
 		printf1(TAG_NFC, "WTX-off fail\n");
 		return false;
 	}
-	
+
 	WTX_clear();
 	return true;
 }
@@ -276,7 +278,7 @@ void WTX_timer_exec()
 	// condition: (timer on) or (not expired[300ms])
 	if ((WTX_timer <= 0) || WTX_timer + 300 > millis())
 		return;
-	
+
 	WTX_process(10);
 	WTX_timer = millis();
 }
@@ -396,9 +398,10 @@ void nfc_process_iblock(uint8_t * buf, int len)
     int selected;
     uint8_t res[32];
 	uint32_t t1;
-
+    int l1;
     CTAP_RESPONSE ctap_resp;
     int status;
+    struct u2f_register_request * u2freq = (struct u2f_register_request *)payload;
 
     printf1(TAG_NFC,"Iblock: ");
 	dump_hex1(TAG_NFC, buf, len);
@@ -477,14 +480,24 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			}
 
 			t1 = millis();
-			WTX_on(WTX_TIME_DEFAULT);
-			u2f_request_nfc(&buf[1], len, &ctap_resp);
-			if (!WTX_off())
-				return;
 
-			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
-            printf1(TAG_NFC,"U2F Register processing %d (took %d)\r\n", millis(), millis() - t1);
-			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+
+			// WTX_on(WTX_TIME_DEFAULT);
+            // SystemClock_Config_LF32();
+            // delay(300);
+			u2f_request_nfc(&buf[1], len, &ctap_resp);
+            // SystemClock_Config_LF16();
+			// if (!WTX_off())
+			// 	return;
+
+            printf1(TAG_NFC,"U2F Register P2 took %d\r\n", millis() - t1);
+            nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, 0 );
+
+			// printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
+
+
+
+
             printf1(TAG_NFC,"U2F Register answered %d (took %d)\r\n", millis(), millis() - t1);
        break;
 
@@ -505,14 +518,14 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			}
 
 			t1 = millis();
-			WTX_on(WTX_TIME_DEFAULT);
+			// WTX_on(WTX_TIME_DEFAULT);
 			u2f_request_nfc(&buf[1], len, &ctap_resp);
-			if (!WTX_off())
-				return;
+			// if (!WTX_off())
+			// 	return;
 
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Authenticate processing %d (took %d)\r\n", millis(), millis() - t1);
-			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, 0);
             printf1(TAG_NFC,"U2F Authenticate answered %d (took %d)\r\n", millis(), millis() - t1);
         break;
 
@@ -545,7 +558,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			ctap_resp.data[ctap_resp.length - 1] = SW_SUCCESS & 0xff;
 
             printf1(TAG_NFC,"CTAP processing %d (took %d)\r\n", millis(), millis() - t1);
-			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, 0);
             printf1(TAG_NFC,"CTAP answered %d (took %d)\r\n", millis(), millis() - t1);
         break;
 

@@ -160,7 +160,7 @@ void u2f_set_writeback_buffer(CTAP_RESPONSE * resp)
     _u2f_resp = resp;
 }
 
-static void dump_signature_der(uint8_t * sig)
+void dump_signature_der(uint8_t * sig)
 {
     uint8_t sigder[72];
     int len;
@@ -183,7 +183,7 @@ static void u2f_make_auth_tag(struct u2f_key_handle * kh, uint8_t * appid, uint8
     memmove(tag, hashbuf, CREDENTIAL_TAG_SIZE);
 }
 
-static int8_t u2f_new_keypair(struct u2f_key_handle * kh, uint8_t * appid, uint8_t * pubkey)
+int8_t u2f_new_keypair(struct u2f_key_handle * kh, uint8_t * appid, uint8_t * pubkey)
 {
     ctap_generate_rng(kh->key, U2F_KEY_HANDLE_KEY_SIZE);
     u2f_make_auth_tag(kh, appid, kh->tag);
@@ -286,6 +286,7 @@ static int16_t u2f_register(struct u2f_register_request * req, bool fromNFC)
     uint8_t i[] = {0x0,U2F_EC_FMT_UNCOMPRESSED};
 
     struct u2f_key_handle key_handle;
+    static uint32_t count = 0;
     uint8_t pubkey[64];
     uint8_t hash[32];
     uint8_t * sig = (uint8_t*)req;
@@ -300,11 +301,12 @@ static int16_t u2f_register(struct u2f_register_request * req, bool fromNFC)
 			return U2F_SW_CONDITIONS_NOT_SATISFIED;
 		}
 	}
-
+    uint32_t t1 = millis();
     if ( u2f_new_keypair(&key_handle, req->app, pubkey) == -1)
     {
         return U2F_SW_INSUFFICIENT_MEMORY;
     }
+    printf1(TAG_NFC, "keygen time: %d ms\r\n", millis()-t1);
 
     crypto_sha256_init();
     crypto_sha256_update(i,1);
