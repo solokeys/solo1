@@ -42,12 +42,11 @@
 
 // Command status responses
 #define U2F_SW_NO_ERROR                     0x9000
-#define U2F_SW_WRONG_DATA                   0x6984
 #define U2F_SW_CONDITIONS_NOT_SATISFIED     0x6985
 #define U2F_SW_INS_NOT_SUPPORTED            0x6d00
 #define U2F_SW_WRONG_LENGTH                 0x6700
 #define U2F_SW_CLASS_NOT_SUPPORTED          0x6E00
-#define U2F_SW_WRONG_PAYLOAD                0x6a80
+#define U2F_SW_WRONG_DATA                   0x6a80
 #define U2F_SW_INSUFFICIENT_MEMORY          0x9210
 
 // Delay in milliseconds to wait for user input

@@ -118,7 +118,7 @@ int16_t extend_u2f(struct u2f_request_apdu* req, uint32_t len)
         {
             if ( ! is_extension_request((uint8_t *) &auth->kh, auth->khl))     // Pin requests
             {
-                rcode = U2F_SW_WRONG_PAYLOAD;
+                rcode = U2F_SW_WRONG_DATA;
                 printf1(TAG_EXT, "Ignoring U2F auth request\n");
                 dump_hex1(TAG_EXT, (uint8_t *) &auth->kh, auth->khl);
                 goto end;

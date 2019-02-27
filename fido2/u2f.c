@@ -196,6 +196,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 
     if (control == U2F_AUTHENTICATE_CHECK)
     {
+        printf1(TAG_U2F, "CHECK-ONLY\r\n");
         if (u2f_appid_eq(&req->kh, req->app) == 0)
         {
             return U2F_SW_CONDITIONS_NOT_SATISFIED;
@@ -213,7 +214,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 
         )
     {
-        return U2F_SW_WRONG_PAYLOAD;
+        return U2F_SW_WRONG_DATA;
     }
 
 
