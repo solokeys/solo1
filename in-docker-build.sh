@@ -35,3 +35,10 @@ build bootloader nonverifying
 build bootloader verifying
 build firmware hacker solo
 build firmware secure solo
+
+pip install -U pip
+pip install -U solo-python
+cd ${out_dir}
+bundle="bundle-hacker-${version}"
+/opt/conda/bin/solo mergehex bootloader-nonverifying-${version}.hex firmware-hacker-${version}.hex ${bundle}.hex
+sha256sum ${bundle}.hex > ${bundle}.sha2

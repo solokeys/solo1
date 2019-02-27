@@ -24,8 +24,10 @@ RUN echo "e5e5b4cd2a918e0e96b395534222773f7241dc59d776db1b9f7fedfcb489157a  mini
 RUN sha256sum -c miniconda.sha256
 
 RUN bash ./miniconda.sh -b -p /opt/conda
-RUN ln -s /opt/conda/bin/python3 /usr/local/bin/python3
-RUN ln -s /opt/conda/bin/python3 /usr/local/bin/python
+RUN ln -s /opt/conda/bin/python /usr/local/bin/python3
+RUN ln -s /opt/conda/bin/python /usr/local/bin/python
+RUN ln -s /opt/conda/bin/pip /usr/local/bin/pip3
+RUN ln -s /opt/conda/bin/pip /usr/local/bin/pip
 
 # 3. Source code
 RUN git clone --recurse-submodules https://github.com/solokeys/solo /solo --config core.autocrlf=input
