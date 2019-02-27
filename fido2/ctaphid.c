@@ -729,7 +729,7 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             is_busy = 0;
         break;
 #endif
-#if defined(SOLO_HACKER) && (DEBUG_LEVEL > 0)
+#if defined(SOLO_HACKER) && (DEBUG_LEVEL > 0) && (!IS_BOOTLOADER == 1)
         case CTAPHID_PROBE:
 
             /*
