@@ -61,6 +61,7 @@ crypto/micro-ecc/uECC.o: ./crypto/micro-ecc/uECC.c
 
 venv:
 	python3 -m venv venv
+	venv/bin/pip -q install --upgrade pip
 	venv/bin/pip -q install --upgrade -r tools/requirements.txt
 	venv/bin/pip -q install --upgrade black
 
