@@ -80,7 +80,7 @@ docker-build:
 	docker build -t $(DOCKER_IMAGE) .
 	docker run --rm -v "$(CURDIR)/builds:/builds" \
 				    -v "$(CURDIR)/in-docker-build.sh:/in-docker-build.sh" \
-				    $(DOCKER_IMAGE) /in-docker-build.sh $(SOLO_VERSIONISH)
+				    $(DOCKER_IMAGE) "./in-docker-build.sh" $(SOLO_VERSIONISH)
 
 CPPCHECK_FLAGS=--quiet --error-exitcode=2
 
