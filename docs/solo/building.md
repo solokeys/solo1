@@ -55,11 +55,11 @@ If you use `DEBUG=2`, that means Solo will not boot until something starts readi
 it's debug messages.  So it basically it waits to tether to a serial terminal so that you don't
 miss any debug messages.
 
-We recommend using our `solotool.py` as a serial emulator since it will automatically
+We recommend using our `solo` tool as a serial emulator since it will automatically
 reconnect each time you program Solo.
 
 ```
-python tools/solotool.py monitor <serial-port>
+solo monitor <serial-port>
 ```
 
 #### Linux Users:
@@ -86,7 +86,7 @@ Programming `all.hex` will cause the device to permanently lock itself.
 It's recommended to test a debug/hacker build first to make sure Solo is working as expected.
 Then you can switch to a locked down build, which cannot be reprogrammed as easily (or not at all!).
 
-We recommend using our `solotool.py` to manage programming.  It is cross platform.  First you must
+We recommend using our `solo` tool to manage programming.  It is cross platform.  First you must
 install the prerequisites:
 
 ```
@@ -101,7 +101,8 @@ If your Solo device is already programmed (it flashes green when powered), we re
 programming it using the Solo bootloader.
 
 ```
-python tools/solotool.py program solo.hex
+solo program aux enter-bootloader
+solo program bootloader solo.hex
 ```
 
 Make sure to program `solo.hex` and not `all.hex`.  Nothing bad would happen, but you'd
@@ -125,7 +126,10 @@ off and it enumerates as "STM BOOTLOADER".
 You can program it by running the following.
 
 ```
-python tools/solotool.py program all.hex --use-dfu --detach
+solo program aux enter-bootloader
+solo program aux enter-dfu
+# powercycle key
+solo program dfu all.hex
 ```
 
 Make sure to program `all.hex`, as this contains both the bootloader and the Solo application.
@@ -145,14 +149,14 @@ A locked Solo will only accept signed updates.
 If this is not a device with a hacker build, you can only program signed updates.
 
 ```
-python tools/solotool.py program /path/to/firmware.json
+solo program bootloader /path/to/firmware.json
 ```
 
 If you've provisioned the Solo bootloader with your own secp256r1 public key, you can sign your
 firmware by running the following command.
 
 ```
-python tools/solotool.py sign /path/to/signing-key.pem /path/to/solo.hex /output-path/to/firmware.json
+solo sign /path/to/signing-key.pem /path/to/solo.hex /output-path/to/firmware.json
 ```
 
 If your Solo isn't locked, you can always reprogram it using a debugger connected directly
@@ -175,5 +179,5 @@ If you'd like to also permanently disable signed updates, plug in your programme
 
 ```
 # WARNING: No more signed updates.
-python tools/programmer.py --disable
+solo program disable-bootloader
 ```

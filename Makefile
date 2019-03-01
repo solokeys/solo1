@@ -61,6 +61,7 @@ crypto/micro-ecc/uECC.o: ./crypto/micro-ecc/uECC.c
 
 venv:
 	python3 -m venv venv
+	venv/bin/pip -q install --upgrade pip
 	venv/bin/pip -q install --upgrade -r tools/requirements.txt
 	venv/bin/pip -q install --upgrade black
 
@@ -69,7 +70,7 @@ black: venv
 	venv/bin/black --skip-string-normalization --check tools/
 
 wink: venv
-	venv/bin/python tools/solotool.py solo --wink
+	venv/bin/solo key wink
 
 fido2-test: venv
 	venv/bin/python tools/ctap_test.py

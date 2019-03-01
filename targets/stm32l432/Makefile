@@ -5,7 +5,7 @@ endif
 APPMAKE=build/application.mk
 BOOTMAKE=build/bootloader.mk
 
-merge_hex=../../tools/solotool.py mergehex
+merge_hex=solo mergehex
 
 .PHONY: all all-hacker all-locked debugboot-app debugboot-boot boot-sig-checking boot-no-sig build-release-locked build-release build-release build-hacker build-debugboot clean clean2 flash flash_dfu flashboot detach cbor test
 
