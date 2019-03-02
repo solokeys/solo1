@@ -746,7 +746,6 @@ class Tester:
     def test_rk(self,):
         creds = []
         rp = {"id": self.host, "name": "ExaRP"}
-        user0 = {"id": b"first one", "name": "single User"}
 
         users = [
             {"id": b"user" + os.urandom(16), "name": "Username%d" % i}
@@ -761,7 +760,7 @@ class Tester:
         print("registering 1 user with RK")
         t1 = time.time() * 1000
         attest, data = self.client.make_credential(
-            rp, user0, challenge, pin=PIN, exclude_list=[], rk=True
+            rp, users[-1], challenge, pin=PIN, exclude_list=[], rk=True
         )
         t2 = time.time() * 1000
         VerifyAttestation(attest, data)
@@ -780,7 +779,7 @@ class Tester:
         print(assertions[0], client_data)
 
         print("registering %d users with RK" % len(users))
-        for i in range(0, len(users)):
+        for i in range(0, len(users) - 1):
             t1 = time.time() * 1000
             attest, data = self.client.make_credential(
                 rp, users[i], challenge, pin=PIN, exclude_list=[], rk=True
@@ -796,6 +795,9 @@ class Tester:
             rp["id"], challenge, pin=PIN
         )
         t2 = time.time() * 1000
+
+        print("Got %d assertions for %d users" % (len(assertions), len(users)))
+        assert len(assertions) == len(users)
 
         for x, y in zip(assertions, creds):
             x.verify(client_data.hash, y.public_key)
@@ -819,7 +821,7 @@ class Tester:
         )
         t2 = time.time() * 1000
         print("Assertions: %d, users: %d" % (len(assertions), len(users)))
-        assert len(assertions) == len(users) + 1
+        assert len(assertions) == len(users)
         for x, y in zip(assertions, creds):
             x.verify(client_data.hash, y.public_key)
 
