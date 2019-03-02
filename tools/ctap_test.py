@@ -20,7 +20,7 @@ import array, struct, socket
 from fido2.hid import CtapHidDevice, CTAPHID
 from fido2.client import Fido2Client, ClientError
 from fido2.ctap import CtapError
-from fido2.ctap1 import CTAP1
+from fido2.ctap1 import CTAP1, ApduError, APDU
 from fido2.ctap2 import *
 from fido2.cose import *
 from fido2.utils import Timeout, sha256
@@ -393,16 +393,99 @@ class Tester:
         chal = sha256(b"AAA")
         appid = sha256(b"BBB")
         lastc = 0
-        for i in range(0, 5):
+        test_count = 5
+
+        regs = []
+
+        print("Check version")
+        assert self.ctap1.get_version() == "U2F_V2"
+        print("Pass")
+
+        print("Check bad INS")
+        try:
+            res = self.ctap1.send_apdu(0, 0, 0, 0, b"")
+        except ApduError as e:
+            assert e.code == 0x6D00
+        print("Pass")
+
+        print("Check bad CLA")
+        try:
+            res = self.ctap1.send_apdu(1, CTAP1.INS.VERSION, 0, 0, b"abc")
+        except ApduError as e:
+            assert e.code == 0x6E00
+        print("Pass")
+
+        for i in range(0, test_count):
             reg = self.ctap1.register(chal, appid)
             reg.verify(appid, chal)
             auth = self.ctap1.authenticate(chal, appid, reg.key_handle)
+            auth.verify(appid, chal, reg.public_key)
+
+            regs.append(reg)
             # check endianness
             if lastc:
                 assert (auth.counter - lastc) < 10
             lastc = auth.counter
-            print(hex(lastc))
-            print("U2F reg + auth pass %d/5" % (i + 1))
+            if lastc > 0x100000:
+                print("WARNING: counter is unusually high: %04x" % lastc)
+                assert 0
+
+            print("U2F reg + auth pass %d/5 (count: %02x)" % (i + 1, lastc))
+
+        print("Checking previous registrations...")
+        for i in range(0, test_count):
+            auth = self.ctap1.authenticate(chal, appid, regs[i].key_handle)
+            auth.verify(appid, chal, regs[i].public_key)
+            print("Auth pass %d/5" % (i + 1))
+
+        print("Check that all previous credentials are registered...")
+        for i in range(0, test_count):
+            try:
+                auth = self.ctap1.authenticate(
+                    chal, appid, regs[i].key_handle, check_only=True
+                )
+            except ApduError as e:
+                # Indicates that key handle is registered
+                assert e.code == APDU.USE_NOT_SATISFIED
+
+            print("Check pass %d/5" % (i + 1))
+
+        print("Check an incorrect key handle is not registered")
+        kh = bytearray(regs[0].key_handle)
+        kh[0] = kh[0] ^ (0x40)
+        try:
+            self.ctap1.authenticate(chal, appid, kh, check_only=True)
+            assert 0
+        except ApduError as e:
+            assert e.code == APDU.WRONG_DATA
+            print("Pass")
+
+        print("Try to sign with incorrect key handle")
+        try:
+            self.ctap1.authenticate(chal, appid, kh)
+            assert 0
+        except ApduError as e:
+            assert e.code == APDU.WRONG_DATA
+            print("Pass")
+
+        print("Try to sign using an incorrect keyhandle length")
+        try:
+            kh = regs[0].key_handle
+            self.ctap1.authenticate(chal, appid, kh[: len(kh) // 2])
+            assert 0
+        except ApduError as e:
+            assert e.code == APDU.WRONG_DATA
+            print("Pass")
+
+        print("Try to sign using an incorrect appid")
+        badid = bytearray(appid)
+        badid[0] = badid[0] ^ (0x40)
+        try:
+            auth = self.ctap1.authenticate(chal, badid, regs[0].key_handle)
+            assert 0
+        except ApduError as e:
+            assert e.code == APDU.WRONG_DATA
+            print("Pass")
 
     def test_fido2_simple(self, pin_token=None):
         creds = []
@@ -845,22 +928,23 @@ if __name__ == "__main__":
     t = Tester()
     t.find_device()
 
-    if "hid" in sys.argv:
-        t.test_hid()
-
-    if "ping" in sys.argv:
-        t.test_long_ping()
-
     if "u2f" in sys.argv:
         t.test_u2f()
 
     if "fido2" in sys.argv:
         t.test_fido2()
+        t.test_fido2_simple()
 
     if "rk" in sys.argv:
         t.test_rk()
 
+    if "ping" in sys.argv:
+        t.test_long_ping()
+
+    # hid tests are a bit invasive and should be done last
+    if "hid" in sys.argv:
+        t.test_hid()
+
     # t.test_responses()
     # test_find_brute_force()
-    # t.test_fido2_simple()
     # t.test_fido2_brute_force()
