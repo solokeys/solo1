@@ -221,7 +221,8 @@ void SystemInit(void)
   /* Disable all interrupts */
   RCC->CIER = 0x00000000U;
 
-  device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
+  // TODO this is causing boot issues for old bootloader
+  // device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
 
 }
 
