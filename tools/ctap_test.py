@@ -26,7 +26,7 @@ from fido2.cose import *
 from fido2.utils import Timeout, sha256
 from fido2.attestation import Attestation
 
-from solo.fido2 import forceUDPBackend
+from solo.fido2 import force_udp_backend
 
 
 # Set up a FIDO 2 client using the origin https://example.com
@@ -836,13 +836,13 @@ def test_find_brute_force():
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "sim":
         print("Using UDP backend.")
-        forceUDPBackend()
+        force_udp_backend()
 
     t = Tester()
     t.find_device()
     # t.test_hid()
     # t.test_long_ping()
-    t.test_fido2()
+    # t.test_fido2()
     t.test_u2f()
     # t.test_rk()
     # t.test_responses()

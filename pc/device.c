@@ -174,6 +174,10 @@ void device_init()
     usbhid_init();
 
     authenticator_initialize();
+
+    ctaphid_init();
+
+    ctap_init( 1 );
 }
 
 
