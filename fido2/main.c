@@ -25,40 +25,33 @@ int main()
     uint32_t t1 = 0;
 
     set_logging_mask(
-            /*0*/
-           // TAG_GEN|
-            // TAG_MC |
-            // TAG_GA |
-            TAG_WALLET |
-            TAG_STOR |
-            // TAG_CP |
-            // TAG_CTAP|
-           // TAG_HID|
-            /*TAG_U2F|*/
-            // TAG_PARSE |
-           // TAG_TIME|
-            // TAG_DUMP|
-            TAG_GREEN|
-            TAG_RED|
-            TAG_ERR
-            );
+		/*0*/
+		//TAG_GEN|
+		//TAG_MC |
+		//TAG_GA |
+		//TAG_WALLET |
+		TAG_STOR |
+		//TAG_NFC_APDU |
+		TAG_NFC |
+		//TAG_CP |
+		//TAG_CTAP|
+		//TAG_HID|
+		//TAG_U2F|
+		//TAG_PARSE |
+		//TAG_TIME|
+		//TAG_DUMP|
+		TAG_GREEN|
+		TAG_RED|
+		TAG_ERR
+	);
 
     device_init();
-    printf1(TAG_GEN,"init device\n");
-
-    usbhid_init();
-    printf1(TAG_GEN,"init usb\n");
 
 
-    ctaphid_init();
-    printf1(TAG_GEN,"init ctaphid\n");
-
-    ctap_init();
-    printf1(TAG_GEN,"init ctap\n");
 
     memset(hidmsg,0,sizeof(hidmsg));
 
-    printf1(TAG_GEN,"recv'ing hid msg \n");
+    // printf1(TAG_GEN,"recv'ing hid msg \n");
 
 
     while(1)
@@ -80,6 +73,7 @@ int main()
         {
         }
         ctaphid_check_timeouts();
+
     }
 
     // Should never get here

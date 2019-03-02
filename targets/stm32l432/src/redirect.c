@@ -24,19 +24,33 @@ void _putchar(char c)
 }
 
 
-
-int _write (int fd, const void *buf, long int len)
+int _write (int fd, const void *buf, unsigned long int len)
 {
     uint8_t * data = (uint8_t *) buf;
+#if DEBUG_LEVEL>1
+	static uint8_t logbuf[1000] = {0};
+	static int logbuflen = 0;
+	if (logbuflen + len > sizeof(logbuf)) {
+		int mlen = logbuflen + len - sizeof(logbuf);
+		memmove(logbuf, &logbuf[mlen], sizeof(logbuf) - mlen);
+		logbuflen -= mlen;
+	}
+	memcpy(&logbuf[logbuflen], data, len);
+	logbuflen += len;
 
-    // Send out USB serial
-    CDC_Transmit_FS(data, len);
-
+	// Send out USB serial
+	uint8_t res = CDC_Transmit_FS(logbuf, logbuflen);
+	if (res == USBD_OK)
+		logbuflen = 0;
+#endif
+#ifdef ENABLE_SERIAL_PRINTING
     // Send out UART serial
     while(len--)
     {
         _putchar(*data++);
     }
+#endif
     return 0;
+
 }
 #endif

@@ -38,6 +38,7 @@
 // U2F Authenticate
 #define U2F_AUTHENTICATE_CHECK              0x7
 #define U2F_AUTHENTICATE_SIGN               0x3
+#define U2F_AUTHENTICATE_SIGN_NO_USER       0x8
 
 
 // Command status responses
@@ -94,8 +95,13 @@ struct u2f_authenticate_request
 };
 
 // u2f_request send a U2F message to U2F protocol
-//  @req U2F message
+// @req U2F message
 void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp);
+
+// u2f_request send a U2F message to NFC protocol
+// @req data with iso7816 apdu message
+// @len data length
+void u2f_request_nfc(uint8_t * req, int len, CTAP_RESPONSE * resp);
 
 
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);

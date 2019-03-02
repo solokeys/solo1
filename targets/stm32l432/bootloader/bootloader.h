@@ -55,7 +55,7 @@
 #define SOLO_PRODUCT_NAME "Solo Bootloader " SOLO_VERSION
 
 void printing_init();
-void hw_init(void);
+void hw_init(int lf);
 
 // Trigger software reset
 void device_reboot();

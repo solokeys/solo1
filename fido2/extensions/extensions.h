@@ -7,8 +7,9 @@
 #ifndef EXTENSIONS_H_
 #define EXTENSIONS_H_
 #include "u2f.h"
+#include "apdu.h"
 
-int16_t extend_u2f(struct u2f_request_apdu* req, uint32_t len);
+int16_t extend_u2f(APDU_HEADER * req, uint8_t * payload, uint32_t len);
 
 int16_t extend_fido2(CredentialId * credid, uint8_t * output);
 

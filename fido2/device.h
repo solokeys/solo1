@@ -86,5 +86,22 @@ void boot_st_bootloader();
 // HID wink command
 void device_wink();
 
+typedef enum {
+    DEVICE_LOW_POWER_IDLE = 0,
+    DEVICE_LOW_POWER_FAST = 1,
+    DEVICE_FAST = 2,
+} DEVICE_CLOCK_RATE;
+
+// Set the clock rate for the device.
+// Three modes are targetted for Solo.
+// 0: Lowest clock rate for NFC.
+// 1: fastest clock rate supported at a low power setting for NFC FIDO.
+// 2: fastest clock rate.  Generally for USB interface.
+void device_set_clock_rate(DEVICE_CLOCK_RATE param);
+
+// Returns 1 if operating in NFC mode.
+// 0 otherwise.
+bool device_is_nfc();
+
 
 #endif
