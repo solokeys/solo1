@@ -28,6 +28,8 @@
 #define CTAPHID_ENTERBOOT       (TYPE_INIT | 0x51)
 #define CTAPHID_ENTERSTBOOT     (TYPE_INIT | 0x52)
 #define CTAPHID_GETRNG          (TYPE_INIT | 0x60)
+// reserved for debug, not implemented except for HACKER and DEBUG_LEVEl > 0
+#define CTAPHID_PROBE           (TYPE_INIT | 0x70)
 
     #define ERR_INVALID_CMD         0x01
     #define ERR_INVALID_PAR         0x02
