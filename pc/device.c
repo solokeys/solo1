@@ -22,6 +22,11 @@
 #include "log.h"
 #include "ctaphid.h"
 
+#define RK_NUM  50
+
+struct ResidentKeyStore {
+    CTAP_residentKey rks[RK_NUM];
+} RK_STORE;
 
 void authenticator_initialize();
 
@@ -251,6 +256,7 @@ int ctap_generate_rng(uint8_t * dst, size_t num)
 
 const char * state_file = "authenticator_state.bin";
 const char * backup_file = "authenticator_state2.bin";
+const char * rk_file = "resident_keys.bin";
 
 void authenticator_read_state(AuthenticatorState * state)
 {
@@ -370,6 +376,24 @@ int authenticator_is_backup_initialized()
 
 /*}*/
 
+static void sync_rk()
+{
+    FILE * f = fopen(rk_file, "wb+");
+    if (f== NULL)
+    {
+        perror("fopen");
+        exit(1);
+    }
+
+    int ret = fwrite(&RK_STORE, 1, sizeof(RK_STORE), f);
+    fclose(f);
+    if (ret != sizeof(RK_STORE))
+    {
+        perror("fwrite");
+        exit(1);
+    }
+}
+
 void authenticator_initialize()
 {
     uint8_t header[16];
@@ -393,6 +417,22 @@ void authenticator_initialize()
             perror("fwrite");
             exit(1);
         }
+
+        // resident_keys
+        f = fopen(rk_file, "rb");
+        if (f== NULL)
+        {
+            perror("fopen");
+            exit(1);
+        }
+        ret = fread(&RK_STORE, 1, sizeof(RK_STORE), f);
+        fclose(f);
+        if(ret != sizeof(RK_STORE))
+        {
+            perror("fwrite");
+            exit(1);
+        }
+
     }
     else
     {
@@ -431,6 +471,12 @@ void authenticator_initialize()
             exit(1);
         }
 
+        // resident_keys
+        memset(&RK_STORE,0xff,sizeof(RK_STORE));
+        sync_rk();
+
+
+
     }
 }
 
@@ -439,26 +485,37 @@ void device_manage()
 
 }
 
+
+
 void ctap_reset_rk()
 {
+    memset(&RK_STORE,0xff,sizeof(RK_STORE));
+    sync_rk();
+
 }
 
 uint32_t ctap_rk_size()
 {
-    printf("Warning: rk not implemented\n");
-    return 0;
+    return RK_NUM;
 }
-void ctap_store_rk(int index,CTAP_residentKey * rk)
+
+
+void ctap_store_rk(int index, CTAP_residentKey * rk)
 {
-    printf("Warning: rk not implemented\n");
+    memmove(RK_STORE.rks + index, rk, sizeof(CTAP_residentKey));
+    sync_rk();
 }
-void ctap_load_rk(int index,CTAP_residentKey * rk)
+
+
+void ctap_load_rk(int index, CTAP_residentKey * rk)
 {
-    printf("Warning: rk not implemented\n");
+    memmove(rk, RK_STORE.rks + index, sizeof(CTAP_residentKey));
 }
-void ctap_overwrite_rk(int index,CTAP_residentKey * rk)
+
+void ctap_overwrite_rk(int index, CTAP_residentKey * rk)
 {
-    printf("Warning: rk not implemented\n");
+    memmove(RK_STORE.rks + index, rk, sizeof(CTAP_residentKey));
+    sync_rk();
 }
 
 void device_wink()
