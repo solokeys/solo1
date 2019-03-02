@@ -596,7 +596,7 @@ void ctap_overwrite_rk(int index,CTAP_residentKey * rk)
 
         memmove(tmppage + (sizeof(CTAP_residentKey) * index) % PAGE_SIZE, rk, sizeof(CTAP_residentKey));
         flash_erase_page(page);
-        flash_write(flash_addr(page), tmppage, ((sizeof(CTAP_residentKey) * (index + 1)) % PAGE_SIZE) );
+        flash_write(flash_addr(page), tmppage, PAGE_SIZE);
     }
     else
     {
