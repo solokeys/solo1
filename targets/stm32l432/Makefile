@@ -5,7 +5,7 @@ endif
 APPMAKE=build/application.mk
 BOOTMAKE=build/bootloader.mk
 
-merge_hex=../../tools/solotool.py mergehex
+merge_hex=solo mergehex
 
 .PHONY: all all-hacker all-locked debugboot-app debugboot-boot boot-sig-checking boot-no-sig build-release-locked build-release build-release build-hacker build-debugboot clean clean2 flash flash_dfu flashboot detach cbor test
 
@@ -14,6 +14,12 @@ merge_hex=../../tools/solotool.py mergehex
 # TODO: better explanation
 firmware-hacker:
 	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=0 EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0'
+
+firmware-hacker-debug-1:
+	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=1 EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0'
+
+firmware-hacker-debug-2:
+	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=2 EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0'
 
 firmware-secure:
 	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=0 EXTRA_DEFINES='-DUSE_SOLOKEYS_CERT -DFLASH_ROP=2'

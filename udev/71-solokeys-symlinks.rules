@@ -1,0 +1,17 @@
+# TODO: would like to lookup ID_SERIAL_SHORT from `usb` SUBSYSTEM
+#       but link on `hidraw` subsystem level
+#       and end up with symlinks `/dev/solo[hacker|secure]-<serial>`
+
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", SYMLINK+="solo-$env{ID_SERIAL_SHORT}-%n"
+## Solo Secure symlinks
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo [1-9]*", SYMLINK+="solosecure-$env{ID_SERIAL_SHORT}-%n"
+## Solo Hacker symlinks
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", ATTRS{product}=="Solo Hacker [1-9]*", SYMLINK+="solohacker-$env{ID_SERIAL_SHORT}-%n"
+## Solo Serial access + symlink
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", SYMLINK+="soloserial"
+
+# Non-unique rules (breakdown if multiple Solos are plugged in)
+## Solo
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", SYMLINK+="solo"
+## U2F Zero
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="8acf", SYMLINK+="u2fzero"

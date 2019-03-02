@@ -10,6 +10,7 @@
 #include "crypto.h"
 #include "log.h"
 #include "device.h"
+#include "apdu.h"
 #include "wallet.h"
 #ifdef ENABLE_U2F_EXTENSIONS
 #include "extensions.h"
@@ -27,12 +28,12 @@ void u2f_reset_response();
 
 static CTAP_RESPONSE * _u2f_resp = NULL;
 
-void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
+void u2f_request_ex(APDU_HEADER *req, uint8_t *payload, uint32_t len, CTAP_RESPONSE * resp)
 {
     uint16_t rcode = 0;
-    uint32_t len = ((req->LC3) | ((uint32_t)req->LC2 << 8) | ((uint32_t)req->LC1 << 16));
     uint8_t byte;
 
+    ctap_response_init(resp);
     u2f_set_writeback_buffer(resp);
 
     if (req->cla != 0)
@@ -42,7 +43,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
         goto end;
     }
 #ifdef ENABLE_U2F_EXTENSIONS
-    rcode = extend_u2f(req, len);
+    rcode = extend_u2f(req, payload, len);
 #endif
     if (rcode != U2F_SW_NO_ERROR && rcode != U2F_SW_CONDITIONS_NOT_SATISFIED)       // If the extension didn't do anything...
     {
@@ -59,7 +60,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
                 {
 
                     timestamp();
-                    rcode = u2f_register((struct u2f_register_request*)req->payload);
+                    rcode = u2f_register((struct u2f_register_request*)payload);
                     printf1(TAG_TIME,"u2f_register time: %d ms\n", timestamp());
 
                 }
@@ -67,7 +68,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
             case U2F_AUTHENTICATE:
                 printf1(TAG_U2F, "U2F_AUTHENTICATE\n");
                 timestamp();
-                rcode = u2f_authenticate((struct u2f_authenticate_request*)req->payload, req->p1);
+                rcode = u2f_authenticate((struct u2f_authenticate_request*)payload, req->p1);
                 printf1(TAG_TIME,"u2f_authenticate time: %d ms\n", timestamp());
                 break;
             case U2F_VERSION:
@@ -109,6 +110,22 @@ end:
     printf1(TAG_U2F,"u2f resp: "); dump_hex1(TAG_U2F, _u2f_resp->data, _u2f_resp->length);
 }
 
+void u2f_request_nfc(uint8_t * req, int len, CTAP_RESPONSE * resp)
+{
+	if (len < 5 || !req)
+		return;
+
+    uint32_t alen = req[4];
+
+	u2f_request_ex((APDU_HEADER *)req, &req[5], alen, resp);
+}
+
+void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)
+{
+    uint32_t len = ((req->LC3) | ((uint32_t)req->LC2 << 8) | ((uint32_t)req->LC1 << 16));
+
+	u2f_request_ex((APDU_HEADER *)req, req->payload, len, resp);
+}
 
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len)
 {
@@ -156,7 +173,7 @@ static void u2f_make_auth_tag(struct u2f_key_handle * kh, uint8_t * appid, uint8
     memmove(tag, hashbuf, CREDENTIAL_TAG_SIZE);
 }
 
-static int8_t u2f_new_keypair(struct u2f_key_handle * kh, uint8_t * appid, uint8_t * pubkey)
+int8_t u2f_new_keypair(struct u2f_key_handle * kh, uint8_t * appid, uint8_t * pubkey)
 {
     ctap_generate_rng(kh->key, U2F_KEY_HANDLE_KEY_SIZE);
     u2f_make_auth_tag(kh, appid, kh->tag);
@@ -196,52 +213,58 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 
     if (control == U2F_AUTHENTICATE_CHECK)
     {
+        printf1(TAG_U2F, "CHECK-ONLY\r\n");
         if (u2f_appid_eq(&req->kh, req->app) == 0)
         {
             return U2F_SW_CONDITIONS_NOT_SATISFIED;
         }
         else
         {
-            return U2F_SW_WRONG_DATA;
+            return U2F_SW_WRONG_PAYLOAD;
         }
     }
     if (
-            control != U2F_AUTHENTICATE_SIGN ||
-            req->khl != U2F_KEY_HANDLE_SIZE  ||
+            (control != U2F_AUTHENTICATE_SIGN && control != U2F_AUTHENTICATE_SIGN_NO_USER) ||
+            req->khl != U2F_KEY_HANDLE_SIZE ||
             u2f_appid_eq(&req->kh, req->app) != 0 ||     // Order of checks is important
             u2f_load_key(&req->kh, req->app) != 0
 
         )
     {
-        return U2F_SW_WRONG_PAYLOAD;
+        return U2F_SW_WRONG_DATA;
     }
 
+	// dont-enforce-user-presence-and-sign
+	if (control == U2F_AUTHENTICATE_SIGN_NO_USER)
+		up = 0;
 
-
-    if (ctap_user_presence_test() == 0)
-    {
-        return U2F_SW_CONDITIONS_NOT_SATISFIED;
-    }
+	if(!device_is_nfc() && up)
+	{
+		if (ctap_user_presence_test() == 0)
+		{
+			return U2F_SW_CONDITIONS_NOT_SATISFIED;
+		}
+	}
 
     count = ctap_atomic_count(0);
-    hash[0] = 0xff;
+    hash[0] = (count >> 24) & 0xff;
     hash[1] = (count >> 16) & 0xff;
     hash[2] = (count >> 8) & 0xff;
     hash[3] = (count >> 0) & 0xff;
     crypto_sha256_init();
 
-    crypto_sha256_update(req->app,32);
-    crypto_sha256_update(&up,1);
-    crypto_sha256_update(hash,4);
-    crypto_sha256_update(req->chal,32);
+    crypto_sha256_update(req->app, 32);
+    crypto_sha256_update(&up, 1);
+    crypto_sha256_update(hash, 4);
+    crypto_sha256_update(req->chal, 32);
 
     crypto_sha256_final(hash);
 
-    printf1(TAG_U2F, "sha256: "); dump_hex1(TAG_U2F,hash,32);
+    printf1(TAG_U2F, "sha256: "); dump_hex1(TAG_U2F, hash, 32);
     crypto_ecc256_sign(hash, 32, sig);
 
     u2f_response_writeback(&up,1);
-    hash[0] = 0xff;
+    hash[0] = (count >> 24) & 0xff;
     hash[1] = (count >> 16) & 0xff;
     hash[2] = (count >> 8) & 0xff;
     hash[3] = (count >> 0) & 0xff;
@@ -263,10 +286,13 @@ static int16_t u2f_register(struct u2f_register_request * req)
 
     const uint16_t attest_size = attestation_cert_der_size;
 
-    if ( ! ctap_user_presence_test())
-    {
-        return U2F_SW_CONDITIONS_NOT_SATISFIED;
-    }
+	if(!device_is_nfc())
+	{
+		if ( ! ctap_user_presence_test())
+		{
+			return U2F_SW_CONDITIONS_NOT_SATISFIED;
+		}
+	}
 
     if ( u2f_new_keypair(&key_handle, req->app, pubkey) == -1)
     {

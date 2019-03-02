@@ -23,6 +23,7 @@ LDFLAGS += $(LIBCBOR)
 CFLAGS = -O2 -fdata-sections -ffunction-sections
 
 INCLUDES = -I./tinycbor/src -I./crypto/sha256 -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/ -I./fido2/ -I./pc -I./fido2/extensions
+INCLUDES += -I./crypto/cifra/src
 
 CFLAGS += $(INCLUDES)
 # for crypto/tiny-AES-c
@@ -61,6 +62,7 @@ crypto/micro-ecc/uECC.o: ./crypto/micro-ecc/uECC.c
 
 venv:
 	python3 -m venv venv
+	venv/bin/pip -q install --upgrade pip
 	venv/bin/pip -q install --upgrade -r tools/requirements.txt
 	venv/bin/pip -q install --upgrade black
 
@@ -69,7 +71,7 @@ black: venv
 	venv/bin/black --skip-string-normalization --check tools/
 
 wink: venv
-	venv/bin/python tools/solotool.py solo --wink
+	venv/bin/solo key wink
 
 fido2-test: venv
 	venv/bin/python tools/ctap_test.py
@@ -80,7 +82,7 @@ docker-build:
 	docker build -t $(DOCKER_IMAGE) .
 	docker run --rm -v "$(CURDIR)/builds:/builds" \
 				    -v "$(CURDIR)/in-docker-build.sh:/in-docker-build.sh" \
-				    $(DOCKER_IMAGE) /in-docker-build.sh $(SOLO_VERSIONISH)
+				    $(DOCKER_IMAGE) "./in-docker-build.sh" $(SOLO_VERSIONISH)
 
 CPPCHECK_FLAGS=--quiet --error-exitcode=2
 

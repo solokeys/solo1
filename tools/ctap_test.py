@@ -12,6 +12,10 @@
 # Script for testing correctness of CTAP2/CTAP1 security token
 
 from __future__ import print_function, absolute_import, unicode_literals
+import sys, os, time
+from random import randint
+from binascii import hexlify
+import array, struct, socket
 
 from fido2.hid import CtapHidDevice, CTAPHID
 from fido2.client import Fido2Client, ClientError
@@ -20,10 +24,10 @@ from fido2.ctap1 import CTAP1
 from fido2.ctap2 import *
 from fido2.cose import *
 from fido2.utils import Timeout, sha256
-import sys, os, time
-from random import randint
-from binascii import hexlify
-import array, struct, socket
+from fido2.attestation import Attestation
+
+from solo.fido2 import forceUDPBackend
+
 
 # Set up a FIDO 2 client using the origin https://example.com
 
@@ -33,6 +37,11 @@ def ForceU2F(client, device):
     client.pin_protocol = None
     client._do_make_credential = client._ctap1_make_credential
     client._do_get_assertion = client._ctap1_get_assertion
+
+
+def VerifyAttestation(attest, data):
+    verifier = Attestation.for_type(attest.fmt)
+    verifier().verify(attest.att_statement, attest.auth_data, data.hash)
 
 
 class Packet(object):
@@ -415,7 +424,7 @@ class Tester:
             rp, user, challenge, pin=PIN, exclude_list=[]
         )
         t2 = time.time() * 1000
-        attest.verify(data.hash)
+        VerifyAttestation(attest, data)
         print("Register valid (%d ms)" % (t2 - t1))
 
         cred = attest.auth_data.credential_data
@@ -465,7 +474,7 @@ class Tester:
                 )
                 print(attest.auth_data.counter)
                 t2 = time.time() * 1000
-                attest.verify(data.hash)
+                VerifyAttestation(attest, data)
                 print("Register valid (%d ms)" % (t2 - t1))
             sys.stdout.flush()
 
@@ -511,7 +520,7 @@ class Tester:
                 attest, data = self.client.make_credential(
                     rp, user, challenge, pin=PIN, exclude_list=[]
                 )
-                attest.verify(data.hash)
+                VerifyAttestation(attest, data)
                 # verify endian-ness is correct
                 assert attest.auth_data.counter < 0x10000
                 cred = attest.auth_data.credential_data
@@ -535,7 +544,7 @@ class Tester:
             attest, data = self.client.make_credential(
                 rp, user, challenge, pin=PIN, exclude_list=exclude_list
             )
-            attest.verify(data.hash)
+            VerifyAttestation(attest, data)
             cred = attest.auth_data.credential_data
             creds.append(cred)
             print("PASS")
@@ -665,7 +674,7 @@ class Tester:
             rp, user0, challenge, pin=PIN, exclude_list=[], rk=True
         )
         t2 = time.time() * 1000
-        attest.verify(data.hash)
+        VerifyAttestation(attest, data)
         creds.append(attest.auth_data.credential_data)
         print("Register valid (%d ms)" % (t2 - t1))
 
@@ -687,7 +696,7 @@ class Tester:
                 rp, users[i], challenge, pin=PIN, exclude_list=[], rk=True
             )
             t2 = time.time() * 1000
-            attest.verify(data.hash)
+            VerifyAttestation(attest, data)
             print("Register valid (%d ms)" % (t2 - t1))
 
             creds.append(attest.auth_data.credential_data)
@@ -710,7 +719,7 @@ class Tester:
             rp, users[1], challenge, pin=PIN, exclude_list=[], rk=True
         )
         t2 = time.time() * 1000
-        attest.verify(data.hash)
+        VerifyAttestation(attest, data)
         creds = creds[:2] + creds[3:] + [attest.auth_data.credential_data]
         print("Register valid (%d ms)" % (t2 - t1))
 
@@ -775,7 +784,7 @@ class Tester:
                     rp, user, challenge, pin=PIN, exclude_list=[], rk=True
                 )
                 t2 = time.time() * 1000
-                attest.verify(data.hash)
+                VerifyAttestation(attest, data)
                 creds = [attest.auth_data.credential_data]
                 print("Register valid (%d ms)" % (t2 - t1))
 
@@ -825,6 +834,10 @@ def test_find_brute_force():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "sim":
+        print("Using UDP backend.")
+        forceUDPBackend()
+
     t = Tester()
     t.find_device()
     # t.test_hid()

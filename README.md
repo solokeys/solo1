@@ -48,7 +48,8 @@ cd ../..
 
 make venv
 source venv/bin/activate
-python tools/solotool.py program targets/stm32l432/solo.hex
+solo program aux enter-bootloader
+solo program bootloader targets/stm32l432/solo.hex
 ```
 
 Alternatively, run `make docker-build` and use the firmware generated in `/tmp`.

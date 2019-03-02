@@ -30,6 +30,7 @@
 // #define DISABLE_CTAPHID_WINK
 // #define DISABLE_CTAPHID_CBOR
 
+#define ENABLE_SERIAL_PRINTING
 
 #if defined(SOLO_HACKER)
 #define SOLO_PRODUCT_NAME "Solo Hacker " SOLO_VERSION
@@ -38,7 +39,7 @@
 #endif
 
 void printing_init();
-void hw_init(void);
+void hw_init(int lf);
 
 //#define TEST
 //#define TEST_POWER
@@ -62,6 +63,12 @@ void hw_init(void);
 // Button
 #define SOLO_BUTTON_PORT        GPIOA
 #define SOLO_BUTTON_PIN         LL_GPIO_PIN_0
+
+#define SOLO_AMS_CS_PORT        GPIOB
+#define SOLO_AMS_CS_PIN         LL_GPIO_PIN_0
+
+#define SOLO_AMS_IRQ_PORT       GPIOC
+#define SOLO_AMS_IRQ_PIN        LL_GPIO_PIN_15
 
 #define SKIP_BUTTON_CHECK_WITH_DELAY        0
 #define SKIP_BUTTON_CHECK_FAST              0

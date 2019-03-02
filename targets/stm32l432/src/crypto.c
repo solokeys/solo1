@@ -24,6 +24,9 @@
 #include "aes.h"
 #include "ctap.h"
 #include "device.h"
+// stuff for SHA512
+#include "sha2.h"
+#include "blockwise.h"
 #include APP_CONFIG
 #include "log.h"
 #include "memory_layout.h"
@@ -48,6 +51,7 @@ typedef enum
 
 
 static SHA256_CTX sha256_ctx;
+static cf_sha512_context sha512_ctx;
 static const struct uECC_Curve_t * _es256_curve = NULL;
 static const uint8_t * _signing_key = NULL;
 static int _key_len = 0;
@@ -62,6 +66,9 @@ void crypto_sha256_init()
     sha256_init(&sha256_ctx);
 }
 
+void crypto_sha512_init() {
+    cf_sha512_init(&sha512_ctx);
+}
 
 void crypto_load_master_secret(uint8_t * key)
 {
@@ -86,6 +93,10 @@ void crypto_sha256_update(uint8_t * data, size_t len)
     sha256_update(&sha256_ctx, data, len);
 }
 
+void crypto_sha512_update(const uint8_t * data, size_t len) {
+    cf_sha512_update(&sha512_ctx, data, len);
+}
+
 void crypto_sha256_update_secret()
 {
     sha256_update(&sha256_ctx, master_secret, 32);
@@ -94,6 +105,11 @@ void crypto_sha256_update_secret()
 void crypto_sha256_final(uint8_t * hash)
 {
     sha256_final(&sha256_ctx, hash);
+}
+
+void crypto_sha512_final(uint8_t * hash) {
+    // NB: there is also cf_sha512_digest
+    cf_sha512_digest_final(&sha512_ctx, hash);
 }
 
 void crypto_sha256_hmac_init(uint8_t * key, uint32_t klen, uint8_t * hmac)

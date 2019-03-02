@@ -336,7 +336,12 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     count = auth_data_update_count(&authData->head);
 
     device_set_status(CTAPHID_STATUS_UPNEEDED);
-    int but = ctap_user_presence_test();
+	// if NFC - not need to click a button
+    int but = 1;
+	if(!device_is_nfc())
+	{
+		but = ctap_user_presence_test();
+	}
 
     if (!but)
     {
@@ -1586,7 +1591,10 @@ void ctap_init()
         exit(1);
     }
 
-    crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+    if (! device_is_nfc())
+    {
+        crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+    }
 
 #ifdef BRIDGE_TO_WALLET
     wallet_init();

@@ -2,7 +2,7 @@ include build/common.mk
 
 # ST related
 SRC = src/main.c src/init.c src/redirect.c src/flash.c src/rng.c src/led.c src/device.c
-SRC += src/fifo.c src/crypto.c src/attestation.c
+SRC += src/fifo.c src/crypto.c src/attestation.c src/nfc.c src/ams.c
 SRC += src/startup_stm32l432xx.s src/system_stm32l4xx.c
 SRC += $(DRIVER_LIBS) $(USB_LIB)
 
@@ -14,6 +14,7 @@ SRC += ../../fido2/extensions/extensions.c ../../fido2/extensions/solo.c
 
 # Crypto libs
 SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c
+SRC += ../../crypto/cifra/src/sha512.c ../../crypto/cifra/src/blockwise.c
 
 OBJ1=$(SRC:.c=.o)
 OBJ=$(OBJ1:.s=.o)
@@ -21,6 +22,7 @@ OBJ=$(OBJ1:.s=.o)
 INC = -Isrc/ -Isrc/cmsis/ -Ilib/ -Ilib/usbd/ -I../../fido2/ -I../../fido2/extensions
 INC += -I../../tinycbor/src -I../../crypto/sha256 -I../../crypto/micro-ecc
 INC += -I../../crypto/tiny-AES-c
+INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
 
 SEARCH=-L../../tinycbor/lib
 
@@ -41,14 +43,13 @@ DEBUG=0
 endif
 
 DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAPP_CONFIG=\"app.h\" $(EXTRA_DEFINES)
-# DEFINES += -DTEST_SOLO_STM32 -DTEST -DTEST_FIFO=1
 
 CFLAGS=$(INC) -c $(DEFINES)   -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections $(HW) -g $(VERSION_FLAGS)
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -u _printf_float -lnosys
 LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor
 
 ECC_CFLAGS = $(CFLAGS)
-ECC_CFLAGS += -DuECC_OPTIMIZATION_LEVEL=4 -fomit-frame-pointer -DuECC_SQUARE_FUNC=1
+ECC_CFLAGS += -DuECC_SUPPORT_COMPRESSED_POINT=0 -DuECC_PLATFORM=5 -DuECC_OPTIMIZATION_LEVEL=4 -fomit-frame-pointer -DuECC_SQUARE_FUNC=1
 
 
 .PRECIOUS: %.o
@@ -69,7 +70,7 @@ all: $(TARGET).elf
 	$(CC) $^ $(HW) $(LDFLAGS) -o $@
 
 %.hex: %.elf
-	# $(SZ) $^
+	$(SZ) $^
 	$(CP) -O ihex $^ $(TARGET).hex
 
 clean:

@@ -48,6 +48,8 @@ struct logtag tagtable[] = {
     {TAG_STOR,"[1;35mSTOR[0m"},
     {TAG_BOOT,"[1;36mBOOT[0m"},
     {TAG_EXT,"[1;37mEXT[0m"},
+    {TAG_NFC,"[1;38mNFC[0m"},
+    {TAG_NFC_APDU, "NAPDU"},
 };
 
 
@@ -68,7 +70,7 @@ void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...)
     {
         if (tag & tagtable[i].tagn)
         {
-            if (tagtable[i].tag[0]) printf("[%s] ", tagtable[i].tag);
+            if (tagtable[i].tag[0] && !(tag & TAG_NO_TAG)) printf("[%s] ", tagtable[i].tag);
             i = 0;
             break;
         }

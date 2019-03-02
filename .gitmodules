@@ -1,9 +1,6 @@
 [submodule "tinycbor"]
 	path = tinycbor
 	url = https://github.com/intel/tinycbor
-[submodule "python-fido2"]
-	path = python-fido2
-	url = https://github.com/solokeys/python-fido2
 [submodule "crypto/micro-ecc"]
 	path = crypto/micro-ecc
 	url = https://github.com/kmackay/micro-ecc.git
@@ -13,3 +10,6 @@
 [submodule "targets/stm32l442/dfuse-tool"]
 	path = targets/stm32l442/dfuse-tool
     url = https://github.com/solokeys/dfuse-tool
+[submodule "crypto/cifra"]
+	path = crypto/cifra
+	url = https://github.com/solokeys/cifra.git

@@ -10,6 +10,7 @@
 #include "stm32l4xx_ll_gpio.h"
 #include "stm32l4xx_ll_tim.h"
 #include "stm32l4xx_ll_usart.h"
+#include "stm32l4xx_ll_pwr.h"
 #include "usbd_hid.h"
 
 #include APP_CONFIG
@@ -26,6 +27,11 @@
 #include "memory_layout.h"
 #include "stm32l4xx_ll_iwdg.h"
 #include "usbd_cdc_if.h"
+#include "nfc.h"
+#include "init.h"
+
+#define LOW_FREQUENCY        1
+#define HIGH_FREQUENCY       0
 
 void wait_for_usb_tether();
 
@@ -34,6 +40,8 @@ uint32_t __90_ms = 0;
 uint32_t __device_status = 0;
 uint32_t __last_update = 0;
 extern PCD_HandleTypeDef hpcd;
+static bool haveNFC = 0;
+static bool isLowFreq = 0;
 
 #define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
 
@@ -50,6 +58,13 @@ void TIM6_DAC_IRQHandler()
             ctaphid_update_status(__device_status);
         }
     }
+#ifndef IS_BOOTLOADER
+	// NFC sending WTX if needs
+	if (device_is_nfc())
+	{
+		WTX_timer_exec();
+	}
+#endif
 }
 
 // Global USB interrupt handler
@@ -91,32 +106,45 @@ void device_reboot()
 {
     NVIC_SystemReset();
 }
+
 void device_init()
 {
-    hw_init();
-    LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
-    LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
 
-#ifndef IS_BOOTLOADER
+    hw_init(LOW_FREQUENCY);
+    isLowFreq = 1;
+
+    haveNFC = nfc_init();
+
+    if (haveNFC)
+    {
+        printf1(TAG_NFC, "Have NFC\r\n");
+    }
+    else
+    {
+        printf1(TAG_NFC, "Have NO NFC\r\n");
+        hw_init(HIGH_FREQUENCY);
+
+        isLowFreq = 0;
+    }
+
+    usbhid_init();
+
+    ctaphid_init();
+
+    ctap_init( !haveNFC );
+
 #if BOOT_TO_DFU
     flash_option_bytes_init(1);
 #else
     flash_option_bytes_init(0);
 #endif
-#endif
 
-    printf1(TAG_GEN,"hello solo\r\n");
+
 }
 
-void usb_init(void);
-void usbhid_init()
+bool device_is_nfc()
 {
-    usb_init();
-
-#if DEBUG_LEVEL>1
-    wait_for_usb_tether();
-#endif
-
+    return haveNFC;
 }
 
 void wait_for_usb_tether()
@@ -129,6 +157,26 @@ void wait_for_usb_tether()
     while (USBD_OK != CDC_Transmit_FS((uint8_t*)"tethered\r\n", 10) )
         ;
 }
+
+void usbhid_init()
+{
+    if (!isLowFreq)
+    {
+        init_usb();
+
+#if DEBUG_LEVEL>1
+        wait_for_usb_tether();
+#endif
+    }
+    else
+    {
+
+
+
+    }
+}
+
+
 
 int usbhid_recv(uint8_t * msg)
 {
@@ -366,6 +414,7 @@ uint32_t ctap_atomic_count(int sel)
 }
 
 
+
 void device_manage()
 {
 #if NON_BLOCK_PRINTING
@@ -385,6 +434,10 @@ void device_manage()
             break;
         }
     }
+#endif
+#ifndef IS_BOOTLOADER
+	// if(device_is_nfc())
+		nfc_loop();
 #endif
 }
 

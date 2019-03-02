@@ -91,10 +91,10 @@ int16_t extend_fido2(CredentialId * credid, uint8_t * output)
     }
 }
 
-int16_t extend_u2f(struct u2f_request_apdu* req, uint32_t len)
+int16_t extend_u2f(APDU_HEADER * req, uint8_t * payload, uint32_t len)
 {
 
-    struct u2f_authenticate_request * auth = (struct u2f_authenticate_request *) req->payload;
+    struct u2f_authenticate_request * auth = (struct u2f_authenticate_request *) payload;
     uint16_t rcode;
 
     if (req->ins == U2F_AUTHENTICATE)
@@ -118,7 +118,7 @@ int16_t extend_u2f(struct u2f_request_apdu* req, uint32_t len)
         {
             if ( ! is_extension_request((uint8_t *) &auth->kh, auth->khl))     // Pin requests
             {
-                rcode = U2F_SW_WRONG_PAYLOAD;
+                rcode = U2F_SW_WRONG_DATA;
                 printf1(TAG_EXT, "Ignoring U2F auth request\n");
                 dump_hex1(TAG_EXT, (uint8_t *) &auth->kh, auth->khl);
                 goto end;

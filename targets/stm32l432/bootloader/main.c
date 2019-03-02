@@ -8,6 +8,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "stm32l4xx_ll_rcc.h"
+#include "stm32l4xx_ll_gpio.h"
+#include "stm32l4xx.h"
+
 #include "cbor.h"
 #include "device.h"
 #include "ctaphid.h"
@@ -17,14 +21,13 @@
 #include "ctap.h"
 #include "app.h"
 #include "memory_layout.h"
-#include "stm32l4xx_ll_rcc.h"
+#include "init.h"
 
-#include "stm32l4xx.h"
 
 uint8_t REBOOT_FLAG = 0;
 
 
-void  BOOT_boot(void)
+void BOOT_boot(void)
 {
   typedef void (*pFunction)(void);
 
@@ -69,7 +72,16 @@ int main()
             TAG_ERR
             );
 
-    device_init();
+    // device_init();
+
+    init_gpio();
+
+    init_millisecond_timer(1);
+
+#if DEBUG_LEVEL > 0
+    init_debug_uart();
+#endif
+
     printf1(TAG_GEN,"init device\n");
 
     t1 = millis();
@@ -107,7 +119,13 @@ int main()
 #ifdef SOLO_HACKER
     start_bootloader:
 #endif
+    SystemClock_Config();
+    init_gpio();
+    init_millisecond_timer(0);
+    init_pwm();
+    init_rng();
     usbhid_init();
+
     printf1(TAG_GEN,"init usb\n");
 
     ctaphid_init();
