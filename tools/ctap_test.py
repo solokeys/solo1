@@ -660,7 +660,7 @@ class Tester:
         user0 = {"id": b"first one", "name": "single User"}
 
         users = [
-            {"id": b"user" + os.urandom(16), "name": "AB User"} for i in range(0, 2)
+            {"id": b"user" + os.urandom(16), "name": "AB User"} for i in range(0, 10)
         ]
         challenge = "Y2hhbGxlbmdl"
         PIN = None
@@ -834,17 +834,32 @@ def test_find_brute_force():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "sim":
+    if len(sys.argv) < 2:
+        print("Usage: %s [sim] <[u2f]|[fido2]|[rk]|[hid]|[ping]>")
+        sys.exit(0)
+
+    if "sim" in sys.argv:
         print("Using UDP backend.")
         force_udp_backend()
 
     t = Tester()
     t.find_device()
-    # t.test_hid()
-    # t.test_long_ping()
-    # t.test_fido2()
-    t.test_u2f()
-    # t.test_rk()
+
+    if "hid" in sys.argv:
+        t.test_hid()
+
+    if "ping" in sys.argv:
+        t.test_long_ping()
+
+    if "u2f" in sys.argv:
+        t.test_u2f()
+
+    if "fido2" in sys.argv:
+        t.test_fido2()
+
+    if "rk" in sys.argv:
+        t.test_rk()
+
     # t.test_responses()
     # test_find_brute_force()
     # t.test_fido2_simple()
