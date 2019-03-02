@@ -502,8 +502,16 @@ uint32_t ctap_rk_size()
 
 void ctap_store_rk(int index, CTAP_residentKey * rk)
 {
-    memmove(RK_STORE.rks + index, rk, sizeof(CTAP_residentKey));
-    sync_rk();
+    if (index < RK_NUM)
+    {
+        memmove(RK_STORE.rks + index, rk, sizeof(CTAP_residentKey));
+        sync_rk();
+    }
+    else
+    {
+        printf1(TAG_ERR,"Out of bounds for store_rk\r\n");
+    }
+
 }
 
 
@@ -514,8 +522,15 @@ void ctap_load_rk(int index, CTAP_residentKey * rk)
 
 void ctap_overwrite_rk(int index, CTAP_residentKey * rk)
 {
-    memmove(RK_STORE.rks + index, rk, sizeof(CTAP_residentKey));
-    sync_rk();
+    if (index < RK_NUM)
+    {
+        memmove(RK_STORE.rks + index, rk, sizeof(CTAP_residentKey));
+        sync_rk();
+    }
+    else
+    {
+        printf1(TAG_ERR,"Out of bounds for store_rk\r\n");
+    }
 }
 
 void device_wink()

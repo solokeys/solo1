@@ -61,6 +61,7 @@ class Tester:
     def __init__(self,):
         self.origin = "https://examplo.org"
         self.host = "examplo.org"
+        self.user_count = 10
 
     def find_device(self,):
         print(list(CtapHidDevice.list_devices()))
@@ -74,6 +75,9 @@ class Tester:
 
         # consume timeout error
         # cmd,resp = self.recv_raw()
+
+    def set_user_count(self, count):
+        self.user_count = count
 
     def send_data(self, cmd, data):
         if type(data) != type(b""):
@@ -393,7 +397,6 @@ class Tester:
         chal = sha256(b"AAA")
         appid = sha256(b"BBB")
         lastc = 0
-        test_count = 5
 
         regs = []
 
@@ -415,7 +418,7 @@ class Tester:
             assert e.code == 0x6E00
         print("Pass")
 
-        for i in range(0, test_count):
+        for i in range(0, self.user_count):
             reg = self.ctap1.register(chal, appid)
             reg.verify(appid, chal)
             auth = self.ctap1.authenticate(chal, appid, reg.key_handle)
@@ -430,16 +433,19 @@ class Tester:
                 print("WARNING: counter is unusually high: %04x" % lastc)
                 assert 0
 
-            print("U2F reg + auth pass %d/5 (count: %02x)" % (i + 1, lastc))
+            print(
+                "U2F reg + auth pass %d/%d (count: %02x)"
+                % (i + 1, self.user_count, lastc)
+            )
 
         print("Checking previous registrations...")
-        for i in range(0, test_count):
+        for i in range(0, self.user_count):
             auth = self.ctap1.authenticate(chal, appid, regs[i].key_handle)
             auth.verify(appid, chal, regs[i].public_key)
-            print("Auth pass %d/5" % (i + 1))
+            print("Auth pass %d/%d" % (i + 1, self.user_count))
 
         print("Check that all previous credentials are registered...")
-        for i in range(0, test_count):
+        for i in range(0, self.user_count):
             try:
                 auth = self.ctap1.authenticate(
                     chal, appid, regs[i].key_handle, check_only=True
@@ -448,7 +454,7 @@ class Tester:
                 # Indicates that key handle is registered
                 assert e.code == APDU.USE_NOT_SATISFIED
 
-            print("Check pass %d/5" % (i + 1))
+            print("Check pass %d/%d" % (i + 1, self.user_count))
 
         print("Check an incorrect key handle is not registered")
         kh = bytearray(regs[0].key_handle)
@@ -598,8 +604,8 @@ class Tester:
             exclude_list.append({"id": fake_id2, "type": "public-key"})
 
             # test make credential
-            print("make 3 credentials")
-            for i in range(0, 3):
+            print("make %d credentials" % self.user_count)
+            for i in range(0, self.user_count):
                 attest, data = self.client.make_credential(
                     rp, user, challenge, pin=PIN, exclude_list=[]
                 )
@@ -743,7 +749,8 @@ class Tester:
         user0 = {"id": b"first one", "name": "single User"}
 
         users = [
-            {"id": b"user" + os.urandom(16), "name": "AB User"} for i in range(0, 10)
+            {"id": b"user" + os.urandom(16), "name": "Username%d" % i}
+            for i in range(0, self.user_count)
         ]
         challenge = "Y2hhbGxlbmdl"
         PIN = None
@@ -811,6 +818,7 @@ class Tester:
             rp["id"], challenge, pin=PIN
         )
         t2 = time.time() * 1000
+        print("Assertions: %d, users: %d" % (len(assertions), len(users)))
         assert len(assertions) == len(users) + 1
         for x, y in zip(assertions, creds):
             x.verify(client_data.hash, y.public_key)
@@ -927,6 +935,7 @@ if __name__ == "__main__":
 
     t = Tester()
     t.find_device()
+    t.set_user_count(15)
 
     if "u2f" in sys.argv:
         t.test_u2f()
