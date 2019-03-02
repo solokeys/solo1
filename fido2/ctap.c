@@ -820,7 +820,7 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
                 printf1(TAG_GA, "RK %d is a rpId match!\r\n", i);
                 if (count == ALLOW_LIST_MAX_SIZE-1)
                 {
-                    printf2(TAG_ERR, "not enough ram allocated for matching RK's (%d)\r\n", count);
+                    printf2(TAG_ERR, "not enough ram allocated for matching RK's (%d).  Skipping.\r\n", count);
                     break;
                 }
                 GA->creds[count].type = PUB_KEY_CRED_PUB_KEY;

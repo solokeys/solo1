@@ -20,7 +20,7 @@ import array, struct, socket
 from fido2.hid import CtapHidDevice, CTAPHID
 from fido2.client import Fido2Client, ClientError
 from fido2.ctap import CtapError
-from fido2.ctap1 import CTAP1
+from fido2.ctap1 import CTAP1, ApduError, APDU
 from fido2.ctap2 import *
 from fido2.cose import *
 from fido2.utils import Timeout, sha256
@@ -61,6 +61,7 @@ class Tester:
     def __init__(self,):
         self.origin = "https://examplo.org"
         self.host = "examplo.org"
+        self.user_count = 10
 
     def find_device(self,):
         print(list(CtapHidDevice.list_devices()))
@@ -74,6 +75,9 @@ class Tester:
 
         # consume timeout error
         # cmd,resp = self.recv_raw()
+
+    def set_user_count(self, count):
+        self.user_count = count
 
     def send_data(self, cmd, data):
         if type(data) != type(b""):
@@ -393,16 +397,101 @@ class Tester:
         chal = sha256(b"AAA")
         appid = sha256(b"BBB")
         lastc = 0
-        for i in range(0, 5):
+
+        regs = []
+
+        print("Check version")
+        assert self.ctap1.get_version() == "U2F_V2"
+        print("Pass")
+
+        print("Check bad INS")
+        try:
+            res = self.ctap1.send_apdu(0, 0, 0, 0, b"")
+        except ApduError as e:
+            assert e.code == 0x6D00
+        print("Pass")
+
+        print("Check bad CLA")
+        try:
+            res = self.ctap1.send_apdu(1, CTAP1.INS.VERSION, 0, 0, b"abc")
+        except ApduError as e:
+            assert e.code == 0x6E00
+        print("Pass")
+
+        for i in range(0, self.user_count):
             reg = self.ctap1.register(chal, appid)
             reg.verify(appid, chal)
             auth = self.ctap1.authenticate(chal, appid, reg.key_handle)
+            auth.verify(appid, chal, reg.public_key)
+
+            regs.append(reg)
             # check endianness
             if lastc:
                 assert (auth.counter - lastc) < 10
             lastc = auth.counter
-            print(hex(lastc))
-            print("U2F reg + auth pass %d/5" % (i + 1))
+            if lastc > 0x100000:
+                print("WARNING: counter is unusually high: %04x" % lastc)
+                assert 0
+
+            print(
+                "U2F reg + auth pass %d/%d (count: %02x)"
+                % (i + 1, self.user_count, lastc)
+            )
+
+        print("Checking previous registrations...")
+        for i in range(0, self.user_count):
+            auth = self.ctap1.authenticate(chal, appid, regs[i].key_handle)
+            auth.verify(appid, chal, regs[i].public_key)
+            print("Auth pass %d/%d" % (i + 1, self.user_count))
+
+        print("Check that all previous credentials are registered...")
+        for i in range(0, self.user_count):
+            try:
+                auth = self.ctap1.authenticate(
+                    chal, appid, regs[i].key_handle, check_only=True
+                )
+            except ApduError as e:
+                # Indicates that key handle is registered
+                assert e.code == APDU.USE_NOT_SATISFIED
+
+            print("Check pass %d/%d" % (i + 1, self.user_count))
+
+        print("Check an incorrect key handle is not registered")
+        kh = bytearray(regs[0].key_handle)
+        kh[0] = kh[0] ^ (0x40)
+        try:
+            self.ctap1.authenticate(chal, appid, kh, check_only=True)
+            assert 0
+        except ApduError as e:
+            assert e.code == APDU.WRONG_DATA
+            print("Pass")
+
+        print("Try to sign with incorrect key handle")
+        try:
+            self.ctap1.authenticate(chal, appid, kh)
+            assert 0
+        except ApduError as e:
+            assert e.code == APDU.WRONG_DATA
+            print("Pass")
+
+        print("Try to sign using an incorrect keyhandle length")
+        try:
+            kh = regs[0].key_handle
+            self.ctap1.authenticate(chal, appid, kh[: len(kh) // 2])
+            assert 0
+        except ApduError as e:
+            assert e.code == APDU.WRONG_DATA
+            print("Pass")
+
+        print("Try to sign using an incorrect appid")
+        badid = bytearray(appid)
+        badid[0] = badid[0] ^ (0x40)
+        try:
+            auth = self.ctap1.authenticate(chal, badid, regs[0].key_handle)
+            assert 0
+        except ApduError as e:
+            assert e.code == APDU.WRONG_DATA
+            print("Pass")
 
     def test_fido2_simple(self, pin_token=None):
         creds = []
@@ -515,8 +604,8 @@ class Tester:
             exclude_list.append({"id": fake_id2, "type": "public-key"})
 
             # test make credential
-            print("make 3 credentials")
-            for i in range(0, 3):
+            print("make %d credentials" % self.user_count)
+            for i in range(0, self.user_count):
                 attest, data = self.client.make_credential(
                     rp, user, challenge, pin=PIN, exclude_list=[]
                 )
@@ -657,10 +746,10 @@ class Tester:
     def test_rk(self,):
         creds = []
         rp = {"id": self.host, "name": "ExaRP"}
-        user0 = {"id": b"first one", "name": "single User"}
 
         users = [
-            {"id": b"user" + os.urandom(16), "name": "AB User"} for i in range(0, 2)
+            {"id": b"user" + os.urandom(16), "name": "Username%d" % i}
+            for i in range(0, self.user_count)
         ]
         challenge = "Y2hhbGxlbmdl"
         PIN = None
@@ -671,7 +760,7 @@ class Tester:
         print("registering 1 user with RK")
         t1 = time.time() * 1000
         attest, data = self.client.make_credential(
-            rp, user0, challenge, pin=PIN, exclude_list=[], rk=True
+            rp, users[-1], challenge, pin=PIN, exclude_list=[], rk=True
         )
         t2 = time.time() * 1000
         VerifyAttestation(attest, data)
@@ -690,7 +779,7 @@ class Tester:
         print(assertions[0], client_data)
 
         print("registering %d users with RK" % len(users))
-        for i in range(0, len(users)):
+        for i in range(0, len(users) - 1):
             t1 = time.time() * 1000
             attest, data = self.client.make_credential(
                 rp, users[i], challenge, pin=PIN, exclude_list=[], rk=True
@@ -706,6 +795,9 @@ class Tester:
             rp["id"], challenge, pin=PIN
         )
         t2 = time.time() * 1000
+
+        print("Got %d assertions for %d users" % (len(assertions), len(users)))
+        assert len(assertions) == len(users)
 
         for x, y in zip(assertions, creds):
             x.verify(client_data.hash, y.public_key)
@@ -728,7 +820,8 @@ class Tester:
             rp["id"], challenge, pin=PIN
         )
         t2 = time.time() * 1000
-        assert len(assertions) == len(users) + 1
+        print("Assertions: %d, users: %d" % (len(assertions), len(users)))
+        assert len(assertions) == len(users)
         for x, y in zip(assertions, creds):
             x.verify(client_data.hash, y.public_key)
 
@@ -834,18 +927,35 @@ def test_find_brute_force():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "sim":
+    if len(sys.argv) < 2:
+        print("Usage: %s [sim] <[u2f]|[fido2]|[rk]|[hid]|[ping]>")
+        sys.exit(0)
+
+    if "sim" in sys.argv:
         print("Using UDP backend.")
         force_udp_backend()
 
     t = Tester()
     t.find_device()
-    # t.test_hid()
-    # t.test_long_ping()
-    # t.test_fido2()
-    t.test_u2f()
-    # t.test_rk()
+    t.set_user_count(15)
+
+    if "u2f" in sys.argv:
+        t.test_u2f()
+
+    if "fido2" in sys.argv:
+        t.test_fido2()
+        t.test_fido2_simple()
+
+    if "rk" in sys.argv:
+        t.test_rk()
+
+    if "ping" in sys.argv:
+        t.test_long_ping()
+
+    # hid tests are a bit invasive and should be done last
+    if "hid" in sys.argv:
+        t.test_hid()
+
     # t.test_responses()
     # test_find_brute_force()
-    # t.test_fido2_simple()
     # t.test_fido2_brute_force()
