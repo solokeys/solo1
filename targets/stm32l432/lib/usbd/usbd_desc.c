@@ -108,7 +108,7 @@ const uint8_t USBD_LangIDDesc[USB_LEN_LANGID_STR_DESC]=
   HIBYTE(USBD_LANGID_STRING),
 };
 
-uint8_t USBD_StrDesc[32];
+uint8_t USBD_StrDesc[48];
 
 /**
   * @brief  Returns the device descriptor.
@@ -142,7 +142,7 @@ uint8_t *USBD_HID_LangIDStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
   */
 uint8_t *USBD_HID_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
-  USBD_GetString((uint8_t *)USBD_PRODUCT_FS_STRING, USBD_StrDesc, length);
+  USBD_GetString((uint8_t *)USBD_PRODUCT_FS_STRING, USBD_StrDesc, sizeof(USBD_StrDesc), length);
   return USBD_StrDesc;
 }
 
@@ -154,7 +154,7 @@ uint8_t *USBD_HID_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length
   */
 uint8_t *USBD_HID_ManufacturerStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
-  USBD_GetString((uint8_t *)USBD_MANUFACTURER_STRING, USBD_StrDesc, length);
+  USBD_GetString((uint8_t *)USBD_MANUFACTURER_STRING, USBD_StrDesc, sizeof(USBD_StrDesc), length);
   return USBD_StrDesc;
 }
 
@@ -192,6 +192,6 @@ uint8_t *USBD_HID_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
     }
 
 
-    USBD_GetString((uint8_t *)uuid_str, USBD_StrDesc, length);
+    USBD_GetString((uint8_t *)uuid_str, USBD_StrDesc, sizeof(USBD_StrDesc), length);
     return USBD_StrDesc;
 }

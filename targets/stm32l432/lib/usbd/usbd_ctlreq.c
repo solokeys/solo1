@@ -821,12 +821,16 @@ void USBD_CtlError( USBD_HandleTypeDef *pdev ,
   * @param  len : descriptor length
   * @retval None
   */
-void USBD_GetString(uint8_t *desc, uint8_t *unicode, uint16_t *len)
+void USBD_GetString(uint8_t *desc, uint8_t *unicode, uint16_t unicode_size, uint16_t *len)
 {
   uint8_t idx = 0U;
 
   if (desc != NULL)
   {
+    if ((idx + 4) >= unicode_size)
+    {
+        return;
+    }
     *len = (uint16_t)USBD_GetLen(desc) * 2U + 2U;
     unicode[idx++] = *(uint8_t *)(void *)len;
     unicode[idx++] = USB_DESC_TYPE_STRING;
