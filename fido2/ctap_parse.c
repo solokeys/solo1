@@ -521,7 +521,7 @@ uint8_t parse_options(CborValue * val, uint8_t * rk, uint8_t * uv, uint8_t * up)
 
         if (cbor_value_get_type(&map) != CborBooleanType)
         {
-            printf2(TAG_ERR,"Error, expecting text string type for rp map value\n");
+            printf2(TAG_ERR,"Error, expecting bool type for option map value\n");
             return CTAP2_ERR_INVALID_CBOR_TYPE;
         }
 
