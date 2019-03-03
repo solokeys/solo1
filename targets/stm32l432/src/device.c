@@ -110,29 +110,25 @@ void device_reboot()
 void device_init()
 {
 
-    hw_init(HIGH_FREQUENCY);
+    hw_init(LOW_FREQUENCY);
     isLowFreq = 0;
 
-    nfc_init();
-    // haveNFC = nfc_init();
+    haveNFC = nfc_init();
 
-    // if (haveNFC)
-    // {
-    //     printf1(TAG_NFC, "Have NFC\r\n");
-    // }
-    // else
-    // {
-    //     printf1(TAG_NFC, "Have NO NFC\r\n");
-    //     hw_init(HIGH_FREQUENCY);
-    //
-    //     isLowFreq = 0;
-    // }
+    if (haveNFC)
+    {
+        printf1(TAG_NFC, "Have NFC\r\n");
+    }
+    else
+    {
+        printf1(TAG_NFC, "Have NO NFC\r\n");
+        hw_init(HIGH_FREQUENCY);
+        isLowFreq = 0;
+    }
 
     usbhid_init();
-
     ctaphid_init();
-
-    ctap_init( 1 );
+    ctap_init();
 
 #if BOOT_TO_DFU
     flash_option_bytes_init(1);
