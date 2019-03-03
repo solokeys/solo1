@@ -605,13 +605,20 @@ class Tester:
 
             # test make credential
             print("make %d credentials" % self.user_count)
+            lastc = 0
             for i in range(0, self.user_count):
                 attest, data = self.client.make_credential(
                     rp, user, challenge, pin=PIN, exclude_list=[]
                 )
                 VerifyAttestation(attest, data)
-                # verify endian-ness is correct
+
+                # verify counter is correct
+                if lastc > 0:
+                    assert attest.auth_data.counter - lastc < 10
+                    assert attest.auth_data.counter - lastc > 0
                 assert attest.auth_data.counter < 0x10000
+                lastc = attest.auth_data.counter
+
                 cred = attest.auth_data.credential_data
                 creds.append(cred)
                 print(cred)
@@ -748,7 +755,11 @@ class Tester:
         creds = []
         exclude_list = []
         rp = {"id": self.host, "name": "ExaRP"}
+        rp2 = {"id": "solokeys.com", "name": "ExaRP"}
         user = {"id": b"usee_od", "name": "AB User"}
+        user1 = {"id": b"1234567890", "name": "Conor Patrick"}
+        user2 = {"id": b"oiewhfoi", "name": "Han Solo"}
+        user3 = {"id": b"23ohfpjwo@@", "name": "John Smith"}
         challenge = "Y2hhbGxlbmdl"
         key_params = [{"type": "public-key", "alg": ES256.ALGORITHM}]
         cdh = b"123456789abcdef0123456789abcdef0"
@@ -812,6 +823,10 @@ class Tester:
         assert prev_reg.fmt in ["packed", "tpm", "android-key", "adroid-safetynet"]
         print("Pass")
 
+        print("Check auth_data is at least 77 bytes")
+        assert len(prev_reg.auth_data) >= 77
+        print("Pass")
+
         allow_list = [
             {
                 "id": prev_reg.auth_data.credential_data.credential_id,
@@ -826,6 +841,16 @@ class Tester:
             allow_list,
             expectedError=CtapError.ERR.SUCCESS,
         )
+
+        print("Test auth_data is 37 bytes")
+        assert len(prev_auth.auth_data) == 37
+        print("pass")
+
+        print("Test that user, credential and numberOfCredentials are not present")
+        assert prev_auth.user == None
+        assert prev_auth.number_of_credentials == None
+        # assert prev_auth.credential == None # TODO double check this
+        print("Pass")
 
         testMC(
             "Send MC request with missing clientDataHash, expect error",
@@ -1258,6 +1283,66 @@ class Tester:
             cdh,
             allow_list + [{"type": b"public-key"}],
         )
+
+        print("Test Reset, expect SUCCESS")
+        self.ctap.reset()
+        print("Pass")
+
+        testGA(
+            "Send GA request with reset auth, expect NO_CREDENTIALS",
+            rp["id"],
+            cdh,
+            allow_list,
+            expectedError=CtapError.ERR.NO_CREDENTIALS,
+        )
+
+        testMC(
+            "Send MC request with rk option set to true, expect SUCCESS",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"options": {"rk": True}},
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        options = {"rk": True}
+        if "uv" in info.options and info.options["uv"]:
+            options["uv"] = False
+
+        for i, x in enumerate([user1, user2, user3]):
+            testMC(
+                "Send MC request with rk option set to true, expect SUCCESS %d/3"
+                % (i + 1),
+                cdh,
+                rp2,
+                x,
+                key_params,
+                other={"options": options},
+                expectedError=CtapError.ERR.SUCCESS,
+            )
+
+        auth1 = testGA(
+            "Send GA request with no allow_list, expect SUCCESS",
+            rp2["id"],
+            cdh,
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        print("Check that there are 3 credentials returned")
+        assert auth1.number_of_credentials == 3
+        print("Pass")
+
+        print("Get the next 2 assertions")
+        auth2 = self.ctap.get_next_assertion()
+        auth3 = self.ctap.get_next_assertion()
+        print("Pass")
+
+        print("Check only the user ID was returned")
+        assert "id" in auth1.user.keys() and len(auth1.user.keys()) == 1
+        assert "id" in auth2.user.keys() and len(auth2.user.keys()) == 1
+        assert "id" in auth3.user.keys() and len(auth3.user.keys()) == 1
+        print("Pass")
 
     def test_rk(self,):
         creds = []
