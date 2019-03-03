@@ -25,7 +25,6 @@
 
 #include "device.h"
 
-#define PIN_TOKEN_SIZE      16
 uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
 uint8_t KEY_AGREEMENT_PUB[64];
 static uint8_t KEY_AGREEMENT_PRIV[32];
@@ -33,6 +32,9 @@ static uint8_t PIN_CODE_HASH[32];
 static int8_t PIN_BOOT_ATTEMPTS_LEFT = PIN_BOOT_ATTEMPTS;
 
 AuthenticatorState STATE;
+
+
+static void ctap_reset_key_agreement();
 
 static struct {
     CTAP_authDataHeader authData;
@@ -336,12 +338,12 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     count = auth_data_update_count(&authData->head);
 
     device_set_status(CTAPHID_STATUS_UPNEEDED);
-	// if NFC - not need to click a button
+  // if NFC - not need to click a button
     int but = 1;
-	if(!device_is_nfc())
-	{
-		but = ctap_user_presence_test();
-	}
+    if(!device_is_nfc())
+    {
+        but = ctap_user_presence_test();
+    }
 
     if (!but)
     {
@@ -563,6 +565,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     uint8_t * sigder = auth_data_buf + 32 + 64;
 
     ret = ctap_parse_make_credential(&MC,encoder,request,length);
+
     if (ret != 0)
     {
         printf2(TAG_ERR,"error, parse_make_credential failed\n");
@@ -617,6 +620,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
         check_ret(ret);
     }
 
+
     CborEncoder map;
     ret = cbor_encoder_create_map(encoder, &map, 3);
     check_ret(ret);
@@ -629,7 +633,6 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
 
     crypto_ecc256_load_attestation_key();
     int sigder_sz = ctap_calculate_signature(auth_data_buf, auth_data_sz, MC.clientDataHash, auth_data_buf, sigbuf, sigder);
-
     printf1(TAG_MC,"der sig [%d]: ", sigder_sz); dump_hex1(TAG_MC, sigder, sigder_sz);
 
     ret = ctap_add_attest_statement(&map, sigder, sigder_sz);
@@ -1187,7 +1190,7 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
         crypto_aes256_decrypt(pinHashEnc, 16);
         if (memcmp(pinHashEnc, PIN_CODE_HASH, 16) != 0)
         {
-            crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+            ctap_reset_key_agreement();
             ctap_decrement_pin_attempts();
             if (ctap_device_boot_locked())
             {
@@ -1230,7 +1233,7 @@ uint8_t ctap_add_pin_if_verified(uint8_t * pinTokenEnc, uint8_t * platform_pubke
         printf2(TAG_ERR,"platform-pubkey: "); dump_hex1(TAG_ERR, platform_pubkey, 64);
         printf2(TAG_ERR,"device-pubkey: "); dump_hex1(TAG_ERR, KEY_AGREEMENT_PUB, 64);
         // Generate new keyAgreement pair
-        crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+        ctap_reset_key_agreement();
         ctap_decrement_pin_attempts();
         if (ctap_device_boot_locked())
         {
@@ -1254,6 +1257,7 @@ uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
     CborEncoder map;
     uint8_t pinTokenEnc[PIN_TOKEN_SIZE];
     int ret = ctap_parse_client_pin(&CP,request,length);
+
 
     switch(CP.subCommand)
     {
@@ -1401,6 +1405,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     uint8_t cmd = *pkt_raw;
     pkt_raw++;
     length--;
+
 
     uint8_t * buf = resp->data;
 
@@ -1593,12 +1598,13 @@ void ctap_init()
 
     if (! device_is_nfc())
     {
-        crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+        ctap_reset_key_agreement();
     }
 
 #ifdef BRIDGE_TO_WALLET
     wallet_init();
 #endif
+
 
 }
 
@@ -1790,7 +1796,10 @@ int8_t ctap_load_key(uint8_t index, uint8_t * key)
     return 0;
 }
 
-
+static void ctap_reset_key_agreement()
+{
+    crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+}
 
 void ctap_reset()
 {
@@ -1807,7 +1816,7 @@ void ctap_reset()
 
     ctap_reset_state();
     memset(PIN_CODE_HASH,0,sizeof(PIN_CODE_HASH));
-    crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+    ctap_reset_key_agreement();
 
     crypto_reset_master_secret();
 }
