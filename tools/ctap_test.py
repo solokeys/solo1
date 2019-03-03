@@ -743,6 +743,522 @@ class Tester:
             print("Warning, reset failed: ", e)
         print("PASS")
 
+    def test_fido2_other(self,):
+
+        creds = []
+        exclude_list = []
+        rp = {"id": self.host, "name": "ExaRP"}
+        user = {"id": b"usee_od", "name": "AB User"}
+        challenge = "Y2hhbGxlbmdl"
+        key_params = [{"type": "public-key", "alg": ES256.ALGORITHM}]
+        cdh = b"123456789abcdef0123456789abcdef0"
+
+        def testFunc(func, test, *args, **kwargs):
+            print(test)
+            res = None
+            expectedError = kwargs.get("expectedError", None)
+            otherArgs = kwargs.get("other", {})
+            try:
+                res = func(*args, **otherArgs)
+                if expectedError != CtapError.ERR.SUCCESS:
+                    raise RuntimeError("Expected error to occur for test: %s" % test)
+            except CtapError as e:
+                if expectedError is not None:
+                    if e.code != expectedError:
+                        raise RuntimeError(
+                            "Got error code 0x%x, expected %x" % (e.code, expectedError)
+                        )
+                else:
+                    print(e)
+            print("Pass")
+            return res
+
+        def testMC(test, *args, **kwargs):
+            return testFunc(self.ctap.make_credential, test, *args, **kwargs)
+
+        def testGA(test, *args, **kwargs):
+            return testFunc(self.ctap.get_assertion, test, *args, **kwargs)
+
+        print("Get info")
+        info = self.ctap.get_info()
+
+        print(info)
+        print("Pass")
+
+        print("Check FIDO2 string is in VERSIONS field")
+        assert "FIDO_2_0" in info.versions
+        print("Pass")
+
+        print("Check pin protocols field")
+        if len(info.pin_protocols):
+            assert sum(info.pin_protocols) > 0
+        print("Pass")
+
+        print("Check options field")
+        for x in info.options:
+            assert info.options[x] in [True, False]
+        print("Pass")
+
+        prev_reg = testMC(
+            "Send MC request, expect success",
+            cdh,
+            rp,
+            user,
+            key_params,
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        print("Check attestation format is correct")
+        assert prev_reg.fmt in ["packed", "tpm", "android-key", "adroid-safetynet"]
+        print("Pass")
+
+        allow_list = [
+            {
+                "id": prev_reg.auth_data.credential_data.credential_id,
+                "type": "public-key",
+            }
+        ]
+
+        prev_auth = testGA(
+            "Send GA request, expect success",
+            rp["id"],
+            cdh,
+            allow_list,
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        testMC(
+            "Send MC request with missing clientDataHash, expect error",
+            None,
+            rp,
+            user,
+            key_params,
+            expectedError=CtapError.ERR.MISSING_PARAMETER,
+        )
+
+        testMC(
+            "Send MC request with integer for clientDataHash, expect error",
+            5,
+            rp,
+            user,
+            key_params,
+        )
+
+        testMC(
+            "Send MC request with missing user, expect error",
+            cdh,
+            rp,
+            None,
+            key_params,
+            expectedError=CtapError.ERR.MISSING_PARAMETER,
+        )
+
+        testMC(
+            "Send MC request with bytearray user, expect error",
+            cdh,
+            rp,
+            b"1234abcd",
+            key_params,
+        )
+
+        testMC(
+            "Send MC request with missing RP, expect error",
+            cdh,
+            None,
+            user,
+            key_params,
+            expectedError=CtapError.ERR.MISSING_PARAMETER,
+        )
+
+        testMC(
+            "Send MC request with bytearray RP, expect error",
+            cdh,
+            b"1234abcd",
+            user,
+            key_params,
+        )
+
+        testMC(
+            "Send MC request with missing pubKeyCredParams, expect error",
+            cdh,
+            rp,
+            user,
+            None,
+            expectedError=CtapError.ERR.MISSING_PARAMETER,
+        )
+
+        testMC(
+            "Send MC request with incorrect pubKeyCredParams, expect error",
+            cdh,
+            rp,
+            user,
+            b"2356",
+        )
+
+        testMC(
+            "Send MC request with incorrect excludeList, expect error",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"exclude_list": 8},
+        )
+
+        testMC(
+            "Send MC request with incorrect extensions, expect error",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"extensions": 8},
+        )
+
+        testMC(
+            "Send MC request with incorrect options, expect error",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"options": 8},
+        )
+
+        testMC(
+            "Send MC request with bad RP.name",
+            cdh,
+            {"id": self.host, "name": 8, "icon": "icon"},
+            user,
+            key_params,
+        )
+
+        testMC(
+            "Send MC request with bad RP.id",
+            cdh,
+            {"id": 8, "name": "name", "icon": "icon"},
+            user,
+            key_params,
+        )
+
+        testMC(
+            "Send MC request with bad RP.icon",
+            cdh,
+            {"id": self.host, "name": "name", "icon": 8},
+            user,
+            key_params,
+        )
+
+        testMC(
+            "Send MC request with bad user.name",
+            cdh,
+            rp,
+            {"id": b"usee_od", "name": 8},
+            key_params,
+        )
+
+        testMC(
+            "Send MC request with bad user.id",
+            cdh,
+            rp,
+            {"id": "usee_od", "name": "name"},
+            key_params,
+        )
+
+        testMC(
+            "Send MC request with bad user.displayName",
+            cdh,
+            rp,
+            {"id": "usee_od", "name": "name", "displayName": 8},
+            key_params,
+        )
+
+        testMC(
+            "Send MC request with bad user.icon",
+            cdh,
+            rp,
+            {"id": "usee_od", "name": "name", "icon": 8},
+            key_params,
+        )
+
+        testMC(
+            "Send MC request with non-map pubKeyCredParams item",
+            cdh,
+            rp,
+            user,
+            ["wrong"],
+        )
+
+        testMC(
+            "Send MC request with pubKeyCredParams item missing type field",
+            cdh,
+            rp,
+            user,
+            [{"alg": ES256.ALGORITHM}],
+            expectedError=CtapError.ERR.MISSING_PARAMETER,
+        )
+
+        testMC(
+            "Send MC request with pubKeyCredParams item with bad type field",
+            cdh,
+            rp,
+            user,
+            [{"alg": ES256.ALGORITHM, "type": b"public-key"}],
+        )
+
+        testMC(
+            "Send MC request with pubKeyCredParams item missing alg",
+            cdh,
+            rp,
+            user,
+            [{"type": "public-key"}],
+            expectedError=CtapError.ERR.MISSING_PARAMETER,
+        )
+
+        testMC(
+            "Send MC request with pubKeyCredParams item with bad alg",
+            cdh,
+            rp,
+            user,
+            [{"alg": "7", "type": "public-key"}],
+        )
+
+        testMC(
+            "Send MC request with pubKeyCredParams item with bogus alg, expect UNSUPPORTED_ALGORITHM",
+            cdh,
+            rp,
+            user,
+            [{"alg": 1234, "type": "public-key"}],
+            expectedError=CtapError.ERR.UNSUPPORTED_ALGORITHM,
+        )
+
+        testMC(
+            "Send MC request with pubKeyCredParams item with bogus type, expect UNSUPPORTED_ALGORITHM",
+            cdh,
+            rp,
+            user,
+            [{"alg": ES256.ALGORITHM, "type": "rot13"}],
+            expectedError=CtapError.ERR.UNSUPPORTED_ALGORITHM,
+        )
+
+        testMC(
+            "Send MC request with excludeList item with bogus type, expect SUCCESS",
+            cdh,
+            rp,
+            user,
+            key_params,
+            expectedError=CtapError.ERR.SUCCESS,
+            other={"exclude_list": [{"id": b"1234", "type": "rot13"}]},
+        )
+
+        testMC(
+            "Send MC request with excludeList with bad item, expect error",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"exclude_list": ["1234"]},
+        )
+
+        testMC(
+            "Send MC request with excludeList with item missing type field, expect error",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"exclude_list": [{"id": b"1234"}]},
+        )
+
+        testMC(
+            "Send MC request with excludeList with item missing id field, expect error",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"exclude_list": [{"type": "public-key"}]},
+        )
+
+        testMC(
+            "Send MC request with excludeList with item containing bad id field, expect error",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"exclude_list": [{"type": "public-key", "id": "1234"}]},
+        )
+
+        testMC(
+            "Send MC request with excludeList with item containing bad type field, expect error",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"exclude_list": [{"type": b"public-key", "id": b"1234"}]},
+        )
+
+        testMC(
+            "Send MC request with excludeList containing previous registration, expect CREDENTIAL_EXCLUDED",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={
+                "exclude_list": [
+                    {
+                        "type": "public-key",
+                        "id": prev_reg.auth_data.credential_data.credential_id,
+                    }
+                ]
+            },
+            expectedError=CtapError.ERR.CREDENTIAL_EXCLUDED,
+        )
+
+        testMC(
+            "Send MC request with unknown option, expect SUCCESS",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"options": {"unknown": False}},
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        if "uv" in info.options:
+            if info.options["uv"]:
+                testMC(
+                    "Send MC request with uv set to true, expect SUCCESS",
+                    cdh,
+                    rp,
+                    user,
+                    key_params,
+                    other={"options": {"uv": True}},
+                    expectedError=CtapError.ERR.SUCCESS,
+                )
+        if "up" in info.options:
+            if info.options["up"]:
+                testMC(
+                    "Send MC request with up set to true, expect INVALID_OPTION",
+                    cdh,
+                    rp,
+                    user,
+                    key_params,
+                    other={"options": {"up": True}},
+                    expectedError=CtapError.ERR.INVALID_OPTION,
+                )
+
+        testGA(
+            "Send GA request with missing RPID, expect MISSING_PARAMETER",
+            None,
+            cdh,
+            allow_list,
+            expectedError=CtapError.ERR.MISSING_PARAMETER,
+        )
+
+        testGA(
+            "Send GA request with bad RPID, expect error",
+            {"type": "wrong"},
+            cdh,
+            allow_list,
+        )
+
+        testGA(
+            "Send GA request with missing clientDataHash, expect MISSING_PARAMETER",
+            rp["id"],
+            None,
+            allow_list,
+            expectedError=CtapError.ERR.MISSING_PARAMETER,
+        )
+
+        testGA(
+            "Send GA request with bad clientDataHash, expect error",
+            rp["id"],
+            {"type": "wrong"},
+            allow_list,
+        )
+
+        testGA(
+            "Send GA request with bad allow_list, expect error",
+            rp["id"],
+            cdh,
+            {"type": "wrong"},
+        )
+
+        testGA(
+            "Send GA request with bad item in allow_list, expect error",
+            rp["id"],
+            cdh,
+            allow_list + ["wrong"],
+        )
+
+        testGA(
+            "Send GA request with unknown option, expect SUCCESS",
+            rp["id"],
+            cdh,
+            allow_list,
+            other={"options": {"unknown": True}},
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        if "uv" in info.options:
+            if info.options["uv"]:
+                res = testGA(
+                    "Send GA request with uv set to true, expect SUCCESS",
+                    rp["id"],
+                    cdh,
+                    allow_list,
+                    other={"options": {"uv": True}},
+                    expectedError=CtapError.ERR.SUCCESS,
+                )
+                print("Check that UV flag is set in response")
+                assert res.auth_data.flags & (1 << 2)
+                print("Pass")
+        if "up" in info.options:
+            if info.options["up"]:
+                res = testGA(
+                    "Send GA request with up set to true, expect SUCCESS",
+                    rp["id"],
+                    cdh,
+                    allow_list,
+                    other={"options": {"up": True}},
+                    expectedError=CtapError.ERR.SUCCESS,
+                )
+                print("Check that UP flag is set in response")
+                assert res.auth_data.flags & 1
+                print("Pass")
+
+        testGA(
+            "Send GA request with bogus type item in allow_list, expect SUCCESS",
+            rp["id"],
+            cdh,
+            allow_list + [{"type": "rot13", "id": b"1234"}],
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        testGA(
+            "Send GA request with item missing type field in allow_list, expect error",
+            rp["id"],
+            cdh,
+            allow_list + [{"id": b"1234"}],
+        )
+
+        testGA(
+            "Send GA request with item containing bad type field in allow_list, expect error",
+            rp["id"],
+            cdh,
+            allow_list + [{"type": b"public-key", "id": b"1234"}],
+        )
+
+        testGA(
+            "Send GA request with item containing bad id in allow_list, expect error",
+            rp["id"],
+            cdh,
+            allow_list + [{"type": b"public-key", "id": 42}],
+        )
+
+        testGA(
+            "Send GA request with item missing id in allow_list, expect error",
+            rp["id"],
+            cdh,
+            allow_list + [{"type": b"public-key"}],
+        )
+
     def test_rk(self,):
         creds = []
         rp = {"id": self.host, "name": "ExaRP"}
@@ -937,14 +1453,13 @@ if __name__ == "__main__":
 
     t = Tester()
     t.find_device()
-    t.set_user_count(15)
+    t.set_user_count(1)
 
     if "u2f" in sys.argv:
         t.test_u2f()
 
     if "fido2" in sys.argv:
-        t.test_fido2()
-        t.test_fido2_simple()
+        t.test_fido2_other()
 
     if "rk" in sys.argv:
         t.test_rk()
