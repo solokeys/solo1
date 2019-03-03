@@ -190,7 +190,7 @@ void main_loop_delay()
 {
     struct timespec ts;
     ts.tv_sec = 0;
-    ts.tv_nsec = 1000*1000*25;
+    ts.tv_nsec = 1000*1000*100;
     nanosleep(&ts,NULL);
 }
 
