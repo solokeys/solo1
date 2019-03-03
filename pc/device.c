@@ -146,11 +146,20 @@ void usbhid_init()
 int usbhid_recv(uint8_t * msg)
 {
     int l = udp_recv(serverfd, msg, HID_MESSAGE_SIZE);
-    /*if (l && l != HID_MESSAGE_SIZE)*/
-    /*{*/
-        /*printf("Error, recv'd message of wrong size %d", l);*/
-        /*exit(1);*/
-    /*}*/
+    uint8_t magic_cmd[] = "\xac\x10\x52\xca\x95\xe5\x69\xde\x69\xe0\x2e\xbf"
+                          "\xf3\x33\x48\x5f\x13\xf9\xb2\xda\x34\xc5\xa8\xa3"
+                          "\x40\x52\x66\x97\xa9\xab\x2e\x0b\x39\x4d\x8d\x04"
+                          "\x97\x3c\x13\x40\x05\xbe\x1a\x01\x40\xbf\xf6\x04"
+                          "\x5b\xb2\x6e\xb7\x7a\x73\xea\xa4\x78\x13\xf6\xb4"
+                          "\x9a\x72\x50\xdc";
+    if ( memcmp(magic_cmd, msg, 64) == 0 )
+    {
+        printf1(TAG_RED, "MAGIC REBOOT command recieved!\r\n");
+        memset(msg,0,64);
+        exit(100);
+        return 0;
+    }
+
     return l;
 }
 

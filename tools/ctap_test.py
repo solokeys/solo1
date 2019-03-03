@@ -62,6 +62,7 @@ class Tester:
         self.origin = "https://examplo.org"
         self.host = "examplo.org"
         self.user_count = 10
+        self.is_sim = False
 
     def find_device(self,):
         print(list(CtapHidDevice.list_devices()))
@@ -78,6 +79,9 @@ class Tester:
 
     def set_user_count(self, count):
         self.user_count = count
+
+    def set_sim(self, b):
+        self.is_sim = b
 
     def send_data(self, cmd, data):
         if type(data) != type(b""):
@@ -101,6 +105,21 @@ class Tester:
         data = list(data)
         assert len(data) == 64
         self.dev._dev.InternalSendPacket(Packet(data))
+
+    def send_magic_reboot(self,):
+        """
+        For use in simulation and testing.  Random bytes that authentictor should detect
+        and then restart itself.
+        """
+        magic_cmd = (
+            b"\xac\x10\x52\xca\x95\xe5\x69\xde\x69\xe0\x2e\xbf"
+            + b"\xf3\x33\x48\x5f\x13\xf9\xb2\xda\x34\xc5\xa8\xa3"
+            + b"\x40\x52\x66\x97\xa9\xab\x2e\x0b\x39\x4d\x8d\x04"
+            + b"\x97\x3c\x13\x40\x05\xbe\x1a\x01\x40\xbf\xf6\x04"
+            + b"\x5b\xb2\x6e\xb7\x7a\x73\xea\xa4\x78\x13\xf6\xb4"
+            + b"\x9a\x72\x50\xdc"
+        )
+        self.dev._dev.InternalSendPacket(Packet(magic_cmd))
 
     def cid(self,):
         return self.dev._dev.cid
@@ -798,6 +817,21 @@ class Tester:
         def testCP(test, *args, **kwargs):
             return testFunc(self.ctap.client_pin, test, *args, **kwargs)
 
+        def testPP(test, *args, **kwargs):
+            return testFunc(
+                self.client.pin_protocol.get_pin_token, test, *args, **kwargs
+            )
+
+        def reboot():
+            if self.is_sim:
+                print("Sending restart command...")
+                self.send_magic_reboot()
+                time.sleep(0.25)
+            else:
+                print("Please reboot authentictor and hit enter")
+                input()
+                self.find_device()
+
         testReset()
 
         print("Get info")
@@ -1463,6 +1497,12 @@ class Tester:
             assert e.code == CtapError.ERR.PIN_POLICY_VIOLATION
         print("Pass")
 
+        print("Setting pin code and get pin_token, expect SUCCESS")
+        self.client.pin_protocol.set_pin(pin1)
+        pin_token = self.client.pin_protocol.get_pin_token(pin1)
+        pin_auth = hmac_sha256(pin_token, cdh)[:16]
+        print("Pass")
+
         res = testCP(
             "Test getRetries, expect SUCCESS",
             pin_protocol,
@@ -1470,9 +1510,61 @@ class Tester:
             expectedError=CtapError.ERR.SUCCESS,
         )
 
-        print("Check there is 8 tries")
+        print("Check there is 8 pin attempts left")
         assert res[3] == 8
         print("Pass")
+
+        # Flip 1 bit
+        pin_wrong = list(pin1)
+        c = pin1[len(pin1) // 2]
+
+        pin_wrong[len(pin1) // 2] = chr(ord(c) ^ 1)
+        pin_wrong = "".join(pin_wrong)
+
+        for i in range(1, 3):
+            testPP(
+                "Get pin_token with wrong pin code, expect PIN_INVALID (%d/2)" % i,
+                pin_wrong,
+                expectedError=CtapError.ERR.PIN_INVALID,
+            )
+            print("Check there is %d pin attempts left" % (8 - i))
+            res = self.ctap.client_pin(pin_protocol, PinProtocolV1.CMD.GET_RETRIES)
+            assert res[3] == (8 - i)
+            print("Pass")
+
+        for i in range(1, 3):
+            testPP(
+                "Get pin_token with wrong pin code, expect PIN_AUTH_BLOCKED %d/2" % i,
+                pin_wrong,
+                expectedError=CtapError.ERR.PIN_AUTH_BLOCKED,
+            )
+
+        reboot()
+
+        print("Get pin_token, expect SUCCESS")
+        pin_token = self.client.pin_protocol.get_pin_token(pin1)
+        pin_auth = hmac_sha256(pin_token, cdh)[:16]
+        print("Pass")
+
+        res_mc = testMC(
+            "Send MC request with correct pin_auth",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"pin_auth": pin_auth},
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        print("Test getRetries resets to 8")
+        res = self.ctap.client_pin(pin_protocol, PinProtocolV1.CMD.GET_RETRIES)
+        assert res[3] == (8)
+        print("Pass")
+
+        # print("Test getting new pin_auth")
+        # pin_token = self.client.pin_protocol.get_pin_token(pin2)
+        # pin_auth = hmac_sha256(pin_token, cdh)[:16]
+        # print("Pass")
 
     def test_rk(self,):
         creds = []
@@ -1662,11 +1754,13 @@ if __name__ == "__main__":
         print("Usage: %s [sim] <[u2f]|[fido2]|[rk]|[hid]|[ping]>")
         sys.exit(0)
 
+    t = Tester()
+
     if "sim" in sys.argv:
         print("Using UDP backend.")
         force_udp_backend()
+        t.set_sim(True)
 
-    t = Tester()
     t.find_device()
     t.set_user_count(1)
 
