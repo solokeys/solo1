@@ -60,7 +60,7 @@ static const uint8_t * _signing_key = NULL;
 static int _key_len = 0;
 
 // Secrets for testing only
-static uint8_t master_secret[32];
+static uint8_t master_secret[64];
 
 static uint8_t transport_secret[32];
 
@@ -73,13 +73,17 @@ void crypto_sha256_init()
 
 void crypto_reset_master_secret()
 {
-    ctap_generate_rng(master_secret, 32);
+    ctap_generate_rng(master_secret, 64);
+    ctap_generate_rng(transport_secret, 32);
 }
 
 void crypto_load_master_secret(uint8_t * key)
 {
-    memmove(master_secret, key, 32);
-    memmove(transport_secret, key+32, 32);
+    #if KEY_SPACE_BYTES < 96
+    #error "need more key bytes"
+    #endif
+    memmove(master_secret, key, 64);
+    memmove(transport_secret, key+64, 32);
 }
 
 void crypto_sha256_update(uint8_t * data, size_t len)
@@ -108,7 +112,12 @@ void crypto_sha256_hmac_init(uint8_t * key, uint32_t klen, uint8_t * hmac)
         key = master_secret;
         klen = sizeof(master_secret);
     }
-
+    else if (key == CRYPTO_TRANSPORT_KEY)
+    {
+        key = transport_secret;
+        klen = 32;
+    }
+    
     if(klen > 64)
     {
         printf2(TAG_ERR,"Error, key size must be <= 64\n");
