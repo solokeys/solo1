@@ -62,9 +62,9 @@ bool nfc_init()
     ams_init();
 
     // Detect if we are powered by NFC field by listening for a message for
-    // first 25 ms.
+    // first 10 ms.
     t1 = millis();
-    while ((millis() - t1) < 25)
+    while ((millis() - t1) < 10)
     {
         if (nfc_loop() > 0)
             return 1;
