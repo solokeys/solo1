@@ -245,12 +245,6 @@ void SystemClock_Config_LF4(void)
 {
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
 
-    LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
-
-    if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_0)
-    {
-    Error_Handler();
-    }
     LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
 
     LL_RCC_LSI_Enable();
@@ -299,8 +293,12 @@ void SystemClock_Config_LF4(void)
     /* SysTick_IRQn interrupt configuration */
     NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
 
+    LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
 
-
+    if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_0)
+    {
+        Error_Handler();
+    }
 }
 
 // 8MHz
@@ -308,28 +306,22 @@ void SystemClock_Config_LF8(void)
 {
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
 
-    LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
-
-    if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_0)
-    {
-        Error_Handler();
-    }
     LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE1);
 
     LL_RCC_LSI_Enable();
 
      /* Wait till LSI is ready */
-    // while(LL_RCC_LSI_IsReady() != 1)
-    // {
-    //
-    // }
+    while(LL_RCC_LSI_IsReady() != 1)
+    {
+
+    }
     LL_RCC_MSI_Enable();
 
      /* Wait till MSI is ready */
-    // while(LL_RCC_MSI_IsReady() != 1)
-    // {
-    //
-    // }
+    while(LL_RCC_MSI_IsReady() != 1)
+    {
+
+    }
     LL_RCC_MSI_EnableRangeSelection();
 
     LL_RCC_MSI_SetRange(LL_RCC_MSIRANGE_7);
@@ -339,10 +331,10 @@ void SystemClock_Config_LF8(void)
     LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_MSI);
 
      /* Wait till System clock is ready */
-    // while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
-    // {
-    //
-    // }
+    while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_MSI)
+    {
+
+    }
     LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
 
     LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
@@ -362,6 +354,12 @@ void SystemClock_Config_LF8(void)
     /* SysTick_IRQn interrupt configuration */
     NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
 
+    LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
+
+    if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_0)
+    {
+        Error_Handler();
+    }
 }
 
 // 16MHz
@@ -369,12 +367,6 @@ void SystemClock_Config_LF16(void)
 {
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
 
-    LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
-
-    if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_0)
-    {
-    Error_Handler();
-    }
     LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE2);
 
     LL_RCC_LSI_Enable();
@@ -384,6 +376,7 @@ void SystemClock_Config_LF16(void)
     {
 
     }
+
     LL_RCC_MSI_Enable();
 
      /* Wait till MSI is ready */
@@ -408,7 +401,7 @@ void SystemClock_Config_LF16(void)
 
     LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
 
-    LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
+    LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_8);
 
     LL_Init1msTick(16000000);
 
@@ -423,6 +416,13 @@ void SystemClock_Config_LF16(void)
     /* SysTick_IRQn interrupt configuration */
     NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
 
+    LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
+
+    if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_0)
+    {
+        Error_Handler();
+    }
+
 }
 
 
@@ -436,7 +436,7 @@ void SystemClock_Config_LF24(void)
 
     if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_1)
     {
-    Error_Handler();
+        Error_Handler();
     }
     LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE2);
 
