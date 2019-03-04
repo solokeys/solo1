@@ -448,7 +448,7 @@ class Tester:
             if lastc:
                 assert (auth.counter - lastc) < 10
             lastc = auth.counter
-            if lastc > 0x100000:
+            if lastc > 0x80000000:
                 print("WARNING: counter is unusually high: %04x" % lastc)
                 assert 0
 
