@@ -1561,10 +1561,52 @@ class Tester:
         assert res[3] == (8)
         print("Pass")
 
-        # print("Test getting new pin_auth")
-        # pin_token = self.client.pin_protocol.get_pin_token(pin2)
-        # pin_auth = hmac_sha256(pin_token, cdh)[:16]
-        # print("Pass")
+        for i in range(1, 10):
+            err = CtapError.ERR.PIN_INVALID
+            if i in (3, 6):
+                err = CtapError.ERR.PIN_AUTH_BLOCKED
+            elif i >= 9:
+                err = CtapError.ERR.PIN_BLOCKED
+            testPP(
+                "Lock out authentictor and check correct error codes %d/9" % i,
+                pin_wrong,
+                expectedError=err,
+            )
+
+            attempts = 8 - i
+            if i > 8:
+                attempts = 0
+
+            print("Check there is %d pin attempts left" % attempts)
+            res = self.ctap.client_pin(pin_protocol, PinProtocolV1.CMD.GET_RETRIES)
+            assert res[3] == attempts
+
+            print("Pass")
+
+            if err == CtapError.ERR.PIN_AUTH_BLOCKED:
+                reboot()
+
+        res_mc = testMC(
+            "Send MC request with correct pin_auth, expect PIN_BLOCKED",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"pin_auth": pin_auth},
+            expectedError=CtapError.ERR.PIN_BLOCKED,
+        )
+
+        reboot()
+
+        testPP(
+            "Get pin_token with correct pin code, expect PIN_BLOCKED",
+            pin1,
+            expectedError=CtapError.ERR.PIN_BLOCKED,
+        )
+
+        testReset()
+
+        print("Done")
 
     def test_rk(self,):
         creds = []
@@ -1755,19 +1797,21 @@ if __name__ == "__main__":
         sys.exit(0)
 
     t = Tester()
+    t.set_user_count(3)
 
     if "sim" in sys.argv:
         print("Using UDP backend.")
         force_udp_backend()
         t.set_sim(True)
+        t.set_user_count(10)
 
     t.find_device()
-    t.set_user_count(1)
 
     if "u2f" in sys.argv:
         t.test_u2f()
 
     if "fido2" in sys.argv:
+        t.test_fido2()
         t.test_fido2_other()
 
     if "rk" in sys.argv:
