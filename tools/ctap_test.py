@@ -23,7 +23,7 @@ from fido2.ctap import CtapError
 from fido2.ctap1 import CTAP1, ApduError, APDU
 from fido2.ctap2 import *
 from fido2.cose import *
-from fido2.utils import Timeout, sha256
+from fido2.utils import Timeout, sha256, hmac_sha256
 from fido2.attestation import Attestation
 
 from solo.fido2 import force_udp_backend
@@ -62,6 +62,7 @@ class Tester:
         self.origin = "https://examplo.org"
         self.host = "examplo.org"
         self.user_count = 10
+        self.is_sim = False
 
     def find_device(self,):
         print(list(CtapHidDevice.list_devices()))
@@ -78,6 +79,9 @@ class Tester:
 
     def set_user_count(self, count):
         self.user_count = count
+
+    def set_sim(self, b):
+        self.is_sim = b
 
     def send_data(self, cmd, data):
         if type(data) != type(b""):
@@ -101,6 +105,21 @@ class Tester:
         data = list(data)
         assert len(data) == 64
         self.dev._dev.InternalSendPacket(Packet(data))
+
+    def send_magic_reboot(self,):
+        """
+        For use in simulation and testing.  Random bytes that authentictor should detect
+        and then restart itself.
+        """
+        magic_cmd = (
+            b"\xac\x10\x52\xca\x95\xe5\x69\xde\x69\xe0\x2e\xbf"
+            + b"\xf3\x33\x48\x5f\x13\xf9\xb2\xda\x34\xc5\xa8\xa3"
+            + b"\x40\x52\x66\x97\xa9\xab\x2e\x0b\x39\x4d\x8d\x04"
+            + b"\x97\x3c\x13\x40\x05\xbe\x1a\x01\x40\xbf\xf6\x04"
+            + b"\x5b\xb2\x6e\xb7\x7a\x73\xea\xa4\x78\x13\xf6\xb4"
+            + b"\x9a\x72\x50\xdc"
+        )
+        self.dev._dev.InternalSendPacket(Packet(magic_cmd))
 
     def cid(self,):
         return self.dev._dev.cid
@@ -761,6 +780,7 @@ class Tester:
         user2 = {"id": b"oiewhfoi", "name": "Han Solo"}
         user3 = {"id": b"23ohfpjwo@@", "name": "John Smith"}
         challenge = "Y2hhbGxlbmdl"
+        pin_protocol = 1
         key_params = [{"type": "public-key", "alg": ES256.ALGORITHM}]
         cdh = b"123456789abcdef0123456789abcdef0"
 
@@ -784,11 +804,35 @@ class Tester:
             print("Pass")
             return res
 
+        def testReset():
+            print("Resetting Authenticator...")
+            self.ctap.reset()
+
         def testMC(test, *args, **kwargs):
             return testFunc(self.ctap.make_credential, test, *args, **kwargs)
 
         def testGA(test, *args, **kwargs):
             return testFunc(self.ctap.get_assertion, test, *args, **kwargs)
+
+        def testCP(test, *args, **kwargs):
+            return testFunc(self.ctap.client_pin, test, *args, **kwargs)
+
+        def testPP(test, *args, **kwargs):
+            return testFunc(
+                self.client.pin_protocol.get_pin_token, test, *args, **kwargs
+            )
+
+        def reboot():
+            if self.is_sim:
+                print("Sending restart command...")
+                self.send_magic_reboot()
+                time.sleep(0.25)
+            else:
+                print("Please reboot authentictor and hit enter")
+                input()
+                self.find_device()
+
+        testReset()
 
         print("Get info")
         info = self.ctap.get_info()
@@ -1284,65 +1328,285 @@ class Tester:
             allow_list + [{"type": b"public-key"}],
         )
 
-        print("Test Reset, expect SUCCESS")
-        self.ctap.reset()
-        print("Pass")
+        testReset()
 
-        testGA(
-            "Send GA request with reset auth, expect NO_CREDENTIALS",
-            rp["id"],
-            cdh,
-            allow_list,
-            expectedError=CtapError.ERR.NO_CREDENTIALS,
+        def testRk(pin_code=None):
+            testGA(
+                "Send GA request with reset auth, expect NO_CREDENTIALS",
+                rp["id"],
+                cdh,
+                allow_list,
+                expectedError=CtapError.ERR.NO_CREDENTIALS,
+            )
+
+            pin_auth = None
+            if pin_code:
+                print("Setting pin code ...")
+                self.client.pin_protocol.set_pin(pin_code)
+                pin_token = self.client.pin_protocol.get_pin_token(pin_code)
+                pin_auth = hmac_sha256(pin_token, cdh)[:16]
+                print("Pass")
+
+            testMC(
+                "Send MC request with rk option set to true, expect SUCCESS",
+                cdh,
+                rp,
+                user,
+                key_params,
+                other={"options": {"rk": True}, "pin_auth": pin_auth},
+                expectedError=CtapError.ERR.SUCCESS,
+            )
+
+            options = {"rk": True}
+            if "uv" in info.options and info.options["uv"]:
+                options["uv"] = False
+
+            for i, x in enumerate([user1, user2, user3]):
+                testMC(
+                    "Send MC request with rk option set to true, expect SUCCESS %d/3"
+                    % (i + 1),
+                    cdh,
+                    rp2,
+                    x,
+                    key_params,
+                    other={"options": options, "pin_auth": pin_auth},
+                    expectedError=CtapError.ERR.SUCCESS,
+                )
+
+            auth1 = testGA(
+                "Send GA request with no allow_list, expect SUCCESS",
+                rp2["id"],
+                cdh,
+                other={"options": options, "pin_auth": pin_auth},
+                expectedError=CtapError.ERR.SUCCESS,
+            )
+
+            print("Check that there are 3 credentials returned")
+            assert auth1.number_of_credentials == 3
+            print("Pass")
+
+            print("Get the next 2 assertions")
+            auth2 = self.ctap.get_next_assertion()
+            auth3 = self.ctap.get_next_assertion()
+            print("Pass")
+
+            if not pin_code:
+                print("Check only the user ID was returned")
+                assert "id" in auth1.user.keys() and len(auth1.user.keys()) == 1
+                assert "id" in auth2.user.keys() and len(auth2.user.keys()) == 1
+                assert "id" in auth3.user.keys() and len(auth3.user.keys()) == 1
+                print("Pass")
+            else:
+                print("Check that all user info was returned")
+                for x in (auth1, auth2, auth3):
+                    for y in ("name", "icon", "displayName", "id"):
+                        assert y in x.user.keys()
+                    assert len(x.user.keys()) == 4
+                print("Pass")
+
+            print("Send an extra getNextAssertion request, expect error")
+            try:
+                auth4 = self.ctap.get_next_assertion()
+            except CtapError as e:
+                print(e)
+            print("Pass")
+
+        testRk(None)
+        #
+        # print("Assuming authenticator does NOT have a display.")
+        pin1 = "1234567890"
+        testRk("1234567890")
+
+        # PinProtocolV1
+        res = testCP(
+            "Test getKeyAgreement, expect SUCCESS",
+            pin_protocol,
+            PinProtocolV1.CMD.GET_KEY_AGREEMENT,
+            expectedError=CtapError.ERR.SUCCESS,
         )
 
-        testMC(
-            "Send MC request with rk option set to true, expect SUCCESS",
+        print("Test getKeyAgreement has appropriate fields")
+        key = res[1]
+        assert "Is public key" and key[1] == 2
+        assert "Is P256" and key[-1] == 1
+        assert "Is right alg" and key[3] == -7
+        assert "Right key" and len(key[-3]) == 32 and type(key[-3]) == type(bytes())
+        print("Pass")
+
+        print("Test setting a new pin")
+        pin2 = "qwertyuiop\x11\x22\x33\x00123"
+        self.client.pin_protocol.change_pin(pin1, pin2)
+        print("Pass")
+
+        print("Test getting new pin_auth")
+        pin_token = self.client.pin_protocol.get_pin_token(pin2)
+        pin_auth = hmac_sha256(pin_token, cdh)[:16]
+        print("Pass")
+
+        res_mc = testMC(
+            "Send MC request with new pin auth",
             cdh,
             rp,
             user,
             key_params,
-            other={"options": {"rk": True}},
+            other={"pin_auth": pin_auth},
             expectedError=CtapError.ERR.SUCCESS,
         )
 
-        options = {"rk": True}
-        if "uv" in info.options and info.options["uv"]:
-            options["uv"] = False
+        print("Check UV flag is set")
+        assert res_mc.auth_data.flags & (1 << 2)
+        print("Pass")
 
-        for i, x in enumerate([user1, user2, user3]):
-            testMC(
-                "Send MC request with rk option set to true, expect SUCCESS %d/3"
-                % (i + 1),
-                cdh,
-                rp2,
-                x,
-                key_params,
-                other={"options": options},
-                expectedError=CtapError.ERR.SUCCESS,
+        res_ga = testGA(
+            "Send GA request with no allow_list, expect SUCCESS",
+            rp["id"],
+            cdh,
+            [
+                {
+                    "type": "public-key",
+                    "id": res_mc.auth_data.credential_data.credential_id,
+                }
+            ],
+            other={"pin_auth": pin_auth},
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        print("Check UV flag is set")
+        assert res_ga.auth_data.flags & (1 << 2)
+        print("Pass")
+
+        testReset()
+
+        print("Setting pin code, expect SUCCESS")
+        self.client.pin_protocol.set_pin(pin1)
+        print("Pass")
+
+        testReset()
+
+        # print("Setting pin code <4 bytes, expect POLICY_VIOLATION ")
+        # try:
+        #     self.client.pin_protocol.set_pin("123")
+        # except CtapError as e:
+        #     assert e.code == CtapError.ERR.POLICY_VIOLATION
+        # print("Pass")
+
+        print("Setting pin code >63 bytes, expect POLICY_VIOLATION ")
+        try:
+            self.client.pin_protocol.set_pin("A" * 64)
+        except CtapError as e:
+            assert e.code == CtapError.ERR.PIN_POLICY_VIOLATION
+        print("Pass")
+
+        print("Setting pin code and get pin_token, expect SUCCESS")
+        self.client.pin_protocol.set_pin(pin1)
+        pin_token = self.client.pin_protocol.get_pin_token(pin1)
+        pin_auth = hmac_sha256(pin_token, cdh)[:16]
+        print("Pass")
+
+        res = testCP(
+            "Test getRetries, expect SUCCESS",
+            pin_protocol,
+            PinProtocolV1.CMD.GET_RETRIES,
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        print("Check there is 8 pin attempts left")
+        assert res[3] == 8
+        print("Pass")
+
+        # Flip 1 bit
+        pin_wrong = list(pin1)
+        c = pin1[len(pin1) // 2]
+
+        pin_wrong[len(pin1) // 2] = chr(ord(c) ^ 1)
+        pin_wrong = "".join(pin_wrong)
+
+        for i in range(1, 3):
+            testPP(
+                "Get pin_token with wrong pin code, expect PIN_INVALID (%d/2)" % i,
+                pin_wrong,
+                expectedError=CtapError.ERR.PIN_INVALID,
+            )
+            print("Check there is %d pin attempts left" % (8 - i))
+            res = self.ctap.client_pin(pin_protocol, PinProtocolV1.CMD.GET_RETRIES)
+            assert res[3] == (8 - i)
+            print("Pass")
+
+        for i in range(1, 3):
+            testPP(
+                "Get pin_token with wrong pin code, expect PIN_AUTH_BLOCKED %d/2" % i,
+                pin_wrong,
+                expectedError=CtapError.ERR.PIN_AUTH_BLOCKED,
             )
 
-        auth1 = testGA(
-            "Send GA request with no allow_list, expect SUCCESS",
-            rp2["id"],
+        reboot()
+
+        print("Get pin_token, expect SUCCESS")
+        pin_token = self.client.pin_protocol.get_pin_token(pin1)
+        pin_auth = hmac_sha256(pin_token, cdh)[:16]
+        print("Pass")
+
+        res_mc = testMC(
+            "Send MC request with correct pin_auth",
             cdh,
+            rp,
+            user,
+            key_params,
+            other={"pin_auth": pin_auth},
             expectedError=CtapError.ERR.SUCCESS,
         )
 
-        print("Check that there are 3 credentials returned")
-        assert auth1.number_of_credentials == 3
+        print("Test getRetries resets to 8")
+        res = self.ctap.client_pin(pin_protocol, PinProtocolV1.CMD.GET_RETRIES)
+        assert res[3] == (8)
         print("Pass")
 
-        print("Get the next 2 assertions")
-        auth2 = self.ctap.get_next_assertion()
-        auth3 = self.ctap.get_next_assertion()
-        print("Pass")
+        for i in range(1, 10):
+            err = CtapError.ERR.PIN_INVALID
+            if i in (3, 6):
+                err = CtapError.ERR.PIN_AUTH_BLOCKED
+            elif i >= 9:
+                err = CtapError.ERR.PIN_BLOCKED
+            testPP(
+                "Lock out authentictor and check correct error codes %d/9" % i,
+                pin_wrong,
+                expectedError=err,
+            )
 
-        print("Check only the user ID was returned")
-        assert "id" in auth1.user.keys() and len(auth1.user.keys()) == 1
-        assert "id" in auth2.user.keys() and len(auth2.user.keys()) == 1
-        assert "id" in auth3.user.keys() and len(auth3.user.keys()) == 1
-        print("Pass")
+            attempts = 8 - i
+            if i > 8:
+                attempts = 0
+
+            print("Check there is %d pin attempts left" % attempts)
+            res = self.ctap.client_pin(pin_protocol, PinProtocolV1.CMD.GET_RETRIES)
+            assert res[3] == attempts
+
+            print("Pass")
+
+            if err == CtapError.ERR.PIN_AUTH_BLOCKED:
+                reboot()
+
+        res_mc = testMC(
+            "Send MC request with correct pin_auth, expect PIN_BLOCKED",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"pin_auth": pin_auth},
+            expectedError=CtapError.ERR.PIN_BLOCKED,
+        )
+
+        reboot()
+
+        testPP(
+            "Get pin_token with correct pin code, expect PIN_BLOCKED",
+            pin1,
+            expectedError=CtapError.ERR.PIN_BLOCKED,
+        )
+
+        testReset()
+
+        print("Done")
 
     def test_rk(self,):
         creds = []
@@ -1532,18 +1796,22 @@ if __name__ == "__main__":
         print("Usage: %s [sim] <[u2f]|[fido2]|[rk]|[hid]|[ping]>")
         sys.exit(0)
 
+    t = Tester()
+    t.set_user_count(3)
+
     if "sim" in sys.argv:
         print("Using UDP backend.")
         force_udp_backend()
+        t.set_sim(True)
+        t.set_user_count(10)
 
-    t = Tester()
     t.find_device()
-    t.set_user_count(1)
 
     if "u2f" in sys.argv:
         t.test_u2f()
 
     if "fido2" in sys.argv:
+        t.test_fido2()
         t.test_fido2_other()
 
     if "rk" in sys.argv:
