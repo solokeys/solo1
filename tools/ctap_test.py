@@ -12,7 +12,7 @@
 # Script for testing correctness of CTAP2/CTAP1 security token
 
 from __future__ import print_function, absolute_import, unicode_literals
-import sys, os, time
+import sys, os, time, math
 from random import randint
 from binascii import hexlify
 import array, struct, socket
@@ -26,6 +26,7 @@ from fido2.utils import Timeout, sha256, hmac_sha256
 from fido2.attestation import Attestation
 
 from solo.fido2 import force_udp_backend
+from solo.client import SoloClient
 
 
 # Set up a FIDO 2 client using the origin https://example.com
@@ -1691,6 +1692,36 @@ class Tester:
 
         print("Assertion(s) valid (%d ms)" % (t2 - t1))
 
+    def test_solo(self,):
+        """
+        Solo specific tests
+        """
+        # RNG command
+        sc = SoloClient()
+        sc.find_device(self.dev)
+        sc.use_u2f()
+
+        total = 1024 * 16
+        print("Gathering %d random bytes..." % total)
+        entropy = b""
+        while len(entropy) < total:
+            entropy += sc.get_rng()
+        total = len(entropy)
+        print("Pass")
+
+        print("Test entropy is close to perfect")
+        sum = 0.0
+        for x in range(0, 256):
+            freq = entropy.count(x)
+            p = freq / total
+            sum -= p * math.log2(p)
+        assert sum > 7.98
+        print("Entropy is %.5f bits per byte. Pass" % sum)
+
+        print("Test Solo version command")
+        assert len(sc.solo_version()) == 3
+        print("Pass")
+
     def test_responses(self,):
         PIN = "1234"
         RPID = self.host
@@ -1805,6 +1836,9 @@ if __name__ == "__main__":
         t.set_user_count(10)
 
     t.find_device()
+
+    if "solo" in sys.argv:
+        t.test_solo()
 
     if "u2f" in sys.argv:
         t.test_u2f()
