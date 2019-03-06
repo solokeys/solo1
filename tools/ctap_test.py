@@ -21,8 +21,7 @@ from fido2.hid import CtapHidDevice, CTAPHID
 from fido2.client import Fido2Client, ClientError
 from fido2.ctap import CtapError
 from fido2.ctap1 import CTAP1, ApduError, APDU
-from fido2.ctap2 import *
-from fido2.cose import *
+from fido2.ctap2 import ES256, PinProtocolV1
 from fido2.utils import Timeout, sha256, hmac_sha256
 from fido2.attestation import Attestation
 
