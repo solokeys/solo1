@@ -890,11 +890,40 @@ class Tester:
         assert len(prev_auth.auth_data) == 37
         print("pass")
 
+        print("Test that auth_data.rpIdHash is correct")
+        assert sha256(rp["id"].encode()) == prev_auth.auth_data.rp_id_hash
+        print("Pass")
+
+        print("Check that AT flag is not set")
+        assert (prev_auth.auth_data.flags & 0xF8) == 0
+        print("Pass")
+
         print("Test that user, credential and numberOfCredentials are not present")
         assert prev_auth.user == None
         assert prev_auth.number_of_credentials == None
         # assert prev_auth.credential == None # TODO double check this
         print("Pass")
+
+        testGA(
+            "Send GA request with empty allow_list, expect NO_CREDENTIALS",
+            rp["id"],
+            cdh,
+            [],
+            expectedError=CtapError.ERR.NO_CREDENTIALS,
+        )
+
+        # apply bit flip
+        badid = list(prev_reg.auth_data.credential_data.credential_id[:])
+        badid[len(badid) // 2] = badid[len(badid) // 2] ^ 1
+        badid = bytes(badid)
+
+        testGA(
+            "Send GA request with corrupt credId in allow_list, expect NO_CREDENTIALS",
+            rp["id"],
+            cdh,
+            [{"id": badid, "type": "public-key"}],
+            expectedError=CtapError.ERR.NO_CREDENTIALS,
+        )
 
         testMC(
             "Send MC request with missing clientDataHash, expect error",
@@ -1407,6 +1436,7 @@ class Tester:
             print("Send an extra getNextAssertion request, expect error")
             try:
                 auth4 = self.ctap.get_next_assertion()
+                assert 0
             except CtapError as e:
                 print(e)
             print("Pass")
@@ -1493,8 +1523,24 @@ class Tester:
         print("Setting pin code >63 bytes, expect POLICY_VIOLATION ")
         try:
             self.client.pin_protocol.set_pin("A" * 64)
+            assert 0
         except CtapError as e:
             assert e.code == CtapError.ERR.PIN_POLICY_VIOLATION
+        print("Pass")
+
+        print("Get pin token when no pin is set, expect PIN_NOT_SET")
+        try:
+            self.client.pin_protocol.get_pin_token(pin1)
+            assert 0
+        except CtapError as e:
+            assert e.code == CtapError.ERR.PIN_NOT_SET
+
+        print("Get change pin when no pin is set, expect PIN_NOT_SET")
+        try:
+            self.client.pin_protocol.change_pin(pin1, "1234")
+            assert 0
+        except CtapError as e:
+            assert e.code == CtapError.ERR.PIN_NOT_SET
         print("Pass")
 
         print("Setting pin code and get pin_token, expect SUCCESS")
@@ -1502,6 +1548,35 @@ class Tester:
         pin_token = self.client.pin_protocol.get_pin_token(pin1)
         pin_auth = hmac_sha256(pin_token, cdh)[:16]
         print("Pass")
+
+        print("Get info and assert that clientPin is set to true")
+        info = self.ctap.get_info()
+        assert info.options["clientPin"]
+        print("Pass")
+
+        print("Test setting pin again fails")
+        try:
+            self.client.pin_protocol.set_pin(pin1)
+            assert 0
+        except CtapError as e:
+            print(e)
+        print("Pass")
+
+        res_mc = testMC(
+            "Send MC request with no pin_auth, expect PIN_REQUIRED",
+            cdh,
+            rp,
+            user,
+            key_params,
+            expectedError=CtapError.ERR.PIN_REQUIRED,
+        )
+
+        res_mc = testGA(
+            "Send GA request with no pin_auth, expect PIN_REQUIRED",
+            rp["id"],
+            cdh,
+            expectedError=CtapError.ERR.PIN_REQUIRED,
+        )
 
         res = testCP(
             "Test getRetries, expect SUCCESS",
@@ -1733,6 +1808,7 @@ class Tester:
     def test_bootloader(self,):
         sc = SoloClient()
         sc.find_device(self.dev)
+        sc.use_u2f()
 
         memmap = (0x08005000, 0x08005000 + 198 * 1024 - 8)
         data = b"A" * 64
