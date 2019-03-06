@@ -1700,6 +1700,7 @@ class Tester:
         sc = SoloClient()
         sc.find_device(self.dev)
         sc.use_u2f()
+        memmap = (0x08005000, 0x08005000 + 198 * 1024 - 8)
 
         total = 1024 * 16
         print("Gathering %d random bytes..." % total)
@@ -1721,6 +1722,36 @@ class Tester:
         print("Test Solo version command")
         assert len(sc.solo_version()) == 3
         print("Pass")
+
+        print("Test bootloader is not active")
+        try:
+            sc.write_flash(memmap[0], b"1234")
+        except ApduError:
+            pass
+        print("Pass")
+
+    def test_bootloader(self,):
+        sc = SoloClient()
+        sc.find_device(self.dev)
+
+        memmap = (0x08005000, 0x08005000 + 198 * 1024 - 8)
+        data = b"A" * 64
+
+        print("Test version command")
+        assert len(sc.bootloader_version()) == 3
+        print("Pass")
+
+        print("Test write command")
+        sc.write_flash(memmap[0], data)
+        print("Pass")
+
+        for addr in (memmap[0] - 8, memmap[0] - 4, memmap[1], memmap[1] - 8):
+            print("Test out of bounds write command at 0x%04x" % addr)
+            try:
+                sc.write_flash(addr, data)
+            except CtapError as e:
+                assert e.code == CtapError.ERR.NOT_ALLOWED
+            print("Pass")
 
     def test_responses(self,):
         PIN = "1234"
@@ -1856,6 +1887,13 @@ if __name__ == "__main__":
     # hid tests are a bit invasive and should be done last
     if "hid" in sys.argv:
         t.test_hid()
+
+    if "bootloader" in sys.argv:
+        if t.is_sim:
+            raise RuntimeError("Cannot test bootloader in simulation yet.")
+        print("Put device in bootloader mode and then hit enter")
+        input()
+        t.test_bootloader()
 
     # t.test_responses()
     # test_find_brute_force()
