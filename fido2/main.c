@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <unistd.h>
 
 #include "cbor.h"
 #include "device.h"
@@ -19,10 +21,44 @@
 
 #if !defined(TEST)
 
-int main()
+bool use_udp = true;
+
+void usage(const char * cmd)
+{
+    fprintf(stderr, "Usage: %s [-b udp|hidg]\n", cmd);
+    fprintf(stderr, "   -b      backing implementation: udp(default) or hidg\n");
+    exit(1);
+}
+
+int main(int argc, char *argv[])
 {
     uint8_t hidmsg[64];
     uint32_t t1 = 0;
+    int opt;
+
+    while ((opt = getopt(argc, argv, "b:")) != -1)
+    {
+        switch (opt)
+        {
+            case 'b':
+                if (strcmp("udp", optarg) == 0)
+                {
+                    use_udp = true;
+                }
+                else if (strcmp("hidg", optarg) == 0)
+                {
+                    use_udp = false;
+                }
+                else
+                {
+                    usage(argv[0]);
+                }
+                break;
+            default:
+                usage(argv[0]);
+                break;
+        }
+    }
 
     set_logging_mask(
 		/*0*/

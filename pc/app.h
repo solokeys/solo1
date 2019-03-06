@@ -7,6 +7,7 @@
 
 #ifndef SRC_APP_H_
 #define SRC_APP_H_
+#include <stdbool.h>
 
 #define USING_DEV_BOARD
 
@@ -19,6 +20,8 @@
 //#define BRIDGE_TO_WALLET
 
 void printing_init();
+
+extern bool use_udp;
 
 //                              0xRRGGBB
 #define LED_INIT_VALUE			0x000800
