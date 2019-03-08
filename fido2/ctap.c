@@ -61,7 +61,7 @@ uint8_t verify_pin_auth(uint8_t * pinAuth, uint8_t * clientDataHash)
     }
     else
     {
-        printf2(TAG_ERR,"Pin auth failed\n");
+        printf2(TAG_ERR,"PIN auth failed\n");
         dump_hex1(TAG_ERR,pinAuth,16);
         dump_hex1(TAG_ERR,hmac,16);
         return CTAP2_ERR_PIN_AUTH_INVALID;
@@ -1172,7 +1172,7 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
     }
     else
     {
-        printf1(TAG_CP,"new pin: %s [%d bytes]\n", pinEnc, ret);
+        printf1(TAG_CP,"new PIN: %s [%d bytes]\n", pinEnc, ret);
         dump_hex1(TAG_CP, pinEnc, ret);
     }
 
@@ -1226,7 +1226,7 @@ uint8_t ctap_add_pin_if_verified(uint8_t * pinTokenEnc, uint8_t * platform_pubke
 
     if (memcmp(pinHashEnc, PIN_CODE_HASH, 16) != 0)
     {
-        printf2(TAG_ERR,"Pin does not match!\n");
+        printf2(TAG_ERR,"PIN does not match!\n");
         printf2(TAG_ERR,"platform-pin-hash: "); dump_hex1(TAG_ERR, pinHashEnc, 16);
         printf2(TAG_ERR,"authentic-pin-hash: "); dump_hex1(TAG_ERR, PIN_CODE_HASH, 16);
         printf2(TAG_ERR,"shared-secret: "); dump_hex1(TAG_ERR, shared_secret, 32);
@@ -1370,7 +1370,7 @@ uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
             break;
 
         default:
-            printf2(TAG_ERR,"Error, invalid client pin subcommand\n");
+            printf2(TAG_ERR,"Error, invalid client PIN subcommand\n");
             return CTAP1_ERR_OTHER;
     }
 
@@ -1575,7 +1575,7 @@ void ctap_init()
 
     if (ctap_is_pin_set())
     {
-        printf1(TAG_STOR,"pin code: \"%s\"\n", STATE.pin_code);
+        printf1(TAG_STOR,"PIN set.\n");
         crypto_sha256_init();
         crypto_sha256_update(STATE.pin_code, STATE.pin_code_length);
         crypto_sha256_final(PIN_CODE_HASH);
@@ -1583,7 +1583,7 @@ void ctap_init()
     }
     else
     {
-        printf1(TAG_STOR,"pin not set.\n");
+        printf1(TAG_STOR,"PIN not set.\n");
     }
     if (ctap_device_locked())
     {
@@ -1623,7 +1623,7 @@ void ctap_update_pin(uint8_t * pin, int len)
 {
     if (len > NEW_PIN_ENC_MIN_SIZE || len < 4)
     {
-        printf2(TAG_ERR, "Update pin fail length\n");
+        printf2(TAG_ERR, "Update PIN fail length\n");
         exit(1);
     }
     memset(STATE.pin_code, 0, NEW_PIN_ENC_MIN_SIZE);
@@ -1640,7 +1640,7 @@ void ctap_update_pin(uint8_t * pin, int len)
     authenticator_write_state(&STATE, 1);
     authenticator_write_state(&STATE, 0);
 
-    printf1(TAG_CTAP, "New pin set: %s\n", STATE.pin_code);
+    printf1(TAG_CTAP, "New PIN set.\n");
 }
 
 uint8_t ctap_decrement_pin_attempts()
