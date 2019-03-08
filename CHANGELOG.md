@@ -15,3 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extension interface to U2F and FIDO2
     - Read firmware version
     - Read RNG bytes
+
+## [1.1.1] - 2019-03-01
+
+- This version fixes an incorrect error code returned in U2F.  
+
+## [2.0.0] - 2019-03-01
+
+- Merge of NFC functionality branch
+- Bug fix with compiled USB name being too long causing buffer overrun
+- Change upper byte of counter from `0xff` to `0x7f` to fix issues with some websites.
