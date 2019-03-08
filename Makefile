@@ -9,7 +9,9 @@
 
 ecc_platform=2
 
-src = $(wildcard pc/*.c) $(wildcard fido2/*.c) $(wildcard crypto/sha256/*.c) crypto/tiny-AES-c/aes.c
+src = $(wildcard pc/*.c) $(wildcard fido2/*.c) $(wildcard fido2/extensions/*.c) \
+	$(wildcard crypto/sha256/*.c) crypto/tiny-AES-c/aes.c
+
 obj = $(src:.c=.o) crypto/micro-ecc/uECC.o
 
 LIBCBOR = tinycbor/lib/libtinycbor.a
@@ -20,7 +22,17 @@ else
   export LDFLAGS = -Wl,--gc-sections
 endif
 LDFLAGS += $(LIBCBOR)
-CFLAGS = -O2 -fdata-sections -ffunction-sections
+
+VERSION:=$(shell git describe --abbrev=0 )
+VERSION_FULL:=$(shell git describe)
+VERSION_MAJ:=$(shell python -c 'print("$(VERSION)".split(".")[0])')
+VERSION_MIN:=$(shell python -c 'print("$(VERSION)".split(".")[1])')
+VERSION_PAT:=$(shell python -c 'print("$(VERSION)".split(".")[2])')
+
+VERSION_FLAGS= -DSOLO_VERSION_MAJ=$(VERSION_MAJ) -DSOLO_VERSION_MIN=$(VERSION_MIN) \
+	-DSOLO_VERSION_PATCH=$(VERSION_PAT) -DSOLO_VERSION=\"$(VERSION_FULL)\"
+
+CFLAGS = -O2 -fdata-sections -ffunction-sections $(VERSION_FLAGS)
 
 INCLUDES = -I./tinycbor/src -I./crypto/sha256 -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/ -I./fido2/ -I./pc -I./fido2/extensions
 INCLUDES += -I./crypto/cifra/src
