@@ -26,6 +26,7 @@
 
 uint8_t REBOOT_FLAG = 0;
 
+void SystemClock_Config(void);
 
 void BOOT_boot(void)
 {
