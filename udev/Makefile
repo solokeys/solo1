@@ -10,6 +10,8 @@
 
 setup: install activate
 legacy-setup: install-legacy activate
+
+# Symlinks can be setup, we don't officially supply any
 # symlinks: install-symlinks activate
 
 RULES_PATH=/etc/udev/rules.d
@@ -31,6 +33,14 @@ install-legacy:
 # if ModemManager is running with "strict" filter policy.
 # Debian Buster for instance does this.
 # One solution is to run ModemManager with "paranoid" filter policy.
-paranoid-modemmanager: dropin-paranoid-modemmanager activate
+paranoid-modemmanager: dropin-paranoid-modemmanager restart-modemmanager
 dropin-paranoid-modemmanager:
 	test -f /usr/sbin/ModemManager && sudo cp ModemManager-override.conf /etc/systemd/system/ModemManager.service.d/override.conf
+
+strict-modemmanager: dropin-strict-modemmanager restart-modemmanager
+dropin-strict-modemmanager:
+	sudo rm -f /etc/systemd/system/ModemManager.service.d/override.conf
+
+restart-modemmanager:
+	sudo systemctl daemon-reload
+	sudo systemctl restart ModemManager.service
