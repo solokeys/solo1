@@ -13,7 +13,7 @@ Solo supports FIDO2 and U2F standards for strong two-factor authentication and p
 
 <img src="https://solokeys.com/images/photos/hero-on-white-cropped.png" width="600">
 
-This repo contains the Solo firmware, including implementations of FIDO2 and U2F (CTAP2 and CTAP) over USB and NFC. The main implementation is for STM32L432, and it's ported to NRF52840 and EFM32J.
+This repo contains the Solo firmware, including implementations of FIDO2 and U2F (CTAP2 and CTAP) over USB and NFC. The main implementation is for STM32L432, but it is easily portable.
 
 For development no hardware is needed, Solo also runs as a standalone application for Windows, Linux, and Mac OSX. If you like (or want to learn) hardware instead, you can run Solo on the NUCLEO-L432KC development board, or we make Solo for Hacker, an unlocked version of Solo that lets you customize its firmware.
 
@@ -33,7 +33,7 @@ Solo is based on the STM32L432 microcontroller. It offers the following security
 
 Solo for Hacker is a special version of Solo that let you customize its firmware, for example you can change the LED color, and even build advanced applications.
 
-You can only buy Solo for Hacker at [solokeys.com](https://solokeys.com), as we don't sell it on Amazon and other places to avoid confusing customers. If you buy a Hacker, you can permanently lock it into a regular Solo, but viceversa you can NOT take a regular Solo and turn it a Hacker.
+Check out [solokeys.com](https://solokeys.com), for options on where to buy Solo.  Solo Hacker can be converted to a secure version, but normal Solo cannot be converted to a Hacker version.
 
 If you have a Solo for Hacker, here's how you can load your own code on it. You can find more details, including how to permanently lock it, in our [documentation](https://docs.solokeys.io/solo/building/). We only support Python3.
 
@@ -56,17 +56,14 @@ Alternatively, run `make docker-build` and use the firmware generated in `/tmp`.
 
 If you forgot the `--recurse-submodules` when cloning, simply `git submodule update --init --recursive`.
 
-For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/solokeys/solo/blob/master/targets/stm32l432/src/led.c#L15) and force:
-```
-uint32_t b = 0;
-```
+For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/solokeys/solo/blob/master/targets/stm32l432/src/app.h#L48) and change `LED_INIT_VALUE`
+to be a different hex color.
 
-Then recompile, load your new firmware, and enjoy a blue-light-free version of Solo.
+Then recompile, load your new firmware, and enjoy a different LED color Solo.
 
-In the Hacker version, hardware is the same and firmware is unlocked, in the sense that you can 1) load an unsigned application, or 2) entirely reflash the key. By contrast, in a regular Solo you can only upgrade to a firmware signed by SoloKeys, and flash is locked and debug disabled permanently.
+In the Hacker version, hardware is the same but the firmware is unlocked, so you can 1) load an unsigned application, or 2) entirely reflash the key. By contrast, in a regular Solo you can only upgrade to a firmware signed by SoloKeys, and flash is locked and debug disabled permanently.
 
-A frequently asked question is whether Solo for Hacker is less secure than regular Solo. The answer is certainly yes, and therefore we only recommend to use Solo for Hacker for development, experimentation, and fun. An attacker with physical access to a Solo for Hacker can reflash it following the steps above, and even a malware on your computer could possibly reflash it.
-
+Hacker Solo isn't really secure so you should only use it for development. An attacker with physical access to a Solo for Hacker can reflash it following the steps above, and even a malware on your computer could possibly reflash it.
 
 # Developing Solo (No Hardware Needed)
 
@@ -83,7 +80,7 @@ This builds Solo as a standalone application. Solo application is set up to send
 Testing can be done using our fork of Yubico's client software, python-fido2. Our fork of python-fido2 has small changes to make it send USB HID over UDP to the authenticator application. You can install our fork by running the following:
 
 ```bash
-cd python-fido2 && python setup.py install
+pip install -r tools/requirements.txt
 ```
 
 Run the Solo application:
@@ -93,12 +90,7 @@ Run the Solo application:
 
 In another shell, you can run client software, for example our tests:
 ```bash
-python tools/ctap_test.py
-```
-
-Or any client example such as:
-```bash
-python python-fido2/examples/credential.py
+python tools/ctap_test.py sim fido2
 ```
 
 You can find more details in our [documentation](https://docs.solokeys.io/solo/), including how to build on the the NUCLEO-L432KC development board.
