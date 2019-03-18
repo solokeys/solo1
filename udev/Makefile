@@ -19,10 +19,10 @@ activate:
 	sudo udevadm trigger
 
 install:
-	sudo ln -sf $(PWD)/70-solokeys-access.rules ${RULES_PATH}/70-solokeys-access.rules
+	sudo cp $(PWD)/70-solokeys-access.rules ${RULES_PATH}/70-solokeys-access.rules
 
 install-legacy:
-	sudo ln -sf $(PWD)/70-solokeys-legacy-access.rules ${RULES_PATH}/70-solokeys-access.rules
+	sudo cp $(PWD)/70-solokeys-legacy-access.rules ${RULES_PATH}/70-solokeys-access.rules
 
 # install-symlinks:
 # 	sudo cp $(PWD)/71-solokeys-symlinks.rules ${RULES_PATH}/71-solokeys-symlinks.rules

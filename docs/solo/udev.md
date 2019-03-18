@@ -1,23 +1,30 @@
-# tl;dr
+# Summary
 
-Create a file like [`/etc/udev/rules.d/99-solo.rules`](https://github.com/solokeys/solo/blob/master/99-solo.rules), for instance the following rules should cover access in all cases:
+On Linux, by default USB dongles can't be accessed by users, for security reasons. To allow user access, so-called "udev rules" must be installed. (Under Fedora, your key may work without such a rule.)
+
+Create a file like [`70-solokeys-access.rules`](https://github.com/solokeys/solo/blob/master/udev/70-solokeys-access.rules) in your `/etc/udev/rules.d` directory, for instance the following rule should cover normal access (it has to be on one line):
 
 ```
-# Solo bootloader + firmware
-ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", GROUP="plugdev"
-
-# ST DFU bootloader
-ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", TAG+="uaccess", GROUP="plugdev"
-
-# U2F Zero
-ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="8acf", TAG+="uaccess", GROUP="plugdev"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", MODE="0660", GROUP="plugdev"
 ```
 
-Then run
+Additionally, run the following command after you create this file (it is not necessary to do this again in the future):
 
 ```
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
+
+A simple way to setup both the udev rule and the udevadm reload is:
+
+```
+git clone git@github.com:solokeys/solo.git
+cd solo/udev
+make setup
+```
+
+We are working on getting user access to Solo keys enabled automatically in common Linux distributions: <https://github.com/solokeys/solo/issues/144>.
+
+
 
 # How do udev rules work and why are they needed
 
