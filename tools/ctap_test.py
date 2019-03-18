@@ -361,6 +361,7 @@ class Tester:
 
         self.set_cid(cid2)  # send ping on 2nd channel
         self.send_raw("\x81\x00\x63")
+        time.sleep(0.1)
         self.send_raw("\x00")
 
         cmd, r = self.recv_raw()  # busy response
