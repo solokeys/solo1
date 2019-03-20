@@ -69,6 +69,8 @@ uint8_t verify_pin_auth(uint8_t * pinAuth, uint8_t * clientDataHash)
 
 }
 
+
+
 uint8_t ctap_get_info(CborEncoder * encoder)
 {
     int ret;
@@ -77,21 +79,32 @@ uint8_t ctap_get_info(CborEncoder * encoder)
     CborEncoder options;
     CborEncoder pins;
 
-    const int number_of_versions = 2;
-
-    ret = cbor_encoder_create_map(encoder, &map, 5);
+    ret = cbor_encoder_create_map(encoder, &map, 6);
     check_ret(ret);
     {
 
         ret = cbor_encode_uint(&map, RESP_versions);     //  versions key
         check_ret(ret);
         {
-            ret = cbor_encoder_create_array(&map, &array, number_of_versions);
+            ret = cbor_encoder_create_array(&map, &array, 2);
             check_ret(ret);
             {
                 ret = cbor_encode_text_stringz(&array, "U2F_V2");
                 check_ret(ret);
                 ret = cbor_encode_text_stringz(&array, "FIDO_2_0");
+                check_ret(ret);
+            }
+            ret = cbor_encoder_close_container(&map, &array);
+            check_ret(ret);
+        }
+
+        ret = cbor_encode_uint(&map, RESP_extensions);
+        check_ret(ret);
+        {
+            ret = cbor_encoder_create_array(&map, &array, 1);
+            check_ret(ret);
+            {
+                ret = cbor_encode_text_stringz(&array, "hmac-secret");
                 check_ret(ret);
             }
             ret = cbor_encoder_close_container(&map, &array);

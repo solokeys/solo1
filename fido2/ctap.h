@@ -183,6 +183,11 @@ struct rpId
 
 typedef struct
 {
+    uint8_t hmac_secret;
+} CTAP_extensions;
+
+typedef struct
+{
     uint32_t paramsParsed;
     uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
     struct rpId rp;
@@ -201,6 +206,7 @@ typedef struct
     uint8_t pinAuth[16];
     uint8_t pinAuthPresent;
     int pinProtocol;
+    CTAP_extensions extensions;
 
 } CTAP_makeCredential;
 

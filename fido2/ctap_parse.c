@@ -556,6 +556,67 @@ uint8_t parse_options(CborValue * val, uint8_t * rk, uint8_t * uv, uint8_t * up)
     return 0;
 }
 
+uint8_t ctap_parse_extensions(CTAP_extensions * ext, CborValue * val)
+{
+    CborValue map;
+    size_t sz, map_length;
+    uint8_t key[16];
+    uint8_t ret;
+    int i;
+    bool b;
+
+    if (cbor_value_get_type(val) != CborMapType)
+    {
+        printf2(TAG_ERR,"error, wrong type\n");
+        return CTAP2_ERR_INVALID_CBOR_TYPE;
+    }
+
+    ret = cbor_value_enter_container(val, &map);
+    check_ret(ret);
+
+    ret = cbor_value_get_map_length(val, &map_length);
+    check_ret(ret);
+
+    for (i = 0; i < map_length; i++)
+    {
+        if (cbor_value_get_type(&map) != CborTextStringType)
+        {
+            printf2(TAG_ERR,"Error, expecting text string type for options map key, got %s\n", cbor_value_get_type_string(&map));
+            return CTAP2_ERR_INVALID_CBOR_TYPE;
+        }
+        sz = sizeof(key);
+        ret = cbor_value_copy_text_string(&map, key, &sz, NULL);
+
+        if (ret == CborErrorOutOfMemory)
+        {
+            printf2(TAG_ERR,"Error, rp map key is too large. Ignoring.\n");
+            cbor_value_advance(&map);
+            cbor_value_advance(&map);
+            continue;
+        }
+        check_ret(ret);
+        key[sizeof(key) - 1] = 0;
+
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+
+        if (cbor_value_get_type(&map) == CborBooleanType)
+        {
+            if (strncmp(key, "hmac-secret",11) == 0)
+            {
+                ret = cbor_value_get_boolean(&map, &b);
+                check_ret(ret);
+                ext->hmac_secret = b;
+                printf1(TAG_CTAP, "set hmac-secret to %d\r\n", b);
+            }
+        }
+
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+    }
+    return 0;
+}
+
 uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encoder, uint8_t * request, int length)
 {
     int ret;
@@ -665,6 +726,8 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
                 {
                     return CTAP2_ERR_INVALID_CBOR_TYPE;
                 }
+                ret = ctap_parse_extensions(&MC->extensions, &map);
+                check_retr(ret);
                 break;
 
             case MC_options:
