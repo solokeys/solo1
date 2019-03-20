@@ -201,7 +201,7 @@ typedef struct
 
 typedef struct
 {
-    uint8_t salt_len;
+    uint8_t saltLen;
     uint8_t saltEnc[64];
     uint8_t saltAuth[32];
     COSE_key keyAgreement;

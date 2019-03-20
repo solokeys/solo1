@@ -325,7 +325,7 @@ static int is_matching_rk(CTAP_residentKey * rk, CTAP_residentKey * rk2)
 }
 
 
-static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, uint32_t * len, CTAP_credInfo * credInfo)
+static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, uint32_t * len, CTAP_credInfo * credInfo, CTAP_extensions * ext)
 {
     CborEncoder cose_key;
     int auth_data_sz, ret;
@@ -436,6 +436,36 @@ done_rk:
     else
     {
         auth_data_sz = sizeof(CTAP_authDataHeader);
+    }
+
+    if (ext != NULL)
+    {
+        if (ext->hmac_secret_present == EXT_HMAC_SECRET_PARSED)
+        {
+            printf1(TAG_CTAP, "Processing hmac-secret..\r\n");
+            uint8_t shared_secret[32];
+            uint8_t hmac[32];
+            crypto_ecc256_shared_secret((uint8_t*) &ext->hmac_secret.keyAgreement.pubkey,
+                                        KEY_AGREEMENT_PRIV,
+                                        shared_secret);
+            crypto_sha256_init();
+            crypto_sha256_update(shared_secret, 32);
+            crypto_sha256_final(shared_secret);
+
+            crypto_sha256_hmac_init(shared_secret, 32, hmac);
+            crypto_sha256_update(ext->hmac_secret.saltEnc, ext->hmac_secret.saltLen);
+            crypto_sha256_hmac_final(shared_secret, 32, hmac);
+
+            if (memcmp(ext->hmac_secret.saltAuth, hmac, 16) == 0)
+            {
+                printf1(TAG_CTAP, "saltAuth is valid\r\n");
+            }
+            else
+            {
+                printf1(TAG_CTAP, "saltAuth is invalid\r\n");
+                return CTAP1_ERR_OTHER;
+            }
+        }
     }
 
     {
@@ -640,7 +670,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     uint32_t auth_data_sz = sizeof(auth_data_buf);
 
     ret = ctap_make_auth_data(&MC.rp, &map, auth_data_buf, &auth_data_sz,
-            &MC.credInfo);
+            &MC.credInfo,NULL);
 
     check_retr(ret);
 
@@ -1044,7 +1074,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 #endif
     {
         uint32_t len = sizeof(auth_data_buf);
-        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &len, NULL);
+        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &len, NULL, &GA.extensions);
         check_retr(ret);
     }
 

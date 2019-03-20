@@ -606,7 +606,7 @@ uint8_t ctap_parse_hmac_secret(CborValue * val, CTAP_hmac_secret * hs)
                 {
                     return CTAP1_ERR_INVALID_LENGTH;
                 }
-                hs->salt_len = salt_len;
+                hs->saltLen = salt_len;
                 parsed_count++;
             break;
             case EXT_HMAC_SECRET_SALT_AUTH:
