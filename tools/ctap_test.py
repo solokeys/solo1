@@ -153,6 +153,43 @@ class Tester:
         elif data[0] != err:
             raise ValueError("Unexpected error: %02x" % data[0])
 
+    def testFunc(self, func, test, *args, **kwargs):
+        with Test(test):
+            res = None
+            expectedError = kwargs.get("expectedError", None)
+            otherArgs = kwargs.get("other", {})
+            try:
+                res = func(*args, **otherArgs)
+                if expectedError != CtapError.ERR.SUCCESS:
+                    raise RuntimeError("Expected error to occur for test: %s" % test)
+            except CtapError as e:
+                if expectedError is not None:
+                    if e.code != expectedError:
+                        raise RuntimeError(
+                            "Got error code 0x%x, expected %x" % (e.code, expectedError)
+                        )
+                else:
+                    print(e)
+        return res
+
+    def testReset(self,):
+        print("Resetting Authenticator...")
+        self.ctap.reset()
+
+    def testMC(self, test, *args, **kwargs):
+        return self.testFunc(self.ctap.make_credential, test, *args, **kwargs)
+
+    def testGA(self, test, *args, **kwargs):
+        return self.testFunc(self.ctap.get_assertion, test, *args, **kwargs)
+
+    def testCP(self, test, *args, **kwargs):
+        return self.testFunc(self.ctap.client_pin, test, *args, **kwargs)
+
+    def testPP(self, test, *args, **kwargs):
+        return self.testFunc(
+            self.client.pin_protocol.get_pin_token, test, *args, **kwargs
+        )
+
     def test_long_ping(self):
         amt = 1000
         pingdata = os.urandom(amt)
@@ -723,6 +760,30 @@ class Tester:
             except CtapError as e:
                 print("Warning, reset failed: ", e)
 
+    def test_extensions(self,):
+        creds = []
+        exclude_list = []
+        rp = {"id": self.host, "name": "ExaRP"}
+        user = {"id": b"usee_od", "name": "AB User"}
+        challenge = "Y2hhbGxlbmdl"
+        pin_protocol = 1
+        key_params = [{"type": "public-key", "alg": ES256.ALGORITHM}]
+        cdh = b"123456789abcdef0123456789abcdef0"
+
+        with Test("Get info has hmac-secret"):
+            info = self.ctap.get_info()
+            assert "hmac-secret" in info.extensions
+
+        self.testMC(
+            "Send MC with hmac-secret ext set to true, expect SUCCESS",
+            cdh,
+            rp,
+            user,
+            key_params,
+            expectedError=CtapError.ERR.SUCCESS,
+            other={"extensions": {"hmac-secret": True}},
+        )
+
     def test_fido2_other(self,):
 
         creds = []
@@ -738,46 +799,6 @@ class Tester:
         key_params = [{"type": "public-key", "alg": ES256.ALGORITHM}]
         cdh = b"123456789abcdef0123456789abcdef0"
 
-        def testFunc(func, test, *args, **kwargs):
-            with Test(test):
-                res = None
-                expectedError = kwargs.get("expectedError", None)
-                otherArgs = kwargs.get("other", {})
-                try:
-                    res = func(*args, **otherArgs)
-                    if expectedError != CtapError.ERR.SUCCESS:
-                        raise RuntimeError(
-                            "Expected error to occur for test: %s" % test
-                        )
-                except CtapError as e:
-                    if expectedError is not None:
-                        if e.code != expectedError:
-                            raise RuntimeError(
-                                "Got error code 0x%x, expected %x"
-                                % (e.code, expectedError)
-                            )
-                    else:
-                        print(e)
-            return res
-
-        def testReset():
-            print("Resetting Authenticator...")
-            self.ctap.reset()
-
-        def testMC(test, *args, **kwargs):
-            return testFunc(self.ctap.make_credential, test, *args, **kwargs)
-
-        def testGA(test, *args, **kwargs):
-            return testFunc(self.ctap.get_assertion, test, *args, **kwargs)
-
-        def testCP(test, *args, **kwargs):
-            return testFunc(self.ctap.client_pin, test, *args, **kwargs)
-
-        def testPP(test, *args, **kwargs):
-            return testFunc(
-                self.client.pin_protocol.get_pin_token, test, *args, **kwargs
-            )
-
         def reboot():
             if self.is_sim:
                 print("Sending restart command...")
@@ -788,7 +809,7 @@ class Tester:
                 input()
                 self.find_device()
 
-        testReset()
+        self.testReset()
 
         with Test("Get info"):
             info = self.ctap.get_info()
@@ -804,7 +825,7 @@ class Tester:
             for x in info.options:
                 assert info.options[x] in [True, False]
 
-        prev_reg = testMC(
+        prev_reg = self.testMC(
             "Send MC request, expect success",
             cdh,
             rp,
@@ -826,7 +847,7 @@ class Tester:
             }
         ]
 
-        prev_auth = testGA(
+        prev_auth = self.testGA(
             "Send GA request, expect success",
             rp["id"],
             cdh,
@@ -847,7 +868,7 @@ class Tester:
             assert prev_auth.user == None
             assert prev_auth.number_of_credentials == None
 
-        testGA(
+        self.testGA(
             "Send GA request with empty allow_list, expect NO_CREDENTIALS",
             rp["id"],
             cdh,
@@ -860,7 +881,7 @@ class Tester:
         badid[len(badid) // 2] = badid[len(badid) // 2] ^ 1
         badid = bytes(badid)
 
-        testGA(
+        self.testGA(
             "Send GA request with corrupt credId in allow_list, expect NO_CREDENTIALS",
             rp["id"],
             cdh,
@@ -868,7 +889,7 @@ class Tester:
             expectedError=CtapError.ERR.NO_CREDENTIALS,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with missing clientDataHash, expect error",
             None,
             rp,
@@ -877,7 +898,7 @@ class Tester:
             expectedError=CtapError.ERR.MISSING_PARAMETER,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with integer for clientDataHash, expect error",
             5,
             rp,
@@ -885,7 +906,7 @@ class Tester:
             key_params,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with missing user, expect error",
             cdh,
             rp,
@@ -894,7 +915,7 @@ class Tester:
             expectedError=CtapError.ERR.MISSING_PARAMETER,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with bytearray user, expect error",
             cdh,
             rp,
@@ -902,7 +923,7 @@ class Tester:
             key_params,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with missing RP, expect error",
             cdh,
             None,
@@ -911,7 +932,7 @@ class Tester:
             expectedError=CtapError.ERR.MISSING_PARAMETER,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with bytearray RP, expect error",
             cdh,
             b"1234abcd",
@@ -919,7 +940,7 @@ class Tester:
             key_params,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with missing pubKeyCredParams, expect error",
             cdh,
             rp,
@@ -928,7 +949,7 @@ class Tester:
             expectedError=CtapError.ERR.MISSING_PARAMETER,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with incorrect pubKeyCredParams, expect error",
             cdh,
             rp,
@@ -936,7 +957,7 @@ class Tester:
             b"2356",
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with incorrect excludeList, expect error",
             cdh,
             rp,
@@ -945,7 +966,7 @@ class Tester:
             other={"exclude_list": 8},
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with incorrect extensions, expect error",
             cdh,
             rp,
@@ -954,7 +975,7 @@ class Tester:
             other={"extensions": 8},
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with incorrect options, expect error",
             cdh,
             rp,
@@ -963,7 +984,7 @@ class Tester:
             other={"options": 8},
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with bad RP.name",
             cdh,
             {"id": self.host, "name": 8, "icon": "icon"},
@@ -971,7 +992,7 @@ class Tester:
             key_params,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with bad RP.id",
             cdh,
             {"id": 8, "name": "name", "icon": "icon"},
@@ -979,7 +1000,7 @@ class Tester:
             key_params,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with bad RP.icon",
             cdh,
             {"id": self.host, "name": "name", "icon": 8},
@@ -987,7 +1008,7 @@ class Tester:
             key_params,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with bad user.name",
             cdh,
             rp,
@@ -995,7 +1016,7 @@ class Tester:
             key_params,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with bad user.id",
             cdh,
             rp,
@@ -1003,7 +1024,7 @@ class Tester:
             key_params,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with bad user.displayName",
             cdh,
             rp,
@@ -1011,7 +1032,7 @@ class Tester:
             key_params,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with bad user.icon",
             cdh,
             rp,
@@ -1019,7 +1040,7 @@ class Tester:
             key_params,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with non-map pubKeyCredParams item",
             cdh,
             rp,
@@ -1027,7 +1048,7 @@ class Tester:
             ["wrong"],
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with pubKeyCredParams item missing type field",
             cdh,
             rp,
@@ -1036,7 +1057,7 @@ class Tester:
             expectedError=CtapError.ERR.MISSING_PARAMETER,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with pubKeyCredParams item with bad type field",
             cdh,
             rp,
@@ -1044,7 +1065,7 @@ class Tester:
             [{"alg": ES256.ALGORITHM, "type": b"public-key"}],
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with pubKeyCredParams item missing alg",
             cdh,
             rp,
@@ -1053,7 +1074,7 @@ class Tester:
             expectedError=CtapError.ERR.MISSING_PARAMETER,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with pubKeyCredParams item with bad alg",
             cdh,
             rp,
@@ -1061,7 +1082,7 @@ class Tester:
             [{"alg": "7", "type": "public-key"}],
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with pubKeyCredParams item with bogus alg, expect UNSUPPORTED_ALGORITHM",
             cdh,
             rp,
@@ -1070,7 +1091,7 @@ class Tester:
             expectedError=CtapError.ERR.UNSUPPORTED_ALGORITHM,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with pubKeyCredParams item with bogus type, expect UNSUPPORTED_ALGORITHM",
             cdh,
             rp,
@@ -1079,7 +1100,7 @@ class Tester:
             expectedError=CtapError.ERR.UNSUPPORTED_ALGORITHM,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with excludeList item with bogus type, expect SUCCESS",
             cdh,
             rp,
@@ -1089,7 +1110,7 @@ class Tester:
             other={"exclude_list": [{"id": b"1234", "type": "rot13"}]},
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with excludeList with bad item, expect error",
             cdh,
             rp,
@@ -1098,7 +1119,7 @@ class Tester:
             other={"exclude_list": ["1234"]},
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with excludeList with item missing type field, expect error",
             cdh,
             rp,
@@ -1107,7 +1128,7 @@ class Tester:
             other={"exclude_list": [{"id": b"1234"}]},
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with excludeList with item missing id field, expect error",
             cdh,
             rp,
@@ -1116,7 +1137,7 @@ class Tester:
             other={"exclude_list": [{"type": "public-key"}]},
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with excludeList with item containing bad id field, expect error",
             cdh,
             rp,
@@ -1125,7 +1146,7 @@ class Tester:
             other={"exclude_list": [{"type": "public-key", "id": "1234"}]},
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with excludeList with item containing bad type field, expect error",
             cdh,
             rp,
@@ -1134,7 +1155,7 @@ class Tester:
             other={"exclude_list": [{"type": b"public-key", "id": b"1234"}]},
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with excludeList containing previous registration, expect CREDENTIAL_EXCLUDED",
             cdh,
             rp,
@@ -1151,7 +1172,7 @@ class Tester:
             expectedError=CtapError.ERR.CREDENTIAL_EXCLUDED,
         )
 
-        testMC(
+        self.testMC(
             "Send MC request with unknown option, expect SUCCESS",
             cdh,
             rp,
@@ -1163,7 +1184,7 @@ class Tester:
 
         if "uv" in info.options:
             if info.options["uv"]:
-                testMC(
+                self.testMC(
                     "Send MC request with uv set to true, expect SUCCESS",
                     cdh,
                     rp,
@@ -1174,7 +1195,7 @@ class Tester:
                 )
         if "up" in info.options:
             if info.options["up"]:
-                testMC(
+                self.testMC(
                     "Send MC request with up set to true, expect INVALID_OPTION",
                     cdh,
                     rp,
@@ -1184,7 +1205,7 @@ class Tester:
                     expectedError=CtapError.ERR.INVALID_OPTION,
                 )
 
-        testGA(
+        self.testGA(
             "Send GA request with missing RPID, expect MISSING_PARAMETER",
             None,
             cdh,
@@ -1192,14 +1213,14 @@ class Tester:
             expectedError=CtapError.ERR.MISSING_PARAMETER,
         )
 
-        testGA(
+        self.testGA(
             "Send GA request with bad RPID, expect error",
             {"type": "wrong"},
             cdh,
             allow_list,
         )
 
-        testGA(
+        self.testGA(
             "Send GA request with missing clientDataHash, expect MISSING_PARAMETER",
             rp["id"],
             None,
@@ -1207,28 +1228,28 @@ class Tester:
             expectedError=CtapError.ERR.MISSING_PARAMETER,
         )
 
-        testGA(
+        self.testGA(
             "Send GA request with bad clientDataHash, expect error",
             rp["id"],
             {"type": "wrong"},
             allow_list,
         )
 
-        testGA(
+        self.testGA(
             "Send GA request with bad allow_list, expect error",
             rp["id"],
             cdh,
             {"type": "wrong"},
         )
 
-        testGA(
+        self.testGA(
             "Send GA request with bad item in allow_list, expect error",
             rp["id"],
             cdh,
             allow_list + ["wrong"],
         )
 
-        testGA(
+        self.testGA(
             "Send GA request with unknown option, expect SUCCESS",
             rp["id"],
             cdh,
@@ -1239,7 +1260,7 @@ class Tester:
 
         if "uv" in info.options:
             if info.options["uv"]:
-                res = testGA(
+                res = self.testGA(
                     "Send GA request with uv set to true, expect SUCCESS",
                     rp["id"],
                     cdh,
@@ -1251,7 +1272,7 @@ class Tester:
                     assert res.auth_data.flags & (1 << 2)
         if "up" in info.options:
             if info.options["up"]:
-                res = testGA(
+                res = self.testGA(
                     "Send GA request with up set to true, expect SUCCESS",
                     rp["id"],
                     cdh,
@@ -1262,7 +1283,7 @@ class Tester:
             with Test("Check that UP flag is set in response"):
                 assert res.auth_data.flags & 1
 
-        testGA(
+        self.testGA(
             "Send GA request with bogus type item in allow_list, expect SUCCESS",
             rp["id"],
             cdh,
@@ -1270,38 +1291,38 @@ class Tester:
             expectedError=CtapError.ERR.SUCCESS,
         )
 
-        testGA(
+        self.testGA(
             "Send GA request with item missing type field in allow_list, expect error",
             rp["id"],
             cdh,
             allow_list + [{"id": b"1234"}],
         )
 
-        testGA(
+        self.testGA(
             "Send GA request with item containing bad type field in allow_list, expect error",
             rp["id"],
             cdh,
             allow_list + [{"type": b"public-key", "id": b"1234"}],
         )
 
-        testGA(
+        self.testGA(
             "Send GA request with item containing bad id in allow_list, expect error",
             rp["id"],
             cdh,
             allow_list + [{"type": b"public-key", "id": 42}],
         )
 
-        testGA(
+        self.testGA(
             "Send GA request with item missing id in allow_list, expect error",
             rp["id"],
             cdh,
             allow_list + [{"type": b"public-key"}],
         )
 
-        testReset()
+        self.testReset()
 
         def testRk(pin_code=None):
-            testGA(
+            self.testGA(
                 "Send GA request with reset auth, expect NO_CREDENTIALS",
                 rp["id"],
                 cdh,
@@ -1316,7 +1337,7 @@ class Tester:
                     pin_token = self.client.pin_protocol.get_pin_token(pin_code)
                     pin_auth = hmac_sha256(pin_token, cdh)[:16]
 
-            testMC(
+            self.testMC(
                 "Send MC request with rk option set to true, expect SUCCESS",
                 cdh,
                 rp,
@@ -1331,7 +1352,7 @@ class Tester:
                 options["uv"] = False
 
             for i, x in enumerate([user1, user2, user3]):
-                testMC(
+                self.testMC(
                     "Send MC request with rk option set to true, expect SUCCESS %d/3"
                     % (i + 1),
                     cdh,
@@ -1342,7 +1363,7 @@ class Tester:
                     expectedError=CtapError.ERR.SUCCESS,
                 )
 
-            auth1 = testGA(
+            auth1 = self.testGA(
                 "Send GA request with no allow_list, expect SUCCESS",
                 rp2["id"],
                 cdh,
@@ -1383,7 +1404,7 @@ class Tester:
         testRk("1234567890")
 
         # PinProtocolV1
-        res = testCP(
+        res = self.testCP(
             "Test getKeyAgreement, expect SUCCESS",
             pin_protocol,
             PinProtocolV1.CMD.GET_KEY_AGREEMENT,
@@ -1405,7 +1426,7 @@ class Tester:
             pin_token = self.client.pin_protocol.get_pin_token(pin2)
             pin_auth = hmac_sha256(pin_token, cdh)[:16]
 
-        res_mc = testMC(
+        res_mc = self.testMC(
             "Send MC request with new pin auth",
             cdh,
             rp,
@@ -1418,7 +1439,7 @@ class Tester:
         with Test("Check UV flag is set"):
             assert res_mc.auth_data.flags & (1 << 2)
 
-        res_ga = testGA(
+        res_ga = self.testGA(
             "Send GA request with no allow_list, expect SUCCESS",
             rp["id"],
             cdh,
@@ -1435,12 +1456,12 @@ class Tester:
         with Test("Check UV flag is set"):
             assert res_ga.auth_data.flags & (1 << 2)
 
-        testReset()
+        self.testReset()
 
         with Test("Setting pin code, expect SUCCESS"):
             self.client.pin_protocol.set_pin(pin1)
 
-        testReset()
+        self.testReset()
 
         # print("Setting pin code <4 bytes, expect POLICY_VIOLATION ")
         # try:
@@ -1486,7 +1507,7 @@ class Tester:
             except CtapError as e:
                 print(e)
 
-        res_mc = testMC(
+        res_mc = self.testMC(
             "Send MC request with no pin_auth, expect PIN_REQUIRED",
             cdh,
             rp,
@@ -1495,14 +1516,14 @@ class Tester:
             expectedError=CtapError.ERR.PIN_REQUIRED,
         )
 
-        res_mc = testGA(
+        res_mc = self.testGA(
             "Send GA request with no pin_auth, expect PIN_REQUIRED",
             rp["id"],
             cdh,
             expectedError=CtapError.ERR.PIN_REQUIRED,
         )
 
-        res = testCP(
+        res = self.testCP(
             "Test getRetries, expect SUCCESS",
             pin_protocol,
             PinProtocolV1.CMD.GET_RETRIES,
@@ -1520,7 +1541,7 @@ class Tester:
         pin_wrong = "".join(pin_wrong)
 
         for i in range(1, 3):
-            testPP(
+            self.testPP(
                 "Get pin_token with wrong pin code, expect PIN_INVALID (%d/2)" % i,
                 pin_wrong,
                 expectedError=CtapError.ERR.PIN_INVALID,
@@ -1531,7 +1552,7 @@ class Tester:
             print("Pass")
 
         for i in range(1, 3):
-            testPP(
+            self.testPP(
                 "Get pin_token with wrong pin code, expect PIN_AUTH_BLOCKED %d/2" % i,
                 pin_wrong,
                 expectedError=CtapError.ERR.PIN_AUTH_BLOCKED,
@@ -1543,7 +1564,7 @@ class Tester:
             pin_token = self.client.pin_protocol.get_pin_token(pin1)
             pin_auth = hmac_sha256(pin_token, cdh)[:16]
 
-        res_mc = testMC(
+        res_mc = self.testMC(
             "Send MC request with correct pin_auth",
             cdh,
             rp,
@@ -1563,7 +1584,7 @@ class Tester:
                 err = CtapError.ERR.PIN_AUTH_BLOCKED
             elif i >= 9:
                 err = CtapError.ERR.PIN_BLOCKED
-            testPP(
+            self.testPP(
                 "Lock out authentictor and check correct error codes %d/9" % i,
                 pin_wrong,
                 expectedError=err,
@@ -1580,7 +1601,7 @@ class Tester:
             if err == CtapError.ERR.PIN_AUTH_BLOCKED:
                 reboot()
 
-        res_mc = testMC(
+        res_mc = self.testMC(
             "Send MC request with correct pin_auth, expect PIN_BLOCKED",
             cdh,
             rp,
@@ -1592,13 +1613,13 @@ class Tester:
 
         reboot()
 
-        testPP(
+        self.testPP(
             "Get pin_token with correct pin code, expect PIN_BLOCKED",
             pin1,
             expectedError=CtapError.ERR.PIN_BLOCKED,
         )
 
-        testReset()
+        self.testReset()
 
         print("Done")
 
@@ -1855,6 +1876,9 @@ if __name__ == "__main__":
     if "fido2" in sys.argv:
         t.test_fido2()
         t.test_fido2_other()
+
+    if "fido2-ext" in sys.argv:
+        t.test_extensions()
 
     if "rk" in sys.argv:
         t.test_rk()
