@@ -54,6 +54,10 @@
 #define CP_getKeyAgreement        0x07
 #define CP_getRetries             0x08
 
+#define EXT_HMAC_SECRET_COSE_KEY    0x01
+#define EXT_HMAC_SECRET_SALT_ENC    0x02
+#define EXT_HMAC_SECRET_SALT_AUTH   0x03
+
 #define RESP_versions               0x1
 #define RESP_extensions             0x2
 #define RESP_aaguid                 0x3
@@ -183,7 +187,26 @@ struct rpId
 
 typedef struct
 {
-    uint8_t hmac_secret;
+    struct{
+        uint8_t x[32];
+        uint8_t y[32];
+    } pubkey;
+
+    int kty;
+    int crv;
+} COSE_key;
+
+typedef struct
+{
+    uint8_t saltEnc[64];
+    uint8_t saltAuth[32];
+    COSE_key keyAgreement;
+} CTAP_hmac_secret;
+
+typedef struct
+{
+    uint8_t hmac_secret_present;
+    CTAP_hmac_secret hmac_secret;
 } CTAP_extensions;
 
 typedef struct
@@ -236,22 +259,16 @@ typedef struct
 
     CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
     uint8_t allowListPresent;
+
+    CTAP_extensions extensions;
+
 } CTAP_getAssertion;
 
 typedef struct
 {
     int pinProtocol;
     int subCommand;
-    struct
-    {
-        struct{
-            uint8_t x[32];
-            uint8_t y[32];
-        } pubkey;
-
-        int kty;
-        int crv;
-    } keyAgreement;
+    COSE_key keyAgreement;
     uint8_t keyAgreementPresent;
     uint8_t pinAuth[16];
     uint8_t pinAuthPresent;

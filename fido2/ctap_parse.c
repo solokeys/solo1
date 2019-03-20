@@ -556,6 +556,74 @@ uint8_t parse_options(CborValue * val, uint8_t * rk, uint8_t * uv, uint8_t * up)
     return 0;
 }
 
+uint8_t ctap_parse_hmac_secret(CTAP_hmac_secret * hs, CborValue * val)
+{
+    size_t map_length;
+    size_t salt_len;
+    uint8_t parsed_count = 0;
+    int key;
+    int ret;
+    unsigned int i;
+    CborValue map;
+
+    if (cbor_value_get_type(val) != CborMapType)
+    {
+        printf2(TAG_ERR,"error, wrong type\n");
+        return CTAP2_ERR_INVALID_CBOR_TYPE;
+    }
+
+    ret = cbor_value_enter_container(val,&map);
+    check_ret(ret);
+
+    ret = cbor_value_get_map_length(val, &map_length);
+    check_ret(ret);
+
+    for (i = 0; i < map_length; i++)
+    {
+        if (cbor_value_get_type(&map) != CborIntegerType)
+        {
+            printf2(TAG_ERR,"Error, expecting CborIntegerTypefor hmac-secret map key, got %s\n", cbor_value_get_type_string(&map));
+            return CTAP2_ERR_INVALID_CBOR_TYPE;
+        }
+        ret = cbor_value_get_int(&map, &key);
+        check_ret(ret);
+
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+
+        switch(key)
+        {
+            case EXT_HMAC_SECRET_COSE_KEY:
+                ret = parse_cose_key(&map, &hs->keyAgreement);
+                check_retr(ret);
+                parsed_count++;
+            break;
+            case EXT_HMAC_SECRET_SALT_ENC:
+                salt_len = 64;
+                ret = cbor_value_copy_byte_string(&map, hs->saltEnc, &salt_len, NULL);
+                check_ret(ret);
+                parsed_count++;
+            break;
+            case EXT_HMAC_SECRET_SALT_AUTH:
+                salt_len = 32;
+                ret = cbor_value_copy_byte_string(&map, hs->saltAuth, &salt_len, NULL);
+                check_ret(ret);
+                parsed_count++;
+            break;
+        }
+
+        if (parsed_count != 3)
+        {
+            return CTAP2_ERR_MISSING_PARAMETER;
+        }
+
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+    }
+    return 0;
+}
+
+
 uint8_t ctap_parse_extensions(CTAP_extensions * ext, CborValue * val)
 {
     CborValue map;
@@ -600,14 +668,21 @@ uint8_t ctap_parse_extensions(CTAP_extensions * ext, CborValue * val)
         ret = cbor_value_advance(&map);
         check_ret(ret);
 
-        if (cbor_value_get_type(&map) == CborBooleanType)
+
+        if (strncmp(key, "hmac-secret",11) == 0)
         {
-            if (strncmp(key, "hmac-secret",11) == 0)
+            if (cbor_value_get_type(&map) == CborBooleanType)
             {
                 ret = cbor_value_get_boolean(&map, &b);
                 check_ret(ret);
-                ext->hmac_secret = b;
-                printf1(TAG_CTAP, "set hmac-secret to %d\r\n", b);
+                ext->hmac_secret_present = b;
+                printf1(TAG_CTAP, "set hmac_secret_present to %d\r\n", b);
+            }
+            else if (cbor_value_get_type(&map) == CborMapType)
+            {
+                ext->hmac_secret_present = 1;
+                ret = ctap_parse_hmac_secret(&ext->hmac_secret, &map);
+                check_retr(ret);
             }
         }
 
@@ -1003,15 +1078,15 @@ uint8_t ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int 
     return 0;
 }
 
-uint8_t parse_cose_key(CborValue * it, uint8_t * x, uint8_t * y, int * kty, int * crv)
+uint8_t parse_cose_key(CborValue * it, COSE_key * cose)
 {
     CborValue map;
     size_t map_length;
     int ret,key;
     unsigned int i;
     int xkey = 0,ykey = 0;
-    *kty = 0;
-    *crv = 0;
+    cose->kty = 0;
+    cose->crv = 0;
 
 
     CborType type = cbor_value_get_type(it);
@@ -1049,7 +1124,7 @@ uint8_t parse_cose_key(CborValue * it, uint8_t * x, uint8_t * y, int * kty, int 
                 printf1(TAG_PARSE,"COSE_KEY_LABEL_KTY\n");
                 if (cbor_value_get_type(&map) == CborIntegerType)
                 {
-                    ret = cbor_value_get_int_checked(&map, kty);
+                    ret = cbor_value_get_int_checked(&map, &cose->kty);
                     check_ret(ret);
                 }
                 else
@@ -1064,7 +1139,7 @@ uint8_t parse_cose_key(CborValue * it, uint8_t * x, uint8_t * y, int * kty, int 
                 printf1(TAG_PARSE,"COSE_KEY_LABEL_CRV\n");
                 if (cbor_value_get_type(&map) == CborIntegerType)
                 {
-                    ret = cbor_value_get_int_checked(&map, crv);
+                    ret = cbor_value_get_int_checked(&map, &cose->crv);
                     check_ret(ret);
                 }
                 else
@@ -1074,14 +1149,14 @@ uint8_t parse_cose_key(CborValue * it, uint8_t * x, uint8_t * y, int * kty, int 
                 break;
             case COSE_KEY_LABEL_X:
                 printf1(TAG_PARSE,"COSE_KEY_LABEL_X\n");
-                ret = parse_fixed_byte_string(&map, x, 32);
+                ret = parse_fixed_byte_string(&map, cose->pubkey.x, 32);
                 check_retr(ret);
                 xkey = 1;
 
                 break;
             case COSE_KEY_LABEL_Y:
                 printf1(TAG_PARSE,"COSE_KEY_LABEL_Y\n");
-                ret = parse_fixed_byte_string(&map, y, 32);
+                ret = parse_fixed_byte_string(&map, cose->pubkey.y, 32);
                 check_retr(ret);
                 ykey = 1;
 
@@ -1093,7 +1168,7 @@ uint8_t parse_cose_key(CborValue * it, uint8_t * x, uint8_t * y, int * kty, int 
         ret = cbor_value_advance(&map);
         check_ret(ret);
     }
-    if (xkey == 0 || ykey == 0 || *kty == 0 || *crv == 0)
+    if (xkey == 0 || ykey == 0 || cose->kty == 0 || cose->crv == 0)
     {
         return CTAP2_ERR_MISSING_PARAMETER;
     }
@@ -1173,7 +1248,7 @@ uint8_t ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length
                 break;
             case CP_keyAgreement:
                 printf1(TAG_CP,"CP_keyAgreement\n");
-                ret = parse_cose_key(&map, CP->keyAgreement.pubkey.x, CP->keyAgreement.pubkey.y, &CP->keyAgreement.kty, &CP->keyAgreement.crv);
+                ret = parse_cose_key(&map, &CP->keyAgreement);
                 check_retr(ret);
                 CP->keyAgreementPresent = 1;
                 break;
