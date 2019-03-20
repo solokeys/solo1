@@ -58,6 +58,9 @@
 #define EXT_HMAC_SECRET_SALT_ENC    0x02
 #define EXT_HMAC_SECRET_SALT_AUTH   0x03
 
+#define EXT_HMAC_SECRET_REQUESTED   0x01
+#define EXT_HMAC_SECRET_PARSED      0x02
+
 #define RESP_versions               0x1
 #define RESP_extensions             0x2
 #define RESP_aaguid                 0x3
@@ -198,6 +201,7 @@ typedef struct
 
 typedef struct
 {
+    uint8_t salt_len;
     uint8_t saltEnc[64];
     uint8_t saltAuth[32];
     COSE_key keyAgreement;
