@@ -215,18 +215,23 @@ typedef struct
 
 typedef struct
 {
+    CTAP_userEntity user;
+    uint8_t publicKeyCredentialType;
+    int32_t COSEAlgorithmIdentifier;
+    uint8_t rk;
+} CTAP_credInfo;
+
+typedef struct
+{
     uint32_t paramsParsed;
     uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
     struct rpId rp;
-    CTAP_userEntity user;
 
-    uint8_t publicKeyCredentialType;
-    int32_t COSEAlgorithmIdentifier;
+    CTAP_credInfo credInfo;
 
     CborValue excludeList;
     size_t excludeListSize;
 
-    uint8_t rk;
     uint8_t uv;
     uint8_t up;
 

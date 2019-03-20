@@ -128,14 +128,14 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
             }
 
             sz = USER_ID_MAX_SIZE;
-            ret = cbor_value_copy_byte_string(&map, MC->user.id, &sz, NULL);
+            ret = cbor_value_copy_byte_string(&map, MC->credInfo.user.id, &sz, NULL);
             if (ret == CborErrorOutOfMemory)
             {
                 printf2(TAG_ERR,"Error, USER_ID is too large\n");
                 return CTAP2_ERR_LIMIT_EXCEEDED;
             }
-            MC->user.id_size = sz;
-            printf1(TAG_GREEN,"parsed id_size: %d\r\n", MC->user.id_size);
+            MC->credInfo.user.id_size = sz;
+            printf1(TAG_GREEN,"parsed id_size: %d\r\n", MC->credInfo.user.id_size);
             check_ret(ret);
         }
         else if (strcmp((const char *)key, "name") == 0)
@@ -146,12 +146,12 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
                 return CTAP2_ERR_INVALID_CBOR_TYPE;
             }
             sz = USER_NAME_LIMIT;
-            ret = cbor_value_copy_text_string(&map, (char *)MC->user.name, &sz, NULL);
+            ret = cbor_value_copy_text_string(&map, (char *)MC->credInfo.user.name, &sz, NULL);
             if (ret != CborErrorOutOfMemory)
             {   // Just truncate the name it's okay
                 check_ret(ret);
             }
-            MC->user.name[USER_NAME_LIMIT - 1] = 0;
+            MC->credInfo.user.name[USER_NAME_LIMIT - 1] = 0;
         }
         else if (strcmp((const char *)key, "displayName") == 0)
         {
@@ -161,12 +161,12 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
                 return CTAP2_ERR_INVALID_CBOR_TYPE;
             }
             sz = DISPLAY_NAME_LIMIT;
-            ret = cbor_value_copy_text_string(&map, (char *)MC->user.displayName, &sz, NULL);
+            ret = cbor_value_copy_text_string(&map, (char *)MC->credInfo.user.displayName, &sz, NULL);
             if (ret != CborErrorOutOfMemory)
             {   // Just truncate the name it's okay
                 check_ret(ret);
             }
-            MC->user.displayName[DISPLAY_NAME_LIMIT - 1] = 0;
+            MC->credInfo.user.displayName[DISPLAY_NAME_LIMIT - 1] = 0;
         }
         else if (strcmp((const char *)key, "icon") == 0)
         {
@@ -176,12 +176,12 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
                 return CTAP2_ERR_INVALID_CBOR_TYPE;
             }
             sz = ICON_LIMIT;
-            ret = cbor_value_copy_text_string(&map, (char *)MC->user.icon, &sz, NULL);
+            ret = cbor_value_copy_text_string(&map, (char *)MC->credInfo.user.icon, &sz, NULL);
             if (ret != CborErrorOutOfMemory)
             {   // Just truncate the name it's okay
                 check_ret(ret);
             }
-            MC->user.icon[ICON_LIMIT - 1] = 0;
+            MC->credInfo.user.icon[ICON_LIMIT - 1] = 0;
 
         }
         else
@@ -305,8 +305,8 @@ uint8_t parse_pub_key_cred_params(CTAP_makeCredential * MC, CborValue * val)
         {
             if (pub_key_cred_param_supported(cred_type, alg_type) == CREDENTIAL_IS_SUPPORTED)
             {
-                MC->publicKeyCredentialType = cred_type;
-                MC->COSEAlgorithmIdentifier = alg_type;
+                MC->credInfo.publicKeyCredentialType = cred_type;
+                MC->credInfo.COSEAlgorithmIdentifier = alg_type;
                 MC->paramsParsed |= PARAM_pubKeyCredParams;
                 return 0;
             }
@@ -779,8 +779,8 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
 
                 ret = parse_user(MC, &map);
 
-                printf1(TAG_MC,"  ID: "); dump_hex1(TAG_MC, MC->user.id, MC->user.id_size);
-                printf1(TAG_MC,"  name: %s\n", MC->user.name);
+                printf1(TAG_MC,"  ID: "); dump_hex1(TAG_MC, MC->credInfo.user.id, MC->credInfo.user.id_size);
+                printf1(TAG_MC,"  name: %s\n", MC->credInfo.user.name);
 
                 break;
             case MC_pubKeyCredParams:
@@ -788,8 +788,8 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
 
                 ret = parse_pub_key_cred_params(MC, &map);
 
-                printf1(TAG_MC,"  cred_type: 0x%02x\n", MC->publicKeyCredentialType);
-                printf1(TAG_MC,"  alg_type: %d\n", MC->COSEAlgorithmIdentifier);
+                printf1(TAG_MC,"  cred_type: 0x%02x\n", MC->credInfo.publicKeyCredentialType);
+                printf1(TAG_MC,"  alg_type: %d\n", MC->credInfo.COSEAlgorithmIdentifier);
 
                 break;
             case MC_excludeList:
@@ -819,7 +819,7 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
 
             case MC_options:
                 printf1(TAG_MC,"CTAP_options\n");
-                ret = parse_options(&map, &MC->rk, &MC->uv, &MC->up);
+                ret = parse_options(&map, &MC->credInfo.rk, &MC->uv, &MC->up);
                 check_retr(ret);
                 break;
             case MC_pinAuth:
