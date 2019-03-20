@@ -25,6 +25,9 @@ from fido2.ctap2 import ES256, PinProtocolV1
 from fido2.utils import Timeout, sha256, hmac_sha256
 from fido2.attestation import Attestation
 
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
 from solo.fido2 import force_udp_backend
 from solo.client import SoloClient
 
@@ -770,18 +773,47 @@ class Tester:
         key_params = [{"type": "public-key", "alg": ES256.ALGORITHM}]
         cdh = b"123456789abcdef0123456789abcdef0"
 
+        salt1 = b"\x5a" * 32
+        salt2 = b"\x96" * 32
+
         with Test("Get info has hmac-secret"):
             info = self.ctap.get_info()
             assert "hmac-secret" in info.extensions
 
-        self.testMC(
+        reg = self.testMC(
             "Send MC with hmac-secret ext set to true, expect SUCCESS",
             cdh,
             rp,
             user,
             key_params,
             expectedError=CtapError.ERR.SUCCESS,
-            other={"extensions": {"hmac-secret": True}},
+            other={"extensions": {"hmac-secret": True}, "options": {"rk": True}},
+        )
+
+        with Test("Get shared secret"):
+            key_agreement, shared_secret = (
+                self.client.pin_protocol._init_shared_secret()
+            )
+            cipher = Cipher(
+                algorithms.AES(shared_secret),
+                modes.CBC(b"\x00" * 16),
+                default_backend(),
+            )
+
+        enc = cipher.encryptor()
+        salt_enc = enc.update(salt1) + enc.finalize()
+        salt_auth = hmac_sha256(shared_secret, salt_enc)[:16]
+
+        auth = self.testGA(
+            "Send GA request with 1 salt hmac-secret, expect success",
+            rp["id"],
+            cdh,
+            other={
+                "extensions": {
+                    "hmac-secret": {1: key_agreement, 2: salt_enc, 3: salt_auth}
+                }
+            },
+            expectedError=CtapError.ERR.SUCCESS,
         )
 
     def test_fido2_other(self,):
