@@ -1799,6 +1799,11 @@ class Tester:
             except ApduError:
                 pass
 
+        sc.exchange = sc.exchange_fido2
+        with Test("Test Solo version and random commands with fido2 layer"):
+            assert len(sc.solo_version()) == 3
+            sc.get_rng()
+
     def test_bootloader(self,):
         sc = SoloClient()
         sc.find_device(self.dev)
