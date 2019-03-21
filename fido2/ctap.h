@@ -149,9 +149,13 @@ struct Credential {
     CredentialId id;
     CTAP_userEntity user;
 };
-
 typedef struct Credential CTAP_residentKey;
 
+typedef struct
+{
+    uint8_t type;
+    struct Credential credential;
+} CTAP_credentialDescriptor;
 
 typedef struct
 {
@@ -205,6 +209,7 @@ typedef struct
     uint8_t saltEnc[64];
     uint8_t saltAuth[32];
     COSE_key keyAgreement;
+    struct Credential * credential;
 } CTAP_hmac_secret;
 
 typedef struct
@@ -242,11 +247,7 @@ typedef struct
 
 } CTAP_makeCredential;
 
-typedef struct
-{
-    uint8_t type;
-    struct Credential credential;
-} CTAP_credentialDescriptor;
+
 
 typedef struct
 {

@@ -327,13 +327,18 @@ static int is_matching_rk(CTAP_residentKey * rk, CTAP_residentKey * rk2)
 
 static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, uint32_t * len, CTAP_credInfo * credInfo, CTAP_extensions * ext)
 {
-    CborEncoder cose_key;
-    int auth_data_sz, ret;
+    CborEncoder cose_key, extensions;
+
+    unsigned int auth_data_sz = sizeof(CTAP_authDataHeader);
+    unsigned int ext_encoder_buf_size;
+
+    int ret;
     uint32_t count;
     CTAP_residentKey rk, rk2;
     CTAP_authData * authData = (CTAP_authData *)auth_data_buf;
 
     uint8_t * cose_key_buf = auth_data_buf + sizeof(CTAP_authData);
+    uint8_t * ext_encoder_buf = NULL;
 
     if((sizeof(CTAP_authDataHeader)) > *len)
     {
@@ -433,18 +438,22 @@ done_rk:
         auth_data_sz = sizeof(CTAP_authData) + cbor_encoder_get_buffer_size(&cose_key, cose_key_buf);
 
     }
-    else
-    {
-        auth_data_sz = sizeof(CTAP_authDataHeader);
-    }
+
+    ext_encoder_buf_size = *len - auth_data_sz;
+    ext_encoder_buf = auth_data_buf + auth_data_sz;
+
 
     if (ext != NULL)
     {
         if (ext->hmac_secret_present == EXT_HMAC_SECRET_PARSED)
         {
+            authData->head.flags |= (1 << 7);
+
             printf1(TAG_CTAP, "Processing hmac-secret..\r\n");
+            uint8_t output[64];
             uint8_t shared_secret[32];
             uint8_t hmac[32];
+            uint8_t credRandom[32];
             crypto_ecc256_shared_secret((uint8_t*) &ext->hmac_secret.keyAgreement.pubkey,
                                         KEY_AGREEMENT_PRIV,
                                         shared_secret);
@@ -465,6 +474,58 @@ done_rk:
                 printf1(TAG_CTAP, "saltAuth is invalid\r\n");
                 return CTAP1_ERR_OTHER;
             }
+
+            // Generate credRandom
+            crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY, 0, credRandom);
+            crypto_sha256_update((uint8_t*)&ext->hmac_secret.credential->id, sizeof(CredentialId));
+            crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY, 0, credRandom);
+
+            // Decrypt saltEnc
+            crypto_aes256_init(shared_secret, NULL);
+            crypto_aes256_decrypt(ext->hmac_secret.saltEnc, ext->hmac_secret.saltLen);
+
+            // Generate outputs
+            crypto_sha256_hmac_init(credRandom, 32, output);
+            crypto_sha256_update(ext->hmac_secret.saltEnc, 32);
+            crypto_sha256_hmac_final(credRandom, 32, output);
+
+            if (ext->hmac_secret.saltLen == 64)
+            {
+                crypto_sha256_hmac_init(credRandom, 32, output + 32);
+                crypto_sha256_update(ext->hmac_secret.saltEnc + 32, 32);
+                crypto_sha256_hmac_final(credRandom, 32, output + 32);
+            }
+
+            // Encrypt for final output
+            crypto_aes256_init(shared_secret, NULL);
+            crypto_aes256_encrypt(output, ext->hmac_secret.saltLen);
+
+            // output
+            cbor_encoder_init(&extensions, ext_encoder_buf, ext_encoder_buf_size, 0);
+            printf1(TAG_GREEN, "have %d bytes for Extenstions encoder\r\n",ext_encoder_buf_size);
+            CborEncoder ext_map;
+            CborEncoder hmac_secret_map;
+            ret = cbor_encoder_create_map(&extensions, &ext_map, 1);
+            check_ret(ret);
+            {
+                ret = cbor_encode_int(&ext_map,GA_extensions);
+                check_ret(ret);
+                CborEncoder hmac_secret_map;
+                ret = cbor_encoder_create_map(&ext_map, &hmac_secret_map, 1);
+                check_ret(ret);
+                {
+                    ret = cbor_encode_text_stringz(&hmac_secret_map, "hmac-secret");
+                    check_ret(ret);
+
+                    ret = cbor_encode_byte_string(&hmac_secret_map, output, ext->hmac_secret.saltLen);
+                    check_ret(ret);
+                }
+                ret = cbor_encoder_close_container(&ext_map, &hmac_secret_map);
+                check_ret(ret);
+            }
+            ret = cbor_encoder_close_container(&extensions, &ext_map);
+            check_ret(ret);
+            auth_data_sz += cbor_encoder_get_buffer_size(&extensions, ext_encoder_buf);
         }
     }
 
@@ -1012,7 +1073,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
 uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_getAssertion GA;
-    uint8_t auth_data_buf[sizeof(CTAP_authDataHeader)];
+    uint8_t auth_data_buf[sizeof(CTAP_authDataHeader) + 128];
     int ret = ctap_parse_get_assertion(&GA,request,length);
 
     if (ret != 0)
@@ -1058,36 +1119,13 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
         map_size += 1;
     }
 
-    ret = cbor_encoder_create_map(encoder, &map, map_size);
-    check_ret(ret);
-
-#ifdef ENABLE_U2F_EXTENSIONS
-    if ( is_extension_request((uint8_t*)&GA.creds[validCredCount - 1].credential.id, sizeof(CredentialId)) )
-    {
-        ret = cbor_encode_int(&map,RESP_authData);
-        check_ret(ret);
-        memset(auth_data_buf,0,sizeof(auth_data_buf));
-        ret = cbor_encode_byte_string(&map, auth_data_buf, sizeof(auth_data_buf));
-        check_ret(ret);
-    }
-    else
-#endif
-    {
-        uint32_t len = sizeof(auth_data_buf);
-        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &len, NULL, &GA.extensions);
-        check_retr(ret);
-    }
-
     if (GA.extensions.hmac_secret_present == EXT_HMAC_SECRET_PARSED)
     {
         printf1(TAG_GA, "hmac-secret is present\r\n");
-        // map_size += 1;
-        //
-        // ret = cbor_encode_int(&map, RESP_numberOfCredentials);
-        // check_ret(ret);
-        // ret = cbor_encode_int(&map, validCredCount);
-        // check_ret(ret);
     }
+
+    ret = cbor_encoder_create_map(encoder, &map, map_size);
+    check_ret(ret);
 
     if (validCredCount > 0)
     {
@@ -1122,6 +1160,26 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     }
 
     CTAP_credentialDescriptor * cred = &GA.creds[validCredCount - 1];
+
+    GA.extensions.hmac_secret.credential = &cred->credential;
+
+#ifdef ENABLE_U2F_EXTENSIONS
+    if ( is_extension_request((uint8_t*)&GA.creds[validCredCount - 1].credential.id, sizeof(CredentialId)) )
+    {
+        ret = cbor_encode_int(&map,RESP_authData);
+        check_ret(ret);
+        memset(auth_data_buf,0,sizeof(auth_data_buf));
+        ret = cbor_encode_byte_string(&map, auth_data_buf, sizeof(auth_data_buf));
+        check_ret(ret);
+    }
+    else
+#endif
+    {
+        uint32_t len = sizeof(auth_data_buf);
+        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &len, NULL, &GA.extensions);
+        check_retr(ret);
+    }
+
 
     ret = ctap_end_get_assertion(&map, cred, auth_data_buf, GA.clientDataHash, add_user_info);
     check_retr(ret);
