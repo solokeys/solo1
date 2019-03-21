@@ -47,6 +47,17 @@ def VerifyAttestation(attest, data):
     verifier().verify(attest.att_statement, attest.auth_data, data.hash)
 
 
+def shannon_entropy(data):
+    sum = 0.0
+    total = len(data)
+    for x in range(0, 256):
+        freq = data.count(x)
+        p = freq / total
+        if p > 0:
+            sum -= p * math.log2(p)
+    return sum
+
+
 class Packet(object):
     def __init__(self, data):
         l = len(data)
@@ -776,6 +787,8 @@ class Tester:
         salt1 = b"\x5a" * 32
         salt2 = b"\x96" * 32
 
+        self.testReset()
+
         with Test("Get info has hmac-secret"):
             info = self.ctap.get_info()
             assert "hmac-secret" in info.extensions
@@ -800,21 +813,49 @@ class Tester:
                 default_backend(),
             )
 
-        enc = cipher.encryptor()
-        salt_enc = enc.update(salt1) + enc.finalize()
-        salt_auth = hmac_sha256(shared_secret, salt_enc)[:16]
+        for salt_list in ((salt1,), (salt1, salt2)):
+            enc = cipher.encryptor()
+            salt_enc = b""
+            for salt in salt_list:
+                salt_enc += enc.update(salt)
+            salt_enc += enc.finalize()
 
-        auth = self.testGA(
-            "Send GA request with 1 salt hmac-secret, expect success",
-            rp["id"],
-            cdh,
-            other={
-                "extensions": {
-                    "hmac-secret": {1: key_agreement, 2: salt_enc, 3: salt_auth}
-                }
-            },
-            expectedError=CtapError.ERR.SUCCESS,
-        )
+            salt_auth = hmac_sha256(shared_secret, salt_enc)[:16]
+
+            auth = self.testGA(
+                "Send GA request with %d salts hmac-secret, expect success"
+                % len(salt_list),
+                rp["id"],
+                cdh,
+                other={
+                    "extensions": {
+                        "hmac-secret": {1: key_agreement, 2: salt_enc, 3: salt_auth}
+                    }
+                },
+                expectedError=CtapError.ERR.SUCCESS,
+            )
+
+            with Test(
+                "Check that hmac-secret is in auth_data extensions and has %d bytes"
+                % (len(salt_list) * 32)
+            ):
+                ext = auth.auth_data.extensions
+                assert ext
+                assert "hmac-secret" in ext[4]
+                assert type(ext[4]["hmac-secret"]) == type(b"")
+                assert len(ext[4]["hmac-secret"]) == len(salt_list) * 32
+
+            with Test("Check that shannon_entropy of hmac-secret is good"):
+                ext = auth.auth_data.extensions
+                dec = cipher.decryptor()
+                key = dec.update(ext[4]["hmac-secret"]) + dec.finalize()
+
+                if len(salt_list) == 1:
+                    assert shannon_entropy(ext[4]["hmac-secret"]) > 4.6
+                    assert shannon_entropy(key) > 4.6
+                if len(salt_list) == 2:
+                    assert shannon_entropy(ext[4]["hmac-secret"]) > 5.6
+                    assert shannon_entropy(key) > 5.6
 
     def test_fido2_other(self,):
 
@@ -1743,15 +1784,9 @@ class Tester:
             entropy = b""
             while len(entropy) < total:
                 entropy += sc.get_rng()
-            total = len(entropy)
 
         with Test("Test entropy is close to perfect"):
-            sum = 0.0
-            for x in range(0, 256):
-                freq = entropy.count(x)
-                p = freq / total
-                sum -= p * math.log2(p)
-            assert sum > 7.98
+            assert shannon_entropy(entropy) > 7.98
         print("Entropy is %.5f bits per byte." % sum)
 
         with Test("Test Solo version command"):
