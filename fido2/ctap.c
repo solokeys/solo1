@@ -33,7 +33,6 @@ static int8_t PIN_BOOT_ATTEMPTS_LEFT = PIN_BOOT_ATTEMPTS;
 
 AuthenticatorState STATE;
 
-
 static void ctap_reset_key_agreement();
 
 static struct {
@@ -470,7 +469,6 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     authData->head.flags |= (ctap_is_pin_set() << 2);
 
 
-
     if (credInfo != NULL)
     {
         // add attestedCredentialData
@@ -521,9 +519,6 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
         }
 done_rk:
 
-        // DELETE
-        //crypto_aes256_init(CRYPTO_TRANSPORT_KEY, NULL);
-        //crypto_aes256_encrypt((uint8_t*)&authData->attest.credential.user, CREDENTIAL_ENC_SIZE);
         printf1(TAG_GREEN, "MADE credId: "); dump_hex1(TAG_GREEN, (uint8_t*) &authData->attest.id, sizeof(CredentialId));
 
         ctap_generate_cose_key(&cose_key, (uint8_t*)&authData->attest.id, sizeof(CredentialId), credInfo->publicKeyCredentialType, credInfo->COSEAlgorithmIdentifier);
@@ -531,8 +526,6 @@ done_rk:
         auth_data_sz = sizeof(CTAP_authData) + cbor_encoder_get_buffer_size(&cose_key, cose_key_buf);
 
     }
-
-
 
     if (ext != NULL)
     {
@@ -976,6 +969,7 @@ static void save_credential_list(CTAP_authDataHeader * head, uint8_t * clientDat
         memmove(getAssertionState.clientDataHash, clientDataHash, CLIENT_DATA_HASH_SIZE);
         memmove(&getAssertionState.authData, head, sizeof(CTAP_authDataHeader));
         memmove(getAssertionState.creds, creds, sizeof(CTAP_credentialDescriptor) * (count));
+
     }
     getAssertionState.count = count;
     printf1(TAG_GA,"saved %d credentials\n",count);
@@ -1040,7 +1034,6 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
     CborEncoder map;
     CTAP_authDataHeader authData;
     memmove(&authData, &getAssertionState.authData, sizeof(CTAP_authDataHeader));
-    // CTAP_authDataHeader * authData = &getAssertionState.authData;
 
     CTAP_credentialDescriptor * cred = pop_credential();
 
@@ -1063,6 +1056,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
         ret = cbor_encoder_create_map(encoder, &map, 3);
     }
 
+
     check_ret(ret);
     printf1(TAG_RED, "RPID hash: "); dump_hex1(TAG_RED, authData.rpIdHash, 32);
 
@@ -1072,6 +1066,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
         ret = cbor_encode_byte_string(&map, (uint8_t *)&authData, sizeof(CTAP_authDataHeader));
         check_ret(ret);
     }
+
 
     // if only one account for this RP, null out the user details
     if (!getAssertionState.user_verified)
@@ -1147,11 +1142,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     ret = cbor_encoder_create_map(encoder, &map, map_size);
     check_ret(ret);
 
-    if (validCredCount > 0)
-    {
-        save_credential_list((CTAP_authDataHeader*)auth_data_buf, GA.clientDataHash, GA.creds, validCredCount-1);   // skip last one
-    }
-    else
+    if (validCredCount == 0)
     {
         printf2(TAG_ERR,"Error, no authentic credential\n");
         return CTAP2_ERR_NO_CREDENTIALS;
@@ -1188,8 +1179,8 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     {
         ret = cbor_encode_int(&map,RESP_authData);
         check_ret(ret);
-        memset(auth_data_buf,0,sizeof(auth_data_buf));
-        ret = cbor_encode_byte_string(&map, auth_data_buf, sizeof(auth_data_buf));
+        memset(auth_data_buf,0,sizeof(CTAP_authDataHeader));
+        ret = cbor_encode_byte_string(&map, auth_data_buf, sizeof(CTAP_authDataHeader));
         check_ret(ret);
     }
     else
@@ -1200,6 +1191,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
         check_retr(ret);
     }
 
+    save_credential_list((CTAP_authDataHeader*)auth_data_buf, GA.clientDataHash, GA.creds, validCredCount-1);   // skip last one
 
     ret = ctap_end_get_assertion(&map, cred, auth_data_buf, GA.clientDataHash, add_user_info);
     check_retr(ret);
@@ -1521,7 +1513,6 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     uint8_t cmd = *pkt_raw;
     pkt_raw++;
     length--;
-
 
     uint8_t * buf = resp->data;
 

@@ -1786,7 +1786,8 @@ class Tester:
                 entropy += sc.get_rng()
 
         with Test("Test entropy is close to perfect"):
-            assert shannon_entropy(entropy) > 7.98
+            sum = shannon_entropy(entropy)
+            assert sum > 7.98
         print("Entropy is %.5f bits per byte." % sum)
 
         with Test("Test Solo version command"):
