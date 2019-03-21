@@ -786,6 +786,7 @@ class Tester:
 
         salt1 = b"\x5a" * 32
         salt2 = b"\x96" * 32
+        salt3 = b"\x03" * 32
 
         # self.testReset()
 
@@ -808,6 +809,16 @@ class Tester:
             assert "hmac-secret" in reg.auth_data.extensions
             assert reg.auth_data.extensions["hmac-secret"] == True
 
+        reg = self.testMC(
+            "Send MC with fake extension set to true, expect SUCCESS",
+            cdh,
+            rp,
+            user,
+            key_params,
+            expectedError=CtapError.ERR.SUCCESS,
+            other={"extensions": {"tetris": True}},
+        )
+
         with Test("Get shared secret"):
             key_agreement, shared_secret = (
                 self.client.pin_protocol._init_shared_secret()
@@ -818,14 +829,18 @@ class Tester:
                 default_backend(),
             )
 
-        for salt_list in ((salt1,), (salt1, salt2)):
+        def get_salt_params(salts):
             enc = cipher.encryptor()
             salt_enc = b""
-            for salt in salt_list:
+            for salt in salts:
                 salt_enc += enc.update(salt)
             salt_enc += enc.finalize()
 
             salt_auth = hmac_sha256(shared_secret, salt_enc)[:16]
+            return salt_enc, salt_auth
+
+        for salt_list in ((salt1,), (salt1, salt2)):
+            salt_enc, salt_auth = get_salt_params(salt_list)
 
             auth = self.testGA(
                 "Send GA request with %d salts hmac-secret, expect success"
@@ -855,12 +870,71 @@ class Tester:
                 dec = cipher.decryptor()
                 key = dec.update(ext["hmac-secret"]) + dec.finalize()
 
+                print(shannon_entropy(ext["hmac-secret"]))
                 if len(salt_list) == 1:
                     assert shannon_entropy(ext["hmac-secret"]) > 4.6
                     assert shannon_entropy(key) > 4.6
                 if len(salt_list) == 2:
-                    assert shannon_entropy(ext["hmac-secret"]) > 5.6
-                    assert shannon_entropy(key) > 5.6
+                    assert shannon_entropy(ext["hmac-secret"]) > 5.4
+                    assert shannon_entropy(key) > 5.4
+
+        salt_enc, salt_auth = get_salt_params((salt3,))
+
+        auth = self.testGA(
+            "Send GA request with hmac-secret missing keyAgreement, expect error",
+            rp["id"],
+            cdh,
+            other={"extensions": {"hmac-secret": {2: salt_enc, 3: salt_auth}}},
+        )
+        auth = self.testGA(
+            "Send GA request with hmac-secret missing saltAuth, expect MISSING_PARAMETER",
+            rp["id"],
+            cdh,
+            other={"extensions": {"hmac-secret": {1: key_agreement, 2: salt_enc}}},
+            expectedError=CtapError.ERR.MISSING_PARAMETER,
+        )
+        auth = self.testGA(
+            "Send GA request with hmac-secret missing saltEnc, expect MISSING_PARAMETER",
+            rp["id"],
+            cdh,
+            other={"extensions": {"hmac-secret": {1: key_agreement, 3: salt_auth}}},
+            expectedError=CtapError.ERR.MISSING_PARAMETER,
+        )
+
+        bad_auth = list(salt_auth[:])
+        bad_auth[len(bad_auth) // 2] = bad_auth[len(bad_auth) // 2] ^ 1
+        bad_auth = bytes(bad_auth)
+
+        auth = self.testGA(
+            "Send GA request with hmac-secret containing bad saltAuth, expect EXTENSION_FIRST",
+            rp["id"],
+            cdh,
+            other={
+                "extensions": {
+                    "hmac-secret": {1: key_agreement, 2: salt_enc, 3: bad_auth}
+                }
+            },
+            expectedError=CtapError.ERR.EXTENSION_FIRST,
+        )
+
+        salt4 = b"\x5a" * 16
+        salt5 = b"\x96" * 64
+        for salt_list in ((salt4,), (salt4, salt5)):
+            salt_enc, salt_auth = get_salt_params(salt_list)
+
+            salt_auth = hmac_sha256(shared_secret, salt_enc)[:16]
+            auth = self.testGA(
+                "Send GA request with incorrect salt length %d, expect INVALID_LENGTH"
+                % len(salt_enc),
+                rp["id"],
+                cdh,
+                other={
+                    "extensions": {
+                        "hmac-secret": {1: key_agreement, 2: salt_enc, 3: salt_auth}
+                    }
+                },
+                expectedError=CtapError.ERR.INVALID_LENGTH,
+            )
 
     def test_fido2_other(self,):
 

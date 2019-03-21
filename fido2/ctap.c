@@ -354,7 +354,7 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
         else
         {
             printf1(TAG_CTAP, "saltAuth is invalid\r\n");
-            return CTAP1_ERR_OTHER;
+            return CTAP2_ERR_EXTENSION_FIRST;
         }
 
         // Generate credRandom

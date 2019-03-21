@@ -601,11 +601,11 @@ uint8_t ctap_parse_hmac_secret(CborValue * val, CTAP_hmac_secret * hs)
             case EXT_HMAC_SECRET_SALT_ENC:
                 salt_len = 64;
                 ret = cbor_value_copy_byte_string(&map, hs->saltEnc, &salt_len, NULL);
-                check_ret(ret);
-                if (salt_len != 32 && salt_len != 64)
+                if ((salt_len != 32 && salt_len != 64) || ret == CborErrorOutOfMemory)
                 {
                     return CTAP1_ERR_INVALID_LENGTH;
                 }
+                check_ret(ret);
                 hs->saltLen = salt_len;
                 parsed_count++;
             break;
