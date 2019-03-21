@@ -416,20 +416,16 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
 }
 
 
-static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, uint32_t * len, CTAP_credInfo * credInfo, CTAP_extensions * ext)
+static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, uint32_t * len, CTAP_credInfo * credInfo)
 {
     CborEncoder cose_key;
 
     unsigned int auth_data_sz = sizeof(CTAP_authDataHeader);
-    unsigned int ext_encoder_buf_size;
-
-    int ret;
     uint32_t count;
     CTAP_residentKey rk, rk2;
     CTAP_authData * authData = (CTAP_authData *)auth_data_buf;
 
     uint8_t * cose_key_buf = auth_data_buf + sizeof(CTAP_authData);
-    uint8_t * ext_encoder_buf = NULL;
 
     if((sizeof(CTAP_authDataHeader)) > *len)
     {
@@ -526,27 +522,9 @@ done_rk:
 
     }
 
-    if (ext != NULL)
-    {
-        ext_encoder_buf_size = *len - auth_data_sz;
-        ext_encoder_buf = auth_data_buf + auth_data_sz;
 
-        ret = ctap_make_extensions(ext, ext_encoder_buf, &ext_encoder_buf_size);
-        check_retr(ret);
-        if (ext_encoder_buf_size)
-        {
-            authData->head.flags |= (1 << 7);
-            auth_data_sz += ext_encoder_buf_size;
-        }
 
-    }
 
-    {
-        ret = cbor_encode_int(map,RESP_authData);
-        check_ret(ret);
-        ret = cbor_encode_byte_string(map, auth_data_buf, auth_data_sz);
-        check_ret(ret);
-    }
 
     *len = auth_data_sz;
     return 0;
@@ -743,9 +721,15 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     uint32_t auth_data_sz = sizeof(auth_data_buf);
 
     ret = ctap_make_auth_data(&MC.rp, &map, auth_data_buf, &auth_data_sz,
-            &MC.credInfo,NULL);
-
+            &MC.credInfo);
     check_retr(ret);
+
+    {
+        ret = cbor_encode_int(&map,RESP_authData);
+        check_ret(ret);
+        ret = cbor_encode_byte_string(&map, auth_data_buf, auth_data_sz);
+        check_ret(ret);
+    }
 
     crypto_ecc256_load_attestation_key();
     int sigder_sz = ctap_calculate_signature(auth_data_buf, auth_data_sz, MC.clientDataHash, auth_data_buf, sigbuf, sigder);
@@ -1186,8 +1170,28 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 #endif
     {
         uint32_t len = sizeof(auth_data_buf);
-        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &len, NULL, &GA.extensions);
+        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &len, NULL);
         check_retr(ret);
+
+        {
+            unsigned int ext_encoder_buf_size = sizeof(auth_data_buf) - len;
+            uint8_t * ext_encoder_buf = auth_data_buf + len;
+
+            ret = ctap_make_extensions(&GA.extensions, ext_encoder_buf, &ext_encoder_buf_size);
+            check_retr(ret);
+            if (ext_encoder_buf_size)
+            {
+                ((CTAP_authData *)auth_data_buf)->head.flags |= (1 << 7);
+                len += ext_encoder_buf_size;
+            }
+        }
+
+        {
+            ret = cbor_encode_int(&map,RESP_authData);
+            check_ret(ret);
+            ret = cbor_encode_byte_string(&map, auth_data_buf, len);
+            check_ret(ret);
+        }
     }
 
     save_credential_list((CTAP_authDataHeader*)auth_data_buf, GA.clientDataHash, GA.creds, validCredCount-1);   // skip last one
