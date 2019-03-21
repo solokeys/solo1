@@ -803,6 +803,11 @@ class Tester:
             other={"extensions": {"hmac-secret": True}, "options": {"rk": True}},
         )
 
+        with Test("Check 'hmac-secret' is set to true in auth_data extensions"):
+            assert reg.auth_data.extensions
+            assert "hmac-secret" in reg.auth_data.extensions
+            assert reg.auth_data.extensions["hmac-secret"] == True
+
         with Test("Get shared secret"):
             key_agreement, shared_secret = (
                 self.client.pin_protocol._init_shared_secret()

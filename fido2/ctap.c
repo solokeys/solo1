@@ -401,6 +401,25 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
         }
         *ext_encoder_buf_size = cbor_encoder_get_buffer_size(&extensions, ext_encoder_buf);
     }
+    else if (ext->hmac_secret_present == EXT_HMAC_SECRET_REQUESTED)
+    {
+        cbor_encoder_init(&extensions, ext_encoder_buf, *ext_encoder_buf_size, 0);
+        {
+            CborEncoder hmac_secret_map;
+            ret = cbor_encoder_create_map(&extensions, &hmac_secret_map, 1);
+            check_ret(ret);
+            {
+                ret = cbor_encode_text_stringz(&hmac_secret_map, "hmac-secret");
+                check_ret(ret);
+
+                ret = cbor_encode_boolean(&hmac_secret_map, 1);
+                check_ret(ret);
+            }
+            ret = cbor_encoder_close_container(&extensions, &hmac_secret_map);
+            check_ret(ret);
+        }
+        *ext_encoder_buf_size = cbor_encoder_get_buffer_size(&extensions, ext_encoder_buf);
+    }
     else
     {
         *ext_encoder_buf_size = 0;
@@ -646,7 +665,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     CTAP_makeCredential MC;
     int ret;
     unsigned int i;
-    uint8_t auth_data_buf[300];
+    uint8_t auth_data_buf[310];
     CTAP_credentialDescriptor * excl_cred = (CTAP_credentialDescriptor *) auth_data_buf;
     uint8_t * sigbuf = auth_data_buf + 32;
     uint8_t * sigder = auth_data_buf + 32 + 64;
@@ -716,6 +735,19 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     ret = ctap_make_auth_data(&MC.rp, &map, auth_data_buf, &auth_data_sz,
             &MC.credInfo);
     check_retr(ret);
+
+    {
+        unsigned int ext_encoder_buf_size = sizeof(auth_data_buf) - auth_data_sz;
+        uint8_t * ext_encoder_buf = auth_data_buf + auth_data_sz;
+
+        ret = ctap_make_extensions(&MC.extensions, ext_encoder_buf, &ext_encoder_buf_size);
+        check_retr(ret);
+        if (ext_encoder_buf_size)
+        {
+            ((CTAP_authData *)auth_data_buf)->head.flags |= (1 << 7);
+            auth_data_sz += ext_encoder_buf_size;
+        }
+    }
 
     {
         ret = cbor_encode_int(&map,RESP_authData);
