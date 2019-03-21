@@ -324,10 +324,103 @@ static int is_matching_rk(CTAP_residentKey * rk, CTAP_residentKey * rk2)
            (rk->user.id_size == rk2->user.id_size);
 }
 
+static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf, unsigned int * ext_encoder_buf_size)
+{
+    CborEncoder extensions;
+    int ret;
+    uint8_t output[64];
+    uint8_t shared_secret[32];
+    uint8_t hmac[32];
+    uint8_t credRandom[32];
+
+    if (ext->hmac_secret_present == EXT_HMAC_SECRET_PARSED)
+    {
+        printf1(TAG_CTAP, "Processing hmac-secret..\r\n");
+
+        crypto_ecc256_shared_secret((uint8_t*) &ext->hmac_secret.keyAgreement.pubkey,
+                                    KEY_AGREEMENT_PRIV,
+                                    shared_secret);
+        crypto_sha256_init();
+        crypto_sha256_update(shared_secret, 32);
+        crypto_sha256_final(shared_secret);
+
+        crypto_sha256_hmac_init(shared_secret, 32, hmac);
+        crypto_sha256_update(ext->hmac_secret.saltEnc, ext->hmac_secret.saltLen);
+        crypto_sha256_hmac_final(shared_secret, 32, hmac);
+
+        if (memcmp(ext->hmac_secret.saltAuth, hmac, 16) == 0)
+        {
+            printf1(TAG_CTAP, "saltAuth is valid\r\n");
+        }
+        else
+        {
+            printf1(TAG_CTAP, "saltAuth is invalid\r\n");
+            return CTAP1_ERR_OTHER;
+        }
+
+        // Generate credRandom
+        crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY, 0, credRandom);
+        crypto_sha256_update((uint8_t*)&ext->hmac_secret.credential->id, sizeof(CredentialId));
+        crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY, 0, credRandom);
+
+        // Decrypt saltEnc
+        crypto_aes256_init(shared_secret, NULL);
+        crypto_aes256_decrypt(ext->hmac_secret.saltEnc, ext->hmac_secret.saltLen);
+
+        // Generate outputs
+        crypto_sha256_hmac_init(credRandom, 32, output);
+        crypto_sha256_update(ext->hmac_secret.saltEnc, 32);
+        crypto_sha256_hmac_final(credRandom, 32, output);
+
+        if (ext->hmac_secret.saltLen == 64)
+        {
+            crypto_sha256_hmac_init(credRandom, 32, output + 32);
+            crypto_sha256_update(ext->hmac_secret.saltEnc + 32, 32);
+            crypto_sha256_hmac_final(credRandom, 32, output + 32);
+        }
+
+        // Encrypt for final output
+        crypto_aes256_init(shared_secret, NULL);
+        crypto_aes256_encrypt(output, ext->hmac_secret.saltLen);
+
+        // output
+        cbor_encoder_init(&extensions, ext_encoder_buf, *ext_encoder_buf_size, 0);
+        printf1(TAG_GREEN, "have %d bytes for Extenstions encoder\r\n",*ext_encoder_buf_size);
+        CborEncoder ext_map;
+        CborEncoder hmac_secret_map;
+        ret = cbor_encoder_create_map(&extensions, &ext_map, 1);
+        check_ret(ret);
+        {
+            ret = cbor_encode_int(&ext_map,GA_extensions);
+            check_ret(ret);
+            CborEncoder hmac_secret_map;
+            ret = cbor_encoder_create_map(&ext_map, &hmac_secret_map, 1);
+            check_ret(ret);
+            {
+                ret = cbor_encode_text_stringz(&hmac_secret_map, "hmac-secret");
+                check_ret(ret);
+
+                ret = cbor_encode_byte_string(&hmac_secret_map, output, ext->hmac_secret.saltLen);
+                check_ret(ret);
+            }
+            ret = cbor_encoder_close_container(&ext_map, &hmac_secret_map);
+            check_ret(ret);
+        }
+        ret = cbor_encoder_close_container(&extensions, &ext_map);
+        check_ret(ret);
+        *ext_encoder_buf_size = cbor_encoder_get_buffer_size(&extensions, ext_encoder_buf);
+    }
+    else
+    {
+        *ext_encoder_buf_size = 0;
+    }
+    return 0;
+}
+
 
 static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, uint32_t * len, CTAP_credInfo * credInfo, CTAP_extensions * ext)
 {
-    CborEncoder cose_key, extensions;
+    CborEncoder cose_key;
 
     unsigned int auth_data_sz = sizeof(CTAP_authDataHeader);
     unsigned int ext_encoder_buf_size;
@@ -439,94 +532,21 @@ done_rk:
 
     }
 
-    ext_encoder_buf_size = *len - auth_data_sz;
-    ext_encoder_buf = auth_data_buf + auth_data_sz;
 
 
     if (ext != NULL)
     {
-        if (ext->hmac_secret_present == EXT_HMAC_SECRET_PARSED)
+        ext_encoder_buf_size = *len - auth_data_sz;
+        ext_encoder_buf = auth_data_buf + auth_data_sz;
+
+        ret = ctap_make_extensions(ext, ext_encoder_buf, &ext_encoder_buf_size);
+        check_retr(ret);
+        if (ext_encoder_buf_size)
         {
             authData->head.flags |= (1 << 7);
-
-            printf1(TAG_CTAP, "Processing hmac-secret..\r\n");
-            uint8_t output[64];
-            uint8_t shared_secret[32];
-            uint8_t hmac[32];
-            uint8_t credRandom[32];
-            crypto_ecc256_shared_secret((uint8_t*) &ext->hmac_secret.keyAgreement.pubkey,
-                                        KEY_AGREEMENT_PRIV,
-                                        shared_secret);
-            crypto_sha256_init();
-            crypto_sha256_update(shared_secret, 32);
-            crypto_sha256_final(shared_secret);
-
-            crypto_sha256_hmac_init(shared_secret, 32, hmac);
-            crypto_sha256_update(ext->hmac_secret.saltEnc, ext->hmac_secret.saltLen);
-            crypto_sha256_hmac_final(shared_secret, 32, hmac);
-
-            if (memcmp(ext->hmac_secret.saltAuth, hmac, 16) == 0)
-            {
-                printf1(TAG_CTAP, "saltAuth is valid\r\n");
-            }
-            else
-            {
-                printf1(TAG_CTAP, "saltAuth is invalid\r\n");
-                return CTAP1_ERR_OTHER;
-            }
-
-            // Generate credRandom
-            crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY, 0, credRandom);
-            crypto_sha256_update((uint8_t*)&ext->hmac_secret.credential->id, sizeof(CredentialId));
-            crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY, 0, credRandom);
-
-            // Decrypt saltEnc
-            crypto_aes256_init(shared_secret, NULL);
-            crypto_aes256_decrypt(ext->hmac_secret.saltEnc, ext->hmac_secret.saltLen);
-
-            // Generate outputs
-            crypto_sha256_hmac_init(credRandom, 32, output);
-            crypto_sha256_update(ext->hmac_secret.saltEnc, 32);
-            crypto_sha256_hmac_final(credRandom, 32, output);
-
-            if (ext->hmac_secret.saltLen == 64)
-            {
-                crypto_sha256_hmac_init(credRandom, 32, output + 32);
-                crypto_sha256_update(ext->hmac_secret.saltEnc + 32, 32);
-                crypto_sha256_hmac_final(credRandom, 32, output + 32);
-            }
-
-            // Encrypt for final output
-            crypto_aes256_init(shared_secret, NULL);
-            crypto_aes256_encrypt(output, ext->hmac_secret.saltLen);
-
-            // output
-            cbor_encoder_init(&extensions, ext_encoder_buf, ext_encoder_buf_size, 0);
-            printf1(TAG_GREEN, "have %d bytes for Extenstions encoder\r\n",ext_encoder_buf_size);
-            CborEncoder ext_map;
-            CborEncoder hmac_secret_map;
-            ret = cbor_encoder_create_map(&extensions, &ext_map, 1);
-            check_ret(ret);
-            {
-                ret = cbor_encode_int(&ext_map,GA_extensions);
-                check_ret(ret);
-                CborEncoder hmac_secret_map;
-                ret = cbor_encoder_create_map(&ext_map, &hmac_secret_map, 1);
-                check_ret(ret);
-                {
-                    ret = cbor_encode_text_stringz(&hmac_secret_map, "hmac-secret");
-                    check_ret(ret);
-
-                    ret = cbor_encode_byte_string(&hmac_secret_map, output, ext->hmac_secret.saltLen);
-                    check_ret(ret);
-                }
-                ret = cbor_encoder_close_container(&ext_map, &hmac_secret_map);
-                check_ret(ret);
-            }
-            ret = cbor_encoder_close_container(&extensions, &ext_map);
-            check_ret(ret);
-            auth_data_sz += cbor_encoder_get_buffer_size(&extensions, ext_encoder_buf);
+            auth_data_sz += ext_encoder_buf_size;
         }
+
     }
 
     {
