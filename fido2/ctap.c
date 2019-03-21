@@ -383,16 +383,11 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
         crypto_aes256_encrypt(output, ext->hmac_secret.saltLen);
 
         // output
-        cbor_encoder_init(&extensions, ext_encoder_buf, *ext_encoder_buf_size, 0);
         printf1(TAG_GREEN, "have %d bytes for Extenstions encoder\r\n",*ext_encoder_buf_size);
-        CborEncoder ext_map;
-        ret = cbor_encoder_create_map(&extensions, &ext_map, 1);
-        check_ret(ret);
+        cbor_encoder_init(&extensions, ext_encoder_buf, *ext_encoder_buf_size, 0);
         {
-            ret = cbor_encode_int(&ext_map,GA_extensions);
-            check_ret(ret);
             CborEncoder hmac_secret_map;
-            ret = cbor_encoder_create_map(&ext_map, &hmac_secret_map, 1);
+            ret = cbor_encoder_create_map(&extensions, &hmac_secret_map, 1);
             check_ret(ret);
             {
                 ret = cbor_encode_text_stringz(&hmac_secret_map, "hmac-secret");
@@ -401,11 +396,9 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
                 ret = cbor_encode_byte_string(&hmac_secret_map, output, ext->hmac_secret.saltLen);
                 check_ret(ret);
             }
-            ret = cbor_encoder_close_container(&ext_map, &hmac_secret_map);
+            ret = cbor_encoder_close_container(&extensions, &hmac_secret_map);
             check_ret(ret);
         }
-        ret = cbor_encoder_close_container(&extensions, &ext_map);
-        check_ret(ret);
         *ext_encoder_buf_size = cbor_encoder_get_buffer_size(&extensions, ext_encoder_buf);
     }
     else
@@ -1071,7 +1064,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
 uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_getAssertion GA;
-    uint8_t auth_data_buf[sizeof(CTAP_authDataHeader) + 100];
+    uint8_t auth_data_buf[sizeof(CTAP_authDataHeader) + 80];
     int ret = ctap_parse_get_assertion(&GA,request,length);
 
     if (ret != 0)

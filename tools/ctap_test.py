@@ -787,7 +787,7 @@ class Tester:
         salt1 = b"\x5a" * 32
         salt2 = b"\x96" * 32
 
-        self.testReset()
+        # self.testReset()
 
         with Test("Get info has hmac-secret"):
             info = self.ctap.get_info()
@@ -841,20 +841,20 @@ class Tester:
             ):
                 ext = auth.auth_data.extensions
                 assert ext
-                assert "hmac-secret" in ext[4]
-                assert type(ext[4]["hmac-secret"]) == type(b"")
-                assert len(ext[4]["hmac-secret"]) == len(salt_list) * 32
+                assert "hmac-secret" in ext
+                assert type(ext["hmac-secret"]) == type(b"")
+                assert len(ext["hmac-secret"]) == len(salt_list) * 32
 
             with Test("Check that shannon_entropy of hmac-secret is good"):
                 ext = auth.auth_data.extensions
                 dec = cipher.decryptor()
-                key = dec.update(ext[4]["hmac-secret"]) + dec.finalize()
+                key = dec.update(ext["hmac-secret"]) + dec.finalize()
 
                 if len(salt_list) == 1:
-                    assert shannon_entropy(ext[4]["hmac-secret"]) > 4.6
+                    assert shannon_entropy(ext["hmac-secret"]) > 4.6
                     assert shannon_entropy(key) > 4.6
                 if len(salt_list) == 2:
-                    assert shannon_entropy(ext[4]["hmac-secret"]) > 5.6
+                    assert shannon_entropy(ext["hmac-secret"]) > 5.6
                     assert shannon_entropy(key) > 5.6
 
     def test_fido2_other(self,):
