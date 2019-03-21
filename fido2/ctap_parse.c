@@ -635,9 +635,9 @@ uint8_t ctap_parse_extensions(CborValue * val, CTAP_extensions * ext)
 {
     CborValue map;
     size_t sz, map_length;
-    uint8_t key[16];
-    uint8_t ret;
-    int i;
+    char key[16];
+    int ret;
+    unsigned int i;
     bool b;
 
     if (cbor_value_get_type(val) != CborMapType)
