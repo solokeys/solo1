@@ -14,7 +14,7 @@ _MIN_STACK_SIZE = 0x400;
 
 MEMORY
 {
-    flash (rx)      : ORIGIN = 0x08008000, LENGTH = 178K
+    flash (rx)      : ORIGIN = 0x08008000, LENGTH = 186K - 8
     ram (xrw)       : ORIGIN = 0x20000000, LENGTH = 48K
     sram2 (rw)      : ORIGIN = 0x10000000, LENGTH = 16K
 }

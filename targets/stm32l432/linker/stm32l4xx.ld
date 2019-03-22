@@ -12,9 +12,15 @@ _estack = 0x2000c000;
 
 _MIN_STACK_SIZE = 0x400;
 
+/*
+    Memory layout of device:
+        20 KB            198KB-8            38 KB
+    | bootloader |    application     |  secrets/data |
+ */
+
 MEMORY
 {
-    flash (rx)      : ORIGIN = 0x08005000, LENGTH = 190K
+    flash (rx)      : ORIGIN = 0x08005000, LENGTH = 198K - 8
     ram (xrw)       : ORIGIN = 0x20000000, LENGTH = 48K
     sram2 (rw)      : ORIGIN = 0x10000000, LENGTH = 16K
 }
