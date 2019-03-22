@@ -2004,16 +2004,7 @@ def test_find_brute_force():
 
 
 if __name__ == "__main__":
-    tests = (
-        "solo",
-        "u2f",
-        "fido2",
-        "fido2-ext",
-        "rk",
-        "hid",
-        "ping",
-        "bootloader",
-    )
+    tests = ("solo", "u2f", "fido2", "fido2-ext", "rk", "hid", "ping", "bootloader")
 
     if len(sys.argv) < 2:
         print(f"Usage: {sys.argv[0]} [sim] <{'|'.join(sorted(tests))}>")
