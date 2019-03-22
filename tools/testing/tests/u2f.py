@@ -1,5 +1,6 @@
 from fido2.ctap1 import CTAP1, ApduError, APDU
 from fido2.utils import sha256
+from fido2.client import _call_polling
 
 from .tester import Tester, Test
 
@@ -10,6 +11,23 @@ class U2FTests(Tester):
 
     def run(self,):
         self.test_u2f()
+
+    def register(self, chal, appid):
+        reg_data = _call_polling(0.25, None, None, self.ctap1.register, chal, appid)
+        return reg_data
+
+    def authenticate(self, chal, appid, key_handle, check_only=False):
+        auth_data = _call_polling(
+            0.25,
+            None,
+            None,
+            self.ctap1.authenticate,
+            chal,
+            appid,
+            key_handle,
+            check_only=check_only,
+        )
+        return auth_data
 
     def test_u2f(self,):
         chal = sha256(b"AAA")
@@ -37,9 +55,9 @@ class U2FTests(Tester):
             with Test(
                 "U2F reg + auth %d/%d (count: %02x)" % (i + 1, self.user_count, lastc)
             ):
-                reg = self.ctap1.register(chal, appid)
+                reg = self.register(chal, appid)
                 reg.verify(appid, chal)
-                auth = self.ctap1.authenticate(chal, appid, reg.key_handle)
+                auth = self.authenticate(chal, appid, reg.key_handle)
                 auth.verify(appid, chal, reg.public_key)
 
                 regs.append(reg)
@@ -55,7 +73,7 @@ class U2FTests(Tester):
             with Test(
                 "Checking previous registration %d/%d" % (i + 1, self.user_count)
             ):
-                auth = self.ctap1.authenticate(chal, appid, regs[i].key_handle)
+                auth = self.authenticate(chal, appid, regs[i].key_handle)
                 auth.verify(appid, chal, regs[i].public_key)
 
         print("Check that all previous credentials are registered...")
