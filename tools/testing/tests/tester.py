@@ -1,8 +1,10 @@
-import time
+import time, struct
 
 from fido2.hid import CtapHidDevice, CTAPHID
 from fido2.client import Fido2Client, ClientError
 from fido2.ctap1 import CTAP1, ApduError, APDU
+from fido2.utils import Timeout
+
 from fido2.ctap import CtapError
 
 
@@ -153,7 +155,10 @@ class Tester:
                     raise RuntimeError("Expected error to occur for test: %s" % test)
             except CtapError as e:
                 if expectedError is not None:
-                    if e.code != expectedError:
+                    cond = e.code != expectedError
+                    if type(expectedError) == type([]):
+                        cond = e.code not in expectedError
+                    if cond:
                         raise RuntimeError(
                             "Got error code 0x%x, expected %x" % (e.code, expectedError)
                         )

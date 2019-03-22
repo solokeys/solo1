@@ -1,3 +1,9 @@
+import sys, struct, os, time
+from binascii import hexlify
+
+from fido2.hid import CtapHidDevice, CTAPHID
+from fido2.ctap import CtapError
+
 from .tester import Tester, Test
 
 
@@ -10,6 +16,7 @@ class HIDTests(Tester):
         self.check_timeouts = en
 
     def run(self,):
+        self.test_long_ping()
         self.test_hid(self.check_timeouts)
 
     def test_long_ping(self):

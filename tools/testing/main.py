@@ -43,15 +43,6 @@ if __name__ == "__main__":
         # t.test_fido2()
         FIDO2Tests(t).run()
 
-    if "fido2-ext" in sys.argv:
-        pass
-
-    if "rk" in sys.argv:
-        pass
-
-    if "ping" in sys.argv:
-        pass
-
     # hid tests are a bit invasive and should be done last
     if "hid" in sys.argv:
         HIDTests(t).run()
