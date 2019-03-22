@@ -17,6 +17,17 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from .tester import Tester, Test
 from .util import shannon_entropy
 
+rp = {"id": "examplo.org", "name": "ExaRP"}
+rp2 = {"id": "solokeys.com", "name": "ExaRP"}
+user = {"id": b"usee_od", "name": "AB User"}
+user1 = {"id": b"1234567890", "name": "Conor Patrick"}
+user2 = {"id": b"oiewhfoi", "name": "Han Solo"}
+user3 = {"id": b"23ohfpjwo@@", "name": "John Smith"}
+challenge = "Y2hhbGxlbmdl"
+pin_protocol = 1
+key_params = [{"type": "public-key", "alg": ES256.ALGORITHM}]
+cdh = b"123456789abcdef0123456789abcdef0"
+
 
 def VerifyAttestation(attest, data):
     verifier = Attestation.for_type(attest.fmt)
@@ -28,14 +39,11 @@ class FIDO2Tests(Tester):
         super().__init__(tester)
 
     def run(self,):
-        self.test_fido2_other()
+        self.test_fido2()
 
     def test_fido2_simple(self, pin_token=None):
         creds = []
         exclude_list = []
-        rp = {"id": self.host, "name": "ExaRP"}
-        user = {"id": b"usee_od", "name": "AB User"}
-        challenge = "Y2hhbGxlbmdl"
         PIN = pin_token
 
         fake_id1 = array.array("B", [randint(0, 255) for i in range(0, 150)]).tobytes()
@@ -68,8 +76,6 @@ class FIDO2Tests(Tester):
     def test_fido2_brute_force(self):
         creds = []
         exclude_list = []
-        rp = {"id": self.host, "name": "ExaRP"}
-        user = {"id": b"usee_od", "name": "AB User"}
         PIN = None
         abc = "abcdefghijklnmopqrstuvwxyz"
         abc += abc.upper()
@@ -120,172 +126,9 @@ class FIDO2Tests(Tester):
                 print("Assertion valid (%d ms)" % (t2 - t1))
                 sys.stdout.flush()
 
-    def test_fido2(self):
-        def test(self, pincode=None):
-            creds = []
-            exclude_list = []
-            rp = {"id": self.host, "name": "ExaRP"}
-            user = {"id": b"usee_od", "name": "AB User"}
-            challenge = "Y2hhbGxlbmdl"
-            PIN = pincode
-
-            fake_id1 = array.array(
-                "B", [randint(0, 255) for i in range(0, 150)]
-            ).tobytes()
-            fake_id2 = array.array(
-                "B", [randint(0, 255) for i in range(0, 73)]
-            ).tobytes()
-
-            exclude_list.append({"id": fake_id1, "type": "public-key"})
-            exclude_list.append({"id": fake_id2, "type": "public-key"})
-
-            # test make credential
-            with Test("make %d credentials" % self.user_count):
-                lastc = 0
-                for i in range(0, self.user_count):
-                    attest, data = self.client.make_credential(
-                        rp, user, challenge, pin=PIN, exclude_list=[]
-                    )
-                    VerifyAttestation(attest, data)
-
-                    # verify counter is correct
-                    if lastc > 0:
-                        assert attest.auth_data.counter - lastc < 10
-                        assert attest.auth_data.counter - lastc > 0
-                    assert attest.auth_data.counter < 0x10000
-                    lastc = attest.auth_data.counter
-
-                    cred = attest.auth_data.credential_data
-                    creds.append(cred)
-                    print(cred)
-
-            if PIN is not None:
-                with Test("make credential with wrong pin code"):
-                    try:
-                        attest, data = self.client.make_credential(
-                            rp, user, challenge, pin=PIN + " ", exclude_list=[]
-                        )
-                    except CtapError as e:
-                        assert e.code == CtapError.ERR.PIN_INVALID
-                    except ClientError as e:
-                        assert e.cause.code == CtapError.ERR.PIN_INVALID
-
-            with Test("make credential with exclude list"):
-                attest, data = self.client.make_credential(
-                    rp, user, challenge, pin=PIN, exclude_list=exclude_list
-                )
-                VerifyAttestation(attest, data)
-                cred = attest.auth_data.credential_data
-                creds.append(cred)
-
-            with Test("make credential with exclude list including real credential"):
-                real_excl = [{"id": cred.credential_id, "type": "public-key"}]
-                try:
-                    attest, data = self.client.make_credential(
-                        rp,
-                        user,
-                        challenge,
-                        pin=PIN,
-                        exclude_list=exclude_list + real_excl,
-                    )
-                    raise RuntimeError("Exclude list did not return expected error")
-                except CtapError as e:
-                    assert e.code == CtapError.ERR.CREDENTIAL_EXCLUDED
-                except ClientError as e:
-                    assert e.cause.code == CtapError.ERR.CREDENTIAL_EXCLUDED
-
-            for i, x in enumerate(creds):
-                with Test("get assertion %d" % i):
-                    allow_list = [{"id": x.credential_id, "type": "public-key"}]
-                    assertions, client_data = self.client.get_assertion(
-                        rp["id"], challenge, allow_list, pin=PIN
-                    )
-                    assertions[0].verify(client_data.hash, x.public_key)
-
-            if PIN is not None:
-                with Test("get assertion with wrong pin code"):
-                    try:
-                        assertions, client_data = self.client.get_assertion(
-                            rp["id"], challenge, allow_list, pin=PIN + " "
-                        )
-                    except CtapError as e:
-                        assert e.code == CtapError.ERR.PIN_INVALID
-                    except ClientError as e:
-                        assert e.cause.code == CtapError.ERR.PIN_INVALID
-
-            with Test("get multiple assertions"):
-                allow_list = [
-                    {"id": x.credential_id, "type": "public-key"} for x in creds
-                ]
-                assertions, client_data = self.client.get_assertion(
-                    rp["id"], challenge, allow_list, pin=PIN
-                )
-
-                for ass, cred in zip(assertions, creds):
-                    i += 1
-
-                    ass.verify(client_data.hash, cred.public_key)
-                    print("%d verified" % i)
-
-        with Test("Reset device"):
-            try:
-                self.ctap.reset()
-            except CtapError as e:
-                print("Warning, reset failed: ", e)
-                pass
-
-        test(self, None)
-
-        with Test("Set a pin code"):
-            PIN = "1122aabbwfg0h9g !@#=="
-            self.client.pin_protocol.set_pin(PIN)
-
-        with Test("Illegally set pin code again"):
-            try:
-                self.client.pin_protocol.set_pin(PIN)
-            except CtapError as e:
-                assert e.code == CtapError.ERR.NOT_ALLOWED
-
-        with Test("Change pin code"):
-            PIN2 = PIN + "_pin2"
-            self.client.pin_protocol.change_pin(PIN, PIN2)
-            PIN = PIN2
-
-        with Test("Change pin code using wrong pin"):
-            try:
-                self.client.pin_protocol.change_pin(PIN.replace("a", "b"), "1234")
-            except CtapError as e:
-                assert e.code == CtapError.ERR.PIN_INVALID
-
-        with Test("MC using wrong pin"):
-            try:
-                self.test_fido2_simple("abcd3")
-            except ClientError as e:
-                assert e.cause.code == CtapError.ERR.PIN_INVALID
-
-        with Test("get info"):
-            inf = self.ctap.get_info()
-
-        self.test_fido2_simple(PIN)
-
-        with Test("Re-run make_credential and get_assertion tests with pin code"):
-            test(self, PIN)
-
-        with Test("Reset device"):
-            try:
-                self.ctap.reset()
-            except CtapError as e:
-                print("Warning, reset failed: ", e)
-
     def test_extensions(self,):
         creds = []
         exclude_list = []
-        rp = {"id": self.host, "name": "ExaRP"}
-        user = {"id": b"usee_od", "name": "AB User"}
-        challenge = "Y2hhbGxlbmdl"
-        pin_protocol = 1
-        key_params = [{"type": "public-key", "alg": ES256.ALGORITHM}]
-        cdh = b"123456789abcdef0123456789abcdef0"
 
         salt1 = b"\x5a" * 32
         salt2 = b"\x96" * 32
@@ -439,33 +282,7 @@ class FIDO2Tests(Tester):
                 expectedError=CtapError.ERR.INVALID_LENGTH,
             )
 
-    def test_fido2_other(self,):
-
-        creds = []
-        exclude_list = []
-        rp = {"id": self.host, "name": "ExaRP"}
-        rp2 = {"id": "solokeys.com", "name": "ExaRP"}
-        user = {"id": b"usee_od", "name": "AB User"}
-        user1 = {"id": b"1234567890", "name": "Conor Patrick"}
-        user2 = {"id": b"oiewhfoi", "name": "Han Solo"}
-        user3 = {"id": b"23ohfpjwo@@", "name": "John Smith"}
-        challenge = "Y2hhbGxlbmdl"
-        pin_protocol = 1
-        key_params = [{"type": "public-key", "alg": ES256.ALGORITHM}]
-        cdh = b"123456789abcdef0123456789abcdef0"
-
-        def reboot():
-            if self.is_sim:
-                print("Sending restart command...")
-                self.send_magic_reboot()
-                self.delay(0.25)
-            else:
-                print("Please reboot authentictor and hit enter")
-                input()
-                self.find_device()
-
-        self.testReset()
-
+    def test_get_info(self,):
         with Test("Get info"):
             info = self.ctap.get_info()
 
@@ -480,6 +297,31 @@ class FIDO2Tests(Tester):
             for x in info.options:
                 assert info.options[x] in [True, False]
 
+        if "uv" in info.options:
+            if info.options["uv"]:
+                self.testMC(
+                    "Send MC request with uv set to true, expect SUCCESS",
+                    cdh,
+                    rp,
+                    user,
+                    key_params,
+                    other={"options": {"uv": True}},
+                    expectedError=CtapError.ERR.SUCCESS,
+                )
+        if "up" in info.options:
+            if info.options["up"]:
+                self.testMC(
+                    "Send MC request with up set to true, expect INVALID_OPTION",
+                    cdh,
+                    rp,
+                    user,
+                    key_params,
+                    other={"options": {"up": True}},
+                    expectedError=CtapError.ERR.INVALID_OPTION,
+                )
+
+    def test_make_credential(self,):
+
         prev_reg = self.testMC(
             "Send MC request, expect success",
             cdh,
@@ -488,61 +330,17 @@ class FIDO2Tests(Tester):
             key_params,
             expectedError=CtapError.ERR.SUCCESS,
         )
-
-        with Test("Check attestation format is correct"):
-            assert prev_reg.fmt in ["packed", "tpm", "android-key", "adroid-safetynet"]
-
-        with Test("Check auth_data is at least 77 bytes"):
-            assert len(prev_reg.auth_data) >= 77
-
         allow_list = [
             {
                 "id": prev_reg.auth_data.credential_data.credential_id,
                 "type": "public-key",
             }
         ]
+        with Test("Check attestation format is correct"):
+            assert prev_reg.fmt in ["packed", "tpm", "android-key", "adroid-safetynet"]
 
-        prev_auth = self.testGA(
-            "Send GA request, expect success",
-            rp["id"],
-            cdh,
-            allow_list,
-            expectedError=CtapError.ERR.SUCCESS,
-        )
-
-        with Test("Test auth_data is 37 bytes"):
-            assert len(prev_auth.auth_data) == 37
-
-        with Test("Test that auth_data.rpIdHash is correct"):
-            assert sha256(rp["id"].encode()) == prev_auth.auth_data.rp_id_hash
-
-        with Test("Check that AT flag is not set"):
-            assert (prev_auth.auth_data.flags & 0xF8) == 0
-
-        with Test("Test that user, credential and numberOfCredentials are not present"):
-            assert prev_auth.user == None
-            assert prev_auth.number_of_credentials == None
-
-        self.testGA(
-            "Send GA request with empty allow_list, expect NO_CREDENTIALS",
-            rp["id"],
-            cdh,
-            [],
-            expectedError=CtapError.ERR.NO_CREDENTIALS,
-        )
-
-        # apply bit flip
-        badid = list(prev_reg.auth_data.credential_data.credential_id[:])
-        badid[len(badid) // 2] = badid[len(badid) // 2] ^ 1
-        badid = bytes(badid)
-
-        self.testGA(
-            "Send GA request with corrupt credId in allow_list, expect NO_CREDENTIALS",
-            rp["id"],
-            cdh,
-            [{"id": badid, "type": "public-key"}],
-            expectedError=CtapError.ERR.NO_CREDENTIALS,
-        )
+        with Test("Check auth_data is at least 77 bytes"):
+            assert len(prev_reg.auth_data) >= 77
 
         self.testMC(
             "Send MC request with missing clientDataHash, expect error",
@@ -836,28 +634,77 @@ class FIDO2Tests(Tester):
             expectedError=CtapError.ERR.SUCCESS,
         )
 
-        if "uv" in info.options:
-            if info.options["uv"]:
-                self.testMC(
-                    "Send MC request with uv set to true, expect SUCCESS",
-                    cdh,
-                    rp,
-                    user,
-                    key_params,
-                    other={"options": {"uv": True}},
-                    expectedError=CtapError.ERR.SUCCESS,
-                )
-        if "up" in info.options:
-            if info.options["up"]:
-                self.testMC(
-                    "Send MC request with up set to true, expect INVALID_OPTION",
-                    cdh,
-                    rp,
-                    user,
-                    key_params,
-                    other={"options": {"up": True}},
-                    expectedError=CtapError.ERR.INVALID_OPTION,
-                )
+        self.testReset()
+
+        self.testGA(
+            "Send GA request with reset auth, expect NO_CREDENTIALS",
+            rp["id"],
+            cdh,
+            allow_list,
+            expectedError=CtapError.ERR.NO_CREDENTIALS,
+        )
+
+    def test_get_assertion(self,):
+
+        self.testReset()
+
+        prev_reg = self.testMC(
+            "Send MC request, expect success",
+            cdh,
+            rp,
+            user,
+            key_params,
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        allow_list = [
+            {
+                "id": prev_reg.auth_data.credential_data.credential_id,
+                "type": "public-key",
+            }
+        ]
+
+        prev_auth = self.testGA(
+            "Send GA request, expect success",
+            rp["id"],
+            cdh,
+            allow_list,
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        with Test("Test auth_data is 37 bytes"):
+            assert len(prev_auth.auth_data) == 37
+
+        with Test("Test that auth_data.rpIdHash is correct"):
+            assert sha256(rp["id"].encode()) == prev_auth.auth_data.rp_id_hash
+
+        with Test("Check that AT flag is not set"):
+            assert (prev_auth.auth_data.flags & 0xF8) == 0
+
+        with Test("Test that user, credential and numberOfCredentials are not present"):
+            assert prev_auth.user == None
+            assert prev_auth.number_of_credentials == None
+
+        self.testGA(
+            "Send GA request with empty allow_list, expect NO_CREDENTIALS",
+            rp["id"],
+            cdh,
+            [],
+            expectedError=CtapError.ERR.NO_CREDENTIALS,
+        )
+
+        # apply bit flip
+        badid = list(prev_reg.auth_data.credential_data.credential_id[:])
+        badid[len(badid) // 2] = badid[len(badid) // 2] ^ 1
+        badid = bytes(badid)
+
+        self.testGA(
+            "Send GA request with corrupt credId in allow_list, expect NO_CREDENTIALS",
+            rp["id"],
+            cdh,
+            [{"id": badid, "type": "public-key"}],
+            expectedError=CtapError.ERR.NO_CREDENTIALS,
+        )
 
         self.testGA(
             "Send GA request with missing RPID, expect MISSING_PARAMETER",
@@ -911,6 +758,8 @@ class FIDO2Tests(Tester):
             other={"options": {"unknown": True}},
             expectedError=CtapError.ERR.SUCCESS,
         )
+        with Test("Get info"):
+            info = self.ctap.get_info()
 
         if "uv" in info.options:
             if info.options["uv"]:
@@ -973,89 +822,81 @@ class FIDO2Tests(Tester):
             allow_list + [{"type": b"public-key"}],
         )
 
-        self.testReset()
+    def test_rk(self, pin_code=None):
 
-        def testRk(pin_code=None):
-            self.testGA(
-                "Send GA request with reset auth, expect NO_CREDENTIALS",
-                rp["id"],
-                cdh,
-                allow_list,
-                expectedError=CtapError.ERR.NO_CREDENTIALS,
-            )
+        pin_auth = None
+        if pin_code:
+            with Test("Set pin code"):
+                self.client.pin_protocol.set_pin(pin_code)
+                pin_token = self.client.pin_protocol.get_pin_token(pin_code)
+                pin_auth = hmac_sha256(pin_token, cdh)[:16]
 
-            pin_auth = None
-            if pin_code:
-                with Test("Set pin code"):
-                    self.client.pin_protocol.set_pin(pin_code)
-                    pin_token = self.client.pin_protocol.get_pin_token(pin_code)
-                    pin_auth = hmac_sha256(pin_token, cdh)[:16]
+        self.testMC(
+            "Send MC request with rk option set to true, expect SUCCESS",
+            cdh,
+            rp,
+            user,
+            key_params,
+            other={"options": {"rk": True}, "pin_auth": pin_auth},
+            expectedError=CtapError.ERR.SUCCESS,
+        )
 
+        with Test("Get info"):
+            info = self.ctap.get_info()
+
+        options = {"rk": True}
+        if "uv" in info.options and info.options["uv"]:
+            options["uv"] = False
+
+        for i, x in enumerate([user1, user2, user3]):
             self.testMC(
-                "Send MC request with rk option set to true, expect SUCCESS",
+                "Send MC request with rk option set to true, expect SUCCESS %d/3"
+                % (i + 1),
                 cdh,
-                rp,
-                user,
+                rp2,
+                x,
                 key_params,
-                other={"options": {"rk": True}, "pin_auth": pin_auth},
-                expectedError=CtapError.ERR.SUCCESS,
-            )
-
-            options = {"rk": True}
-            if "uv" in info.options and info.options["uv"]:
-                options["uv"] = False
-
-            for i, x in enumerate([user1, user2, user3]):
-                self.testMC(
-                    "Send MC request with rk option set to true, expect SUCCESS %d/3"
-                    % (i + 1),
-                    cdh,
-                    rp2,
-                    x,
-                    key_params,
-                    other={"options": options, "pin_auth": pin_auth},
-                    expectedError=CtapError.ERR.SUCCESS,
-                )
-
-            auth1 = self.testGA(
-                "Send GA request with no allow_list, expect SUCCESS",
-                rp2["id"],
-                cdh,
                 other={"options": options, "pin_auth": pin_auth},
                 expectedError=CtapError.ERR.SUCCESS,
             )
 
-            with Test("Check that there are 3 credentials returned"):
-                assert auth1.number_of_credentials == 3
+        auth1 = self.testGA(
+            "Send GA request with no allow_list, expect SUCCESS",
+            rp2["id"],
+            cdh,
+            other={"options": options, "pin_auth": pin_auth},
+            expectedError=CtapError.ERR.SUCCESS,
+        )
 
-            with Test("Get the next 2 assertions"):
-                auth2 = self.ctap.get_next_assertion()
-                auth3 = self.ctap.get_next_assertion()
+        with Test("Check that there are 3 credentials returned"):
+            assert auth1.number_of_credentials == 3
 
-            if not pin_code:
-                with Test("Check only the user ID was returned"):
-                    assert "id" in auth1.user.keys() and len(auth1.user.keys()) == 1
-                    assert "id" in auth2.user.keys() and len(auth2.user.keys()) == 1
-                    assert "id" in auth3.user.keys() and len(auth3.user.keys()) == 1
-            else:
-                with Test("Check that all user info was returned"):
-                    for x in (auth1, auth2, auth3):
-                        for y in ("name", "icon", "displayName", "id"):
-                            assert y in x.user.keys()
-                        assert len(x.user.keys()) == 4
+        with Test("Get the next 2 assertions"):
+            auth2 = self.ctap.get_next_assertion()
+            auth3 = self.ctap.get_next_assertion()
 
-            with Test("Send an extra getNextAssertion request, expect error"):
-                try:
-                    auth4 = self.ctap.get_next_assertion()
-                    assert 0
-                except CtapError as e:
-                    print(e)
+        if not pin_code:
+            with Test("Check only the user ID was returned"):
+                assert "id" in auth1.user.keys() and len(auth1.user.keys()) == 1
+                assert "id" in auth2.user.keys() and len(auth2.user.keys()) == 1
+                assert "id" in auth3.user.keys() and len(auth3.user.keys()) == 1
+        else:
+            with Test("Check that all user info was returned"):
+                for x in (auth1, auth2, auth3):
+                    for y in ("name", "icon", "displayName", "id"):
+                        assert y in x.user.keys()
+                    assert len(x.user.keys()) == 4
 
-        testRk(None)
-        #
-        # print("Assuming authenticator does NOT have a display.")
+        with Test("Send an extra getNextAssertion request, expect error"):
+            try:
+                auth4 = self.ctap.get_next_assertion()
+                assert 0
+            except CtapError as e:
+                print(e)
+
+    def test_client_pin(self,):
         pin1 = "1234567890"
-        testRk("1234567890")
+        self.test_rk(pin1)
 
         # PinProtocolV1
         res = self.testCP(
@@ -1116,14 +957,6 @@ class FIDO2Tests(Tester):
             self.client.pin_protocol.set_pin(pin1)
 
         self.testReset()
-
-        # print("Setting pin code <4 bytes, expect POLICY_VIOLATION ")
-        # try:
-        #     self.client.pin_protocol.set_pin("123")
-        # except CtapError as e:
-        #     assert e.code == CtapError.ERR.POLICY_VIOLATION
-        # print("Pass")
-
         with Test("Setting pin code >63 bytes, expect POLICY_VIOLATION "):
             try:
                 self.client.pin_protocol.set_pin("A" * 64)
@@ -1212,7 +1045,7 @@ class FIDO2Tests(Tester):
                 expectedError=CtapError.ERR.PIN_AUTH_BLOCKED,
             )
 
-        reboot()
+        self.reboot()
 
         with Test("Get pin_token, expect SUCCESS"):
             pin_token = self.client.pin_protocol.get_pin_token(pin1)
@@ -1253,7 +1086,7 @@ class FIDO2Tests(Tester):
                 assert res[3] == attempts
 
             if err == CtapError.ERR.PIN_AUTH_BLOCKED:
-                reboot()
+                self.reboot()
 
         res_mc = self.testMC(
             "Send MC request with correct pin_auth, expect PIN_BLOCKED",
@@ -1265,7 +1098,7 @@ class FIDO2Tests(Tester):
             expectedError=CtapError.ERR.PIN_BLOCKED,
         )
 
-        reboot()
+        self.reboot()
 
         self.testPP(
             "Get pin_token with correct pin code, expect PIN_BLOCKED",
@@ -1273,79 +1106,94 @@ class FIDO2Tests(Tester):
             expectedError=CtapError.ERR.PIN_BLOCKED,
         )
 
+    def test_fido2(self,):
+
+        creds = []
+        exclude_list = []
+
+        self.test_get_info()
+
+        self.test_get_assertion()
+
+        self.test_make_credential()
+
+        self.test_rk(None)
+
+        self.test_client_pin()
+
         self.testReset()
 
         print("Done")
 
-    def test_rk(self,):
-        creds = []
-        rp = {"id": self.host, "name": "ExaRP"}
-
-        users = [
-            {"id": b"user" + os.urandom(16), "name": "Username%d" % i}
-            for i in range(0, self.user_count)
-        ]
-        challenge = "Y2hhbGxlbmdl"
-        PIN = None
-        self.ctap.reset()
-        # if PIN: self.client.pin_protocol.set_pin(PIN)
-
-        with Test("registering 1 user with RK"):
-            t1 = time.time() * 1000
-            attest, data = self.client.make_credential(
-                rp, users[-1], challenge, pin=PIN, exclude_list=[], rk=True
-            )
-            t2 = time.time() * 1000
-            VerifyAttestation(attest, data)
-            creds.append(attest.auth_data.credential_data)
-
-        with Test("1 assertion"):
-            t1 = time.time() * 1000
-            assertions, client_data = self.client.get_assertion(
-                rp["id"], challenge, pin=PIN
-            )
-            t2 = time.time() * 1000
-            assertions[0].verify(client_data.hash, creds[0].public_key)
-
-        with Test("registering %d users with RK" % len(users)):
-            for i in range(0, len(users) - 1):
-                t1 = time.time() * 1000
-                attest, data = self.client.make_credential(
-                    rp, users[i], challenge, pin=PIN, exclude_list=[], rk=True
-                )
-                t2 = time.time() * 1000
-                VerifyAttestation(attest, data)
-                creds.append(attest.auth_data.credential_data)
-
-        t1 = time.time() * 1000
-        assertions, client_data = self.client.get_assertion(
-            rp["id"], challenge, pin=PIN
-        )
-        t2 = time.time() * 1000
-
-        print("Got %d assertions for %d users" % (len(assertions), len(users)))
-        assert len(assertions) == len(users)
-
-        for x, y in zip(assertions, creds):
-            x.verify(client_data.hash, y.public_key)
-
-        print("Assertion(s) valid (%d ms)" % (t2 - t1))
-
-        with Test("register a duplicate user "):
-            t1 = time.time() * 1000
-            attest, data = self.client.make_credential(
-                rp, users[1], challenge, pin=PIN, exclude_list=[], rk=True
-            )
-            t2 = time.time() * 1000
-            VerifyAttestation(attest, data)
-            creds = creds[:2] + creds[3:] + [attest.auth_data.credential_data]
-
-        t1 = time.time() * 1000
-        assertions, client_data = self.client.get_assertion(
-            rp["id"], challenge, pin=PIN
-        )
-        t2 = time.time() * 1000
-        with Test("check %d assertions, %d users" % (len(assertions), len(users))):
-            assert len(assertions) == len(users)
-            for x, y in zip(assertions, creds):
-                x.verify(client_data.hash, y.public_key)
+    # def test_rk(self,):
+    #     creds = []
+    #     rp = {"id": self.host, "name": "ExaRP"}
+    #
+    #     users = [
+    #         {"id": b"user" + os.urandom(16), "name": "Username%d" % i}
+    #         for i in range(0, self.user_count)
+    #     ]
+    #     challenge = "Y2hhbGxlbmdl"
+    #     PIN = None
+    #     self.ctap.reset()
+    #     # if PIN: self.client.pin_protocol.set_pin(PIN)
+    #
+    #     with Test("registering 1 user with RK"):
+    #         t1 = time.time() * 1000
+    #         attest, data = self.client.make_credential(
+    #             rp, users[-1], challenge, pin=PIN, exclude_list=[], rk=True
+    #         )
+    #         t2 = time.time() * 1000
+    #         VerifyAttestation(attest, data)
+    #         creds.append(attest.auth_data.credential_data)
+    #
+    #     with Test("1 assertion"):
+    #         t1 = time.time() * 1000
+    #         assertions, client_data = self.client.get_assertion(
+    #             rp["id"], challenge, pin=PIN
+    #         )
+    #         t2 = time.time() * 1000
+    #         assertions[0].verify(client_data.hash, creds[0].public_key)
+    #
+    #     with Test("registering %d users with RK" % len(users)):
+    #         for i in range(0, len(users) - 1):
+    #             t1 = time.time() * 1000
+    #             attest, data = self.client.make_credential(
+    #                 rp, users[i], challenge, pin=PIN, exclude_list=[], rk=True
+    #             )
+    #             t2 = time.time() * 1000
+    #             VerifyAttestation(attest, data)
+    #             creds.append(attest.auth_data.credential_data)
+    #
+    #     t1 = time.time() * 1000
+    #     assertions, client_data = self.client.get_assertion(
+    #         rp["id"], challenge, pin=PIN
+    #     )
+    #     t2 = time.time() * 1000
+    #
+    #     print("Got %d assertions for %d users" % (len(assertions), len(users)))
+    #     assert len(assertions) == len(users)
+    #
+    #     for x, y in zip(assertions, creds):
+    #         x.verify(client_data.hash, y.public_key)
+    #
+    #     print("Assertion(s) valid (%d ms)" % (t2 - t1))
+    #
+    #     with Test("register a duplicate user "):
+    #         t1 = time.time() * 1000
+    #         attest, data = self.client.make_credential(
+    #             rp, users[1], challenge, pin=PIN, exclude_list=[], rk=True
+    #         )
+    #         t2 = time.time() * 1000
+    #         VerifyAttestation(attest, data)
+    #         creds = creds[:2] + creds[3:] + [attest.auth_data.credential_data]
+    #
+    #     t1 = time.time() * 1000
+    #     assertions, client_data = self.client.get_assertion(
+    #         rp["id"], challenge, pin=PIN
+    #     )
+    #     t2 = time.time() * 1000
+    #     with Test("check %d assertions, %d users" % (len(assertions), len(users))):
+    #         assert len(assertions) == len(users)
+    #         for x, y in zip(assertions, creds):
+    #             x.verify(client_data.hash, y.public_key)

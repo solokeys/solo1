@@ -73,6 +73,16 @@ class Tester:
     def set_sim(self, b):
         self.is_sim = b
 
+    def reboot(self,):
+        if self.is_sim:
+            print("Sending restart command...")
+            self.send_magic_reboot()
+            self.delay(0.25)
+        else:
+            print("Please reboot authentictor and hit enter")
+            input()
+            self.find_device()
+
     def send_data(self, cmd, data):
         if type(data) != type(b""):
             data = struct.pack("%dB" % len(data), *[ord(x) for x in data])
