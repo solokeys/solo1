@@ -54,6 +54,13 @@
 #define CP_getKeyAgreement        0x07
 #define CP_getRetries             0x08
 
+#define EXT_HMAC_SECRET_COSE_KEY    0x01
+#define EXT_HMAC_SECRET_SALT_ENC    0x02
+#define EXT_HMAC_SECRET_SALT_AUTH   0x03
+
+#define EXT_HMAC_SECRET_REQUESTED   0x01
+#define EXT_HMAC_SECRET_PARSED      0x02
+
 #define RESP_versions               0x1
 #define RESP_extensions             0x2
 #define RESP_aaguid                 0x3
@@ -142,9 +149,13 @@ struct Credential {
     CredentialId id;
     CTAP_userEntity user;
 };
-
 typedef struct Credential CTAP_residentKey;
 
+typedef struct
+{
+    uint8_t type;
+    struct Credential credential;
+} CTAP_credentialDescriptor;
 
 typedef struct
 {
@@ -183,32 +194,60 @@ struct rpId
 
 typedef struct
 {
+    struct{
+        uint8_t x[32];
+        uint8_t y[32];
+    } pubkey;
+
+    int kty;
+    int crv;
+} COSE_key;
+
+typedef struct
+{
+    uint8_t saltLen;
+    uint8_t saltEnc[64];
+    uint8_t saltAuth[32];
+    COSE_key keyAgreement;
+    struct Credential * credential;
+} CTAP_hmac_secret;
+
+typedef struct
+{
+    uint8_t hmac_secret_present;
+    CTAP_hmac_secret hmac_secret;
+} CTAP_extensions;
+
+typedef struct
+{
+    CTAP_userEntity user;
+    uint8_t publicKeyCredentialType;
+    int32_t COSEAlgorithmIdentifier;
+    uint8_t rk;
+} CTAP_credInfo;
+
+typedef struct
+{
     uint32_t paramsParsed;
     uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
     struct rpId rp;
-    CTAP_userEntity user;
 
-    uint8_t publicKeyCredentialType;
-    int32_t COSEAlgorithmIdentifier;
+    CTAP_credInfo credInfo;
 
     CborValue excludeList;
     size_t excludeListSize;
 
-    uint8_t rk;
     uint8_t uv;
     uint8_t up;
 
     uint8_t pinAuth[16];
     uint8_t pinAuthPresent;
     int pinProtocol;
+    CTAP_extensions extensions;
 
 } CTAP_makeCredential;
 
-typedef struct
-{
-    uint8_t type;
-    struct Credential credential;
-} CTAP_credentialDescriptor;
+
 
 typedef struct
 {
@@ -230,22 +269,16 @@ typedef struct
 
     CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
     uint8_t allowListPresent;
+
+    CTAP_extensions extensions;
+
 } CTAP_getAssertion;
 
 typedef struct
 {
     int pinProtocol;
     int subCommand;
-    struct
-    {
-        struct{
-            uint8_t x[32];
-            uint8_t y[32];
-        } pubkey;
-
-        int kty;
-        int crv;
-    } keyAgreement;
+    COSE_key keyAgreement;
     uint8_t keyAgreementPresent;
     uint8_t pinAuth[16];
     uint8_t pinAuthPresent;

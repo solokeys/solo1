@@ -39,7 +39,7 @@ int _write (int fd, const void *buf, unsigned long int len)
 	// logbuflen += len;
 
 	// Send out USB serial
-	CDC_Transmit_FS(buf, len);
+	CDC_Transmit_FS(data, len);
 	// if (res == USBD_OK)
 	// 	logbuflen = 0;
 #endif
