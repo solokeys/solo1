@@ -28,19 +28,3 @@ install-legacy:
 
 # install-symlinks:
 # 	sudo cp $(PWD)/71-solokeys-symlinks.rules ${RULES_PATH}/71-solokeys-symlinks.rules
-
-# The ID_MM_DEVICE_IGNORE tag in our udev rules are ignored
-# if ModemManager is running with "strict" filter policy.
-# Debian Buster for instance does this.
-# One solution is to run ModemManager with "paranoid" filter policy.
-paranoid-modemmanager: dropin-paranoid-modemmanager restart-modemmanager
-dropin-paranoid-modemmanager:
-	test -f /usr/sbin/ModemManager && sudo cp ModemManager-override.conf /etc/systemd/system/ModemManager.service.d/override.conf
-
-strict-modemmanager: dropin-strict-modemmanager restart-modemmanager
-dropin-strict-modemmanager:
-	sudo rm -f /etc/systemd/system/ModemManager.service.d/override.conf
-
-restart-modemmanager:
-	sudo systemctl daemon-reload
-	sudo systemctl restart ModemManager.service
