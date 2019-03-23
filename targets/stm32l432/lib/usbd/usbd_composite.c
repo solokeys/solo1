@@ -110,7 +110,7 @@ __ALIGN_BEGIN uint8_t COMPOSITE_CDC_HID_DESCRIPTOR[COMPOSITE_CDC_HID_DESCRIPTOR_
   0x03,   /* bNumEndpoints: 3 endpoints used */
   0x02,   /* bInterfaceClass: Communication Interface Class */
   0x02,   /* bInterfaceSubClass: Abstract Control Model */
-  0x01,   /* bInterfaceProtocol: Common AT commands */
+  0x00,   /* bInterfaceProtocol: Common AT commands */
   0x00,   /* iInterface: */
 
   /*Header Functional Descriptor*/
