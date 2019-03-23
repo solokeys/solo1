@@ -93,6 +93,11 @@ flashboot: solo.hex bootloader.hex
 	STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
 	STM32_Programmer_CLI -c port=SWD -halt  -d bootloader.hex -rst
 
+flash-firmware:
+	arm-none-eabi-size -A solo.elf
+	solo program aux enter-bootloader
+	solo program bootloader solo.hex
+
 # tell ST DFU to enter application
 detach:
 	STM32_Programmer_CLI -c port=usb1 -ob nBOOT0=1
