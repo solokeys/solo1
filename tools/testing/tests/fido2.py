@@ -905,21 +905,24 @@ class FIDO2Tests(Tester):
             expectedError=CtapError.ERR.SUCCESS,
         )
 
-        # self.testGA(
-        #     "Send GA request with no pinAuth, expect SUCCESS",
-        #     rp["id"],
-        #     cdh,
-        #     [
-        #         {
-        #             "type": "public-key",
-        #             "id": res_mc.auth_data.credential_data.credential_id,
-        #         }
-        #     ],
-        #     expectedError=CtapError.ERR.SUCCESS,
-        # )
-
         with Test("Check UV flag is set"):
             assert res_ga.auth_data.flags & (1 << 2)
+
+        res_ga = self.testGA(
+            "Send GA request with no pinAuth, expect SUCCESS",
+            rp["id"],
+            cdh,
+            [
+                {
+                    "type": "public-key",
+                    "id": res_mc.auth_data.credential_data.credential_id,
+                }
+            ],
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        with Test("Check UV flag is NOT set"):
+            assert not (res_ga.auth_data.flags & (1 << 2))
 
         self.testReset()
 
@@ -973,12 +976,12 @@ class FIDO2Tests(Tester):
             expectedError=CtapError.ERR.PIN_REQUIRED,
         )
 
-        # res_mc = self.testGA(
-        #     "Send GA request with no pin_auth, expect NO_CREDENTIALS",
-        #     rp["id"],
-        #     cdh,
-        #     expectedError=CtapError.ERR.NO_CREDENTIALS,
-        # )
+        res_mc = self.testGA(
+            "Send GA request with no pin_auth, expect NO_CREDENTIALS",
+            rp["id"],
+            cdh,
+            expectedError=CtapError.ERR.NO_CREDENTIALS,
+        )
 
         res = self.testCP(
             "Test getRetries, expect SUCCESS",
