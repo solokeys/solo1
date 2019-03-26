@@ -10,6 +10,8 @@
 
 setup: install activate
 legacy-setup: install-legacy activate
+
+# Symlinks can be setup, we don't officially supply any
 # symlinks: install-symlinks activate
 
 RULES_PATH=/etc/udev/rules.d

@@ -35,6 +35,8 @@ function build() {
 build bootloader nonverifying
 build bootloader verifying
 build firmware hacker solo
+build firmware hacker-debug-1 solo
+build firmware hacker-debug-2 solo
 build firmware secure solo
 
 pip install -U pip
@@ -43,3 +45,7 @@ cd ${out_dir}
 bundle="bundle-hacker-${version}"
 /opt/conda/bin/solo mergehex bootloader-nonverifying-${version}.hex firmware-hacker-${version}.hex ${bundle}.hex
 sha256sum ${bundle}.hex > ${bundle}.sha2
+bundle="bundle-hacker-debug-1-${version}"
+/opt/conda/bin/solo mergehex bootloader-nonverifying-${version}.hex firmware-hacker-debug-1-${version}.hex ${bundle}.hex
+bundle="bundle-hacker-debug-2-${version}"
+/opt/conda/bin/solo mergehex bootloader-nonverifying-${version}.hex firmware-hacker-debug-2-${version}.hex ${bundle}.hex
