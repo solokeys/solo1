@@ -47,7 +47,7 @@ class U2FTests(Tester):
 
         with Test("Check bad CLA"):
             try:
-                res = self.ctap1.send_apdu(1, CTAP1.INS.VERSION, 0, 0, b"abc")
+                self.ctap1.send_apdu(1, CTAP1.INS.VERSION, 0, 0, b"abc")
             except ApduError as e:
                 assert e.code == 0x6E00
 

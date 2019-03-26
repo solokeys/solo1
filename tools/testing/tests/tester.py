@@ -2,7 +2,7 @@ import time, struct
 
 from fido2.hid import CtapHidDevice
 from fido2.client import Fido2Client
-from fido2.ctap1 import CTAP1, ApduError
+from fido2.ctap1 import CTAP1
 from fido2.utils import Timeout
 
 from fido2.ctap import CtapError
