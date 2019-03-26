@@ -17,7 +17,7 @@ int __errno = 0;
 
 void rng_get_bytes(uint8_t * dst, size_t sz)
 {
-    uint8_t r[8];
+    uint8_t r[4];
     unsigned int i,j;
     for (i = 0; i < sz; i += 4)
     {
@@ -33,7 +33,7 @@ void rng_get_bytes(uint8_t * dst, size_t sz)
 
         for (j = 0; j < 4; j++)
         {
-            if ((i + j) > sz)
+            if ((i + j) >= sz)
             {
                 return;
             }
