@@ -41,7 +41,7 @@ class U2FTests(Tester):
 
         with Test("Check bad INS"):
             try:
-                res = self.ctap1.send_apdu(0, 0, 0, 0, b"")
+                self.ctap1.send_apdu(0, 0, 0, 0, b"")
             except ApduError as e:
                 assert e.code == 0x6D00
 

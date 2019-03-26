@@ -1,6 +1,6 @@
 from solo.client import SoloClient
 
-from fido2.ctap1 import ApduError, APDU
+from fido2.ctap1 import ApduError
 
 from .util import shannon_entropy
 from .tester import Tester, Test
@@ -30,9 +30,9 @@ class SoloTests(Tester):
                 entropy += sc.get_rng()
 
         with Test("Test entropy is close to perfect"):
-            sum = shannon_entropy(entropy)
-            assert sum > 7.98
-        print("Entropy is %.5f bits per byte." % sum)
+            s = shannon_entropy(entropy)
+            assert s > 7.98
+        print("Entropy is %.5f bits per byte." % s)
 
         with Test("Test Solo version command"):
             assert len(sc.solo_version()) == 3

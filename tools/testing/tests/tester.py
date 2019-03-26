@@ -1,8 +1,8 @@
 import time, struct
 
-from fido2.hid import CtapHidDevice, CTAPHID
-from fido2.client import Fido2Client, ClientError
-from fido2.ctap1 import CTAP1, ApduError, APDU
+from fido2.hid import CtapHidDevice
+from fido2.client import Fido2Client
+from fido2.ctap1 import CTAP1, ApduError
 from fido2.utils import Timeout
 
 from fido2.ctap import CtapError
@@ -17,7 +17,6 @@ def ForceU2F(client, device):
 
 class Packet(object):
     def __init__(self, data):
-        l = len(data)
         self.data = data
 
     def ToWireFormat(self,):
@@ -79,14 +78,14 @@ class Tester:
         if self.is_sim:
             print("Sending restart command...")
             self.send_magic_reboot()
-            self.delay(0.25)
+            Tester.delay(0.25)
         else:
             print("Please reboot authentictor and hit enter")
             input()
             self.find_device()
 
     def send_data(self, cmd, data):
-        if type(data) != type(b""):
+        if not isinstance(data, bytes):
             data = struct.pack("%dB" % len(data), *[ord(x) for x in data])
         with Timeout(1.0) as event:
             return self.dev.call(cmd, data, event)
@@ -94,9 +93,9 @@ class Tester:
     def send_raw(self, data, cid=None):
         if cid is None:
             cid = self.dev._dev.cid
-        elif type(cid) != type(b""):
+        elif not isinstance(cid, bytes):
             cid = struct.pack("%dB" % len(cid), *[ord(x) for x in cid])
-        if type(data) != type(b""):
+        if not isinstance(data, bytes):
             data = struct.pack("%dB" % len(data), *[ord(x) for x in data])
         data = cid + data
         l = len(data)
@@ -127,16 +126,16 @@ class Tester:
         return self.dev._dev.cid
 
     def set_cid(self, cid):
-        if type(cid) not in [type(b""), type(bytearray())]:
+        if not isinstance(cid, (bytes, bytearray)):
             cid = struct.pack("%dB" % len(cid), *[ord(x) for x in cid])
         self.dev._dev.cid = cid
 
     def recv_raw(self,):
-        with Timeout(1.0) as t:
+        with Timeout(1.0):
             cmd, payload = self.dev._dev.InternalRecv()
         return cmd, payload
 
-    def check_error(self, data, err=None):
+    def check_error(data, err=None):
         assert len(data) == 1
         if err is None:
             if data[0] != 0:
@@ -156,11 +155,13 @@ class Tester:
             except CtapError as e:
                 if expectedError is not None:
                     cond = e.code != expectedError
-                    if type(expectedError) == type([]):
+                    if isinstance(expectedError, list):
                         cond = e.code not in expectedError
+                    else:
+                        expectedError = [expectedError]
                     if cond:
                         raise RuntimeError(
-                            "Got error code 0x%x, expected %x" % (e.code, expectedError)
+                            f"Got error code {hex(e.code)}, expected {[hex(x) for x in expectedError]}"
                         )
                 else:
                     print(e)
@@ -170,7 +171,7 @@ class Tester:
         print("Resetting Authenticator...")
         try:
             self.ctap.reset()
-        except CtapError as e:
+        except CtapError:
             # Some authenticators need a power cycle
             print("You must power cycle authentictor.  Hit enter when done.")
             input()
@@ -192,5 +193,5 @@ class Tester:
             self.client.pin_protocol.get_pin_token, test, *args, **kwargs
         )
 
-    def delay(self, secs):
+    def delay(secs):
         time.sleep(secs)

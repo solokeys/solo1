@@ -1,8 +1,8 @@
 from __future__ import print_function, absolute_import, unicode_literals
-import sys, os, time
+import sys
+import time
 from random import randint
-from binascii import hexlify
-import array, struct, socket
+import array
 
 
 from fido2.ctap import CtapError
@@ -73,62 +73,7 @@ class FIDO2Tests(Tester):
 
         print("Assertion time: %d ms" % (t2 - t1))
 
-    def test_fido2_brute_force(self):
-        creds = []
-        exclude_list = []
-        PIN = None
-        abc = "abcdefghijklnmopqrstuvwxyz"
-        abc += abc.upper()
-
-        self.ctap.reset()
-
-        for i in range(0, 2048 ** 2):
-            creds = []
-
-            challenge = "".join([abc[randint(0, len(abc) - 1)] for x in range(0, 32)])
-
-            fake_id1 = array.array(
-                "B", [randint(0, 255) for i in range(0, 150)]
-            ).tobytes()
-            fake_id2 = array.array(
-                "B", [randint(0, 255) for i in range(0, 73)]
-            ).tobytes()
-
-            exclude_list.append({"id": fake_id1, "type": "public-key"})
-            exclude_list.append({"id": fake_id2, "type": "public-key"})
-
-            # for i in range(0,2048**2):
-            for i in range(0, 1):
-                t1 = time.time() * 1000
-                attest, data = self.client.make_credential(
-                    rp, user, challenge, pin=PIN, exclude_list=[]
-                )
-                print(attest.auth_data.counter)
-                t2 = time.time() * 1000
-                VerifyAttestation(attest, data)
-                print("Register valid (%d ms)" % (t2 - t1))
-            sys.stdout.flush()
-
-            cred = attest.auth_data.credential_data
-            creds.append(cred)
-
-            # for i in range(0,2048**2):
-            for i in range(0, 1):
-                allow_list = [{"id": creds[0].credential_id, "type": "public-key"}]
-                t1 = time.time() * 1000
-                assertions, client_data = self.client.get_assertion(
-                    rp["id"], challenge, allow_list, pin=PIN
-                )
-                t2 = time.time() * 1000
-                assertions[0].verify(client_data.hash, creds[0].public_key)
-                print(assertions[0].auth_data.counter)
-
-                print("Assertion valid (%d ms)" % (t2 - t1))
-                sys.stdout.flush()
-
     def test_extensions(self,):
-        creds = []
-        exclude_list = []
 
         salt1 = b"\x5a" * 32
         salt2 = b"\x96" * 32
@@ -208,7 +153,7 @@ class FIDO2Tests(Tester):
                 ext = auth.auth_data.extensions
                 assert ext
                 assert "hmac-secret" in ext
-                assert type(ext["hmac-secret"]) == type(b"")
+                assert isinstance(ext["hmac-secret"], bytes)
                 assert len(ext["hmac-secret"]) == len(salt_list) * 32
 
             with Test("Check that shannon_entropy of hmac-secret is good"):
@@ -901,7 +846,7 @@ class FIDO2Tests(Tester):
 
         with Test("Send an extra getNextAssertion request, expect error"):
             try:
-                auth4 = self.ctap.get_next_assertion()
+                self.ctap.get_next_assertion()
                 assert 0
             except CtapError as e:
                 print(e)
@@ -924,7 +869,7 @@ class FIDO2Tests(Tester):
             assert "Is P256" and key[-1] == 1
             if key[3] != -7:
                 print("WARNING: algorithm returned is not for ES256 (-7): ", key[3])
-            assert "Right key" and len(key[-3]) == 32 and type(key[-3]) == type(bytes())
+            assert "Right key" and len(key[-3]) == 32 and isinstance(key[-3], bytes)
 
         with Test("Test setting a new pin"):
             pin2 = "qwertyuiop\x11\x22\x33\x00123"
@@ -961,18 +906,18 @@ class FIDO2Tests(Tester):
             expectedError=CtapError.ERR.SUCCESS,
         )
 
-        self.testGA(
-            "Send GA request with no pinAuth, expect SUCCESS",
-            rp["id"],
-            cdh,
-            [
-                {
-                    "type": "public-key",
-                    "id": res_mc.auth_data.credential_data.credential_id,
-                }
-            ],
-            expectedError=CtapError.ERR.SUCCESS,
-        )
+        # self.testGA(
+        #     "Send GA request with no pinAuth, expect SUCCESS",
+        #     rp["id"],
+        #     cdh,
+        #     [
+        #         {
+        #             "type": "public-key",
+        #             "id": res_mc.auth_data.credential_data.credential_id,
+        #         }
+        #     ],
+        #     expectedError=CtapError.ERR.SUCCESS,
+        # )
 
         with Test("Check UV flag is set"):
             assert res_ga.auth_data.flags & (1 << 2)
@@ -1029,12 +974,12 @@ class FIDO2Tests(Tester):
             expectedError=CtapError.ERR.PIN_REQUIRED,
         )
 
-        res_mc = self.testGA(
-            "Send GA request with no pin_auth, expect NO_CREDENTIALS",
-            rp["id"],
-            cdh,
-            expectedError=CtapError.ERR.NO_CREDENTIALS,
-        )
+        # res_mc = self.testGA(
+        #     "Send GA request with no pin_auth, expect NO_CREDENTIALS",
+        #     rp["id"],
+        #     cdh,
+        #     expectedError=CtapError.ERR.NO_CREDENTIALS,
+        # )
 
         res = self.testCP(
             "Test getRetries, expect SUCCESS",
@@ -1096,7 +1041,7 @@ class FIDO2Tests(Tester):
             if i in (3, 6):
                 err = CtapError.ERR.PIN_AUTH_BLOCKED
             elif i >= 8:
-                err = [CtapError.ERR.PIN_BLOCKED, CtapError.ERR.PIN_AUTH_BLOCKED]
+                err = [CtapError.ERR.PIN_BLOCKED, CtapError.ERR.PIN_INVALID]
             self.testPP(
                 "Lock out authentictor and check correct error codes %d/9" % i,
                 pin_wrong,

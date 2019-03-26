@@ -1,7 +1,7 @@
-import sys, struct, os, time
+import sys, os, time
 from binascii import hexlify
 
-from fido2.hid import CtapHidDevice, CTAPHID
+from fido2.hid import CTAPHID
 from fido2.ctap import CtapError
 
 from .tester import Tester, Test
@@ -34,7 +34,7 @@ class HIDTests(Tester):
                     raise RuntimeError("Fob is too slow (%d ms)" % delt)
                 if r != pingdata:
                     raise ValueError("Ping data not echo'd")
-            except CtapError as e:
+            except CtapError:
                 raise RuntimeError("ping failed")
 
         sys.stdout.flush()
@@ -95,7 +95,7 @@ class HIDTests(Tester):
         with Test("Sending packet with too large of a length."):
             self.send_raw("\x81\x1d\xba\x00")
             cmd, resp = self.recv_raw()
-            self.check_error(resp, CtapError.ERR.INVALID_LENGTH)
+            Tester.check_error(resp, CtapError.ERR.INVALID_LENGTH)
 
         r = self.send_data(CTAPHID.PING, "\x44" * 200)
         with Test("Sending packets that skip a sequence number."):
@@ -105,7 +105,7 @@ class HIDTests(Tester):
             # skip 2
             self.send_raw("\x03")
             cmd, resp = self.recv_raw()
-            self.check_error(resp, CtapError.ERR.INVALID_SEQ)
+            Tester.check_error(resp, CtapError.ERR.INVALID_SEQ)
 
         with Test("Resync and send ping"):
             try:
@@ -207,7 +207,7 @@ class HIDTests(Tester):
 
             self.set_cid(cid2)  # send ping on 2nd channel
             self.send_raw("\x81\x00\x63")
-            self.delay(0.1)
+            Tester.delay(0.1)
             self.send_raw("\x00")
 
             cmd, r = self.recv_raw()  # busy response
