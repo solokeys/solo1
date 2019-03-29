@@ -1105,19 +1105,15 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
         return ret;
     }
 
-    if (ctap_is_pin_set() && GA.pinAuthPresent == 0)
+    if (GA.pinAuthPresent)
     {
-        printf2(TAG_ERR,"pinAuth is required\n");
-        return CTAP2_ERR_PIN_REQUIRED;
+        ret = verify_pin_auth(GA.pinAuth, GA.clientDataHash);
+        check_retr(ret);
+        getAssertionState.user_verified = 1;
     }
     else
     {
-        if (ctap_is_pin_set() || (GA.pinAuthPresent))
-        {
-            ret = verify_pin_auth(GA.pinAuth, GA.clientDataHash);
-            check_retr(ret);
-            getAssertionState.user_verified = 1;
-        }
+        getAssertionState.user_verified = 0;
     }
 
     if (!GA.rp.size || !GA.clientDataHashPresent)
@@ -1198,6 +1194,9 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
         ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &len, NULL);
         check_retr(ret);
 
+        ((CTAP_authData *)auth_data_buf)->head.flags &= ~(1 << 2);
+        ((CTAP_authData *)auth_data_buf)->head.flags |= (getAssertionState.user_verified << 2);
+        
         {
             unsigned int ext_encoder_buf_size = sizeof(auth_data_buf) - len;
             uint8_t * ext_encoder_buf = auth_data_buf + len;
