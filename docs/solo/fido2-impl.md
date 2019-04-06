@@ -22,8 +22,8 @@ for FIDO2 operation.
 When you register a service with a FIDO2 or U2F authenticator, the
 authenticator must generate a new keypair unique to that service.  This keypair
 could be stored on the authenticator to be used in subsequent authentications,
-but now a certain amount of memory needs to be allocated for this.  On embedded
-devices, there isn't much memory to spare and users will allows frustratingly
+but a certain amount of memory would need to be allocated for this.  On embedded
+devices, there isn't much memory to spare and users would frustratingly
 hit the limit of this memory.
 
 The answer to this problem is to do key wrapping.  The authenticator just
@@ -39,7 +39,7 @@ In essence, the following happens at registration.
 3. Return `P` and `R` to service.  (`R` is in `KEYID` parameter)
 4. Service stores `P` and `R`.
 
-Now on authenication.
+Now on authentication.
 
 1. Service issues authentication request with `R` in `KEYID` parameter.
 2. \* Authenticator generates `K` by calculating `HMAC(M,R)`.
