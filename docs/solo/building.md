@@ -1,5 +1,5 @@
 To build, develop and debug the firmware for the STM32L432.  This will work
-for Solo Hacker, the Nucleo development board, or you own homemade Solo.
+for Solo Hacker, the Nucleo development board, or your own homemade Solo.
 
 There exists a development board [NUCLEO-L432KC](https://www.st.com/en/evaluation-tools/nucleo-l432kc.html) you can use;  The board does contain a debugger, so all you need is a USB cable (and some [udev](/udev) [rules](https://rust-embedded.github.io/book/intro/install/linux.html#udev-rules)).
 
@@ -7,7 +7,7 @@ There exists a development board [NUCLEO-L432KC](https://www.st.com/en/evaluatio
 
 Install the [latest ARM compiler toolchain](https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads) for your system.  We recommend getting the latest compilers from ARM.
 
-You can also install the ARM toolchain  using a package manage like `apt-get` or `pacman`,
+You can also install the ARM toolchain  using a package manager like `apt-get` or `pacman`,
 but be warned they might be out of date.  Typically it will be called `gcc-arm-none-eabi binutils-arm-none-eabi`.
 
 To program your build, you'll need one of the following programs.
@@ -52,7 +52,7 @@ make build-hacker DEBUG=1
 ```
 
 If you use `DEBUG=2`, that means Solo will not boot until something starts reading
-it's debug messages.  So it basically it waits to tether to a serial terminal so that you don't
+its debug messages.  So it basically waits to tether to a serial terminal so that you don't
 miss any debug messages.
 
 We recommend using our `solo` tool as a serial emulator since it will automatically
