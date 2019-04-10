@@ -2,7 +2,6 @@ from __future__ import print_function, absolute_import, unicode_literals
 import time
 from random import randint
 import array
-import struct
 from functools import cmp_to_key
 
 from fido2 import cbor
