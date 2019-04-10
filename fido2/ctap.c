@@ -123,13 +123,6 @@ uint8_t ctap_get_info(CborEncoder * encoder)
             ret = cbor_encoder_create_map(&map, &options,4);
             check_ret(ret);
             {
-                ret = cbor_encode_text_string(&options, "plat", 4);
-                check_ret(ret);
-                {
-                    ret = cbor_encode_boolean(&options, 0);     // Not attached to platform
-                    check_ret(ret);
-                }
-
                 ret = cbor_encode_text_string(&options, "rk", 2);
                 check_ret(ret);
                 {
@@ -153,6 +146,15 @@ uint8_t ctap_get_info(CborEncoder * encoder)
                 //     ret = cbor_encode_boolean(&options, 0);
                 //     check_ret(ret);
                 // }
+
+                ret = cbor_encode_text_string(&options, "plat", 4);
+                check_ret(ret);
+                {
+                    ret = cbor_encode_boolean(&options, 0);     // Not attached to platform
+                    check_ret(ret);
+                }
+
+
                 ret = cbor_encode_text_string(&options, "clientPin", 9);
                 check_ret(ret);
                 {
