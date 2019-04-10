@@ -2,8 +2,9 @@ from __future__ import print_function, absolute_import, unicode_literals
 import time
 from random import randint
 import array
+import struct
 
-
+from fido2 import cbor
 from fido2.ctap import CtapError
 
 from fido2.ctap2 import ES256, PinProtocolV1
@@ -229,6 +230,15 @@ class FIDO2Tests(Tester):
     def test_get_info(self,):
         with Test("Get info"):
             info = self.ctap.get_info()
+            print(bytes(info))
+            print(cbor.loads(bytes(info)))
+
+        with Test("Check dictionary keys are sorted from lowest to highest"):
+            last = 0
+            for x in cbor.loads(bytes(info))[0]:
+                print("%d < %d" % (last, x))
+                assert last < x
+                last = x
 
         with Test("Check FIDO2 string is in VERSIONS field"):
             assert "FIDO_2_0" in info.versions
@@ -274,6 +284,26 @@ class FIDO2Tests(Tester):
             key_params,
             expectedError=CtapError.ERR.SUCCESS,
         )
+
+        with Test("Check response dictionary keys are sorted from lowest to highest"):
+            last = 0
+            for x in cbor.loads(bytes(prev_reg))[0]:
+                assert last < x
+                last = x
+
+        with Test("Check COSE KEY dictionary keys are sorted from lowest to highest"):
+            last = 0
+            data = prev_reg.auth_data.credential_data
+            c_len = struct.unpack(">H", data[16:18])[0]
+            cred_id = data[18 : 18 + c_len]
+            pub_key, _ = cbor.loads(data[18 + c_len :])
+            for x in pub_key:
+                if x > 0:
+                    assert last < x
+                else:
+                    assert last > x
+                last = x
+
         allow_list = [
             {
                 "id": prev_reg.auth_data.credential_data.credential_id,
@@ -615,6 +645,13 @@ class FIDO2Tests(Tester):
             allow_list,
             expectedError=CtapError.ERR.SUCCESS,
         )
+
+        with Test("Check response dictionary keys are sorted from lowest to highest"):
+            last = 0
+            print(cbor.loads(bytes(prev_auth))[0])
+            for x in cbor.loads(bytes(prev_auth))[0]:
+                assert last < x
+                last = x
 
         with Test("Test auth_data is 37 bytes"):
             assert len(prev_auth.auth_data) == 37
@@ -1085,15 +1122,15 @@ class FIDO2Tests(Tester):
         self.test_get_info()
 
         self.test_get_assertion()
-
-        self.test_make_credential()
-
-        self.test_rk(None)
-
-        self.test_client_pin()
-
-        self.testReset()
-
-        self.test_extensions()
-
-        print("Done")
+        #
+        # self.test_make_credential()
+        #
+        # self.test_rk(None)
+        #
+        # self.test_client_pin()
+        #
+        # self.testReset()
+        #
+        # self.test_extensions()
+        #
+        # print("Done")
