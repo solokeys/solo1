@@ -3,6 +3,7 @@ import time
 from random import randint
 import array
 import struct
+from functools import cmp_to_key
 
 from fido2 import cbor
 from fido2.ctap import CtapError
@@ -32,6 +33,30 @@ cdh = b"123456789abcdef0123456789abcdef0"
 def VerifyAttestation(attest, data):
     verifier = Attestation.for_type(attest.fmt)
     verifier().verify(attest.att_statement, attest.auth_data, data.hash)
+
+
+def TestCborKeysSorted(cbor_bytes):
+    def sort_cbor_keys(x1, x2):
+        if isinstance(x1, int) and isinstance(x2, int):
+            if x1 >= 0 and x2 >= 0:
+                return x1 > x2
+            elif x1 < 0 and x2 >= 0:
+                return x1 > x2
+            elif x1 >= 0 and x2 < 0:
+                return x1 < x2
+            else:
+                return x1 < x2
+
+    last = 0
+    l = [x for x in cbor.loads(cbor_bytes)[0]]
+    l_sorted = l[:]
+    l_sorted = sorted(l_sorted, key=cmp_to_key(sort_cbor_keys))
+    print("sorted", l_sorted)
+    print("real", l)
+    for i in range(0, len(l)):
+        if l[i] != l_sorted[i]:
+            raise ValueError("Cbor list item %d: %d is out of order" % (i, l[i]))
+    return l
 
 
 class FIDO2Tests(Tester):
@@ -234,11 +259,7 @@ class FIDO2Tests(Tester):
             print(cbor.loads(bytes(info)))
 
         with Test("Check dictionary keys are sorted from lowest to highest"):
-            last = 0
-            for x in cbor.loads(bytes(info))[0]:
-                print("%d < %d" % (last, x))
-                assert last < x
-                last = x
+            TestCborKeysSorted(bytes(info))
 
         with Test("Check FIDO2 string is in VERSIONS field"):
             assert "FIDO_2_0" in info.versions
@@ -287,22 +308,13 @@ class FIDO2Tests(Tester):
 
         with Test("Check response dictionary keys are sorted from lowest to highest"):
             last = 0
-            for x in cbor.loads(bytes(prev_reg))[0]:
-                assert last < x
-                last = x
 
         with Test("Check COSE KEY dictionary keys are sorted from lowest to highest"):
             last = 0
             data = prev_reg.auth_data.credential_data
             c_len = struct.unpack(">H", data[16:18])[0]
             cred_id = data[18 : 18 + c_len]
-            pub_key, _ = cbor.loads(data[18 + c_len :])
-            for x in pub_key:
-                if x > 0:
-                    assert last < x
-                else:
-                    assert last > x
-                last = x
+            TestCborKeysSorted(data[18 + c_len :])
 
         allow_list = [
             {
@@ -649,9 +661,7 @@ class FIDO2Tests(Tester):
         with Test("Check response dictionary keys are sorted from lowest to highest"):
             last = 0
             print(cbor.loads(bytes(prev_auth))[0])
-            for x in cbor.loads(bytes(prev_auth))[0]:
-                assert last < x
-                last = x
+            TestCborKeysSorted(bytes(prev_auth))
 
         with Test("Test auth_data is 37 bytes"):
             assert len(prev_auth.auth_data) == 37
@@ -1123,7 +1133,7 @@ class FIDO2Tests(Tester):
 
         self.test_get_assertion()
         #
-        # self.test_make_credential()
+        self.test_make_credential()
         #
         # self.test_rk(None)
         #
