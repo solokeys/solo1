@@ -73,13 +73,26 @@ def TestCborKeysSorted(cbor_bytes):
     l_sorted = l[:]
     l_sorted = sorted(l_sorted, key=cmp_to_key(sort_cbor_keys))
 
-    print("sorted", l_sorted)
-    print("real", l)
-
     for i in range(0, len(l)):
         if l[i] != l_sorted[i]:
+            print("sorted", l_sorted)
+            print("real", l)
             raise ValueError(f"Cbor list item {i}: {l[i]} is out of order")
     return l
+
+
+# hot patch cbor map parsing to test the order of keys in map
+_load_map_old = cbor.load_map
+
+
+def _load_map_new(ai, data):
+    values, data = _load_map_old(ai, data)
+    TestCborKeysSorted(values)
+    return values, data
+
+
+cbor.load_map = _load_map_new
+cbor._DESERIALIZERS[5] = _load_map_new
 
 
 class FIDO2Tests(Tester):
@@ -281,12 +294,6 @@ class FIDO2Tests(Tester):
             print(bytes(info))
             print(cbor.loads(bytes(info)))
 
-        with Test("Check map keys are sorted correctly"):
-            TestCborKeysSorted(bytes(info))
-
-        with Test("Check options keys are sorted correctly"):
-            TestCborKeysSorted(cbor.loads(bytes(info))[0][4])
-
         with Test("Check FIDO2 string is in VERSIONS field"):
             assert "FIDO_2_0" in info.versions
 
@@ -331,20 +338,6 @@ class FIDO2Tests(Tester):
             key_params,
             expectedError=CtapError.ERR.SUCCESS,
         )
-
-        with Test("Check response map keys are sorted correctly"):
-            TestCborKeysSorted(bytes(prev_reg))
-
-        with Test("Check attestation statement map keys are sorted correctly"):
-            att_statement = cbor.loads(bytes(prev_reg))[0][3]
-            TestCborKeysSorted(att_statement)
-
-        with Test("Check COSE KEY dictionary keys are sorted correctly"):
-            last = 0
-            data = prev_reg.auth_data.credential_data
-            c_len = struct.unpack(">H", data[16:18])[0]
-            cred_id = data[18 : 18 + c_len]
-            TestCborKeysSorted(data[18 + c_len :])
 
         allow_list = [
             {
@@ -687,12 +680,6 @@ class FIDO2Tests(Tester):
             allow_list,
             expectedError=CtapError.ERR.SUCCESS,
         )
-
-        with Test("Check response map keys are sorted correctly"):
-            TestCborKeysSorted(bytes(prev_auth))
-
-        with Test("Check credential map keys are sorted correctly"):
-            TestCborKeysSorted(cbor.loads(bytes(prev_auth))[0][1])
 
         with Test("Test auth_data is 37 bytes"):
             assert len(prev_auth.auth_data) == 37
@@ -1163,15 +1150,15 @@ class FIDO2Tests(Tester):
         self.test_get_info()
 
         self.test_get_assertion()
-        #
+
         self.test_make_credential()
-        #
-        # self.test_rk(None)
-        #
-        # self.test_client_pin()
-        #
-        # self.testReset()
-        #
-        # self.test_extensions()
-        #
-        # print("Done")
+
+        self.test_rk(None)
+
+        self.test_client_pin()
+
+        self.testReset()
+
+        self.test_extensions()
+
+        print("Done")
