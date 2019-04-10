@@ -1002,22 +1002,22 @@ static CTAP_credentialDescriptor * pop_credential()
 }
 
 // adds 2 to map, or 3 if add_user is true
-uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cred, uint8_t * auth_data_buf, uint8_t * clientDataHash, int add_user)
+uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cred, uint8_t * auth_data_buf, unsigned int auth_data_buf_sz, uint8_t * clientDataHash, int add_user)
 {
     int ret;
     uint8_t sigbuf[64];
     uint8_t sigder[72];
     int sigder_sz;
 
-    if (add_user)
-    {
-        printf1(TAG_GREEN, "adding user details to output\r\n");
-        ret = ctap_add_user_entity(map, &cred->credential.user);  // 4
-        check_retr(ret);
-    }
-
     ret = ctap_add_credential_descriptor(map, cred);  // 1
     check_retr(ret);
+
+    {
+        ret = cbor_encode_int(map,RESP_authData);  // 2
+        check_ret(ret);
+        ret = cbor_encode_byte_string(map, auth_data_buf, auth_data_buf_sz);
+        check_ret(ret);
+    }
 
     crypto_ecc256_load_key((uint8_t*)&cred->credential.id, sizeof(CredentialId), NULL, 0);
 
@@ -1038,6 +1038,15 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
         ret = cbor_encode_byte_string(map, sigder, sigder_sz);
         check_ret(ret);
     }
+
+    if (add_user)
+    {
+        printf1(TAG_GREEN, "adding user details to output\r\n");
+        ret = ctap_add_user_entity(map, &cred->credential.user);  // 4
+        check_retr(ret);
+    }
+
+
     return 0;
 }
 
@@ -1073,12 +1082,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
     check_ret(ret);
     printf1(TAG_RED, "RPID hash: "); dump_hex1(TAG_RED, authData.rpIdHash, 32);
 
-    {
-        ret = cbor_encode_int(&map,RESP_authData);
-        check_ret(ret);
-        ret = cbor_encode_byte_string(&map, (uint8_t *)&authData, sizeof(CTAP_authDataHeader));
-        check_ret(ret);
-    }
+
 
 
     // if only one account for this RP, null out the user details
@@ -1089,7 +1093,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
     }
 
 
-    ret = ctap_end_get_assertion(&map, cred, (uint8_t *)&authData, getAssertionState.clientDataHash, add_user_info);
+    ret = ctap_end_get_assertion(&map, cred, (uint8_t *)&authData, sizeof(CTAP_authDataHeader), getAssertionState.clientDataHash, add_user_info);  // 4, 1, 3
     check_retr(ret);
 
     ret = cbor_encoder_close_container(encoder, &map);
@@ -1177,54 +1181,49 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
     GA.extensions.hmac_secret.credential = &cred->credential;
 
+    uint32_t auth_data_buf_sz = sizeof(auth_data_buf);
+
 #ifdef ENABLE_U2F_EXTENSIONS
     if ( is_extension_request((uint8_t*)&GA.creds[validCredCount - 1].credential.id, sizeof(CredentialId)) )
     {
-        ret = cbor_encode_int(&map,RESP_authData);
+        ret = cbor_encode_int(&map,RESP_authData);  // 2
         check_ret(ret);
         memset(auth_data_buf,0,sizeof(CTAP_authDataHeader));
-        ret = cbor_encode_byte_string(&map, auth_data_buf, sizeof(CTAP_authDataHeader));
-        check_ret(ret);
+        auth_data_buf_sz = sizeof(CTAP_authDataHeader);
     }
     else
 #endif
     {
-        uint32_t len = sizeof(auth_data_buf);
-        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &len, NULL);
+
+        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &auth_data_buf_sz, NULL);
         check_retr(ret);
 
         ((CTAP_authData *)auth_data_buf)->head.flags &= ~(1 << 2);
         ((CTAP_authData *)auth_data_buf)->head.flags |= (getAssertionState.user_verified << 2);
 
         {
-            unsigned int ext_encoder_buf_size = sizeof(auth_data_buf) - len;
-            uint8_t * ext_encoder_buf = auth_data_buf + len;
+            unsigned int ext_encoder_buf_size = sizeof(auth_data_buf) - auth_data_buf_sz;
+            uint8_t * ext_encoder_buf = auth_data_buf + auth_data_buf_sz;
 
             ret = ctap_make_extensions(&GA.extensions, ext_encoder_buf, &ext_encoder_buf_size);
             check_retr(ret);
             if (ext_encoder_buf_size)
             {
                 ((CTAP_authData *)auth_data_buf)->head.flags |= (1 << 7);
-                len += ext_encoder_buf_size;
+                auth_data_buf_sz += ext_encoder_buf_size;
             }
         }
 
-        {
-            ret = cbor_encode_int(&map,RESP_authData);
-            check_ret(ret);
-            ret = cbor_encode_byte_string(&map, auth_data_buf, len);
-            check_ret(ret);
-        }
     }
 
     save_credential_list((CTAP_authDataHeader*)auth_data_buf, GA.clientDataHash, GA.creds, validCredCount-1);   // skip last one
 
-    ret = ctap_end_get_assertion(&map, cred, auth_data_buf, GA.clientDataHash, add_user_info);
+    ret = ctap_end_get_assertion(&map, cred, auth_data_buf, auth_data_buf_sz, GA.clientDataHash, add_user_info);  // 1,2,3,4
     check_retr(ret);
 
     if (validCredCount > 1)
     {
-        ret = cbor_encode_int(&map, RESP_numberOfCredentials);
+        ret = cbor_encode_int(&map, RESP_numberOfCredentials);  // 5
         check_ret(ret);
         ret = cbor_encode_int(&map, validCredCount);
         check_ret(ret);
