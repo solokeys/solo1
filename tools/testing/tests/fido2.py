@@ -34,49 +34,48 @@ def VerifyAttestation(attest, data):
     verifier().verify(attest.att_statement, attest.auth_data, data.hash)
 
 
+def cbor_key_to_representative(key):
+    if isinstance(key, int):
+        if key >= 0:
+            return (0, key)
+        return (1, -key)
+    elif isinstance(key, bytes):
+        return (2, key)
+    elif isinstance(key, str):
+        return (3, key)
+    else:
+        raise ValueError(key)
+
+
+def cmp_cbor_keys(a, b):
+    a = cbor_key_to_representative(a)
+    b = cbor_key_to_representative(b)
+    if a[0] != b[0]:
+        return a[0] - b[0]
+    return not ((a[1] > b[1]) - (a[1] < b[1]))
+
+
 def TestCborKeysSorted(cbor_bytes):
     # Cbor canonical ordering of keys.
     # https://fidoalliance.org/specs/fido-v2.0-ps-20190130/fido-client-to-authenticator-protocol-v2.0-ps-20190130.html#ctap2-canonical-cbor-encoding-form
-    def sort_cbor_keys(x1, x2):
-        # >0 x1 goes second, <0 x1 goes first
-        if isinstance(x1, int) and isinstance(x2, int):
-            if x1 >= 0 and x2 >= 0:
-                return x1 - x2
-            elif x1 < 0 and x2 >= 0:
-                return 1
-            elif x1 >= 0 and x2 < 0:
-                return -1
-            else:
-                return -x1 + x2
-
-        if isinstance(x1, (str, bytes)) and isinstance(x2, int):
-            return 1
-        elif isinstance(x1, int) and isinstance(x2, (str, bytes)):
-            return -1
-
-        if len(x1) == len(x2):
-            for i in range(0, len(x1)):
-                v1 = x1[i] if isinstance(x1[i], int) else ord(x1[i])
-                v2 = x2[i] if isinstance(x2[i], int) else ord(x2[i])
-                if v1 != v2:
-                    return v1 - v2
-            return 0
-
-        return len(x1) - len(x2)
 
     cbor_map = cbor_bytes
     if isinstance(cbor_map, bytes):
         cbor_map = cbor.loads(cbor_bytes)[0]
 
     l = [x for x in cbor_map]
-    l_sorted = l[:]
-    l_sorted = sorted(l_sorted, key=cmp_to_key(sort_cbor_keys))
+    l_sorted = sorted(l[:], key=cmp_to_key(cmp_cbor_keys))
 
-    for i in range(0, len(l)):
+    for i in range(len(l)):
+
+        if not isinstance(l[i], (str, int)):
+            raise ValueError(f"Cbor map key {l[i]} must be int or str for CTAP2")
+
         if l[i] != l_sorted[i]:
             print("sorted", l_sorted)
             print("real", l)
-            raise ValueError(f"Cbor list item {i}: {l[i]} is out of order")
+            raise ValueError(f"Cbor map item {i}: {l[i]} is out of order")
+
     return l
 
 
