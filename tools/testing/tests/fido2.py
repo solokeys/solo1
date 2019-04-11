@@ -47,25 +47,46 @@ def cbor_key_to_representative(key):
         raise ValueError(key)
 
 
+def cbor_str_cmp(a, b):
+    if isinstance(a, str) or isinstance(b, str):
+        a = a.encode("utf8")
+        b = b.encode("utf8")
+
+    if len(a) == len(b):
+        for x, y in zip(a, b):
+            if x != y:
+                return x - y
+        return 0
+    else:
+        return len(a) - len(b)
+
+
 def cmp_cbor_keys(a, b):
     a = cbor_key_to_representative(a)
     b = cbor_key_to_representative(b)
     if a[0] != b[0]:
         return a[0] - b[0]
-    return not ((a[1] > b[1]) - (a[1] < b[1]))
+    if a[0] in (2, 3):
+        return cbor_str_cmp(a[1], b[1])
+    else:
+        return (a[1] > b[1]) - (a[1] < b[1])
 
 
-def TestCborKeysSorted(cbor_bytes):
+def TestCborKeysSorted(cbor_obj):
     # Cbor canonical ordering of keys.
     # https://fidoalliance.org/specs/fido-v2.0-ps-20190130/fido-client-to-authenticator-protocol-v2.0-ps-20190130.html#ctap2-canonical-cbor-encoding-form
 
-    cbor_map = cbor_bytes
-    if isinstance(cbor_map, bytes):
-        cbor_map = cbor.loads(cbor_bytes)[0]
+    if isinstance(cbor_obj, bytes):
+        cbor_obj = cbor.loads(cbor_obj)[0]
 
-    l = [x for x in cbor_map]
+    if isinstance(cbor_obj, dict):
+        l = [x for x in cbor_obj]
+    else:
+        l = cbor_obj
+
     l_sorted = sorted(l[:], key=cmp_to_key(cmp_cbor_keys))
-
+    print(l)
+    print(l_sorted)
     for i in range(len(l)):
 
         if not isinstance(l[i], (str, int)):
@@ -96,6 +117,26 @@ cbor._DESERIALIZERS[5] = _load_map_new
 class FIDO2Tests(Tester):
     def __init__(self, tester=None):
         super().__init__(tester)
+        self.self_test()
+
+    def self_test(self,):
+        cbor_key_list_sorted = [
+            0,
+            1,
+            1,
+            2,
+            3,
+            -1,
+            -2,
+            "b",
+            "c",
+            "aa",
+            "aaa",
+            "aab",
+            "baa",
+            "bbb",
+        ]
+        TestCborKeysSorted(cbor_key_list_sorted)
 
     def run(self,):
         self.test_fido2()
