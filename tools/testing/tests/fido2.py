@@ -85,16 +85,13 @@ def TestCborKeysSorted(cbor_obj):
         l = cbor_obj
 
     l_sorted = sorted(l[:], key=cmp_to_key(cmp_cbor_keys))
-    print(l)
-    print(l_sorted)
+
     for i in range(len(l)):
 
         if not isinstance(l[i], (str, int)):
             raise ValueError(f"Cbor map key {l[i]} must be int or str for CTAP2")
 
         if l[i] != l_sorted[i]:
-            print("sorted", l_sorted)
-            print("real", l)
             raise ValueError(f"Cbor map item {i}: {l[i]} is out of order")
 
     return l
@@ -136,7 +133,20 @@ class FIDO2Tests(Tester):
             "baa",
             "bbb",
         ]
-        TestCborKeysSorted(cbor_key_list_sorted)
+        with Test("Self test CBOR sorting"):
+            TestCborKeysSorted(cbor_key_list_sorted)
+
+        with Test("Self test CBOR sorting integers", catch=ValueError):
+            TestCborKeysSorted([1, 0])
+
+        with Test("Self test CBOR sorting major type", catch=ValueError):
+            TestCborKeysSorted([-1, 0])
+
+        with Test("Self test CBOR sorting strings", catch=ValueError):
+            TestCborKeysSorted(["bb", "a"])
+
+        with Test("Self test CBOR sorting same length strings", catch=ValueError):
+            TestCborKeysSorted(["ab", "aa"])
 
     def run(self,):
         self.test_fido2()
