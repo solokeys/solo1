@@ -117,41 +117,12 @@ uint8_t ctap_get_info(CborEncoder * encoder)
             check_ret(ret);
         }
 
-        ret = cbor_encode_uint(&map, RESP_maxMsgSize);
-        check_ret(ret);
-        {
-            ret = cbor_encode_int(&map, CTAP_MAX_MESSAGE_SIZE);
-            check_ret(ret);
-        }
-
-        ret = cbor_encode_uint(&map, RESP_pinProtocols);
-        check_ret(ret);
-        {
-            ret = cbor_encoder_create_array(&map, &pins, 1);
-            check_ret(ret);
-            {
-                ret = cbor_encode_int(&pins, 1);
-                check_ret(ret);
-            }
-            ret = cbor_encoder_close_container(&map, &pins);
-            check_ret(ret);
-        }
-
-
-
         ret = cbor_encode_uint(&map, RESP_options);
         check_ret(ret);
         {
             ret = cbor_encoder_create_map(&map, &options,4);
             check_ret(ret);
             {
-                ret = cbor_encode_text_string(&options, "plat", 4);
-                check_ret(ret);
-                {
-                    ret = cbor_encode_boolean(&options, 0);     // Not attached to platform
-                    check_ret(ret);
-                }
-
                 ret = cbor_encode_text_string(&options, "rk", 2);
                 check_ret(ret);
                 {
@@ -175,6 +146,15 @@ uint8_t ctap_get_info(CborEncoder * encoder)
                 //     ret = cbor_encode_boolean(&options, 0);
                 //     check_ret(ret);
                 // }
+
+                ret = cbor_encode_text_string(&options, "plat", 4);
+                check_ret(ret);
+                {
+                    ret = cbor_encode_boolean(&options, 0);     // Not attached to platform
+                    check_ret(ret);
+                }
+
+
                 ret = cbor_encode_text_string(&options, "clientPin", 9);
                 check_ret(ret);
                 {
@@ -187,6 +167,30 @@ uint8_t ctap_get_info(CborEncoder * encoder)
             ret = cbor_encoder_close_container(&map, &options);
             check_ret(ret);
         }
+
+        ret = cbor_encode_uint(&map, RESP_maxMsgSize);
+        check_ret(ret);
+        {
+            ret = cbor_encode_int(&map, CTAP_MAX_MESSAGE_SIZE);
+            check_ret(ret);
+        }
+
+        ret = cbor_encode_uint(&map, RESP_pinProtocols);
+        check_ret(ret);
+        {
+            ret = cbor_encoder_create_array(&map, &pins, 1);
+            check_ret(ret);
+            {
+                ret = cbor_encode_int(&pins, 1);
+                check_ret(ret);
+            }
+            ret = cbor_encoder_close_container(&map, &pins);
+            check_ret(ret);
+        }
+
+
+
+
 
 
     }
@@ -730,6 +734,14 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     CborEncoder map;
     ret = cbor_encoder_create_map(encoder, &map, 3);
     check_ret(ret);
+
+    {
+        ret = cbor_encode_int(&map,RESP_fmt);
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&map, "packed");
+        check_ret(ret);
+    }
+
     uint32_t auth_data_sz = sizeof(auth_data_buf);
 
     ret = ctap_make_auth_data(&MC.rp, &map, auth_data_buf, &auth_data_sz,
@@ -763,13 +775,6 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     ret = ctap_add_attest_statement(&map, sigder, sigder_sz);
     check_retr(ret);
 
-    {
-        ret = cbor_encode_int(&map,RESP_fmt);
-        check_ret(ret);
-        ret = cbor_encode_text_stringz(&map, "packed");
-        check_ret(ret);
-    }
-
     ret = cbor_encoder_close_container(encoder, &map);
     check_ret(ret);
     return CTAP1_ERR_SUCCESS;
@@ -798,19 +803,21 @@ static uint8_t ctap_add_credential_descriptor(CborEncoder * map, CTAP_credential
     check_ret(ret);
 
     {
-        ret = cbor_encode_text_string(&desc, "type", 4);
-        check_ret(ret);
-
-        ret = cbor_encode_text_string(&desc, "public-key", 10);
-        check_ret(ret);
-    }
-    {
         ret = cbor_encode_text_string(&desc, "id", 2);
         check_ret(ret);
 
         ret = cbor_encode_byte_string(&desc, (uint8_t*)&cred->credential.id, sizeof(CredentialId));
         check_ret(ret);
     }
+
+    {
+        ret = cbor_encode_text_string(&desc, "type", 4);
+        check_ret(ret);
+
+        ret = cbor_encode_text_string(&desc, "public-key", 10);
+        check_ret(ret);
+    }
+
 
     ret = cbor_encoder_close_container(map, &desc);
     check_ret(ret);
@@ -843,6 +850,13 @@ uint8_t ctap_add_user_entity(CborEncoder * map, CTAP_userEntity * user)
 
     if (dispname)
     {
+
+        ret = cbor_encode_text_string(&entity, "icon", 4);
+        check_ret(ret);
+
+        ret = cbor_encode_text_stringz(&entity, (const char *)user->icon);
+        check_ret(ret);
+
         ret = cbor_encode_text_string(&entity, "name", 4);
         check_ret(ret);
 
@@ -854,13 +868,6 @@ uint8_t ctap_add_user_entity(CborEncoder * map, CTAP_userEntity * user)
 
         ret = cbor_encode_text_stringz(&entity, (const char *)user->displayName);
         check_ret(ret);
-
-        ret = cbor_encode_text_string(&entity, "icon", 4);
-        check_ret(ret);
-
-        ret = cbor_encode_text_stringz(&entity, (const char *)user->icon);
-        check_ret(ret);
-
 
     }
 
@@ -997,22 +1004,22 @@ static CTAP_credentialDescriptor * pop_credential()
 }
 
 // adds 2 to map, or 3 if add_user is true
-uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cred, uint8_t * auth_data_buf, uint8_t * clientDataHash, int add_user)
+uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cred, uint8_t * auth_data_buf, unsigned int auth_data_buf_sz, uint8_t * clientDataHash)
 {
     int ret;
     uint8_t sigbuf[64];
     uint8_t sigder[72];
     int sigder_sz;
 
-    if (add_user)
-    {
-        printf1(TAG_GREEN, "adding user details to output\r\n");
-        ret = ctap_add_user_entity(map, &cred->credential.user);
-        check_retr(ret);
-    }
-
-    ret = ctap_add_credential_descriptor(map, cred);
+    ret = ctap_add_credential_descriptor(map, cred);  // 1
     check_retr(ret);
+
+    {
+        ret = cbor_encode_int(map,RESP_authData);  // 2
+        check_ret(ret);
+        ret = cbor_encode_byte_string(map, auth_data_buf, auth_data_buf_sz);
+        check_ret(ret);
+    }
 
     crypto_ecc256_load_key((uint8_t*)&cred->credential.id, sizeof(CredentialId), NULL, 0);
 
@@ -1028,11 +1035,20 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
     }
 
     {
-        ret = cbor_encode_int(map, RESP_signature);
+        ret = cbor_encode_int(map, RESP_signature);  // 3
         check_ret(ret);
         ret = cbor_encode_byte_string(map, sigder, sigder_sz);
         check_ret(ret);
     }
+
+    if (cred->credential.user.id_size)
+    {
+        printf1(TAG_GREEN, "adding user details to output\r\n");
+        ret = ctap_add_user_entity(map, &cred->credential.user);  // 4
+        check_retr(ret);
+    }
+
+
     return 0;
 }
 
@@ -1051,9 +1067,8 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
     }
 
     auth_data_update_count(&authData);
-    int add_user_info = cred->credential.user.id_size;
 
-    if (add_user_info)
+    if (cred->credential.user.id_size)
     {
         printf1(TAG_GREEN, "adding user info to assertion response\r\n");
         ret = cbor_encoder_create_map(encoder, &map, 4);
@@ -1064,17 +1079,8 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
         ret = cbor_encoder_create_map(encoder, &map, 3);
     }
 
-
     check_ret(ret);
     printf1(TAG_RED, "RPID hash: "); dump_hex1(TAG_RED, authData.rpIdHash, 32);
-
-    {
-        ret = cbor_encode_int(&map,RESP_authData);
-        check_ret(ret);
-        ret = cbor_encode_byte_string(&map, (uint8_t *)&authData, sizeof(CTAP_authDataHeader));
-        check_ret(ret);
-    }
-
 
     // if only one account for this RP, null out the user details
     if (!getAssertionState.user_verified)
@@ -1083,8 +1089,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
         memset(cred->credential.user.name, 0, USER_NAME_LIMIT);
     }
 
-
-    ret = ctap_end_get_assertion(&map, cred, (uint8_t *)&authData, getAssertionState.clientDataHash, add_user_info);
+    ret = ctap_end_get_assertion(&map, cred, (uint8_t *)&authData, sizeof(CTAP_authDataHeader), getAssertionState.clientDataHash);
     check_retr(ret);
 
     ret = cbor_encoder_close_container(encoder, &map);
@@ -1127,13 +1132,12 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     printf1(TAG_GA, "ALLOW_LIST has %d creds\n", GA.credLen);
     int validCredCount = ctap_filter_invalid_credentials(&GA);
 
-    int add_user_info = GA.creds[validCredCount - 1].credential.user.id_size;
     if (validCredCount > 1)
     {
        map_size += 1;
     }
 
-    if (add_user_info)
+    if (GA.creds[validCredCount - 1].credential.user.id_size)
     {
         map_size += 1;
     }
@@ -1166,62 +1170,59 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
         printf1(TAG_GA,"CRED ID (# %d)\n", GA.creds[j].credential.id.count);
     }
 
-    if (validCredCount > 1)
-    {
-        ret = cbor_encode_int(&map, RESP_numberOfCredentials);
-        check_ret(ret);
-        ret = cbor_encode_int(&map, validCredCount);
-        check_ret(ret);
-    }
+
 
     CTAP_credentialDescriptor * cred = &GA.creds[validCredCount - 1];
 
     GA.extensions.hmac_secret.credential = &cred->credential;
 
+    uint32_t auth_data_buf_sz = sizeof(auth_data_buf);
+
 #ifdef ENABLE_U2F_EXTENSIONS
     if ( is_extension_request((uint8_t*)&GA.creds[validCredCount - 1].credential.id, sizeof(CredentialId)) )
     {
-        ret = cbor_encode_int(&map,RESP_authData);
+        ret = cbor_encode_int(&map,RESP_authData);  // 2
         check_ret(ret);
         memset(auth_data_buf,0,sizeof(CTAP_authDataHeader));
-        ret = cbor_encode_byte_string(&map, auth_data_buf, sizeof(CTAP_authDataHeader));
-        check_ret(ret);
+        auth_data_buf_sz = sizeof(CTAP_authDataHeader);
     }
     else
 #endif
     {
-        uint32_t len = sizeof(auth_data_buf);
-        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &len, NULL);
+
+        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &auth_data_buf_sz, NULL);
         check_retr(ret);
 
         ((CTAP_authData *)auth_data_buf)->head.flags &= ~(1 << 2);
         ((CTAP_authData *)auth_data_buf)->head.flags |= (getAssertionState.user_verified << 2);
-        
+
         {
-            unsigned int ext_encoder_buf_size = sizeof(auth_data_buf) - len;
-            uint8_t * ext_encoder_buf = auth_data_buf + len;
+            unsigned int ext_encoder_buf_size = sizeof(auth_data_buf) - auth_data_buf_sz;
+            uint8_t * ext_encoder_buf = auth_data_buf + auth_data_buf_sz;
 
             ret = ctap_make_extensions(&GA.extensions, ext_encoder_buf, &ext_encoder_buf_size);
             check_retr(ret);
             if (ext_encoder_buf_size)
             {
                 ((CTAP_authData *)auth_data_buf)->head.flags |= (1 << 7);
-                len += ext_encoder_buf_size;
+                auth_data_buf_sz += ext_encoder_buf_size;
             }
         }
 
-        {
-            ret = cbor_encode_int(&map,RESP_authData);
-            check_ret(ret);
-            ret = cbor_encode_byte_string(&map, auth_data_buf, len);
-            check_ret(ret);
-        }
     }
 
     save_credential_list((CTAP_authDataHeader*)auth_data_buf, GA.clientDataHash, GA.creds, validCredCount-1);   // skip last one
 
-    ret = ctap_end_get_assertion(&map, cred, auth_data_buf, GA.clientDataHash, add_user_info);
+    ret = ctap_end_get_assertion(&map, cred, auth_data_buf, auth_data_buf_sz, GA.clientDataHash);  // 1,2,3,4
     check_retr(ret);
+
+    if (validCredCount > 1)
+    {
+        ret = cbor_encode_int(&map, RESP_numberOfCredentials);  // 5
+        check_ret(ret);
+        ret = cbor_encode_int(&map, validCredCount);
+        check_ret(ret);
+    }
 
     ret = cbor_encoder_close_container(encoder, &map);
     check_ret(ret);

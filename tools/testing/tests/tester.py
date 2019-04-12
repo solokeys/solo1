@@ -28,14 +28,21 @@ class Packet(object):
 
 
 class Test:
-    def __init__(self, msg):
+    def __init__(self, msg, catch=None):
         self.msg = msg
+        self.catch = catch
 
     def __enter__(self,):
         print(self.msg)
 
     def __exit__(self, a, b, c):
-        print("Pass")
+        if self.catch is None:
+            print("Pass")
+        elif isinstance(b, self.catch):
+            print("Pass")
+            return b
+        else:
+            raise RuntimeError(f"Expected exception {self.catch} did not occur.")
 
 
 class Tester:
