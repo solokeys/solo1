@@ -5,22 +5,22 @@ and easy to understand, especially when paired with a high level overview.
 
 ## FIDO2 codebase
 
-* main.c - calls high level functions and implements event loop.
+* `main.c` - calls high level functions and implements event loop.
 
-* ctaphid.c - implements [USBHID protocol](https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-client-to-authenticator-protocol-v2.0-id-20180227.html#usb) for FIDO.
+* `ctaphid.c` - implements [USBHID protocol](https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-client-to-authenticator-protocol-v2.0-id-20180227.html#usb) for FIDO.
 
-* u2f.c - implements [U2F protocol](https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-raw-message-formats-v1.2-ps-20170411.html).
+* `u2f.c` - implements [U2F protocol](https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-raw-message-formats-v1.2-ps-20170411.html).
 
-* ctap.c - implements [CTAP2 protocol](https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-client-to-authenticator-protocol-v2.0-id-20180227.html).
+* `ctap.c` - implements [CTAP2 protocol](https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-client-to-authenticator-protocol-v2.0-id-20180227.html).
 
-* ctap_parse.c - implements parsing for CTAP protocol.
+* `ctap_parse.c` - implements parsing for CTAP protocol.
     * this could use some work minimizing.
 
-* log.c - embedded friendly debug logging.
+* `log.c` - embedded friendly debug logging.
 
-* crypto.c - software implementation of the crypto needs of the application.   Generally this will be copied and edited for different platforms.  API defined in crypto.h should be the same.
+* `crypto.c` - software implementation of the crypto needs of the application.   Generally this will be copied and edited for different platforms.  API defined in `crypto.h` should be the same.
 
-* device.h - definitions of functions that are platform specific and should be implemented separately.  See device.c in any of the implementations to see examples.
+* `device.h` - definitions of functions that are platform specific and should be implemented separately.  See `device.c` in any of the implementations to see examples.
 
 ## Data flow
 
