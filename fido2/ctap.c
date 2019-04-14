@@ -1202,8 +1202,6 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 #ifdef ENABLE_U2F_EXTENSIONS
     if ( is_extension_request((uint8_t*)&GA.creds[validCredCount - 1].credential.id, sizeof(CredentialId)) )
     {
-        ret = cbor_encode_int(&map,RESP_authData);  // 2
-        check_ret(ret);
         memset(auth_data_buf,0,sizeof(CTAP_authDataHeader));
         auth_data_buf_sz = sizeof(CTAP_authDataHeader);
     }
