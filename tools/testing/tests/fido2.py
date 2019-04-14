@@ -14,6 +14,7 @@ from fido2.attestation import Attestation
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
+from .u2f import U2FTests
 from .tester import Tester, Test
 from .util import shannon_entropy
 
@@ -878,6 +879,25 @@ class FIDO2Tests(Tester):
             rp["id"],
             cdh,
             allow_list + [{"type": b"public-key"}],
+        )
+
+        appid = sha256(rp["id"].encode("utf8"))
+        chal = sha256(challenge.encode("utf8"))
+        with Test("Send CTAP1 register request"):
+            u2f = U2FTests(self)
+            reg = u2f.register(chal, appid)
+            reg.verify(appid, chal)
+
+        with Test("Authenticate CTAP1"):
+            auth = u2f.authenticate(chal, appid, reg.key_handle)
+            auth.verify(appid, chal, reg.public_key)
+
+        self.testGA(
+            "Authenticate CTAP1 registration with CTAP2",
+            rp["id"],
+            cdh,
+            allow_list + [{"type": b"public-key", "id": reg.key_handle}],
+            expectedError=CtapError.ERR.SUCCESS,
         )
 
     def test_rk(self, pin_code=None):
