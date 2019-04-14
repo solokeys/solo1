@@ -9,6 +9,7 @@
 #include "cbor.h"
 
 #include "ctap.h"
+#include "u2f.h"
 #include "ctap_parse.h"
 #include "ctap_errors.h"
 #include "cose_key.h"
@@ -890,10 +891,15 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
 
     buflen = sizeof(CredentialId);
     cbor_value_copy_byte_string(&val, (uint8_t*)&cred->credential.id, &buflen, NULL);
-    if (buflen != sizeof(CredentialId))
+    
+    if (buflen == U2F_KEY_HANDLE_SIZE)
+    {
+        printf2(TAG_PARSE,"CTAP1 credential\n");
+        cred->type = PUB_KEY_CRED_CTAP1;
+    }
+    else if (buflen != sizeof(CredentialId))
     {
         printf2(TAG_ERR,"Ignoring credential is incorrect length\n");
-        //return CTAP2_ERR_CBOR_UNEXPECTED_TYPE; // maybe just skip it instead of fail?
     }
 
     ret = cbor_value_map_find_value(arr, "type", &val);
@@ -906,11 +912,15 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
     }
 
     buflen = sizeof(type);
-    cbor_value_copy_text_string(&val, type, &buflen, NULL);
+    ret = cbor_value_copy_text_string(&val, type, &buflen, NULL);
+    check_ret(ret);
 
     if (strncmp(type, "public-key",11) == 0)
     {
-        cred->type = PUB_KEY_CRED_PUB_KEY;
+        if (PUB_KEY_CRED_CTAP1 != cred->type)
+        {
+            cred->type = PUB_KEY_CRED_PUB_KEY;
+        }
     }
     else
     {

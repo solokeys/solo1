@@ -11,6 +11,7 @@
 #include "cbor.h"
 
 #include "ctap.h"
+#include "u2f.h"
 #include "ctaphid.h"
 #include "ctap_parse.h"
 #include "ctap_errors.h"
@@ -431,6 +432,12 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
     return 0;
 }
 
+static unsigned int get_credential_id_size(CTAP_credentialDescriptor * cred)
+{
+    if (cred->type == PUB_KEY_CRED_CTAP1)
+        return U2F_KEY_HANDLE_SIZE;
+    return sizeof(CredentialId);
+}
 
 static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, uint32_t * len, CTAP_credInfo * credInfo)
 {
@@ -655,11 +662,25 @@ uint8_t ctap_add_attest_statement(CborEncoder * map, uint8_t * sigder, int len)
 // Return 1 if credential belongs to this token
 int ctap_authenticate_credential(struct rpId * rp, CTAP_credentialDescriptor * desc)
 {
+    uint8_t rpIdHash[32];
     uint8_t tag[16];
 
-    make_auth_tag(desc->credential.id.rpIdHash, desc->credential.id.nonce, desc->credential.id.count, tag);
+    switch(desc->type)
+    {
+        case PUB_KEY_CRED_PUB_KEY:
+            make_auth_tag(desc->credential.id.rpIdHash, desc->credential.id.nonce, desc->credential.id.count, tag);
+            return (memcmp(desc->credential.id.tag, tag, CREDENTIAL_TAG_SIZE) == 0);
+        break;
+        case PUB_KEY_CRED_CTAP1:
+            printf1(TAG_CTAP,"PUB_KEY_CRED_CTAP1\r\n");
+            crypto_sha256_init();
+            crypto_sha256_update(rp->id, rp->size);
+            crypto_sha256_final(rpIdHash);
+            return u2f_authenticate_credential((struct u2f_key_handle *)&desc->credential.id, rpIdHash);
+        break;
+    }
 
-    return (memcmp(desc->credential.id.tag, tag, CREDENTIAL_TAG_SIZE) == 0);
+    return 0;
 }
 
 
@@ -806,7 +827,8 @@ static uint8_t ctap_add_credential_descriptor(CborEncoder * map, CTAP_credential
         ret = cbor_encode_text_string(&desc, "id", 2);
         check_ret(ret);
 
-        ret = cbor_encode_byte_string(&desc, (uint8_t*)&cred->credential.id, sizeof(CredentialId));
+        ret = cbor_encode_byte_string(&desc, (uint8_t*)&cred->credential.id,
+            get_credential_id_size(cred));
         check_ret(ret);
     }
 
@@ -1021,7 +1043,8 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
         check_ret(ret);
     }
 
-    crypto_ecc256_load_key((uint8_t*)&cred->credential.id, sizeof(CredentialId), NULL, 0);
+    unsigned int cred_size = get_credential_id_size(cred);
+    crypto_ecc256_load_key((uint8_t*)&cred->credential.id, cred_size, NULL, 0);
 
 #ifdef ENABLE_U2F_EXTENSIONS
     if ( extend_fido2(&cred->credential.id, sigder) )
@@ -1169,8 +1192,6 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     {
         printf1(TAG_GA,"CRED ID (# %d)\n", GA.creds[j].credential.id.count);
     }
-
-
 
     CTAP_credentialDescriptor * cred = &GA.creds[validCredCount - 1];
 
