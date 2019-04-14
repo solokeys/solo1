@@ -909,10 +909,6 @@ class FIDO2Tests(Tester):
             auth.verify(cdh, credential_data.public_key)
             assert auth.credential["id"] == reg.key_handle
 
-        import sys
-
-        sys.exit(1)
-
     def test_rk(self, pin_code=None):
 
         pin_auth = None
