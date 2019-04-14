@@ -27,7 +27,7 @@ void _putchar(char c)
 int _write (int fd, const void *buf, unsigned long int len)
 {
     uint8_t * data = (uint8_t *) buf;
-#if DEBUG_LEVEL>1
+#if DEBUG_LEVEL>0
 	// static uint8_t logbuf[1000] = {0};
 	// static int logbuflen = 0;
 	// if (logbuflen + len > sizeof(logbuf)) {
