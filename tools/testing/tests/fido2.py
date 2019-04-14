@@ -7,7 +7,7 @@ from functools import cmp_to_key
 from fido2 import cbor
 from fido2.ctap import CtapError
 
-from fido2.ctap2 import ES256, PinProtocolV1
+from fido2.ctap2 import ES256, PinProtocolV1, AttestedCredentialData
 from fido2.utils import sha256, hmac_sha256
 from fido2.attestation import Attestation
 
@@ -881,6 +881,8 @@ class FIDO2Tests(Tester):
             allow_list + [{"type": b"public-key"}],
         )
 
+        self.testReset()
+
         appid = sha256(rp["id"].encode("utf8"))
         chal = sha256(challenge.encode("utf8"))
         with Test("Send CTAP1 register request"):
@@ -892,13 +894,24 @@ class FIDO2Tests(Tester):
             auth = u2f.authenticate(chal, appid, reg.key_handle)
             auth.verify(appid, chal, reg.public_key)
 
-        self.testGA(
+        auth = self.testGA(
             "Authenticate CTAP1 registration with CTAP2",
             rp["id"],
             cdh,
-            allow_list + [{"type": b"public-key", "id": reg.key_handle}],
+            [{"id": reg.key_handle, "type": "public-key"}],
             expectedError=CtapError.ERR.SUCCESS,
         )
+
+        with Test("Check assertion is correct"):
+            credential_data = AttestedCredentialData.from_ctap1(
+                reg.key_handle, reg.public_key
+            )
+            auth.verify(cdh, credential_data.public_key)
+            assert auth.credential["id"] == reg.key_handle
+
+        import sys
+
+        sys.exit(1)
 
     def test_rk(self, pin_code=None):
 
