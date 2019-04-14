@@ -112,6 +112,7 @@
 #define CREDENTIAL_ENC_SIZE         176  // pad to multiple of 16 bytes
 
 #define PUB_KEY_CRED_PUB_KEY        0x01
+#define PUB_KEY_CRED_CTAP1          0x41
 #define PUB_KEY_CRED_UNKNOWN        0x3F
 
 #define CREDENTIAL_IS_SUPPORTED     1

@@ -103,6 +103,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp);
 // @len data length
 void u2f_request_nfc(uint8_t * req, int len, CTAP_RESPONSE * resp);
 
+int8_t u2f_authenticate_credential(struct u2f_key_handle * kh, uint8_t * appid);
 
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
 void u2f_reset_response();
