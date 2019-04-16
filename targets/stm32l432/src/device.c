@@ -111,7 +111,7 @@ void device_init()
 {
 
     hw_init(LOW_FREQUENCY);
-    isLowFreq = 0;
+    isLowFreq = 1;
 
     haveNFC = nfc_init();
 
