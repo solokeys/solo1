@@ -7,13 +7,14 @@ from functools import cmp_to_key
 from fido2 import cbor
 from fido2.ctap import CtapError
 
-from fido2.ctap2 import ES256, PinProtocolV1
+from fido2.ctap2 import ES256, PinProtocolV1, AttestedCredentialData
 from fido2.utils import sha256, hmac_sha256
 from fido2.attestation import Attestation
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
+from .u2f import U2FTests
 from .tester import Tester, Test
 from .util import shannon_entropy
 
@@ -879,6 +880,34 @@ class FIDO2Tests(Tester):
             cdh,
             allow_list + [{"type": b"public-key"}],
         )
+
+        self.testReset()
+
+        appid = sha256(rp["id"].encode("utf8"))
+        chal = sha256(challenge.encode("utf8"))
+        with Test("Send CTAP1 register request"):
+            u2f = U2FTests(self)
+            reg = u2f.register(chal, appid)
+            reg.verify(appid, chal)
+
+        with Test("Authenticate CTAP1"):
+            auth = u2f.authenticate(chal, appid, reg.key_handle)
+            auth.verify(appid, chal, reg.public_key)
+
+        auth = self.testGA(
+            "Authenticate CTAP1 registration with CTAP2",
+            rp["id"],
+            cdh,
+            [{"id": reg.key_handle, "type": "public-key"}],
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        with Test("Check assertion is correct"):
+            credential_data = AttestedCredentialData.from_ctap1(
+                reg.key_handle, reg.public_key
+            )
+            auth.verify(cdh, credential_data.public_key)
+            assert auth.credential["id"] == reg.key_handle
 
     def test_rk(self, pin_code=None):
 
