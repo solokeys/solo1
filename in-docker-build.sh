@@ -29,7 +29,7 @@ function build() {
 
     mv ${output}.hex ${out_hex}
     sha256sum ${out_hex} > ${out_sha2}
-    cp ${out_hex} ${out_sha2} ${out_dir}
+    cp -f ${out_hex} ${out_sha2} ${out_dir}
 }
 
 build bootloader nonverifying
