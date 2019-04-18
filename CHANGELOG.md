@@ -33,3 +33,8 @@ WARNING: This update may break previous registrations! This is because we fixed 
 - Adds hmac-secret extension support. This extension is used for generating 32 or 64 byte symmetric keys using parameters from the platform and secrets on the authenticator. It's used by Windows Hello - - for offline authentication.
 - Fix bug in FIDO auth, where setting the pin requires all previous registrations to use pin. Only UV bit needs to be cleared.
 - Slightly change serial emulation USB descriptor to make it less abused by Linux Modem Manager.
+
+## [2.2.0] - 2019-04-17
+
+- Fixes the ordering of keys encoded in CBOR maps to be canonical ordering. They previously were not ordered in any particular way and caused issues for Chrome. #170
+- Fixes CTAP2 implementation to accept credential IDs created by the CTAP1 implementation. So registering with U2F and later authenticating with FIDO2 should work.
