@@ -823,14 +823,22 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
                 ret = parse_options(&map, &MC->credInfo.rk, &MC->uv, &MC->up);
                 check_retr(ret);
                 break;
-            case MC_pinAuth:
+            case MC_pinAuth: {
                 printf1(TAG_MC,"CTAP_pinAuth\n");
+
+                size_t pinSize;
+                if (cbor_value_get_type(&map) == CborByteStringType &&
+                    cbor_value_get_string_length(&map, &pinSize) == CborNoError &&
+                    pinSize == 0)
+                {
+                    MC->pinAuthEmpty = 1;
+                    break;
+                }
 
                 ret = parse_fixed_byte_string(&map, MC->pinAuth, 16);
                 if (CTAP1_ERR_INVALID_LENGTH != ret)    // damn microsoft
                 {
                     check_retr(ret);
-
                 }
                 else
                 {
@@ -838,6 +846,7 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
                 }
                 MC->pinAuthPresent = 1;
                 break;
+            }
             case MC_pinProtocol:
                 printf1(TAG_MC,"CTAP_pinProtocol\n");
                 if (cbor_value_get_type(&map) == CborIntegerType)
@@ -1055,8 +1064,17 @@ uint8_t ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int 
                 ret = parse_options(&map, &GA->rk, &GA->uv, &GA->up);
                 check_retr(ret);
                 break;
-            case GA_pinAuth:
+            case GA_pinAuth: {
                 printf1(TAG_GA,"CTAP_pinAuth\n");
+
+                size_t pinSize;
+                if (cbor_value_get_type(&map) == CborByteStringType &&
+                    cbor_value_get_string_length(&map, &pinSize) == CborNoError &&
+                    pinSize == 0)
+                {
+                    GA->pinAuthEmpty = 1;
+                    break;
+                }
 
                 ret = parse_fixed_byte_string(&map, GA->pinAuth, 16);
                 if (CTAP1_ERR_INVALID_LENGTH != ret)    // damn microsoft
@@ -1073,6 +1091,7 @@ uint8_t ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int 
                 GA->pinAuthPresent = 1;
 
                 break;
+            }
             case GA_pinProtocol:
                 printf1(TAG_GA,"CTAP_pinProtocol\n");
                 if (cbor_value_get_type(&map) == CborIntegerType)
