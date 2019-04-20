@@ -702,6 +702,14 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
         printf2(TAG_ERR,"error, parse_make_credential failed\n");
         return ret;
     }
+    if (MC.pinAuthEmpty)
+    {
+        if (!device_is_nfc() && !ctap_user_presence_test())
+        {
+                return CTAP2_ERR_OPERATION_DENIED;
+        }
+        return ctap_is_pin_set() == 1 ? CTAP2_ERR_PIN_INVALID : CTAP2_ERR_PIN_NOT_SET;
+    }
     if ((MC.paramsParsed & MC_requiredMask) != MC_requiredMask)
     {
         printf2(TAG_ERR,"error, required parameter(s) for makeCredential are missing\n");
@@ -1133,6 +1141,14 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
         return ret;
     }
 
+    if (GA.pinAuthEmpty)
+    {
+        if (!device_is_nfc() && !ctap_user_presence_test())
+        {
+                return CTAP2_ERR_OPERATION_DENIED;
+        }
+        return ctap_is_pin_set() == 1 ? CTAP2_ERR_PIN_INVALID : CTAP2_ERR_PIN_NOT_SET;
+    }
     if (GA.pinAuthPresent)
     {
         ret = verify_pin_auth(GA.pinAuth, GA.clientDataHash);
