@@ -1069,8 +1069,44 @@ class FIDO2Tests(Tester):
 
         self.testReset()
 
+        with Test("Test sending zero-length pin_auth, expect PIN_NOT_SET"):
+            self.testMC(
+                "Send MC request with new pin auth",
+                cdh,
+                rp,
+                user,
+                key_params,
+                other={"pin_auth": b"", "pin_protocol": pin_protocol},
+                expectedError=CtapError.ERR.PIN_NOT_SET,
+            )
+            self.testGA(
+                "Send MC request with new pin auth",
+                rp["id"],
+                cdh,
+                other={"pin_auth": b"", "pin_protocol": pin_protocol},
+                expectedError=CtapError.ERR.PIN_NOT_SET,
+            )
+
         with Test("Setting pin code, expect SUCCESS"):
             self.client.pin_protocol.set_pin(pin1)
+
+        with Test("Test sending zero-length pin_auth, expect PIN_INVALID"):
+            self.testMC(
+                "Send MC request with new pin auth",
+                cdh,
+                rp,
+                user,
+                key_params,
+                other={"pin_auth": b"", "pin_protocol": pin_protocol},
+                expectedError=CtapError.ERR.PIN_INVALID,
+            )
+            self.testGA(
+                "Send MC request with new pin auth",
+                rp["id"],
+                cdh,
+                other={"pin_auth": b"", "pin_protocol": pin_protocol},
+                expectedError=CtapError.ERR.PIN_INVALID,
+            )
 
         self.testReset()
         with Test("Setting pin code >63 bytes, expect POLICY_VIOLATION "):
