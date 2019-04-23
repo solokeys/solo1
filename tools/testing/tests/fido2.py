@@ -1009,8 +1009,8 @@ class FIDO2Tests(Tester):
             key = res[1]
             assert "Is public key" and key[1] == 2
             assert "Is P256" and key[-1] == 1
-            if key[3] != -7:
-                print("WARNING: algorithm returned is not for ES256 (-7): ", key[3])
+            assert "Is ALG_ECDH_ES_HKDF_256" and key[3] == -25
+
             assert "Right key" and len(key[-3]) == 32 and isinstance(key[-3], bytes)
 
         with Test("Test setting a new pin"):
@@ -1069,8 +1069,44 @@ class FIDO2Tests(Tester):
 
         self.testReset()
 
+        with Test("Test sending zero-length pin_auth, expect PIN_NOT_SET"):
+            self.testMC(
+                "Send MC request with new pin auth",
+                cdh,
+                rp,
+                user,
+                key_params,
+                other={"pin_auth": b"", "pin_protocol": pin_protocol},
+                expectedError=CtapError.ERR.PIN_NOT_SET,
+            )
+            self.testGA(
+                "Send MC request with new pin auth",
+                rp["id"],
+                cdh,
+                other={"pin_auth": b"", "pin_protocol": pin_protocol},
+                expectedError=CtapError.ERR.PIN_NOT_SET,
+            )
+
         with Test("Setting pin code, expect SUCCESS"):
             self.client.pin_protocol.set_pin(pin1)
+
+        with Test("Test sending zero-length pin_auth, expect PIN_INVALID"):
+            self.testMC(
+                "Send MC request with new pin auth",
+                cdh,
+                rp,
+                user,
+                key_params,
+                other={"pin_auth": b"", "pin_protocol": pin_protocol},
+                expectedError=CtapError.ERR.PIN_INVALID,
+            )
+            self.testGA(
+                "Send MC request with new pin auth",
+                rp["id"],
+                cdh,
+                other={"pin_auth": b"", "pin_protocol": pin_protocol},
+                expectedError=CtapError.ERR.PIN_INVALID,
+            )
 
         self.testReset()
         with Test("Setting pin code >63 bytes, expect POLICY_VIOLATION "):
