@@ -496,9 +496,9 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			// WTX_on(WTX_TIME_DEFAULT);
             // SystemClock_Config_LF32();
             // delay(300);
-            device_set_clock_rate(DEVICE_LOW_POWER_FAST);;
+            if (device_is_nfc()) device_set_clock_rate(DEVICE_LOW_POWER_FAST);;
 			u2f_request_nfc(&buf[1], len, &ctap_resp);
-            device_set_clock_rate(DEVICE_LOW_POWER_IDLE);;
+            if (device_is_nfc())  device_set_clock_rate(DEVICE_LOW_POWER_IDLE);;
 			// if (!WTX_off())
 			// 	return;
 
