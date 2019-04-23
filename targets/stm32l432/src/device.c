@@ -460,6 +460,10 @@ static int handle_packets()
 int ctap_user_presence_test()
 {
     int ret;
+    if (device_is_nfc())
+    {
+        return 1;
+    }
 #if SKIP_BUTTON_CHECK_WITH_DELAY
     int i=500;
     while(i--)
