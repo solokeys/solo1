@@ -81,4 +81,4 @@ cbor:
 	cd ../../tinycbor/ && make clean
 	cd ../../tinycbor/ && make CC="$(CC)" AR=$(AR) \
 LDFLAGS="$(LDFLAGS_LIB)" \
-CFLAGS="$(CFLAGS)"
+CFLAGS="$(CFLAGS) -Os"
