@@ -111,13 +111,13 @@ void device_init()
 {
 
     hw_init(LOW_FREQUENCY);
-    isLowFreq = 0;
 
     haveNFC = nfc_init();
 
     if (haveNFC)
     {
         printf1(TAG_NFC, "Have NFC\r\n");
+        isLowFreq = 1;
     }
     else
     {
