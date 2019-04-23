@@ -111,13 +111,13 @@ void device_init()
 {
 
     hw_init(LOW_FREQUENCY);
-    isLowFreq = 0;
 
     haveNFC = nfc_init();
 
     if (haveNFC)
     {
         printf1(TAG_NFC, "Have NFC\r\n");
+        isLowFreq = 1;
     }
     else
     {
@@ -460,6 +460,10 @@ static int handle_packets()
 int ctap_user_presence_test()
 {
     int ret;
+    if (device_is_nfc())
+    {
+        return 1;
+    }
 #if SKIP_BUTTON_CHECK_WITH_DELAY
     int i=500;
     while(i--)
