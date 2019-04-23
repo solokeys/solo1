@@ -466,12 +466,11 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     count = auth_data_update_count(&authData->head);
 
     device_set_status(CTAPHID_STATUS_UPNEEDED);
-  // if NFC - not need to click a button
-    int but = 1;
-    if(!device_is_nfc())
-    {
-        but = ctap_user_presence_test();
-    }
+
+    int but;
+
+    but = ctap_user_presence_test();
+
 
     if (!but)
     {
@@ -704,7 +703,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     }
     if (MC.pinAuthEmpty)
     {
-        if (!device_is_nfc() && !ctap_user_presence_test())
+        if (!ctap_user_presence_test())
         {
                 return CTAP2_ERR_OPERATION_DENIED;
         }
@@ -1143,7 +1142,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
     if (GA.pinAuthEmpty)
     {
-        if (!device_is_nfc() && !ctap_user_presence_test())
+        if (!ctap_user_presence_test())
         {
                 return CTAP2_ERR_OPERATION_DENIED;
         }
