@@ -53,7 +53,7 @@ tinycbor/Makefile crypto/tiny-AES-c/aes.c:
 cbor: $(LIBCBOR)
 
 $(LIBCBOR):
-	cd tinycbor/ && $(MAKE) clean && $(MAKE) -j8
+	cd tinycbor/ && $(MAKE) clean && $(MAKE)  LDFLAGS='' -j8
 
 version:
 	@git describe
