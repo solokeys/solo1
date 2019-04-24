@@ -9,7 +9,7 @@
 
 #include "storage.h"
 
-void device_init();
+void device_init(int argc, char *argv[]);
 
 uint32_t millis();
 

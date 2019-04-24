@@ -87,10 +87,7 @@ typedef enum
 } WalletOperation;
 
 
-int16_t bridge_u2f_to_extensions(uint8_t * chal, uint8_t * appid, uint8_t klen, uint8_t * keyh);
-
-// return 1 if request is a wallet request
-int is_extension_request(uint8_t * req, int len);
+int16_t bridge_to_wallet(uint8_t * keyh, uint8_t klen);
 
 void wallet_init();
 
