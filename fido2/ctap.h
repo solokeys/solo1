@@ -279,7 +279,7 @@ typedef struct
     uint8_t pinAuthEmpty;
     int pinProtocol;
 
-    CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
+    CTAP_credentialDescriptor * creds;
     uint8_t allowListPresent;
 
     CTAP_extensions extensions;
@@ -306,7 +306,7 @@ typedef struct
 struct _getAssertionState {
     CTAP_authDataHeader authData;
     uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
-    CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE-1];
+    CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
     uint8_t lastcmd;
     uint32_t count;
     uint32_t index;

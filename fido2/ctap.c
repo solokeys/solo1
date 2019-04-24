@@ -664,7 +664,6 @@ int ctap_authenticate_credential(struct rpId * rp, CTAP_credentialDescriptor * d
             return (memcmp(desc->credential.id.tag, tag, CREDENTIAL_TAG_SIZE) == 0);
         break;
         case PUB_KEY_CRED_CTAP1:
-            printf1(TAG_CTAP,"PUB_KEY_CRED_CTAP1\r\n");
             crypto_sha256_init();
             crypto_sha256_update(rp->id, rp->size);
             crypto_sha256_final(rpIdHash);
@@ -672,6 +671,9 @@ int ctap_authenticate_credential(struct rpId * rp, CTAP_credentialDescriptor * d
         break;
         case PUB_KEY_CRED_CUSTOM:
             return is_extension_request(getAssertionState.customCredId, getAssertionState.customCredIdSize);
+        break;
+        default:
+        printf1(TAG_ERR, "PUB_KEY_CRED_UNKNOWN %x\r\n",desc->type);
         break;
     }
 
@@ -1127,6 +1129,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
 uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_getAssertion GA;
+
     uint8_t auth_data_buf[sizeof(CTAP_authDataHeader) + 80];
     int ret = ctap_parse_get_assertion(&GA,request,length);
 
@@ -1166,16 +1169,21 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     printf1(TAG_GA, "ALLOW_LIST has %d creds\n", GA.credLen);
     int validCredCount = ctap_filter_invalid_credentials(&GA);
 
-    if (validCredCount > 1)
+    if (validCredCount == 0)
+    {
+        printf2(TAG_ERR,"Error, no authentic credential\n");
+        return CTAP2_ERR_NO_CREDENTIALS;
+    }
+    else if (validCredCount > 1)
     {
        map_size += 1;
     }
+
 
     if (GA.creds[validCredCount - 1].credential.user.id_size)
     {
         map_size += 1;
     }
-
     if (GA.extensions.hmac_secret_present == EXT_HMAC_SECRET_PARSED)
     {
         printf1(TAG_GA, "hmac-secret is present\r\n");
@@ -1183,12 +1191,6 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
     ret = cbor_encoder_create_map(encoder, &map, map_size);
     check_ret(ret);
-
-    if (validCredCount == 0)
-    {
-        printf2(TAG_ERR,"Error, no authentic credential\n");
-        return CTAP2_ERR_NO_CREDENTIALS;
-    }
 
     // if only one account for this RP, null out the user details
     if (validCredCount < 2 || !getAssertionState.user_verified)
