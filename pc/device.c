@@ -272,6 +272,14 @@ void main_loop_delay()
     nanosleep(&ts,NULL);
 }
 
+void delay(uint32_t ms)
+{
+    struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 1000*1000*ms;
+    nanosleep(&ts,NULL);
+}
+
 
 void heartbeat()
 {
