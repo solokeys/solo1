@@ -40,6 +40,7 @@ int16_t bridge_u2f_to_solo(uint8_t * output, uint8_t * keyh, int keylen)
 
     wallet_request * req = (wallet_request *) keyh;
     extension_writeback_init(output, 71);
+    delay(500);
 
     printf1(TAG_WALLET, "u2f-solo [%d]: ", keylen); dump_hex1(TAG_WALLET, keyh, keylen);
 

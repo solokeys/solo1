@@ -16,6 +16,7 @@
 #include "util.h"
 #include "log.h"
 
+extern struct _getAssertionState getAssertionState;
 
 void _check_ret(CborError ret, int line, const char * filename)
 {
@@ -883,6 +884,8 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
     size_t buflen;
     char type[12];
     CborValue val;
+    cred->type = 0;
+
     if (cbor_value_get_type(arr) != CborMapType)
     {
         printf2(TAG_ERR,"Error, CborMapType expected in credential\n");
@@ -899,8 +902,11 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
     }
 
     buflen = sizeof(CredentialId);
-    cbor_value_copy_byte_string(&val, (uint8_t*)&cred->credential.id, &buflen, NULL);
-    
+    ret = cbor_value_copy_byte_string(&val, (uint8_t*)&cred->credential.id, &buflen, NULL);
+
+    printf1(TAG_GREEN,"KEYL is %d\r\n", buflen);
+    printf1(TAG_GREEN,"MAX is %d\r\n",  sizeof(CredentialId));
+
     if (buflen == U2F_KEY_HANDLE_SIZE)
     {
         printf2(TAG_PARSE,"CTAP1 credential\n");
@@ -908,8 +914,13 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
     }
     else if (buflen != sizeof(CredentialId))
     {
-        printf2(TAG_ERR,"Ignoring credential is incorrect length\n");
+        printf2(TAG_ERR,"Ignoring credential is incorrect length, treating as custom\n");
+        cred->type = PUB_KEY_CRED_CUSTOM;
+        buflen = 256;
+        ret = cbor_value_copy_byte_string(&val, getAssertionState.customCredId, &buflen, NULL);
+        getAssertionState.customCredIdSize = buflen;
     }
+    check_ret(ret);
 
     ret = cbor_value_map_find_value(arr, "type", &val);
     check_ret(ret);
@@ -926,7 +937,7 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
 
     if (strncmp(type, "public-key",11) == 0)
     {
-        if (PUB_KEY_CRED_CTAP1 != cred->type)
+        if (0 == cred->type)
         {
             cred->type = PUB_KEY_CRED_PUB_KEY;
         }

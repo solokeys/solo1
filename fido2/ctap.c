@@ -36,16 +36,7 @@ AuthenticatorState STATE;
 
 static void ctap_reset_key_agreement();
 
-static struct {
-    CTAP_authDataHeader authData;
-    uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
-    CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE-1];
-    uint8_t lastcmd;
-    uint32_t count;
-    uint32_t index;
-    uint32_t time;
-    uint8_t user_verified;
-} getAssertionState;
+struct _getAssertionState getAssertionState;
 
 uint8_t verify_pin_auth(uint8_t * pinAuth, uint8_t * clientDataHash)
 {
@@ -436,6 +427,8 @@ static unsigned int get_credential_id_size(CTAP_credentialDescriptor * cred)
 {
     if (cred->type == PUB_KEY_CRED_CTAP1)
         return U2F_KEY_HANDLE_SIZE;
+    if (cred->type == PUB_KEY_CRED_CUSTOM)
+        return getAssertionState.customCredIdSize;
     return sizeof(CredentialId);
 }
 
@@ -469,7 +462,7 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
 
     int but;
 
-    but = ctap_user_presence_test();
+    but = 1;
 
 
     if (!but)
@@ -676,6 +669,9 @@ int ctap_authenticate_credential(struct rpId * rp, CTAP_credentialDescriptor * d
             crypto_sha256_update(rp->id, rp->size);
             crypto_sha256_final(rpIdHash);
             return u2f_authenticate_credential((struct u2f_key_handle *)&desc->credential.id, rpIdHash);
+        break;
+        case PUB_KEY_CRED_CUSTOM:
+            return is_extension_request(getAssertionState.customCredId, getAssertionState.customCredIdSize);
         break;
     }
 
@@ -1219,12 +1215,13 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     {
         memset(auth_data_buf,0,sizeof(CTAP_authDataHeader));
         auth_data_buf_sz = sizeof(CTAP_authDataHeader);
-        crypto_sha256_init();
-        crypto_sha256_update(GA.rp.id, GA.rp.size);
-        crypto_sha256_final(((CTAP_authData *)auth_data_buf)->head.rpIdHash);
+
+        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &auth_data_buf_sz, NULL);
+        check_retr(ret);
 
         ((CTAP_authData *)auth_data_buf)->head.flags = (1 << 0);
-        ((CTAP_authData *)auth_data_buf)->head.flags |= (ctap_is_pin_set() << 2);
+        ((CTAP_authData *)auth_data_buf)->head.flags &= ~(1 << 2);
+        ((CTAP_authData *)auth_data_buf)->head.flags |= (1 << 2);
     }
     else
 #endif
