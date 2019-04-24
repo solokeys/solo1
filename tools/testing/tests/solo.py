@@ -1,6 +1,8 @@
 from solo.client import SoloClient
+from solo.commands import SoloBootloader, SoloExtension
 
 from fido2.ctap1 import ApduError
+from fido2.utils import sha256
 
 from .util import shannon_entropy
 from .tester import Tester, Test
@@ -44,6 +46,19 @@ class SoloTests(Tester):
                 pass
 
         sc.exchange = sc.exchange_fido2
+
+        req = SoloClient.format_request(SoloExtension.version, 0, b"A" * 16)
+        assertions, client_data = sc.client.get_assertion(
+            sc.host, "B" * 32, [{"id": req, "type": "public-key"}]
+        )
+
+        with Test("Test custom command returned valid assertion"):
+            assert len(assertions) == 1
+            a = assertions[0]
+            assert a.auth_data.rp_id_hash == sha256(sc.host.encode("utf8"))
+            assert a.credential["id"] == req
+            assert (a.auth_data.flags & 0x5) == 0x5
+
         with Test("Test Solo version and random commands with fido2 layer"):
             assert len(sc.solo_version()) == 3
             sc.get_rng()
