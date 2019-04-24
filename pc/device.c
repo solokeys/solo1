@@ -25,6 +25,8 @@
 
 #define RK_NUM  50
 
+bool use_udp = true;
+
 struct ResidentKeyStore {
     CTAP_residentKey rks[RK_NUM];
 } RK_STORE;
@@ -211,8 +213,44 @@ void int_handler(int i)
     exit(0);
 }
 
-void device_init()
+
+
+void usage(const char * cmd)
 {
+    fprintf(stderr, "Usage: %s [-b udp|hidg]\n", cmd);
+    fprintf(stderr, "   -b      backing implementation: udp(default) or hidg\n");
+    exit(1);
+}
+
+void device_init(int argc, char *argv[])
+{
+
+    int opt;
+
+    while ((opt = getopt(argc, argv, "b:")) != -1)
+    {
+        switch (opt)
+        {
+            case 'b':
+                if (strcmp("udp", optarg) == 0)
+                {
+                    use_udp = true;
+                }
+                else if (strcmp("hidg", optarg) == 0)
+                {
+                    use_udp = false;
+                }
+                else
+                {
+                    usage(argv[0]);
+                }
+                break;
+            default:
+                usage(argv[0]);
+                break;
+        }
+    }
+
     signal(SIGINT, int_handler);
 
     printf1(TAG_GREEN, "Using %s backing\n", use_udp ? "UDP" : "hidg");
