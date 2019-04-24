@@ -1219,6 +1219,12 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     {
         memset(auth_data_buf,0,sizeof(CTAP_authDataHeader));
         auth_data_buf_sz = sizeof(CTAP_authDataHeader);
+        crypto_sha256_init();
+        crypto_sha256_update(GA.rp.id, GA.rp.size);
+        crypto_sha256_final(((CTAP_authData *)auth_data_buf)->head.rpIdHash);
+
+        ((CTAP_authData *)auth_data_buf)->head.flags = (1 << 0);
+        ((CTAP_authData *)auth_data_buf)->head.flags |= (ctap_is_pin_set() << 2);
     }
     else
 #endif
