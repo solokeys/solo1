@@ -462,8 +462,7 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
 
     int but;
 
-    but = 1;
-
+    but = ctap_user_presence_test();
 
     if (!but)
     {
@@ -1215,14 +1214,13 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 #ifdef ENABLE_U2F_EXTENSIONS
     if ( is_extension_request((uint8_t*)&GA.creds[validCredCount - 1].credential.id, sizeof(CredentialId)) )
     {
-        memset(auth_data_buf,0,sizeof(CTAP_authDataHeader));
         auth_data_buf_sz = sizeof(CTAP_authDataHeader);
 
-        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &auth_data_buf_sz, NULL);
-        check_retr(ret);
+        crypto_sha256_init();
+        crypto_sha256_update(GA.rp.id, GA.rp.size);
+        crypto_sha256_final(((CTAP_authData *)auth_data_buf)->head.rpIdHash);
 
         ((CTAP_authData *)auth_data_buf)->head.flags = (1 << 0);
-        ((CTAP_authData *)auth_data_buf)->head.flags &= ~(1 << 2);
         ((CTAP_authData *)auth_data_buf)->head.flags |= (1 << 2);
     }
     else
