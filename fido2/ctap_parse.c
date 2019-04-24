@@ -1005,6 +1005,8 @@ uint8_t ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int 
     CborValue it,map;
 
     memset(GA, 0, sizeof(CTAP_getAssertion));
+    GA->creds = getAssertionState.creds;     // Save stack memory
+
     ret = cbor_parser_init(request, length, CborValidateCanonicalFormat, &parser, &it);
     check_ret(ret);
 
