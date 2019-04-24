@@ -42,9 +42,10 @@ int main(int argc, char *argv[])
 		TAG_U2F|
 		//TAG_PARSE |
 		//TAG_TIME|
-		//TAG_DUMP|
+		TAG_DUMP|
 		TAG_GREEN|
 		TAG_RED|
+        TAG_EXT|
 		TAG_ERR
 	);
 
