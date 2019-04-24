@@ -38,3 +38,7 @@ WARNING: This update may break previous registrations! This is because we fixed 
 
 - Fixes the ordering of keys encoded in CBOR maps to be canonical ordering. They previously were not ordered in any particular way and caused issues for Chrome. #170
 - Fixes CTAP2 implementation to accept credential IDs created by the CTAP1 implementation. So registering with U2F and later authenticating with FIDO2 should work.
+
+## [2.2.1] - 2019-04-23
+
+- This minor release fixes some small issues. #179, #182
