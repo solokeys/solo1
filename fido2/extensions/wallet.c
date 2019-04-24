@@ -14,8 +14,8 @@
 #include "util.h"
 #include "storage.h"
 #include "device.h"
+#include "extensions.h"
 
-#if defined(USING_PC) || defined(IS_BOOTLOADER)
 typedef enum
 {
     MBEDTLS_ECP_DP_NONE = 0,
@@ -32,9 +32,7 @@ typedef enum
     MBEDTLS_ECP_DP_SECP224K1,      /*!< 224-bits "Koblitz" curve */
     MBEDTLS_ECP_DP_SECP256K1,      /*!< 256-bits "Koblitz" curve */
 } mbedtls_ecp_group_id;
-#else
-#include "ecp.h"
-#endif
+
 
 
 // return 1 if hash is valid, 0 otherwise
@@ -70,14 +68,14 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
                 return CTAP2_ERR_NOT_ALLOWED;
             }
 
-            u2f_response_writeback(KEY_AGREEMENT_PUB,sizeof(KEY_AGREEMENT_PUB));
+            extension_writeback(KEY_AGREEMENT_PUB,sizeof(KEY_AGREEMENT_PUB));
             printf1(TAG_WALLET,"pubkey: "); dump_hex1(TAG_WALLET,KEY_AGREEMENT_PUB,64);
 
             break;
         case CP_cmdGetRetries:
             printf1(TAG_WALLET,"cmdGetRetries\n");
             pinTokenEnc[0] = ctap_leftover_pin_attempts();
-            u2f_response_writeback(pinTokenEnc,1);
+            extension_writeback(pinTokenEnc,1);
 
             break;
         case CP_cmdSetPin:
@@ -145,7 +143,7 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
                 return ret;
 
             printf1(TAG_WALLET,"pinToken: "); dump_hex1(TAG_WALLET, PIN_TOKEN, 16);
-            u2f_response_writeback(pinTokenEnc, PIN_TOKEN_SIZE);
+            extension_writeback(pinTokenEnc, PIN_TOKEN_SIZE);
 
             break;
 
@@ -159,7 +157,7 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
     return 0;
 }
 
-int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, uint8_t * keyh)
+int16_t bridge_to_wallet(uint8_t * keyh, uint8_t klen)
 {
     static uint8_t msg_buf[WALLET_MAX_BUFFER];
     int reqlen = klen;
@@ -259,7 +257,7 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
             crypto_load_external_key(key, keysize);
             crypto_ecdsa_sign(args[0], lens[0], sig, MBEDTLS_ECP_DP_SECP256K1);
 
-            u2f_response_writeback(sig,64);
+            extension_writeback(sig,64);
 
             break;
         case WalletRegister:
@@ -374,39 +372,7 @@ int16_t bridge_u2f_to_wallet(uint8_t * _chal, uint8_t * _appid, uint8_t klen, ui
 
 
             break;
-        case WalletVersion:
-            u2f_response_writeback((uint8_t*)WALLET_VERSION, sizeof(WALLET_VERSION)-1);
-            break;
-        case WalletRng:
-            printf1(TAG_WALLET,"WalletRng\n");
-            if ( ctap_device_locked() )
-            {
-                printf1(TAG_ERR,"device locked\n");
-                ret = CTAP2_ERR_NOT_ALLOWED;
-                goto cleanup;
-            }
-            if ( ctap_is_pin_set() )
-            {
-                if ( ! check_pinhash(req->pinAuth, msg_buf, reqlen))
-                {
-                    printf2(TAG_ERR,"pinAuth is NOT valid\n");
-                    dump_hex1(TAG_ERR,msg_buf,reqlen);
-                    ret = CTAP2_ERR_PIN_AUTH_INVALID;
-                    goto cleanup;
-                }
-            }
 
-            ret = ctap_generate_rng(sig, 72);
-            if (ret != 1)
-            {
-                printf1(TAG_WALLET,"Rng failed\n");
-                ret = CTAP2_ERR_PROCESSING;
-                goto cleanup;
-            }
-            ret = 0;
-
-            u2f_response_writeback((uint8_t *)sig,72);
-            break;
 
         default:
             printf2(TAG_ERR,"Invalid wallet command: %x\n",req->operation);
