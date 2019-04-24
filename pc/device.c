@@ -15,6 +15,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <fcntl.h>
 
 #include "device.h"
 #include "cbor.h"
@@ -118,12 +119,6 @@ void udp_send(int fd, uint8_t * buf, int size)
     }
 }
 
-void udp_close(int fd)
-{
-    close(fd);
-}
-
-
 
 uint32_t millis()
 {
@@ -134,18 +129,42 @@ uint32_t millis()
 }
 
 
-static int serverfd = 0;
+static int fd = 0;
 
 void usbhid_init()
 {
-    // just bridge to UDP for now for pure software testing
-    serverfd = udp_server();
+    if (use_udp)
+    {
+        fd = udp_server();
+    }
+    else
+    {
+        fd = open("/dev/hidg0", O_RDWR);
+        if (fd < 0)
+        {
+            perror("hidg open");
+            exit(1);
+        }
+    }
 }
 
 // Receive 64 byte USB HID message, don't block, return size of packet, return 0 if nothing
 int usbhid_recv(uint8_t * msg)
 {
-    int l = udp_recv(serverfd, msg, HID_MESSAGE_SIZE);
+    int l = 0;
+    if (use_udp)
+    {
+        l = udp_recv(fd, msg, HID_MESSAGE_SIZE);
+    }
+    else
+    {
+        l = read(fd, msg, HID_MESSAGE_SIZE); /* Flawfinder: ignore */
+        if (l < 0)
+        {
+            perror("hidg read");
+            exit(1);
+        }
+    }
     uint8_t magic_cmd[] = "\xac\x10\x52\xca\x95\xe5\x69\xde\x69\xe0\x2e\xbf"
                           "\xf3\x33\x48\x5f\x13\xf9\xb2\xda\x34\xc5\xa8\xa3"
                           "\x40\x52\x66\x97\xa9\xab\x2e\x0b\x39\x4d\x8d\x04"
@@ -166,12 +185,23 @@ int usbhid_recv(uint8_t * msg)
 // Send 64 byte USB HID message
 void usbhid_send(uint8_t * msg)
 {
-    udp_send(serverfd, msg, HID_MESSAGE_SIZE);
+    if (use_udp)
+    {
+        udp_send(fd, msg, HID_MESSAGE_SIZE);
+    }
+    else
+    {
+        if (write(fd, msg, HID_MESSAGE_SIZE) < 0)
+        {
+            perror("hidg write");
+            exit(1);
+        }
+    }
 }
 
 void usbhid_close()
 {
-    udp_close(serverfd);
+    close(fd);
 }
 
 void int_handler(int i)
@@ -185,6 +215,7 @@ void device_init()
 {
     signal(SIGINT, int_handler);
 
+    printf1(TAG_GREEN, "Using %s backing\n", use_udp ? "UDP" : "hidg");
     usbhid_init();
 
     authenticator_initialize();
