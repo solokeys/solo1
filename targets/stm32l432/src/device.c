@@ -107,7 +107,7 @@ void device_reboot()
     NVIC_SystemReset();
 }
 
-void device_init()
+void device_init(int argc, char *argv[])
 {
 
     hw_init(LOW_FREQUENCY);
