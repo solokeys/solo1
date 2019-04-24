@@ -23,7 +23,7 @@
 //#define USING_DEV_BOARD
 
 #define ENABLE_U2F_EXTENSIONS
-    #define ENABLE_WALLET
+    // #define ENABLE_WALLET
 
 #define ENABLE_U2F
 
