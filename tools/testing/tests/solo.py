@@ -1,5 +1,5 @@
 from solo.client import SoloClient
-from solo.commands import SoloBootloader, SoloExtension
+from solo.commands import SoloExtension
 
 from fido2.ctap1 import ApduError
 from fido2.utils import sha256
