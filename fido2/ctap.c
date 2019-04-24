@@ -379,7 +379,6 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
         crypto_aes256_encrypt(output, ext->hmac_secret.saltLen);
 
         // output
-        printf1(TAG_GREEN, "have %d bytes for Extenstions encoder\r\n",*ext_encoder_buf_size);
         cbor_encoder_init(&extensions, ext_encoder_buf, *ext_encoder_buf_size, 0);
         {
             CborEncoder hmac_secret_map;
@@ -452,9 +451,6 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     crypto_sha256_init();
     crypto_sha256_update(rp->id, rp->size);
     crypto_sha256_final(authData->head.rpIdHash);
-
-    printf1(TAG_RED, "rpId: "); dump_hex1(TAG_RED, rp->id, rp->size);
-    printf1(TAG_RED, "hash: "); dump_hex1(TAG_RED, authData->head.rpIdHash, 32);
 
     count = auth_data_update_count(&authData->head);
 
@@ -742,9 +738,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
         check_retr(ret);
 
         printf1(TAG_GREEN, "checking credId: "); dump_hex1(TAG_GREEN, (uint8_t*) &excl_cred->credential.id, sizeof(CredentialId));
-        // DELETE
-        // crypto_aes256_reset_iv(NULL);
-        // crypto_aes256_decrypt((uint8_t*)& excl_cred->credential.enc, CREDENTIAL_ENC_SIZE);
+
         if (ctap_authenticate_credential(&MC.rp, excl_cred))
         {
             printf1(TAG_MC, "Cred %d failed!\r\n",i);
@@ -865,7 +859,6 @@ uint8_t ctap_add_user_entity(CborEncoder * map, CTAP_userEntity * user)
         ret = cbor_encoder_create_map(map, &entity, 1);
     check_ret(ret);
 
-    printf1(TAG_GREEN,"id_size: %d\r\n", user->id_size);
     {
         ret = cbor_encode_text_string(&entity, "id", 2);
         check_ret(ret);
@@ -1107,7 +1100,6 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
     }
 
     check_ret(ret);
-    printf1(TAG_RED, "RPID hash: "); dump_hex1(TAG_RED, authData.rpIdHash, 32);
 
     // if only one account for this RP, null out the user details
     if (!getAssertionState.user_verified)
@@ -1673,7 +1665,6 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             else
             {
                 printf2(TAG_ERR, "unwanted GET_NEXT_ASSERTION.  lastcmd == 0x%02x\n", getAssertionState.lastcmd);
-                dump_hex1(TAG_GREEN, (uint8_t*)&getAssertionState, sizeof(getAssertionState));
                 status = CTAP2_ERR_NOT_ALLOWED;
             }
             break;

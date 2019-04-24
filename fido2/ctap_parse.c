@@ -137,7 +137,6 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
                 return CTAP2_ERR_LIMIT_EXCEEDED;
             }
             MC->credInfo.user.id_size = sz;
-            printf1(TAG_GREEN,"parsed id_size: %d\r\n", MC->credInfo.user.id_size);
             check_ret(ret);
         }
         else if (strcmp((const char *)key, "name") == 0)
@@ -903,9 +902,6 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
 
     buflen = sizeof(CredentialId);
     ret = cbor_value_copy_byte_string(&val, (uint8_t*)&cred->credential.id, &buflen, NULL);
-
-    printf1(TAG_GREEN,"KEYL is %d\r\n", buflen);
-    printf1(TAG_GREEN,"MAX is %d\r\n",  sizeof(CredentialId));
 
     if (buflen == U2F_KEY_HANDLE_SIZE)
     {
