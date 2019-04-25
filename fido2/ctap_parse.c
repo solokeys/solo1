@@ -16,6 +16,7 @@
 #include "util.h"
 #include "log.h"
 
+extern struct _getAssertionState getAssertionState;
 
 void _check_ret(CborError ret, int line, const char * filename)
 {
@@ -136,7 +137,6 @@ uint8_t parse_user(CTAP_makeCredential * MC, CborValue * val)
                 return CTAP2_ERR_LIMIT_EXCEEDED;
             }
             MC->credInfo.user.id_size = sz;
-            printf1(TAG_GREEN,"parsed id_size: %d\r\n", MC->credInfo.user.id_size);
             check_ret(ret);
         }
         else if (strcmp((const char *)key, "name") == 0)
@@ -883,6 +883,8 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
     size_t buflen;
     char type[12];
     CborValue val;
+    cred->type = 0;
+
     if (cbor_value_get_type(arr) != CborMapType)
     {
         printf2(TAG_ERR,"Error, CborMapType expected in credential\n");
@@ -899,8 +901,8 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
     }
 
     buflen = sizeof(CredentialId);
-    cbor_value_copy_byte_string(&val, (uint8_t*)&cred->credential.id, &buflen, NULL);
-    
+    ret = cbor_value_copy_byte_string(&val, (uint8_t*)&cred->credential.id, &buflen, NULL);
+
     if (buflen == U2F_KEY_HANDLE_SIZE)
     {
         printf2(TAG_PARSE,"CTAP1 credential\n");
@@ -908,8 +910,13 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
     }
     else if (buflen != sizeof(CredentialId))
     {
-        printf2(TAG_ERR,"Ignoring credential is incorrect length\n");
+        printf2(TAG_ERR,"Ignoring credential is incorrect length, treating as custom\n");
+        cred->type = PUB_KEY_CRED_CUSTOM;
+        buflen = 256;
+        ret = cbor_value_copy_byte_string(&val, getAssertionState.customCredId, &buflen, NULL);
+        getAssertionState.customCredIdSize = buflen;
     }
+    check_ret(ret);
 
     ret = cbor_value_map_find_value(arr, "type", &val);
     check_ret(ret);
@@ -926,7 +933,7 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
 
     if (strncmp(type, "public-key",11) == 0)
     {
-        if (PUB_KEY_CRED_CTAP1 != cred->type)
+        if (0 == cred->type)
         {
             cred->type = PUB_KEY_CRED_PUB_KEY;
         }
@@ -994,6 +1001,8 @@ uint8_t ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int 
     CborValue it,map;
 
     memset(GA, 0, sizeof(CTAP_getAssertion));
+    GA->creds = getAssertionState.creds;     // Save stack memory
+
     ret = cbor_parser_init(request, length, CborValidateCanonicalFormat, &parser, &it);
     check_ret(ret);
 

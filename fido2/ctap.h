@@ -113,6 +113,7 @@
 
 #define PUB_KEY_CRED_PUB_KEY        0x01
 #define PUB_KEY_CRED_CTAP1          0x41
+#define PUB_KEY_CRED_CUSTOM         0x42
 #define PUB_KEY_CRED_UNKNOWN        0x3F
 
 #define CREDENTIAL_IS_SUPPORTED     1
@@ -278,7 +279,7 @@ typedef struct
     uint8_t pinAuthEmpty;
     int pinProtocol;
 
-    CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
+    CTAP_credentialDescriptor * creds;
     uint8_t allowListPresent;
 
     CTAP_extensions extensions;
@@ -301,6 +302,19 @@ typedef struct
     _Bool getRetries;
 } CTAP_clientPin;
 
+
+struct _getAssertionState {
+    CTAP_authDataHeader authData;
+    uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
+    CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
+    uint8_t lastcmd;
+    uint32_t count;
+    uint32_t index;
+    uint32_t time;
+    uint8_t user_verified;
+    uint8_t customCredId[256];
+    uint8_t customCredIdSize;
+};
 
 void ctap_response_init(CTAP_RESPONSE * resp);
 

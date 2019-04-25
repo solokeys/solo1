@@ -32,7 +32,7 @@ VERSION_PAT:=$(shell python -c 'print("$(VERSION)".split(".")[2])')
 VERSION_FLAGS= -DSOLO_VERSION_MAJ=$(VERSION_MAJ) -DSOLO_VERSION_MIN=$(VERSION_MIN) \
 	-DSOLO_VERSION_PATCH=$(VERSION_PAT) -DSOLO_VERSION=\"$(VERSION_FULL)\"
 
-CFLAGS = -O2 -fdata-sections -ffunction-sections $(VERSION_FLAGS)
+CFLAGS = -O2 -fdata-sections -ffunction-sections $(VERSION_FLAGS) -g
 
 INCLUDES = -I./tinycbor/src -I./crypto/sha256 -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/ -I./fido2/ -I./pc -I./fido2/extensions
 INCLUDES += -I./crypto/cifra/src
@@ -53,7 +53,7 @@ tinycbor/Makefile crypto/tiny-AES-c/aes.c:
 cbor: $(LIBCBOR)
 
 $(LIBCBOR):
-	cd tinycbor/ && $(MAKE) clean && $(MAKE) -j8
+	cd tinycbor/ && $(MAKE) clean && $(MAKE)  LDFLAGS='' -j8
 
 version:
 	@git describe
