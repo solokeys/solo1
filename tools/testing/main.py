@@ -15,7 +15,7 @@ import sys
 
 from solo.fido2 import force_udp_backend
 from tests import Tester, FIDO2Tests, U2FTests, HIDTests, SoloTests
-from tests.pcsc import SCGetReader, SCRelease
+from tests.pcsc import PCSCDevice, SCGetReader, SCRelease
 
 
 if __name__ == "__main__":
@@ -36,8 +36,11 @@ if __name__ == "__main__":
         print("Using PCSC backend.")
 
         handle, reader = SCGetReader();
-#        t.set_sim(True)
-        t.set_user_count(10)
+        if reader != "":
+            t.setPCSCDevice(PCSCDevice(handle, reader))
+            t.set_user_count(10)
+        else:
+            print("ERROR: reader not found.")
 
     t.find_device()
 

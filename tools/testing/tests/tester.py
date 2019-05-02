@@ -61,16 +61,28 @@ class Tester:
         self.ctap = tester.ctap
         self.ctap1 = tester.ctap1
         self.client = tester.client
+        self.pcscdevice = tester.pcscdevice
+
+    def setPCSCDevice(self, device):
+        print("device set", device)
+        self.pcscdevice = device
+        return
 
     def find_device(self,):
-        print(list(CtapHidDevice.list_devices()))
-        dev = next(CtapHidDevice.list_devices(), None)
-        if not dev:
-            raise RuntimeError("No FIDO device found")
-        self.dev = dev
-        self.client = Fido2Client(dev, self.origin)
-        self.ctap = self.client.ctap2
-        self.ctap1 = CTAP1(dev)
+        if hasattr(self, 'pcscdevice'):
+            self.dev = self.pcscdevice
+            self.client = Fido2Client(self.pcscdevice, self.origin)
+            self.ctap = self.client.ctap2
+            self.ctap1 = CTAP1(self.pcscdevice)
+        else:
+            print(list(CtapHidDevice.list_devices()))
+            dev = next(CtapHidDevice.list_devices(), None)
+            if not dev:
+                raise RuntimeError("No FIDO device found")
+            self.dev = dev
+            self.client = Fido2Client(dev, self.origin)
+            self.ctap = self.client.ctap2
+            self.ctap1 = CTAP1(dev)
 
         # consume timeout error
         # cmd,resp = self.recv_raw()
