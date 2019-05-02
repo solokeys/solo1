@@ -5,3 +5,4 @@ pyserial
 solo-python
 pyusb
 wheel
+pyscard
