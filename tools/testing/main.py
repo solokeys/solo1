@@ -44,29 +44,30 @@ if __name__ == "__main__":
 
     t.find_device()
 
-    if "solo" in sys.argv:
-        SoloTests(t).run()
+    try:
+        if "solo" in sys.argv:
+            SoloTests(t).run()
 
-    if "u2f" in sys.argv:
-        U2FTests(t).run()
+        if "u2f" in sys.argv:
+            U2FTests(t).run()
 
-    if "fido2" in sys.argv:
-        # t.test_fido2()
-        FIDO2Tests(t).run()
+        if "fido2" in sys.argv:
+            # t.test_fido2()
+            FIDO2Tests(t).run()
 
-    # hid tests are a bit invasive and should be done last
-    if "hid" in sys.argv:
-        HIDTests(t).run()
+        # hid tests are a bit invasive and should be done last
+        if "hid" in sys.argv:
+            HIDTests(t).run()
 
-    if "bootloader" in sys.argv:
-        if t.is_sim:
-            raise RuntimeError("Cannot test bootloader in simulation yet.")
-        # print("Put device in bootloader mode and then hit enter")
-        # input()
-        # t.test_bootloader()
+        if "bootloader" in sys.argv:
+            if t.is_sim:
+                raise RuntimeError("Cannot test bootloader in simulation yet.")
+            # print("Put device in bootloader mode and then hit enter")
+            # input()
+            # t.test_bootloader()
 
-    # t.test_responses()
-    # t.test_fido2_brute_force()
-
-    if 'handle' in vars():
-        SCRelease(handle)
+        # t.test_responses()
+        # t.test_fido2_brute_force()
+    finally:
+        if 'handle' in vars():
+            SCRelease(handle)
