@@ -26,7 +26,7 @@ class PCSCDevice:
         return bresponse
 
 
-    def call(self, chid, apdu):
+    def call(self, chid, apdu, event=None, on_keepalive=None):
         print("apdu", apdu.hex())
 
         if self.card is None:
