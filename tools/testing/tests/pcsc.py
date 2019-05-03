@@ -1,5 +1,6 @@
 from smartcard.scard import *
 from fido2.hid import CAPABILITY
+import binascii
 
 def SCGetErrorMsg(hresult):
     return SCardGetErrorMessage(hresult)
@@ -12,27 +13,42 @@ class PCSCDevice:
         self.card = None
         self.atr = None
         self.protocol = None
+        self.aidats = None
         self.capabilities = CAPABILITY.WINK + CAPABILITY.CBOR
         return
 
+    def exapdu(self, apdu):
+        hresult, response = SCardTransmit(self.card, self.protocol, list(apdu))
+        if hresult != SCARD_S_SUCCESS:
+            raise error('Failed to transmit: [' + hex(hresult) + '] ' + SCardGetErrorMessage(hresult))
+
+        bresponse = bytes(response)
+        return bresponse
+
 
     def call(self, chid, apdu):
-        print("apdu", apdu)
+        print("apdu", apdu.hex())
 
         if self.card is None:
             self.card, self.atr, self.protocol = SCGetCard(self.hcontext, self.reader)
+            if self.card is None or self.card == 0:
+                return b""
+            # select
+            self.aidats = self.exapdu(binascii.unhexlify("00A4040008A0000006472F000100"))
+            print("aidats", self.aidats)
 
-        print("card and protocol", self.card, self.protocol)
-        hresult, response = SCardTransmit(self.card, self.protocol, list(apdu))
-        if hresult != SCARD_S_SUCCESS:
-            raise error('Failed to transmit: ' + SCardGetErrorMessage(hresult))
+        if apdu.find(b"\x00\x01\x00\x00\x00") == 0:
+            vapdu = apdu[7:]
+            vapdu = vapdu[:-2]
+            apdu = b"\x00\x01\x03\x00" + bytes([len(vapdu)]) + vapdu + b"\x00"
+            print("apdu changed", apdu.hex())
 
-        print("response", response)
+        response = self.exapdu(apdu)
+        print("response", response.hex())
         return response
 
 
-
-def SCGetReader():
+def SCGetReader(readerCaption = "CL"):
     try:
         hresult, hcontext = SCardEstablishContext(SCARD_SCOPE_USER)
         if hresult != SCARD_S_SUCCESS:
@@ -46,17 +62,18 @@ def SCGetReader():
 
         print('PCSC Readers:', readers)
 
-        hresult, readerGroups = SCardListReaderGroups(hcontext)
-        if hresult != SCARD_S_SUCCESS:
-            raise error('Unable to list reader groups: ' + SCGetErrorMsg(hresult))
-        print('PCSC Reader groups:', readerGroups)
+        readerNum = 0;
+        for indx, x in enumerate(readers, start=0):
+            if x.find(readerCaption) >= 0:
+                readerNum = indx
+                break
 
         if len(readers) > 0:
-            print('Use reader: ' + readers[0])
+            print('Use reader: ' + readers[readerNum])
         else:
             raise error('ERROR: no reader in the system')
 
-        return hcontext, readers[0]
+        return hcontext, readers[readerNum]
 
     except error as e:
         print("ERROR:", e)
@@ -68,22 +85,19 @@ def SCGetCard(hcontext, zreader):
             hcontext,
             zreader,
             SCARD_SHARE_SHARED,
-            SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1)
+            SCARD_PROTOCOL_T0) # | SCARD_PROTOCOL_T1
         if hresult != SCARD_S_SUCCESS:
             raise error('unable to connect: ' + SCGetErrorMsg(hresult))
-        print('Connected with active protocol', dwActiveProtocol)
+        print('Connected with active protocol', dwActiveProtocol, " t0=", SCARD_PROTOCOL_T0)
 
-        hresult = SCardBeginTransaction(hcard)
-        if hresult != SCARD_S_SUCCESS:
-            raise error('failed to begin transaction: ' + SCGetErrorMsg(hresult))
+        #hresult = SCardBeginTransaction(hcard)
+        #if hresult != SCARD_S_SUCCESS:
+        #    raise error('failed to begin transaction: ' + SCGetErrorMsg(hresult))
 
         hresult, reader, state, protocol, atr = SCardStatus(hcard)
         if hresult != SCARD_S_SUCCESS:
             raise error('failed to get status: ' + SCGetErrorMsg(hresult))
-        print('ATR:', end=' ')
-        for i in range(len(atr)):
-            print("0x%.2X" % atr[i], end=' ')
-        print("")
+        print('ATR:', bytes(atr).hex(), "protocol", protocol)
 
         return hcard, atr, dwActiveProtocol
 
