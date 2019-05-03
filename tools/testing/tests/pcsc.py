@@ -35,16 +35,27 @@ class PCSCDevice:
                 return b""
             # select
             self.aidats = self.exapdu(binascii.unhexlify("00A4040008A0000006472F000100"))
-            print("aidats", self.aidats)
+            print("answer to select application:", self.aidats)
 
         if apdu.find(b"\x00\x01\x00\x00\x00") == 0:
             vapdu = apdu[7:]
             vapdu = vapdu[:-2]
             apdu = b"\x00\x01\x03\x00" + bytes([len(vapdu)]) + vapdu + b"\x00"
-            print("apdu changed", apdu.hex())
+            #print("apdu changed", apdu.hex())
 
         response = self.exapdu(apdu)
-        print("response", response.hex())
+
+        if len(response) >= 2 and response[-2] == 0x61:
+            resp2 = response
+            while len(resp2) > 2 and resp2[-2] == 0x61:
+                resp2 = self.exapdu(b"\x00\xc0\x00\x00\x00\x00")
+                if len(resp2) > 0:
+                    response = response[:-2] + resp2
+                else:
+                    break
+
+
+        print("apdu response:", response[-2:].hex())
         return response
 
 
@@ -69,7 +80,7 @@ def SCGetReader(readerCaption = "CL"):
                 break
 
         if len(readers) > 0:
-            print('Use reader: ' + readers[readerNum])
+            print('Use reader: `' + readers[readerNum] + '`')
         else:
             raise error('ERROR: no reader in the system')
 
@@ -85,7 +96,7 @@ def SCGetCard(hcontext, zreader):
             hcontext,
             zreader,
             SCARD_SHARE_SHARED,
-            SCARD_PROTOCOL_T0) # | SCARD_PROTOCOL_T1
+            SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1) # | SCARD_PROTOCOL_T1
         if hresult != SCARD_S_SUCCESS:
             raise error('unable to connect: ' + SCGetErrorMsg(hresult))
         print('Connected with active protocol', dwActiveProtocol, " t0=", SCARD_PROTOCOL_T0)
