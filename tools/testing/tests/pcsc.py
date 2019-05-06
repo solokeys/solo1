@@ -1,5 +1,5 @@
 from smartcard.scard import *
-from fido2.hid import CAPABILITY
+from fido2.hid import CAPABILITY, CTAPHID
 import binascii
 
 def SCGetErrorMsg(hresult):
@@ -25,21 +25,30 @@ class PCSCDevice:
         bresponse = bytes(response)
         return bresponse
 
-    def USBApduToNFC(self, apdu):
-        vapdu = apdu[7:]
-        vapdu = vapdu[:-2]
-        if apdu.find(b"\x00\x01") == 0:
-            vapdu = b"\x00\x01\x03\x00" + bytes([len(vapdu)]) + vapdu
-        else:
-            vapdu = apdu[0:4] + bytes([len(vapdu)]) + vapdu
+    def USBApduToNFC(self, chid, apdu):
+        if chid == CTAPHID.MSG:
+            vapdu = apdu[7:]
+            vapdu = vapdu[:-2]
+            if apdu.find(b"\x00\x01") == 0:
+                vapdu = b"\x00\x01\x03\x00" + bytes([len(vapdu)]) + vapdu
+            else:
+                vapdu = apdu[0:4] + bytes([len(vapdu)]) + vapdu
 
-        vapdu += b"\x00"
-        print("apdu changed", vapdu.hex())
-        return vapdu
+            vapdu += b"\x00"
+            #print("apdu changed", vapdu.hex())
+            return vapdu
 
+        if chid == CTAPHID.CBOR:
+            vapdu = apdu
+            vapdu = b"\x80\x10\x00\x00" + bytes([len(vapdu)]) + vapdu
+            vapdu += b"\x00"
+            print("apdu CBOR changed", vapdu.hex())
+            return vapdu
+
+        return b""
 
     def call(self, chid, apdu, event=None, on_keepalive=None):
-        print("apdu", apdu.hex())
+        print("ch", chid, "apdu", apdu.hex())
 
         if self.card is None:
             self.card, self.atr, self.protocol = SCGetCard(self.hcontext, self.reader)
@@ -49,7 +58,7 @@ class PCSCDevice:
             self.aidats = self.exapdu(binascii.unhexlify("00A4040008A0000006472F000100"))
             print("answer to select application:", self.aidats)
 
-        apdu = self.USBApduToNFC(apdu)
+        apdu = self.USBApduToNFC(chid, apdu)
 
         response = self.exapdu(apdu)
 
