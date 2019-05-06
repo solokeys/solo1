@@ -25,6 +25,18 @@ class PCSCDevice:
         bresponse = bytes(response)
         return bresponse
 
+    def USBApduToNFC(self, apdu):
+        vapdu = apdu[7:]
+        vapdu = vapdu[:-2]
+        if apdu.find(b"\x00\x01") == 0:
+            vapdu = b"\x00\x01\x03\x00" + bytes([len(vapdu)]) + vapdu
+        else:
+            vapdu = apdu[0:4] + bytes([len(vapdu)]) + vapdu
+
+        vapdu += b"\x00"
+        print("apdu changed", vapdu.hex())
+        return vapdu
+
 
     def call(self, chid, apdu, event=None, on_keepalive=None):
         print("apdu", apdu.hex())
@@ -37,11 +49,7 @@ class PCSCDevice:
             self.aidats = self.exapdu(binascii.unhexlify("00A4040008A0000006472F000100"))
             print("answer to select application:", self.aidats)
 
-        if apdu.find(b"\x00\x01\x00\x00\x00") == 0:
-            vapdu = apdu[7:]
-            vapdu = vapdu[:-2]
-            apdu = b"\x00\x01\x03\x00" + bytes([len(vapdu)]) + vapdu + b"\x00"
-            #print("apdu changed", apdu.hex())
+        apdu = self.USBApduToNFC(apdu)
 
         response = self.exapdu(apdu)
 
