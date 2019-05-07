@@ -20,7 +20,7 @@ from tests.pcsc import PCSCDevice, SCGetReader, SCRelease
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: %s [sim] <[u2f]|[fido2]|[rk]|[hid]|[ping]>")
+        print("Usage: %s [sim]|[pcsc] <[u2f]|[fido2]|[rk]|[hid]|[ping]>")
         sys.exit(0)
 
     t = Tester()

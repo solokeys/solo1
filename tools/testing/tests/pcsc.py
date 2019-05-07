@@ -45,6 +45,12 @@ class PCSCDevice:
             print("apdu CBOR changed", vapdu.hex())
             return vapdu
 
+        if chid == CTAPHID.PING:
+            return apdu
+
+        if chid == CTAPHID.WINK:
+            return apdu
+
         return b""
 
     def call(self, chid, apdu, event=None, on_keepalive=None):
