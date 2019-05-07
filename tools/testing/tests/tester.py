@@ -61,7 +61,8 @@ class Tester:
         self.ctap = tester.ctap
         self.ctap1 = tester.ctap1
         self.client = tester.client
-        self.pcscdevice = tester.pcscdevice
+        if hasattr(self, 'pcscdevice'):
+            self.pcscdevice = tester.pcscdevice
 
     def setPCSCDevice(self, device):
         print("device set", device)
