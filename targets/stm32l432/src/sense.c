@@ -8,11 +8,12 @@
 int _run_sense_app = 0;
 static int _has_init = 0;
 
+#define ELECTRODE_0     TSC_GROUP2_IO1
+#define ELECTRODE_1     TSC_GROUP2_IO2
 
-void sense_init()
+void tsc_init()
 {
-    LL_GPIO_InitTypeDef GPIO_InitStruct1;
-    LL_GPIO_InitTypeDef GPIO_InitStruct2;
+    LL_GPIO_InitTypeDef GPIO_InitStruct;
     // Enable TSC clock
     RCC->AHB1ENR |= (1<<16);
 
@@ -20,36 +21,36 @@ void sense_init()
     PA4   ------> Channel 1
     PA5   ------> Channel 2
     */
-    GPIO_InitStruct1.Pin = LL_GPIO_PIN_5|LL_GPIO_PIN_4;
-    GPIO_InitStruct1.Mode = LL_GPIO_MODE_ALTERNATE;
-    GPIO_InitStruct1.Speed = LL_GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct1.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    GPIO_InitStruct1.Pull = LL_GPIO_PULL_NO;
-    GPIO_InitStruct1.Alternate = LL_GPIO_AF_9;
-    LL_GPIO_Init(GPIOB, &GPIO_InitStruct1);
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_5|LL_GPIO_PIN_4;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    GPIO_InitStruct.Alternate = LL_GPIO_AF_9;
+    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     /** TSC GPIO Configuration
     PA6   ------> sampling cap
     */
-    GPIO_InitStruct2.Pin = LL_GPIO_PIN_6;
-    GPIO_InitStruct2.Mode = LL_GPIO_MODE_ALTERNATE;
-    GPIO_InitStruct2.Speed = LL_GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct2.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
-    GPIO_InitStruct2.Pull = LL_GPIO_PULL_NO;
-    GPIO_InitStruct2.Alternate = LL_GPIO_AF_9;
-    LL_GPIO_Init(GPIOB, &GPIO_InitStruct2);
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    GPIO_InitStruct.Alternate = LL_GPIO_AF_9;
+    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     // Channel IOs
-    uint32_t channel_ios = TSC_GROUP2_IO1;
+    uint32_t channel_ios = TSC_GROUP2_IO1 | TSC_GROUP2_IO2;
 
     // enable
     TSC->CR = TSC_CR_TSCE;
 
-    TSC->CR |= (TSC_CTPH_16CYCLES |
-                           TSC_CTPL_16CYCLES |
+    TSC->CR |= (TSC_CTPH_8CYCLES |
+                           TSC_CTPL_8CYCLES |
                            (uint32_t)(1 << TSC_CR_SSD_Pos) |
                            TSC_SS_PRESC_DIV1 |
-                           TSC_PG_PRESC_DIV128 |
+                           TSC_PG_PRESC_DIV16 |
                            TSC_MCV_16383 |
                            TSC_SYNC_POLARITY_FALLING |
                            TSC_ACQ_MODE_NORMAL);
@@ -63,9 +64,6 @@ void sense_init()
     // Schmitt trigger and hysteresis
     TSC->IOHCR = (uint32_t)(~(channel_ios | 0 | TSC_GROUP2_IO3));
 
-    // Channel IDs
-    TSC->IOCCR = (channel_ios | 0);
-
     // Sampling IOs
     TSC->IOSCR = TSC_GROUP2_IO3;
 
@@ -76,6 +74,11 @@ void sense_init()
     TSC->IER &= (uint32_t)(~(TSC_IT_EOA | TSC_IT_MCE));
     TSC->ICR = (TSC_FLAG_EOA | TSC_FLAG_MCE);
 
+}
+
+void tsc_set_electrode(uint32_t channel_ids)
+{
+    TSC->IOCCR = (channel_ids);
 }
 
 void tsc_start_acq()
@@ -105,32 +108,47 @@ uint32_t tsc_read(uint32_t indx)
     return TSC->IOGXCR[indx];
 }
 
+// Read button 0 or 1
+// Returns 1 if pressed, 0 if not.
+uint32_t tsc_read_button(uint32_t index)
+{
+    switch(index)
+    {
+        case 0:
+            tsc_set_electrode(ELECTRODE_0);
+            break;
+        case 1:
+            tsc_set_electrode(ELECTRODE_1);
+            break;
+
+    }
+    tsc_start_acq();
+    tsc_wait_on_acq();
+    return tsc_read(1) < 50;
+}
+
 void sense_run()
 {
-    static uint32_t t1 = 0;
-    uint32_t samp;
+    static uint32_t tlim = 0;
+    uint32_t t1,t2;
+    uint32_t but0,but1;
 
     if (!_has_init)
     {
-        sense_init();
+        tsc_init();
         _has_init = 1;
     }
 
-    if ((millis() - t1) > 200)
+    if ((millis() - tlim) > 200)
     {
-        tsc_start_acq();
-        tsc_wait_on_acq();
-        // delay(4);
-        samp = tsc_read(1);
-
-        printf1(TAG_GREEN, "sensing %02d %02d %02d %02d\r\n",
-        tsc_read(0),
-        tsc_read(1),
-        tsc_read(2),
-        tsc_read(3)
-    );
         t1 = millis();
+        but0 = tsc_read_button(0);
+        but1 = tsc_read_button(1);
+        t2 = millis();
+
+        printf1(TAG_GREEN, "but0: %02d but1: %02d (%d ms)\r\n",  but0, but1, t2-t1);
+        t1 = millis();
+
+        tlim  = millis();
     }
-
-
 }

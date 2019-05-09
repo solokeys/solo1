@@ -44,7 +44,18 @@ extern PCD_HandleTypeDef hpcd;
 static bool haveNFC = 0;
 static bool isLowFreq = 0;
 
-#define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
+// #define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
+static int is_physical_button_pressed()
+{
+    return (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN));
+}
+
+static int is_touch_button_pressed()
+{
+    return tsc_read_button(0) || tsc_read_button(1);
+}
+
+int (*IS_BUTTON_PRESSED)() = is_physical_button_pressed;
 
 // Timer6 overflow handler.  happens every ~90ms.
 void TIM6_DAC_IRQHandler()
@@ -108,23 +119,53 @@ void device_reboot()
     NVIC_SystemReset();
 }
 
+
+
+static int does_device_have_touch_sensor()
+{
+    int does;
+    LL_GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_1;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.OutputType = 0;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    does = (LL_GPIO_ReadInputPort(GPIOB) & 1) == 0;
+
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    return does;
+}
+
 void device_init(int argc, char *argv[])
 {
 
     hw_init(LOW_FREQUENCY);
 
-    // haveNFC = nfc_init();
-
     if (haveNFC)
     {
         printf1(TAG_NFC, "Have NFC\r\n");
         isLowFreq = 1;
+        IS_BUTTON_PRESSED = is_physical_button_pressed;
     }
     else
     {
         printf1(TAG_NFC, "Have NO NFC\r\n");
         hw_init(HIGH_FREQUENCY);
         isLowFreq = 0;
+
+        if (does_device_have_touch_sensor())
+        {
+            tsc_init();
+            IS_BUTTON_PRESSED = is_touch_button_pressed;
+        }
+        else
+        {
+            IS_BUTTON_PRESSED = is_physical_button_pressed;
+        }
     }
 
     usbhid_init();
@@ -436,9 +477,6 @@ void device_manage()
 #ifndef IS_BOOTLOADER
 	if(device_is_nfc())
 		nfc_loop();
-
-    sense_run();
-
 #endif
 }
 
