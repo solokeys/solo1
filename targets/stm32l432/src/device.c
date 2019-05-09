@@ -29,6 +29,7 @@
 #include "usbd_cdc_if.h"
 #include "nfc.h"
 #include "init.h"
+#include "sense.h"
 
 #define LOW_FREQUENCY        1
 #define HIGH_FREQUENCY       0
@@ -112,7 +113,7 @@ void device_init(int argc, char *argv[])
 
     hw_init(LOW_FREQUENCY);
 
-    haveNFC = nfc_init();
+    // haveNFC = nfc_init();
 
     if (haveNFC)
     {
@@ -433,8 +434,11 @@ void device_manage()
     }
 #endif
 #ifndef IS_BOOTLOADER
-	// if(device_is_nfc())
+	if(device_is_nfc())
 		nfc_loop();
+
+    sense_run();
+
 #endif
 }
 

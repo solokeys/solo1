@@ -108,7 +108,7 @@ void hw_init(int lowfreq)
 #endif
 
     init_rng();
-    init_spi();
+    //init_spi();
 
 }
 
