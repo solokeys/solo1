@@ -491,7 +491,7 @@ static int handle_packets()
 int ctap_user_presence_test()
 {
     int ret;
-    if (device_is_nfc())
+    if (device_is_nfc() == NFC_IS_ACTIVE)
     {
         return 1;
     }
