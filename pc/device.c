@@ -624,7 +624,7 @@ void device_wink()
     printf("*WINK*\n");
 }
 
-bool device_is_nfc()
+int device_is_nfc()
 {
     return 0;
 }
