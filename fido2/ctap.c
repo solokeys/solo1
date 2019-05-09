@@ -19,7 +19,6 @@
 #include "crypto.h"
 #include "util.h"
 #include "log.h"
-#include "nfc.h"
 #include "device.h"
 #include APP_CONFIG
 #include "wallet.h"
