@@ -11,7 +11,8 @@ static int _has_init = 0;
 
 void sense_init()
 {
-    LL_GPIO_InitTypeDef GPIO_InitStruct;
+    LL_GPIO_InitTypeDef GPIO_InitStruct1;
+    LL_GPIO_InitTypeDef GPIO_InitStruct2;
     // Enable TSC clock
     RCC->AHB1ENR |= (1<<16);
 
@@ -19,24 +20,24 @@ void sense_init()
     PA4   ------> Channel 1
     PA5   ------> Channel 2
     */
-    GPIO_InitStruct.Pin = LL_GPIO_PIN_5|LL_GPIO_PIN_4;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-    GPIO_InitStruct.Alternate = LL_GPIO_AF_9;
-    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    GPIO_InitStruct1.Pin = LL_GPIO_PIN_5|LL_GPIO_PIN_4;
+    GPIO_InitStruct1.Mode = LL_GPIO_MODE_ALTERNATE;
+    GPIO_InitStruct1.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct1.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    GPIO_InitStruct1.Pull = LL_GPIO_PULL_NO;
+    GPIO_InitStruct1.Alternate = LL_GPIO_AF_9;
+    LL_GPIO_Init(GPIOB, &GPIO_InitStruct1);
 
     /** TSC GPIO Configuration
     PA6   ------> sampling cap
     */
-    GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-    GPIO_InitStruct.Alternate = LL_GPIO_AF_9;
-    LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    GPIO_InitStruct2.Pin = LL_GPIO_PIN_6;
+    GPIO_InitStruct2.Mode = LL_GPIO_MODE_ALTERNATE;
+    GPIO_InitStruct2.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct2.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
+    GPIO_InitStruct2.Pull = LL_GPIO_PULL_NO;
+    GPIO_InitStruct2.Alternate = LL_GPIO_AF_9;
+    LL_GPIO_Init(GPIOB, &GPIO_InitStruct2);
 
     // Channel IOs
     uint32_t channel_ios = TSC_GROUP2_IO1;
@@ -45,7 +46,7 @@ void sense_init()
     TSC->CR = TSC_CR_TSCE;
 
     TSC->CR |= (TSC_CTPH_16CYCLES |
-                           TSC_CTPH_16CYCLES |
+                           TSC_CTPL_16CYCLES |
                            (uint32_t)(1 << TSC_CR_SSD_Pos) |
                            TSC_SS_PRESC_DIV1 |
                            TSC_PG_PRESC_DIV128 |
@@ -84,12 +85,7 @@ void tsc_start_acq()
     TSC->ICR = TSC_FLAG_EOA | TSC_FLAG_MCE;
 
     // Set IO output to output push-pull low
-
     TSC->CR &= (~TSC_CR_IODEF);
-    TSC->CR |= (TSC_CR_IODEF);
-
-    //// Set IO output to input floating
-
 
     TSC->CR |= TSC_CR_START;
 }
@@ -127,7 +123,12 @@ void sense_run()
         // delay(4);
         samp = tsc_read(1);
 
-        printf1(TAG_GREEN, "sensing %02d\r\n", samp);
+        printf1(TAG_GREEN, "sensing %02d %02d %02d %02d\r\n",
+        tsc_read(0),
+        tsc_read(1),
+        tsc_read(2),
+        tsc_read(3)
+    );
         t1 = millis();
     }
 
