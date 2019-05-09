@@ -19,6 +19,7 @@
 #include "crypto.h"
 #include "util.h"
 #include "log.h"
+#include "nfc.h"
 #include "device.h"
 #include APP_CONFIG
 #include "wallet.h"
@@ -1759,7 +1760,7 @@ void ctap_init()
         exit(1);
     }
 
-    if (! device_is_nfc())
+    if (device_is_nfc() != NFC_IS_ACTIVE)
     {
         ctap_reset_key_agreement();
     }

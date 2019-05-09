@@ -238,7 +238,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 	if (control == U2F_AUTHENTICATE_SIGN_NO_USER)
 		up = 0;
 
-	if(!device_is_nfc() && up)
+	if(up)
 	{
 		if (ctap_user_presence_test() == 0)
 		{
@@ -286,13 +286,12 @@ static int16_t u2f_register(struct u2f_register_request * req)
 
     const uint16_t attest_size = attestation_cert_der_size;
 
-	if(!device_is_nfc())
+
+	if ( ! ctap_user_presence_test())
 	{
-		if ( ! ctap_user_presence_test())
-		{
-			return U2F_SW_CONDITIONS_NOT_SATISFIED;
-		}
+		return U2F_SW_CONDITIONS_NOT_SATISFIED;
 	}
+
 
     if ( u2f_new_keypair(&key_handle, req->app, pubkey) == -1)
     {
