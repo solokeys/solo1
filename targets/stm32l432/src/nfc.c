@@ -74,7 +74,11 @@ int nfc_init()
     // Under USB power.  Configure AMS chip.
     ams_configure();
 
-    return NFC_IS_AVAILABLE;
+    if (init)
+    {
+        return NFC_IS_AVAILABLE;
+    }
+
     return NFC_IS_NA;
 }
 
