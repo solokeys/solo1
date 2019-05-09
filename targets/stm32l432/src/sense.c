@@ -5,9 +5,6 @@
 #include "stm32l4xx_ll_gpio.h"
 #include "stm32l4xx_hal_tsc.h"
 
-int _run_sense_app = 0;
-static int _has_init = 0;
-
 #define ELECTRODE_0     TSC_GROUP2_IO1
 #define ELECTRODE_1     TSC_GROUP2_IO2
 
@@ -130,18 +127,15 @@ uint32_t tsc_read_button(uint32_t index)
 int tsc_sensor_exists()
 {
     int does;
-    LL_GPIO_InitTypeDef GPIO_InitStruct;
-    GPIO_InitStruct.Pin = LL_GPIO_PIN_1;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.OutputType = 0;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
-    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    LL_GPIO_SetPinMode(GPIOB, (1 << 1), LL_GPIO_MODE_INPUT);
+    LL_GPIO_SetPinPull(GPIOB, (1 << 1), LL_GPIO_PULL_UP);
 
-    does = (LL_GPIO_ReadInputPort(GPIOB) & 1) == 0;
+    // Short delay before reading pin
+    asm("nop"); asm("nop"); asm("nop"); asm("nop");
 
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    does = (LL_GPIO_ReadInputPort(GPIOB) & (1 << 1)) == 0;
+
+    LL_GPIO_SetPinPull(GPIOB, 1, LL_GPIO_PULL_NO);
 
     return does;
 }
