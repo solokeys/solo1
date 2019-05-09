@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-extern int _run_sense_app;
-
 void tsc_init();
 
 int tsc_sensor_exists();
