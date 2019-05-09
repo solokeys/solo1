@@ -7,9 +7,8 @@ extern int _run_sense_app;
 
 void tsc_init();
 
-uint32_t tsc_read_button(uint32_t index);
+int tsc_sensor_exists();
 
-// For testing
-void sense_run();
+uint32_t tsc_read_button(uint32_t index);
 
 #endif
