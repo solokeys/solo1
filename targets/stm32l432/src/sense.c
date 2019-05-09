@@ -119,7 +119,9 @@ uint32_t tsc_read_button(uint32_t index)
 
 int tsc_sensor_exists()
 {
-    int does;
+    static uint8_t does = 0;
+    if (does) return 1;
+
     LL_GPIO_SetPinMode(GPIOB, (1 << 1), LL_GPIO_MODE_INPUT);
     LL_GPIO_SetPinPull(GPIOB, (1 << 1), LL_GPIO_PULL_UP);
 

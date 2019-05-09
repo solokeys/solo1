@@ -31,6 +31,7 @@
 #include "usbd_cdc_if.h"
 #include "device.h"
 #include "init.h"
+#include "sense.h"
 #include APP_CONFIG
 
 // KHz
@@ -94,8 +95,6 @@ void hw_init(int lowfreq)
         SystemClock_Config();
     }
 
-
-
     if (!lowfreq)
     {
         init_pwm();
@@ -108,7 +107,8 @@ void hw_init(int lowfreq)
 #endif
 
     init_rng();
-    //init_spi();
+
+    init_spi();
 
 }
 
