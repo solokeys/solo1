@@ -30,11 +30,7 @@ void tsc_init()
     PA6   ------> sampling cap
     */
     GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-    GPIO_InitStruct.Alternate = LL_GPIO_AF_9;
     LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     // Channel IOs
@@ -44,7 +40,7 @@ void tsc_init()
     TSC->CR = TSC_CR_TSCE;
 
     TSC->CR |= (TSC_CTPH_8CYCLES |
-                           TSC_CTPL_8CYCLES |
+                           TSC_CTPL_10CYCLES |
                            (uint32_t)(1 << TSC_CR_SSD_Pos) |
                            TSC_SS_PRESC_DIV1 |
                            TSC_PG_PRESC_DIV16 |
@@ -105,8 +101,6 @@ uint32_t tsc_read(uint32_t indx)
     return TSC->IOGXCR[indx];
 }
 
-// Read button 0 or 1
-// Returns 1 if pressed, 0 if not.
 uint32_t tsc_read_button(uint32_t index)
 {
     switch(index)
@@ -117,7 +111,6 @@ uint32_t tsc_read_button(uint32_t index)
         case 1:
             tsc_set_electrode(ELECTRODE_1);
             break;
-
     }
     tsc_start_acq();
     tsc_wait_on_acq();
