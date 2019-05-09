@@ -114,7 +114,7 @@ uint32_t tsc_read_button(uint32_t index)
     }
     tsc_start_acq();
     tsc_wait_on_acq();
-    return tsc_read(1) < 50;
+    return tsc_read(1) < 45;
 }
 
 int tsc_sensor_exists()
