@@ -72,7 +72,7 @@ void TIM6_DAC_IRQHandler()
     }
 #ifndef IS_BOOTLOADER
 	// NFC sending WTX if needs
-	if (device_is_nfc())
+	if (device_is_nfc() == NFC_IS_ACTIVE)
 	{
 		WTX_timer_exec();
 	}
