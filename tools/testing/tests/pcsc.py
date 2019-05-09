@@ -25,7 +25,7 @@ class PCSCDevice:
         bresponse = bytes(response)
         return bresponse
 
-    def USBApduToNFC(self, chid, apdu):
+    def CtapToNFC(self, chid, apdu):
         if chid == CTAPHID.MSG:
             vapdu = apdu[7:]
             vapdu = vapdu[:-2]
@@ -64,7 +64,7 @@ class PCSCDevice:
             self.aidats = self.exapdu(binascii.unhexlify("00A4040008A0000006472F000100"))
             print("answer to select application:", self.aidats)
 
-        apdu = self.USBApduToNFC(chid, apdu)
+        apdu = self.CtapToNFC(chid, apdu)
 
         response = self.exapdu(apdu)
 
@@ -77,8 +77,9 @@ class PCSCDevice:
                 else:
                     break
 
-
-        print("apdu response:", response[-2:].hex())
+        #print("apdu response:", response[-2:].hex())
+        response = response[:-2]
+        print("apdu response:", response.hex())
         return response
 
 
