@@ -105,6 +105,7 @@ void device_set_status(uint32_t status)
 
 int device_is_button_pressed()
 {
+
     return IS_BUTTON_PRESSED();
 }
 
@@ -119,25 +120,17 @@ void device_reboot()
     NVIC_SystemReset();
 }
 
-
-
-static int does_device_have_touch_sensor()
+void device_init_button()
 {
-    int does;
-    LL_GPIO_InitTypeDef GPIO_InitStruct;
-    GPIO_InitStruct.Pin = LL_GPIO_PIN_1;
-    GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
-    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.OutputType = 0;
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
-    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-    does = (LL_GPIO_ReadInputPort(GPIOB) & 1) == 0;
-
-    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-    return does;
+    if (tsc_sensor_exists())
+    {
+        tsc_init();
+        IS_BUTTON_PRESSED = is_touch_button_pressed;
+    }
+    else
+    {
+        IS_BUTTON_PRESSED = is_physical_button_pressed;
+    }
 }
 
 void device_init(int argc, char *argv[])
@@ -156,16 +149,7 @@ void device_init(int argc, char *argv[])
         printf1(TAG_NFC, "Have NO NFC\r\n");
         hw_init(HIGH_FREQUENCY);
         isLowFreq = 0;
-
-        if (does_device_have_touch_sensor())
-        {
-            tsc_init();
-            IS_BUTTON_PRESSED = is_touch_button_pressed;
-        }
-        else
-        {
-            IS_BUTTON_PRESSED = is_physical_button_pressed;
-        }
+        device_init_button();
     }
 
     usbhid_init();

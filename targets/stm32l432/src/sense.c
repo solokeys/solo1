@@ -127,28 +127,21 @@ uint32_t tsc_read_button(uint32_t index)
     return tsc_read(1) < 50;
 }
 
-void sense_run()
+int tsc_sensor_exists()
 {
-    static uint32_t tlim = 0;
-    uint32_t t1,t2;
-    uint32_t but0,but1;
+    int does;
+    LL_GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_InitStruct.Pin = LL_GPIO_PIN_1;
+    GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+    GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.OutputType = 0;
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    if (!_has_init)
-    {
-        tsc_init();
-        _has_init = 1;
-    }
+    does = (LL_GPIO_ReadInputPort(GPIOB) & 1) == 0;
 
-    if ((millis() - tlim) > 200)
-    {
-        t1 = millis();
-        but0 = tsc_read_button(0);
-        but1 = tsc_read_button(1);
-        t2 = millis();
+    GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-        printf1(TAG_GREEN, "but0: %02d but1: %02d (%d ms)\r\n",  but0, but1, t2-t1);
-        t1 = millis();
-
-        tlim  = millis();
-    }
+    return does;
 }

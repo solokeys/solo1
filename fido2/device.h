@@ -103,5 +103,6 @@ void device_set_clock_rate(DEVICE_CLOCK_RATE param);
 // 0 otherwise.
 bool device_is_nfc();
 
+void device_init_button();
 
 #endif
