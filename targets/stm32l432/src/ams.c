@@ -270,7 +270,7 @@ void ams_print_int1(uint8_t int0)
 #endif
 }
 
-void ams_init()
+int ams_init()
 {
     LL_GPIO_SetPinMode(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN,LL_GPIO_MODE_OUTPUT);
     LL_GPIO_SetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN);
@@ -283,6 +283,13 @@ void ams_init()
     // delay(10);
     SELECT();
     delay(1);
+
+    uint8_t productType = ams_read_reg(AMS_REG_PRODUCT_TYPE);
+    if (productType == 0x14)
+    {
+        return 1;
+    }
+    return 0;
 }
 
 void ams_configure()

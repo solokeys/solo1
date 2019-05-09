@@ -72,6 +72,6 @@ void hw_init(int lf);
 #define SOLO_AMS_IRQ_PIN        LL_GPIO_PIN_15
 
 #define SKIP_BUTTON_CHECK_WITH_DELAY        0
-#define SKIP_BUTTON_CHECK_FAST              1
+#define SKIP_BUTTON_CHECK_FAST              0
 
 #endif
