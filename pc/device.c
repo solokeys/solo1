@@ -293,7 +293,7 @@ void ctaphid_write_block(uint8_t * data)
 }
 
 
-int ctap_user_presence_test()
+int ctap_user_presence_test(uint32_t d)
 {
     return 1;
 }
