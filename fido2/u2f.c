@@ -205,7 +205,6 @@ int8_t u2f_authenticate_credential(struct u2f_key_handle * kh, uint8_t * appid)
 }
 
 
-
 static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t control)
 {
 
@@ -243,13 +242,12 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 
 	if(up)
 	{
-        device_set_status(CTAPHID_STATUS_UPNEEDED);
-		if (ctap_user_presence_test() == 0)
+		if (ctap_user_presence_test(750) == 0)
 		{
 			return U2F_SW_CONDITIONS_NOT_SATISFIED;
 		}
 	}
-    
+
     count = ctap_atomic_count(0);
     hash[0] = (count >> 24) & 0xff;
     hash[1] = (count >> 16) & 0xff;
@@ -290,8 +288,7 @@ static int16_t u2f_register(struct u2f_register_request * req)
 
     const uint16_t attest_size = attestation_cert_der_size;
 
-    device_set_status(CTAPHID_STATUS_UPNEEDED);
-	if ( ! ctap_user_presence_test())
+	if ( ! ctap_user_presence_test(750))
 	{
 		return U2F_SW_CONDITIONS_NOT_SATISFIED;
 	}
