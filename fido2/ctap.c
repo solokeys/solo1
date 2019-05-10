@@ -458,7 +458,7 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
 
     int but;
 
-    but = ctap_user_presence_test();
+    but = ctap_user_presence_test(CTAP2_UP_DELAY_MS);
 
     if (!but)
     {
@@ -696,7 +696,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     }
     if (MC.pinAuthEmpty)
     {
-        if (!ctap_user_presence_test())
+        if (!ctap_user_presence_test(CTAP2_UP_DELAY_MS))
         {
                 return CTAP2_ERR_OPERATION_DENIED;
         }
@@ -1132,7 +1132,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
     if (GA.pinAuthEmpty)
     {
-        if (!ctap_user_presence_test())
+        if (!ctap_user_presence_test(CTAP2_UP_DELAY_MS))
         {
                 return CTAP2_ERR_OPERATION_DENIED;
         }
@@ -1641,7 +1641,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             break;
         case CTAP_RESET:
             printf1(TAG_CTAP,"CTAP_RESET\n");
-            if (ctap_user_presence_test())
+            if (ctap_user_presence_test(CTAP2_UP_DELAY_MS))
             {
                 ctap_reset();
             }

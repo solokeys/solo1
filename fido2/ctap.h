@@ -131,6 +131,8 @@
 #define PIN_LOCKOUT_ATTEMPTS        8       // Number of attempts total
 #define PIN_BOOT_ATTEMPTS           3       // number of attempts per boot
 
+#define CTAP2_UP_DELAY_MS           5000
+
 typedef struct
 {
     uint8_t id[USER_ID_MAX_SIZE];

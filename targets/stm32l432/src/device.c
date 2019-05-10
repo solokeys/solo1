@@ -63,7 +63,7 @@ void TIM6_DAC_IRQHandler()
     // timer is only 16 bits, so roll it over here
     TIM6->SR = 0;
     __90_ms += 1;
-    if ((millis() - __last_update) > 8)
+    if ((millis() - __last_update) > 90)
     {
         if (__device_status != CTAPHID_STATUS_IDLE)
         {
@@ -488,7 +488,7 @@ static int handle_packets()
     return 0;
 }
 
-int ctap_user_presence_test()
+int ctap_user_presence_test(uint32_t up_delay)
 {
     int ret;
     if (device_is_nfc() == NFC_IS_ACTIVE)
@@ -513,22 +513,26 @@ int ctap_user_presence_test()
     uint32_t t1 = millis();
     led_rgb(0xff3520);
 
-while (IS_BUTTON_PRESSED())
+if (IS_BUTTON_PRESSED == is_touch_button_pressed)
 {
-    if (t1 + 5000 < millis())
+    // Wait for user to release touch button if it's already pressed
+    while (IS_BUTTON_PRESSED())
     {
-        printf1(TAG_GEN,"Button not pressed\n");
-        goto fail;
+        if (t1 + up_delay < millis())
+        {
+            printf1(TAG_GEN,"Button not pressed\n");
+            goto fail;
+        }
+        ret = handle_packets();
+        if (ret) return ret;
     }
-    ret = handle_packets();
-    if (ret) return ret;
 }
 
 t1 = millis();
 
 do
 {
-    if (t1 + 5000 < millis())
+    if (t1 + up_delay < millis())
     {
         goto fail;
     }
