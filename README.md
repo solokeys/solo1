@@ -17,7 +17,7 @@ Solo is an open source security key, and you can get one at [solokeys.com](https
 
 Solo supports FIDO2 and U2F standards for strong two-factor authentication and password-less login, and it will protect you against phishing and other online attacks. With colored cases and multilingual guides we want to make secure login more personable and accessible to everyone around the globe.
 
-<img src="https://solokeys.com/images/photos/hero-on-white-cropped.png" width="600">
+<img src="https://static.solokeys.com/images/photos/hero-on-white-cropped.png" width="600">
 
 This repo contains the Solo firmware, including implementations of FIDO2 and U2F (CTAP2 and CTAP) over USB and NFC. The main implementation is for STM32L432, but it is easily portable.
 
