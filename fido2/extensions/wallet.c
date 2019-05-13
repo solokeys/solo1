@@ -85,7 +85,7 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
                 return CTAP2_ERR_NOT_ALLOWED;
             }
 
-            if (!ctap_user_presence_test())
+            if (!ctap_user_presence_test(5000))
             {
                 return CTAP2_ERR_OPERATION_DENIED;
             }
@@ -111,7 +111,7 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
                 return CTAP2_ERR_NOT_ALLOWED;
             }
 
-            if (!ctap_user_presence_test())
+            if (!ctap_user_presence_test(5000))
             {
                 return CTAP2_ERR_OPERATION_DENIED;
             }
@@ -133,7 +133,7 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
                 return CTAP2_ERR_NOT_ALLOWED;
             }
 
-            if (!ctap_user_presence_test())
+            if (!ctap_user_presence_test(5000))
             {
                 return CTAP2_ERR_OPERATION_DENIED;
             }
@@ -359,7 +359,7 @@ int16_t bridge_to_wallet(uint8_t * keyh, uint8_t klen)
                 }
             }
 
-            if (ctap_user_presence_test())
+            if (ctap_user_presence_test(5000))
             {
                 printf1(TAG_WALLET,"Reseting device!\n");
                 ctap_reset();

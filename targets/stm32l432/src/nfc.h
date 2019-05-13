@@ -8,7 +8,7 @@
 // Return number of bytes read if any.
 int nfc_loop();
 
-bool nfc_init();
+int nfc_init();
 
 typedef struct
 {

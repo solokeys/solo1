@@ -293,7 +293,7 @@ void ctaphid_write_block(uint8_t * data)
 }
 
 
-int ctap_user_presence_test()
+int ctap_user_presence_test(uint32_t d)
 {
     return 1;
 }
@@ -624,7 +624,7 @@ void device_wink()
     printf("*WINK*\n");
 }
 
-bool device_is_nfc()
+int device_is_nfc()
 {
     return 0;
 }

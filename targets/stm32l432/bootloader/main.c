@@ -83,6 +83,8 @@ int main()
     init_debug_uart();
 #endif
 
+    device_init_button();
+
     printf1(TAG_GEN,"init device\n");
 
     t1 = millis();

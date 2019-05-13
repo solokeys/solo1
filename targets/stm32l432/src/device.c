@@ -29,6 +29,7 @@
 #include "usbd_cdc_if.h"
 #include "nfc.h"
 #include "init.h"
+#include "sense.h"
 
 #define LOW_FREQUENCY        1
 #define HIGH_FREQUENCY       0
@@ -40,10 +41,21 @@ uint32_t __90_ms = 0;
 uint32_t __device_status = 0;
 uint32_t __last_update = 0;
 extern PCD_HandleTypeDef hpcd;
-static bool haveNFC = 0;
+static int _NFC_status = 0;
 static bool isLowFreq = 0;
 
-#define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
+// #define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
+static int is_physical_button_pressed()
+{
+    return (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN));
+}
+
+static int is_touch_button_pressed()
+{
+    return tsc_read_button(0) || tsc_read_button(1);
+}
+
+int (*IS_BUTTON_PRESSED)() = is_physical_button_pressed;
 
 // Timer6 overflow handler.  happens every ~90ms.
 void TIM6_DAC_IRQHandler()
@@ -51,7 +63,7 @@ void TIM6_DAC_IRQHandler()
     // timer is only 16 bits, so roll it over here
     TIM6->SR = 0;
     __90_ms += 1;
-    if ((millis() - __last_update) > 8)
+    if ((millis() - __last_update) > 90)
     {
         if (__device_status != CTAPHID_STATUS_IDLE)
         {
@@ -60,7 +72,7 @@ void TIM6_DAC_IRQHandler()
     }
 #ifndef IS_BOOTLOADER
 	// NFC sending WTX if needs
-	if (device_is_nfc())
+	if (device_is_nfc() == NFC_IS_ACTIVE)
 	{
 		WTX_timer_exec();
 	}
@@ -93,6 +105,7 @@ void device_set_status(uint32_t status)
 
 int device_is_button_pressed()
 {
+
     return IS_BUTTON_PRESSED();
 }
 
@@ -107,23 +120,41 @@ void device_reboot()
     NVIC_SystemReset();
 }
 
+void device_init_button()
+{
+    if (tsc_sensor_exists())
+    {
+        tsc_init();
+        IS_BUTTON_PRESSED = is_touch_button_pressed;
+    }
+    else
+    {
+        IS_BUTTON_PRESSED = is_physical_button_pressed;
+    }
+}
+
 void device_init(int argc, char *argv[])
 {
 
     hw_init(LOW_FREQUENCY);
 
-    haveNFC = nfc_init();
+    if (! tsc_sensor_exists())
+    {
+        _NFC_status = nfc_init();
+    }
 
-    if (haveNFC)
+    if (_NFC_status == NFC_IS_ACTIVE)
     {
         printf1(TAG_NFC, "Have NFC\r\n");
         isLowFreq = 1;
+        IS_BUTTON_PRESSED = is_physical_button_pressed;
     }
     else
     {
         printf1(TAG_NFC, "Have NO NFC\r\n");
         hw_init(HIGH_FREQUENCY);
         isLowFreq = 0;
+        device_init_button();
     }
 
     usbhid_init();
@@ -139,9 +170,9 @@ void device_init(int argc, char *argv[])
 
 }
 
-bool device_is_nfc()
+int device_is_nfc()
 {
-    return haveNFC;
+    return _NFC_status;
 }
 
 void wait_for_usb_tether()
@@ -433,7 +464,7 @@ void device_manage()
     }
 #endif
 #ifndef IS_BOOTLOADER
-	// if(device_is_nfc())
+	if(device_is_nfc())
 		nfc_loop();
 #endif
 }
@@ -457,10 +488,10 @@ static int handle_packets()
     return 0;
 }
 
-int ctap_user_presence_test()
+int ctap_user_presence_test(uint32_t up_delay)
 {
     int ret;
-    if (device_is_nfc())
+    if (device_is_nfc() == NFC_IS_ACTIVE)
     {
         return 1;
     }
@@ -482,22 +513,26 @@ int ctap_user_presence_test()
     uint32_t t1 = millis();
     led_rgb(0xff3520);
 
-while (IS_BUTTON_PRESSED())
+if (IS_BUTTON_PRESSED == is_touch_button_pressed)
 {
-    if (t1 + 5000 < millis())
+    // Wait for user to release touch button if it's already pressed
+    while (IS_BUTTON_PRESSED())
     {
-        printf1(TAG_GEN,"Button not pressed\n");
-        goto fail;
+        if (t1 + up_delay < millis())
+        {
+            printf1(TAG_GEN,"Button not pressed\n");
+            goto fail;
+        }
+        ret = handle_packets();
+        if (ret) return ret;
     }
-    ret = handle_packets();
-    if (ret) return ret;
 }
 
 t1 = millis();
 
 do
 {
-    if (t1 + 5000 < millis())
+    if (t1 + up_delay < millis())
     {
         goto fail;
     }

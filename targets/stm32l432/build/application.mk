@@ -2,7 +2,7 @@ include build/common.mk
 
 # ST related
 SRC = src/main.c src/init.c src/redirect.c src/flash.c src/rng.c src/led.c src/device.c
-SRC += src/fifo.c src/crypto.c src/attestation.c src/nfc.c src/ams.c
+SRC += src/fifo.c src/crypto.c src/attestation.c src/nfc.c src/ams.c src/sense.c
 SRC += src/startup_stm32l432xx.s src/system_stm32l4xx.c
 SRC += $(DRIVER_LIBS) $(USB_LIB)
 

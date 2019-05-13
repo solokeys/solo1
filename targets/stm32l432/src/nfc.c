@@ -55,11 +55,12 @@ void nfc_state_init()
     NFC_STATE.block_num = 1;
 }
 
-bool nfc_init()
+int nfc_init()
 {
     uint32_t t1;
+    int init;
     nfc_state_init();
-    ams_init();
+    init = ams_init();
 
     // Detect if we are powered by NFC field by listening for a message for
     // first 10 ms.
@@ -67,13 +68,18 @@ bool nfc_init()
     while ((millis() - t1) < 10)
     {
         if (nfc_loop() > 0)
-            return 1;
+            return NFC_IS_ACTIVE;
     }
 
     // Under USB power.  Configure AMS chip.
     ams_configure();
 
-    return 0;
+    if (init)
+    {
+        return NFC_IS_AVAILABLE;
+    }
+
+    return NFC_IS_NA;
 }
 
 void process_int0(uint8_t int0)
