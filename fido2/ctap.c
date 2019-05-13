@@ -270,6 +270,7 @@ static int ctap_generate_cose_key(CborEncoder * cose_key, uint8_t * hmac_input, 
 void make_auth_tag(uint8_t * rpIdHash, uint8_t * nonce, uint32_t count, uint8_t * tag)
 {
     uint8_t hashbuf[32];
+    memset(hashbuf,0,sizeof(hashbuf));
     crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY, 0, hashbuf);
     crypto_sha256_update(rpIdHash, 32);
     crypto_sha256_update(nonce, CREDENTIAL_NONCE_SIZE);
@@ -441,6 +442,10 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     CTAP_authData * authData = (CTAP_authData *)auth_data_buf;
 
     uint8_t * cose_key_buf = auth_data_buf + sizeof(CTAP_authData);
+
+    // memset(&cose_key, 0, sizeof(CTAP_residentKey));
+    memset(&rk, 0, sizeof(CTAP_residentKey));
+    memset(&rk2, 0, sizeof(CTAP_residentKey));
 
     if((sizeof(CTAP_authDataHeader)) > *len)
     {
@@ -1210,10 +1215,10 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
         crypto_sha256_init();
         crypto_sha256_update(GA.rp.id, GA.rp.size);
-        crypto_sha256_final(((CTAP_authData *)auth_data_buf)->head.rpIdHash);
+        crypto_sha256_final(((CTAP_authDataHeader *)auth_data_buf)->rpIdHash);
 
-        ((CTAP_authData *)auth_data_buf)->head.flags = (1 << 0);
-        ((CTAP_authData *)auth_data_buf)->head.flags |= (1 << 2);
+        ((CTAP_authDataHeader *)auth_data_buf)->flags = (1 << 0);
+        ((CTAP_authDataHeader *)auth_data_buf)->flags |= (1 << 2);
     }
     else
 #endif
@@ -1222,8 +1227,8 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
         ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &auth_data_buf_sz, NULL);
         check_retr(ret);
 
-        ((CTAP_authData *)auth_data_buf)->head.flags &= ~(1 << 2);
-        ((CTAP_authData *)auth_data_buf)->head.flags |= (getAssertionState.user_verified << 2);
+        ((CTAP_authDataHeader *)auth_data_buf)->flags &= ~(1 << 2);
+        ((CTAP_authDataHeader *)auth_data_buf)->flags |= (getAssertionState.user_verified << 2);
 
         {
             unsigned int ext_encoder_buf_size = sizeof(auth_data_buf) - auth_data_buf_sz;
@@ -1233,7 +1238,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
             check_retr(ret);
             if (ext_encoder_buf_size)
             {
-                ((CTAP_authData *)auth_data_buf)->head.flags |= (1 << 7);
+                ((CTAP_authDataHeader *)auth_data_buf)->flags |= (1 << 7);
                 auth_data_buf_sz += ext_encoder_buf_size;
             }
         }
@@ -1566,6 +1571,7 @@ void ctap_response_init(CTAP_RESPONSE * resp)
 uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
 {
     CborEncoder encoder;
+    memset(&encoder,0,sizeof(CborEncoder));
     uint8_t status = 0;
     uint8_t cmd = *pkt_raw;
     pkt_raw++;
