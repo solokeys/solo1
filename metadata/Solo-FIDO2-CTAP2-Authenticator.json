@@ -21,6 +21,9 @@
     "userVerificationDetails": [
         [
             {
+                "userVerification": 1
+            },
+            {
                 "userVerification": 4
             }
         ]
