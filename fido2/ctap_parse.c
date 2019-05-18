@@ -929,7 +929,15 @@ uint8_t parse_credential_descriptor(CborValue * arr, CTAP_credentialDescriptor *
 
     buflen = sizeof(type);
     ret = cbor_value_copy_text_string(&val, type, &buflen, NULL);
-    check_ret(ret);
+    if (ret == CborErrorOutOfMemory)
+    {
+        cred->type = PUB_KEY_CRED_UNKNOWN;
+    }
+    else
+    {
+        check_ret(ret);
+    }
+
 
     if (strncmp(type, "public-key",11) == 0)
     {

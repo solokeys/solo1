@@ -622,6 +622,16 @@ class FIDO2Tests(Tester):
         )
 
         self.testMC(
+            "Send MC request with excludeList item with bogus type, expect SUCCESS",
+            cdh,
+            rp,
+            user,
+            key_params,
+            expectedError=CtapError.ERR.SUCCESS,
+            other={"exclude_list": [{"id": b"1234", "type": "mangoPapayaCoconutNotAPublicKey"}]},
+        )
+
+        self.testMC(
             "Send MC request with excludeList with bad item, expect error",
             cdh,
             rp,
