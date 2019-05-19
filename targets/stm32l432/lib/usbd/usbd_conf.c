@@ -50,6 +50,8 @@
 #include "stm32l4xx_hal.h"
 #include "usbd_core.h"
 #include "usbd_hid.h"
+#include "usbd_cdc.h"
+#include "usbd_ccid.h"
 
 void SystemClock_Config(void);
 
@@ -252,14 +254,18 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x80 , PCD_SNG_BUF, 0x58);
 
   // HID
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x01 , PCD_SNG_BUF, 0x98);
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x81 , PCD_SNG_BUF, 0xd8);
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , HID_EPOUT_ADDR , PCD_SNG_BUF, 0x98);
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , HID_EPIN_ADDR , PCD_SNG_BUF, 0xd8);
 
   // CDC / uart
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x02 , PCD_SNG_BUF, 0xd8 + 64);  // data OUT
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x82 , PCD_SNG_BUF, 0xd8 + 64*2);  // data IN
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x83 , PCD_SNG_BUF, 0xd8 + 64*3);  // commands
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CDC_OUT_EP , PCD_SNG_BUF, 0xd8 + 64);  // data OUT
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CDC_IN_EP , PCD_SNG_BUF, 0xd8 + 64*2);  // data IN
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CDC_CMD_EP , PCD_SNG_BUF, 0xd8 + 64*3);  // commands
 
+  // CCID
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CCID_OUT_EP , PCD_SNG_BUF, 0xd8 + 64*4);  // data OUT
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CCID_IN_EP , PCD_SNG_BUF, 0xd8 + 64*5);  // data IN
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CCID_CMD_EP , PCD_SNG_BUF, 0xd8 + 64*6);  // commands
 
   return USBD_OK;
 }

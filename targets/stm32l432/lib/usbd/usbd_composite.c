@@ -2,6 +2,7 @@
 #include "usbd_desc.h"
 #include "usbd_hid.h"
 #include "usbd_cdc.h"
+#include "usbd_ccid.h"
 #include "usbd_ctlreq.h"
 
 static uint8_t USBD_Composite_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx);
@@ -29,8 +30,8 @@ static uint8_t *USBD_Composite_GetDeviceQualifierDescriptor (uint16_t *length);
 #define NUM_INTERFACES                      3
 
 #if NUM_INTERFACES>2
-#define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (90)
-#if NUM_INTERFACES>1
+#define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (90 + 84)
+#elif NUM_INTERFACES>1
 #define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (90)
 #else
 #define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (41)
@@ -224,21 +225,21 @@ USB_DESC_TYPE_INTERFACE,		 /* bDescriptorType: Interface */
 /*Endpoint IN1 Descriptor*/
 7,			       /* bLength: Endpoint Descriptor size */
 USB_DESC_TYPE_ENDPOINT,	       /* bDescriptorType: Endpoint */
-0x81,				/* bEndpointAddress: (IN1) */
+CCID_IN_EP,				/* bEndpointAddress: (IN1) */
 0x02,				/* bmAttributes: Bulk */
 HID_FIDO_REPORT_DESC_SIZE, 0x00,      /* wMaxPacketSize: */
 0x00,				/* bInterval */
 /*Endpoint OUT1 Descriptor*/
 7,			       /* bLength: Endpoint Descriptor size */
 USB_DESC_TYPE_ENDPOINT,	       /* bDescriptorType: Endpoint */
-0x01,				/* bEndpointAddress: (OUT1) */
+CCID_OUT_EP,				/* bEndpointAddress: (OUT1) */
 0x02,				/* bmAttributes: Bulk */
 HID_FIDO_REPORT_DESC_SIZE, 0x00,	/* wMaxPacketSize: */
 0x00,				/* bInterval */
 /*Endpoint IN2 Descriptor*/
 7,			       /* bLength: Endpoint Descriptor size */
 USB_DESC_TYPE_ENDPOINT,	       /* bDescriptorType: Endpoint */
-0x82,				/* bEndpointAddress: (IN2) */
+CCID_CMD_EP,				/* bEndpointAddress: (IN2) */
 0x03,				/* bmAttributes: Interrupt */
 0x04, 0x00,			/* wMaxPacketSize: 4 */
 0xFF,				/* bInterval (255ms) */
