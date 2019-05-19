@@ -628,7 +628,11 @@ class FIDO2Tests(Tester):
             user,
             key_params,
             expectedError=CtapError.ERR.SUCCESS,
-            other={"exclude_list": [{"id": b"1234", "type": "mangoPapayaCoconutNotAPublicKey"}]},
+            other={
+                "exclude_list": [
+                    {"id": b"1234", "type": "mangoPapayaCoconutNotAPublicKey"}
+                ]
+            },
         )
 
         self.testMC(
