@@ -39,6 +39,7 @@ static uint8_t *USBD_Composite_GetDeviceQualifierDescriptor (uint16_t *length);
 
 #define HID_INTF_NUM                        0
 #define CDC_INTF_NUM                        1
+#define CCID_INTF_NUM                       2
 __ALIGN_BEGIN uint8_t COMPOSITE_CDC_HID_DESCRIPTOR[COMPOSITE_CDC_HID_DESCRIPTOR_SIZE] __ALIGN_END =
   {
   /*Configuration Descriptor*/
@@ -176,7 +177,7 @@ __ALIGN_BEGIN uint8_t COMPOSITE_CDC_HID_DESCRIPTOR[COMPOSITE_CDC_HID_DESCRIPTOR_
 /* CCID Interface Descriptor */
 9,			         /* bLength: Interface Descriptor size */
 USB_DESC_TYPE_INTERFACE,		 /* bDescriptorType: Interface */
-0,	         /* bInterfaceNumber: CCID Interface */
+CCID_INTF_NUM,	         /* bInterfaceNumber: CCID Interface */
 0,			         /* Alternate setting for this interface */
 3,			         /* bNumEndpoints: Bulk-IN, Bulk-OUT, Intr-IN */
 0x0B,               /* CCID class  */
@@ -273,19 +274,26 @@ int in_endpoint_to_class[MAX_ENDPOINTS];
 
 int out_endpoint_to_class[MAX_ENDPOINTS];
 
-void USBD_Composite_Set_Classes(USBD_ClassTypeDef *class0, USBD_ClassTypeDef *class1) {
+void USBD_Composite_Set_Classes(USBD_ClassTypeDef *class0, USBD_ClassTypeDef *class1, USBD_ClassTypeDef *class2)
+{
+    //Y
     USBD_Classes[0] = class0;
     USBD_Classes[1] = class1;
+    USBD_Classes[2] = class2;
+    //Y
 }
 
 static uint8_t USBD_Composite_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
     int i;
+
+    //N
+
     for(i = 0; i < NUM_INTERFACES; i++) {
         if (USBD_Classes[i]->Init(pdev, cfgidx) != USBD_OK) {
             return USBD_FAIL;
         }
     }
-
+    //N
     return USBD_OK;
 }
 
@@ -302,6 +310,7 @@ static uint8_t  USBD_Composite_DeInit (USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 
 static uint8_t USBD_Composite_Setup (USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req) {
     int i;
+    //N
     switch (req->bmRequest & USB_REQ_TYPE_MASK) {
         case USB_REQ_TYPE_CLASS :
             if (req->wIndex < NUM_INTERFACES)
@@ -363,16 +372,19 @@ static uint8_t USBD_Composite_EP0_RxReady (USBD_HandleTypeDef *pdev) {
 }
 
 static uint8_t  *USBD_Composite_GetFSCfgDesc (uint16_t *length) {
+    //Y
     *length = COMPOSITE_CDC_HID_DESCRIPTOR_SIZE;
     return COMPOSITE_CDC_HID_DESCRIPTOR;
 }
 
 static uint8_t  *USBD_Composite_GetHSCfgDesc (uint16_t *length) {
+    //N
     *length = COMPOSITE_CDC_HID_DESCRIPTOR_SIZE;
     return COMPOSITE_CDC_HID_DESCRIPTOR;
 }
 
 static uint8_t  *USBD_Composite_GetOtherSpeedCfgDesc (uint16_t *length) {
+
     *length = COMPOSITE_CDC_HID_DESCRIPTOR_SIZE;
     return COMPOSITE_CDC_HID_DESCRIPTOR;
 }
@@ -393,6 +405,7 @@ __ALIGN_BEGIN static uint8_t USBD_Composite_DeviceQualifierDesc[USB_LEN_DEV_QUAL
 };
 
 uint8_t  *USBD_Composite_GetDeviceQualifierDescriptor (uint16_t *length) {
-  *length = sizeof (USBD_Composite_DeviceQualifierDesc);
-  return USBD_Composite_DeviceQualifierDesc;
+    //N
+    *length = sizeof (USBD_Composite_DeviceQualifierDesc);
+    return USBD_Composite_DeviceQualifierDesc;
 }
