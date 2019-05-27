@@ -1987,5 +1987,5 @@ void ctap_reset()
     memset(PIN_CODE_HASH,0,sizeof(PIN_CODE_HASH));
     ctap_reset_key_agreement();
 
-    crypto_reset_master_secret();
+    crypto_load_master_secret(STATE.key_space);
 }
