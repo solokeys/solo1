@@ -32,7 +32,7 @@ USBD_ClassTypeDef  USBD_CCID =
   NULL,                 /* EP0_TxSent, */
   USBD_CCID_EP0_RxReady,
   USBD_CCID_DataIn,
-  USBD_CCID_DataOut,
+  usb_ccid_recieve_callback,
   NULL,
   NULL,
   NULL,
@@ -259,7 +259,7 @@ void ccid_send_status(CCID_HEADER * c)
     memset(msg,0,sizeof(msg));
 
     msg[0] = CCID_SLOT_STATUS_RES;
-    msg[6] = c->seq;
+    msg[6] = 1;
 
     USBD_CCID_TransmitPacket(msg, sizeof(msg));
 
@@ -277,6 +277,12 @@ void handle_ccid(uint8_t * msg, int len)
             ccid_send_status(h);
         break;
         default:
+            // while(1)
+            // {
+            //     led_rgb(0xff3520);
+            // }
+            //Y
+            ccid_send_status(h);
         break;
     }
 }
@@ -288,12 +294,9 @@ void handle_ccid(uint8_t * msg, int len)
   * @param  epnum: endpoint number
   * @retval status
   */
-static uint8_t  USBD_CCID_DataOut (USBD_HandleTypeDef *pdev, uint8_t epnum)
+uint8_t usb_ccid_recieve_callback(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-    while(1)
-    {
-        led_rgb(0xff3520);
-    }
+
     USBD_CCID_HandleTypeDef *hcdc = (USBD_CCID_HandleTypeDef*) pdev->pClassData;
 
     /* Get the received data length */
@@ -312,9 +315,17 @@ static uint8_t  USBD_CCID_DataOut (USBD_HandleTypeDef *pdev, uint8_t epnum)
     }
     else
     {
+
+
+        while(1)
+            {
+                led_rgb(0xff3520);
+            }
+
         return USBD_FAIL;
     }
 }
+
 
 /**
   * @brief  USBD_CDC_EP0_RxReady
@@ -326,9 +337,9 @@ static uint8_t  USBD_CCID_EP0_RxReady (USBD_HandleTypeDef *pdev)
 {
     USBD_CCID_HandleTypeDef   *hcdc = (USBD_CCID_HandleTypeDef*) pdev->pClassData;
 
-    if((pdev->pUserData != NULL) && (hcdc->CmdOpCode != 0xFFU))
-    {
-        hcdc->CmdOpCode = 0xFFU;
-    }
+    // if((pdev->pUserData != NULL) && (hcdc->CmdOpCode != 0xFFU))
+    // {
+    //     hcdc->CmdOpCode = 0xFFU;
+    // }
     return USBD_OK;
 }

@@ -38,4 +38,6 @@ typedef struct
 }
 USBD_CCID_HandleTypeDef;
 
+uint8_t usb_ccid_recieve_callback(USBD_HandleTypeDef *pdev, uint8_t epnum);
+
 #endif

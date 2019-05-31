@@ -119,8 +119,11 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
   USBD_LL_DataOutStage((USBD_HandleTypeDef*)hpcd->pData, epnum, hpcd->OUT_ep[epnum].xfer_buff);
   switch(epnum)
   {
-      case HID_ENDPOINT:
+      case HID_EPOUT_ADDR:
         usb_hid_recieve_callback(epnum);
+      break;
+      case CCID_OUT_EP:
+        usb_ccid_recieve_callback((USBD_HandleTypeDef*)hpcd->pData, epnum);
       break;
   }
 }
