@@ -1,4 +1,4 @@
-import time, struct
+import time, struct, sys
 
 from fido2.hid import CtapHidDevice
 from fido2.client import Fido2Client
@@ -68,6 +68,8 @@ class Tester:
         dev = next(CtapHidDevice.list_devices(), None)
         if not dev:
             try:
+                if 'pyscard' not in sys.modules:
+                    print('You have not installed pyscard module')
                 from fido2.nfc import CtapNfcDevice
                 print("--- NFC ---")
                 print(list(CtapNfcDevice.list_devices()))
