@@ -63,8 +63,17 @@ class Tester:
         self.client = tester.client
 
     def find_device(self,):
+        print("--- HID ---")
         print(list(CtapHidDevice.list_devices()))
         dev = next(CtapHidDevice.list_devices(), None)
+        if not dev:
+            try:
+                from fido2.nfc import CtapNfcDevice
+                print("--- NFC ---")
+                print(list(CtapNfcDevice.list_devices()))
+                dev = next(CtapNfcDevice.list_devices(), None)
+            except:
+                print("NFC devices is not supported")
         if not dev:
             raise RuntimeError("No FIDO device found")
         self.dev = dev
