@@ -69,6 +69,7 @@ class Tester:
         if not dev:
             try:
                 from fido2.pcsc import CtapPcscDevice
+
                 print("--- NFC ---")
                 print(list(CtapPcscDevice.list_devices()))
                 dev = next(CtapPcscDevice.list_devices(), None)
