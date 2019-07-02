@@ -68,14 +68,12 @@ class Tester:
         dev = next(CtapHidDevice.list_devices(), None)
         if not dev:
             try:
-                from fido2.nfc import CtapNfcDevice
+                from fido2.pcsc import CtapPcscDevice
                 print("--- NFC ---")
-                print(list(CtapNfcDevice.list_devices()))
-                dev = next(CtapNfcDevice.list_devices(), None)
-            except ModuleNotFoundError:
+                print(list(CtapPcscDevice.list_devices()))
+                dev = next(CtapPcscDevice.list_devices(), None)
+            except (ModuleNotFoundError, ImportError) as e:
                 print("One of NFC library is not installed properly.")
-            except Exception as e:
-                print("NFC devices is not supported", e, e.__class__.__name__)
         if not dev:
             raise RuntimeError("No FIDO device found")
         self.dev = dev
