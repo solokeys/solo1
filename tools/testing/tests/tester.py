@@ -68,14 +68,14 @@ class Tester:
         dev = next(CtapHidDevice.list_devices(), None)
         if not dev:
             try:
-                if 'pyscard' not in sys.modules:
-                    print('You have not installed pyscard module')
                 from fido2.nfc import CtapNfcDevice
                 print("--- NFC ---")
                 print(list(CtapNfcDevice.list_devices()))
                 dev = next(CtapNfcDevice.list_devices(), None)
-            except:
-                print("NFC devices is not supported")
+            except ModuleNotFoundError:
+                print("One of NFC library is not installed properly.")
+            except Exception as e:
+                print("NFC devices is not supported", e, e.__class__.__name__)
         if not dev:
             raise RuntimeError("No FIDO device found")
         self.dev = dev
