@@ -78,7 +78,7 @@ def TestCborKeysSorted(cbor_obj):
     # https://fidoalliance.org/specs/fido-v2.0-ps-20190130/fido-client-to-authenticator-protocol-v2.0-ps-20190130.html#ctap2-canonical-cbor-encoding-form
 
     if isinstance(cbor_obj, bytes):
-        cbor_obj = cbor.loads(cbor_obj)[0]
+        cbor_obj = cbor.decode_from(cbor_obj)[0]
 
     if isinstance(cbor_obj, dict):
         l = [x for x in cbor_obj]
@@ -341,8 +341,8 @@ class FIDO2Tests(Tester):
     def test_get_info(self,):
         with Test("Get info"):
             info = self.ctap.get_info()
-            print(bytes(info))
-            print(cbor.loads(bytes(info)))
+            print("data:", bytes(info))
+            print("decoded:", cbor.decode_from(bytes(info)))
 
         with Test("Check FIDO2 string is in VERSIONS field"):
             assert "FIDO_2_0" in info.versions
