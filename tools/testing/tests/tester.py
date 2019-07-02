@@ -1,4 +1,4 @@
-import time, struct, sys
+import time, struct
 
 from fido2.hid import CtapHidDevice
 from fido2.client import Fido2Client
