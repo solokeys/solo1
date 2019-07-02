@@ -72,7 +72,7 @@ class Tester:
                 print("--- NFC ---")
                 print(list(CtapPcscDevice.list_devices()))
                 dev = next(CtapPcscDevice.list_devices(), None)
-            except (ModuleNotFoundError, ImportError) as e:
+            except (ModuleNotFoundError, ImportError):
                 print("One of NFC library is not installed properly.")
         if not dev:
             raise RuntimeError("No FIDO device found")
