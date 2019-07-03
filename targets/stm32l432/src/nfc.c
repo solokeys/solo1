@@ -435,24 +435,27 @@ int select_applet(uint8_t * aid, int len)
 
 void nfc_process_iblock(uint8_t * buf, int len)
 {
-    APDU_HEADER * apdu = (APDU_HEADER *)(buf + 1);
-    uint8_t * payload = buf + 1 + 5;
-    uint8_t plen = apdu->lc;
     int selected;
     CTAP_RESPONSE ctap_resp;
     int status;
+    
+    APDU_STRUCT apdu;
+    apdu_decode(buf + 1, len - 1, &apdu);
+    uint16_t plen = apdu.lc;
+    //APDU_HEADER * apdu = (APDU_HEADER *)(buf + 1);
+    //uint8_t * payload = buf + 1 + 5;            ---- apdu.data
 
     printf1(TAG_NFC,"Iblock: ");
 	dump_hex1(TAG_NFC, buf, len);
 
     // TODO this needs to be organized better
-    switch(apdu->ins)
+    switch(apdu.ins)
     {
         case APDU_INS_SELECT:
             if (plen > len - 6)
             {
-                printf1(TAG_ERR, "Truncating APDU length %d\r\n", apdu->lc);
-                plen = len-6;
+                printf1(TAG_ERR, "Truncating APDU length %d\r\n", apdu.lc);
+                plen = len - 6;
             }
             // if (apdu->p1 == 0 && apdu->p2 == 0x0c)
             // {
@@ -468,7 +471,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
             // }
             // else
             {
-                selected = select_applet(payload, plen);
+                selected = select_applet(apdu.data, apdu.lc);
                 if (selected == APP_FIDO)
                 {
                     // block = buf[0] & 1;
@@ -487,7 +490,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
                 else
                 {
 					nfc_write_response(buf[0], SW_FILE_NOT_FOUND);
-                    printf1(TAG_NFC, "NOT selected\r\n"); dump_hex1(TAG_NFC,payload, plen);
+                    printf1(TAG_NFC, "NOT selected\r\n"); dump_hex1(TAG_NFC, apdu.data, apdu.lc);
                 }
             }
         break;
@@ -511,9 +514,9 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			printf1(TAG_NFC, "U2F Register command.\r\n");
 
-			if (plen != 64)
+			if (apdu.lc != 64)
 			{
-				printf1(TAG_NFC, "U2F Register request length error. len=%d.\r\n", plen);
+				printf1(TAG_NFC, "U2F Register request length error. len=%d.\r\n", apdu.lc);
 				nfc_write_response(buf[0], SW_WRONG_LENGTH);
 				return;
 			}
@@ -535,9 +538,6 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			// printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
 
-
-
-
             printf1(TAG_NFC,"U2F Register answered %d (took %d)\r\n", millis(), timestamp());
        break;
 
@@ -549,10 +549,10 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			printf1(TAG_NFC, "U2F Authenticate command.\r\n");
 
-			if (plen != 64 + 1 + buf[6 + 64])
+			if (apdu.lc != 64 + 1 + buf[6 + 64])
 			{
 				delay(5);
-				printf1(TAG_NFC, "U2F Authenticate request length error. len=%d keyhlen=%d.\r\n", plen, buf[6 + 64]);
+				printf1(TAG_NFC, "U2F Authenticate request length error. len=%d keyhlen=%d.\r\n", apdu.lc, buf[6 + 64]);
 				nfc_write_response(buf[0], SW_WRONG_LENGTH);
 				return;
 			}
@@ -579,7 +579,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			WTX_on(WTX_TIME_DEFAULT);
             ctap_response_init(&ctap_resp);
-            status = ctap_request(payload, plen, &ctap_resp);
+            status = ctap_request(apdu.data, apdu.lc, &ctap_resp);
 			if (!WTX_off())
 				return;
 
@@ -603,14 +603,13 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
         case APDU_INS_READ_BINARY:
 
-
             switch(NFC_STATE.selected_applet)
             {
                 case APP_CAPABILITY_CONTAINER:
                     printf1(TAG_NFC,"APP_CAPABILITY_CONTAINER\r\n");
                     if (plen > 15)
                     {
-                        printf1(TAG_ERR, "Truncating requested CC length %d\r\n", apdu->lc);
+                        printf1(TAG_ERR, "Truncating requested CC length %d\r\n", apdu.lc);
                         plen = 15;
                     }
                     nfc_write_response_ex(buf[0], (uint8_t *)&NFC_CC, plen, SW_SUCCESS);
@@ -620,7 +619,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
                     printf1(TAG_NFC,"APP_NDEF_TAG\r\n");
                     if (plen > (sizeof(NDEF_SAMPLE) -  1))
                     {
-                        printf1(TAG_ERR, "Truncating requested CC length %d\r\n", apdu->lc);
+                        printf1(TAG_ERR, "Truncating requested CC length %d\r\n", apdu.lc);
                         plen = sizeof(NDEF_SAMPLE) -  1;
                     }
                     nfc_write_response_ex(buf[0], NDEF_SAMPLE, plen, SW_SUCCESS);
@@ -634,7 +633,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
         break;
         default:
-            printf1(TAG_NFC, "Unknown INS %02x\r\n", apdu->ins);
+            printf1(TAG_NFC, "Unknown INS %02x\r\n", apdu.ins);
 			nfc_write_response(buf[0], SW_INS_INVALID);
         break;
     }
