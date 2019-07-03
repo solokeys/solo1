@@ -19,7 +19,9 @@ from tests import Tester, FIDO2Tests, U2FTests, HIDTests, SoloTests
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: %s [sim] <[u2f]|[fido2]|[rk]|[hid]|[ping]>")
+        print("Usage: %s [sim] [nfc] <[u2f]|[fido2]|[rk]|[hid]|[ping]>")
+        print("    sim - test via UDP simulation backend only")
+        print("    nfc - test via NFC interface only")
         sys.exit(0)
 
     t = Tester()
@@ -31,7 +33,11 @@ if __name__ == "__main__":
         t.set_sim(True)
         t.set_user_count(10)
 
-    t.find_device()
+    nfcOnly = False
+    if "nfc" in sys.argv:
+        nfcOnly = True
+
+    t.find_device(nfcOnly)
 
     if "solo" in sys.argv:
         SoloTests(t).run()
