@@ -62,10 +62,13 @@ class Tester:
         self.ctap1 = tester.ctap1
         self.client = tester.client
 
-    def find_device(self,):
-        print("--- HID ---")
-        print(list(CtapHidDevice.list_devices()))
-        dev = next(CtapHidDevice.list_devices(), None)
+    def find_device(self, nfcInterfaceOnly = False):
+        dev = None
+        if not nfcInterfaceOnly:
+            print("--- HID ---")
+            print(list(CtapHidDevice.list_devices()))
+            dev = next(CtapHidDevice.list_devices(), None)
+
         if not dev:
             try:
                 from fido2.pcsc import CtapPcscDevice
