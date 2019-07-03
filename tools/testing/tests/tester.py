@@ -62,7 +62,7 @@ class Tester:
         self.ctap1 = tester.ctap1
         self.client = tester.client
 
-    def find_device(self, nfcInterfaceOnly = False):
+    def find_device(self, nfcInterfaceOnly=False):
         dev = None
         if not nfcInterfaceOnly:
             print("--- HID ---")
