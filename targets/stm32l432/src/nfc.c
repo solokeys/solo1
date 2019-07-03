@@ -385,25 +385,47 @@ void rblock_acknowledge()
     nfc_write_frame(buf,1);
 }
 
+// international AID = RID:PIX
+// RID length == 5 bytes
+// usually aid length must be between 5 and 16 bytes
+int applet_cmp(uint8_t * aid, int len, uint8_t * const_aid, int const_len)
+{
+    if (len > const_len)
+        return 10;
+    
+    // if international AID
+    if (const_aid[0] & 0xf0 == 0xa0)
+    {
+        if (len < 5)
+            return 11;
+        return memcmp(aid, const_aid, MIN(len, const_len));
+    } else {
+        if (len != const_len)
+            return 11;
+        
+        return memcmp(aid, const_aid, const_len);
+    }
+}
+
 // Selects application.  Returns 1 if success, 0 otherwise
 int select_applet(uint8_t * aid, int len)
 {
-    if (memcmp(aid,AID_FIDO,sizeof(AID_FIDO)) == 0)
+    if (applet_cmp(aid, len, AID_FIDO, sizeof(AID_FIDO) - 1) == 0)
     {
         NFC_STATE.selected_applet = APP_FIDO;
         return APP_FIDO;
     }
-    else if (memcmp(aid,AID_NDEF_TYPE_4,sizeof(AID_NDEF_TYPE_4)) == 0)
+    else if (applet_cmp(aid, len, AID_NDEF_TYPE_4, sizeof(AID_NDEF_TYPE_4) - 1) == 0)
     {
         NFC_STATE.selected_applet = APP_NDEF_TYPE_4;
         return APP_NDEF_TYPE_4;
     }
-    else if (memcmp(aid,AID_CAPABILITY_CONTAINER,sizeof(AID_CAPABILITY_CONTAINER)) == 0)
+    else if (applet_cmp(aid, len, AID_CAPABILITY_CONTAINER, sizeof(AID_CAPABILITY_CONTAINER) - 1) == 0)
     {
         NFC_STATE.selected_applet = APP_CAPABILITY_CONTAINER;
         return APP_CAPABILITY_CONTAINER;
     }
-    else if (memcmp(aid,AID_NDEF_TAG,sizeof(AID_NDEF_TAG)) == 0)
+    else if (applet_cmp(aid, len, AID_NDEF_TAG, sizeof(AID_NDEF_TAG) - 1) == 0)
     {
         NFC_STATE.selected_applet = APP_NDEF_TAG;
         return APP_NDEF_TAG;
