@@ -457,11 +457,11 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
     APDU_STRUCT apdu;
     if (apdu_decode(buf + block_offset, len - block_offset, &apdu)) {
-        printf1(TAG_NFC,"apdu decode error\n");
+        printf1(TAG_NFC,"apdu decode error\r\n");
         nfc_write_response(buf[0], SW_COND_USE_NOT_SATISFIED);
         return;
     }
-    printf1(TAG_NFC,"apdu ok. %scase=%02x cla=%02x ins=%02x p1=%02x p2=%02x lc=%d le=%d\n", 
+    printf1(TAG_NFC,"apdu ok. %scase=%02x cla=%02x ins=%02x p1=%02x p2=%02x lc=%d le=%d\r\n", 
         apdu.extended_apdu ? "[e]":"", apdu.case_type, apdu.cla, apdu.ins, apdu.p1, apdu.p2, apdu.lc, apdu.le);
 
     // TODO this needs to be organized better
@@ -485,11 +485,6 @@ void nfc_process_iblock(uint8_t * buf, int len)
                 selected = select_applet(apdu.data, apdu.lc);
                 if (selected == APP_FIDO)
                 {
-                    // block = buf[0] & 1;
-                    // block = NFC_STATE.block_num;
-                    // block = !block;
-                    // NFC_STATE.block_num = block;
-                    // NFC_STATE.block_num = block;
 					nfc_write_response_ex(buf[0], (uint8_t *)"U2F_V2", 6, SW_SUCCESS);
 					printf1(TAG_NFC, "FIDO applet selected.\r\n");
                }
@@ -501,7 +496,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
                 else
                 {
 					nfc_write_response(buf[0], SW_FILE_NOT_FOUND);
-                    printf1(TAG_NFC, "NOT selected\r\n"); dump_hex1(TAG_NFC, apdu.data, apdu.lc);
+                    printf1(TAG_NFC, "NOT selected "); dump_hex1(TAG_NFC, apdu.data, apdu.lc);
                 }
             }
         break;

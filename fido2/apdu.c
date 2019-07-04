@@ -33,7 +33,7 @@ int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu)
     }
     
      // case 2S (Le)
-    if (len == 5 && b0 != 0)
+    if (len == 5)
     {
         apdu->case_type = 0x02;
         apdu->le = b0;
@@ -108,9 +108,9 @@ int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu)
     {
         if (apdu->extended_apdu)
         {
-            apdu->data = data + 5;
-        } else {
             apdu->data = data + 7;
+        } else {
+            apdu->data = data + 5;
         }
         
     }   
