@@ -440,11 +440,23 @@ void nfc_process_iblock(uint8_t * buf, int len)
     int status;
     uint16_t reslen;
     
-    APDU_STRUCT apdu;
-    apdu_decode(buf + 1, len - 1, &apdu);
-
     printf1(TAG_NFC,"Iblock: ");
 	dump_hex1(TAG_NFC, buf, len);
+
+    uint8_t apdu_offset = 1;
+    // NAD following
+    if (buf[0] & 0x04) apdu_offset++;
+    // CID following
+    if (buf[0] & 0x08) apdu_offset++;
+
+    APDU_STRUCT apdu;
+    if (apdu_decode(buf + apdu_offset, len - apdu_offset, &apdu)) {
+        printf1(TAG_NFC,"apdu decode error\n");
+        nfc_write_response(buf[0], SW_COND_USE_NOT_SATISFIED);
+        return;
+    }
+    printf1(TAG_NFC,"apdu ok. %scase=%02x cla=%02x ins=%02x p1=%02x p2=%02x lc=%d le=%d\n", 
+        apdu.extended_apdu ? "[e]":"", apdu.case_type, apdu.cla, apdu.ins, apdu.p1, apdu.p2, apdu.lc, apdu.le);
 
     // TODO this needs to be organized better
     switch(apdu.ins)

@@ -44,8 +44,8 @@ int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu)
     // case 3S (Lc + data)
     if (len == 5U + b0 && b0 != 0)
     {
-        apdu->case_type = 0x13;
-        apdu->lc = (hapdu->lc[1] << 8) + hapdu->lc[2];
+        apdu->case_type = 0x03;
+        apdu->lc = b0;
     }
     
     // case 4S (Lc + data + Le)
