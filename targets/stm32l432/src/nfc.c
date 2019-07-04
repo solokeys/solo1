@@ -555,7 +555,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
             // SystemClock_Config_LF32();
             // delay(300);
             if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
-			u2f_request_nfc(&buf[block_offset], len - block_offset, &ctap_resp);
+			u2f_request_nfc(&buf[block_offset], apdu.data, apdu.lc, &ctap_resp);
             if (device_is_nfc() == NFC_IS_ACTIVE)  device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
 			// if (!WTX_off())
 			// 	return;
@@ -585,7 +585,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			timestamp();
 			// WTX_on(WTX_TIME_DEFAULT);
-			u2f_request_nfc(&buf[block_offset], len - block_offset, &ctap_resp);
+			u2f_request_nfc(&buf[block_offset], apdu.data, apdu.lc, &ctap_resp);
 			// if (!WTX_off())
 			// 	return;
 
@@ -604,8 +604,10 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			printf1(TAG_NFC, "FIDO2 CTAP message. %d\r\n", timestamp());
 
 			WTX_on(WTX_TIME_DEFAULT);
+            request_from_nfc(true);
             ctap_response_init(&ctap_resp);
             status = ctap_request(apdu.data, apdu.lc, &ctap_resp);
+            request_from_nfc(false);
 			if (!WTX_off())
 				return;
 

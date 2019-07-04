@@ -101,7 +101,7 @@ void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp);
 // u2f_request send a U2F message to NFC protocol
 // @req data with iso7816 apdu message
 // @len data length
-void u2f_request_nfc(uint8_t * req, int len, CTAP_RESPONSE * resp);
+void u2f_request_nfc(uint8_t * header, uint8_t * data, int datalen, CTAP_RESPONSE * resp);
 
 int8_t u2f_authenticate_credential(struct u2f_key_handle * kh, uint8_t * appid);
 
