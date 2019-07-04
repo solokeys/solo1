@@ -14,6 +14,16 @@
 
 #define IS_IRQ_ACTIVE()         (1  == (LL_GPIO_ReadInputPort(SOLO_AMS_IRQ_PORT) & SOLO_AMS_IRQ_PIN))
 
+uint8_t p14443_block_offset(uint8_t pcb) {
+    uint8_t offset = 1;
+    // NAD following
+    if (pcb & 0x04) offset++;
+    // CID following
+    if (pcb & 0x08) offset++;
+    
+    return offset;
+}
+
 // Capability container
 const CAPABILITY_CONTAINER NFC_CC = {
     .cclen_hi = 0x00, .cclen_lo = 0x0f,
@@ -443,14 +453,10 @@ void nfc_process_iblock(uint8_t * buf, int len)
     printf1(TAG_NFC,"Iblock: ");
 	dump_hex1(TAG_NFC, buf, len);
 
-    uint8_t apdu_offset = 1;
-    // NAD following
-    if (buf[0] & 0x04) apdu_offset++;
-    // CID following
-    if (buf[0] & 0x08) apdu_offset++;
+    uint8_t block_offset = p14443_block_offset(buf[0]);
 
     APDU_STRUCT apdu;
-    if (apdu_decode(buf + apdu_offset, len - apdu_offset, &apdu)) {
+    if (apdu_decode(buf + block_offset, len - block_offset, &apdu)) {
         printf1(TAG_NFC,"apdu decode error\n");
         nfc_write_response(buf[0], SW_COND_USE_NOT_SATISFIED);
         return;
