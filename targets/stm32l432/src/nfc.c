@@ -575,10 +575,10 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			printf1(TAG_NFC, "U2F Authenticate command.\r\n");
 
-			if (apdu.lc != 64 + 1 + buf[6 + 64])
+			if (apdu.lc != 64 + 1 + apdu.data[64])
 			{
 				delay(5);
-				printf1(TAG_NFC, "U2F Authenticate request length error. len=%d keyhlen=%d.\r\n", apdu.lc, buf[6 + 64]);
+				printf1(TAG_NFC, "U2F Authenticate request length error. len=%d keyhlen=%d.\r\n", apdu.lc, apdu.data[64]);
 				nfc_write_response(buf[0], SW_WRONG_LENGTH);
 				return;
 			}
