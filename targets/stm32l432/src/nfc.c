@@ -394,7 +394,7 @@ int applet_cmp(uint8_t * aid, int len, uint8_t * const_aid, int const_len)
         return 10;
     
     // if international AID
-    if (const_aid[0] & 0xf0 == 0xa0)
+    if ((const_aid[0] & 0xf0) == 0xa0)
     {
         if (len < 5)
             return 11;
@@ -410,22 +410,22 @@ int applet_cmp(uint8_t * aid, int len, uint8_t * const_aid, int const_len)
 // Selects application.  Returns 1 if success, 0 otherwise
 int select_applet(uint8_t * aid, int len)
 {
-    if (applet_cmp(aid, len, AID_FIDO, sizeof(AID_FIDO) - 1) == 0)
+    if (applet_cmp(aid, len, (uint8_t *)AID_FIDO, sizeof(AID_FIDO) - 1) == 0)
     {
         NFC_STATE.selected_applet = APP_FIDO;
         return APP_FIDO;
     }
-    else if (applet_cmp(aid, len, AID_NDEF_TYPE_4, sizeof(AID_NDEF_TYPE_4) - 1) == 0)
+    else if (applet_cmp(aid, len, (uint8_t *)AID_NDEF_TYPE_4, sizeof(AID_NDEF_TYPE_4) - 1) == 0)
     {
         NFC_STATE.selected_applet = APP_NDEF_TYPE_4;
         return APP_NDEF_TYPE_4;
     }
-    else if (applet_cmp(aid, len, AID_CAPABILITY_CONTAINER, sizeof(AID_CAPABILITY_CONTAINER) - 1) == 0)
+    else if (applet_cmp(aid, len, (uint8_t *)AID_CAPABILITY_CONTAINER, sizeof(AID_CAPABILITY_CONTAINER) - 1) == 0)
     {
         NFC_STATE.selected_applet = APP_CAPABILITY_CONTAINER;
         return APP_CAPABILITY_CONTAINER;
     }
-    else if (applet_cmp(aid, len, AID_NDEF_TAG, sizeof(AID_NDEF_TAG) - 1) == 0)
+    else if (applet_cmp(aid, len, (uint8_t *)AID_NDEF_TAG, sizeof(AID_NDEF_TAG) - 1) == 0)
     {
         NFC_STATE.selected_applet = APP_NDEF_TAG;
         return APP_NDEF_TAG;
@@ -438,12 +438,10 @@ void nfc_process_iblock(uint8_t * buf, int len)
     int selected;
     CTAP_RESPONSE ctap_resp;
     int status;
+    uint16_t reslen;
     
     APDU_STRUCT apdu;
     apdu_decode(buf + 1, len - 1, &apdu);
-    uint16_t plen = apdu.lc;
-    //APDU_HEADER * apdu = (APDU_HEADER *)(buf + 1);
-    //uint8_t * payload = buf + 1 + 5;            ---- apdu.data
 
     printf1(TAG_NFC,"Iblock: ");
 	dump_hex1(TAG_NFC, buf, len);
@@ -452,11 +450,6 @@ void nfc_process_iblock(uint8_t * buf, int len)
     switch(apdu.ins)
     {
         case APDU_INS_SELECT:
-            if (plen > len - 6)
-            {
-                printf1(TAG_ERR, "Truncating APDU length %d\r\n", apdu.lc);
-                plen = len - 6;
-            }
             // if (apdu->p1 == 0 && apdu->p2 == 0x0c)
             // {
             //     printf1(TAG_NFC,"Select NDEF\r\n");
@@ -527,9 +520,9 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			// WTX_on(WTX_TIME_DEFAULT);
             // SystemClock_Config_LF32();
             // delay(300);
-            if (device_is_nfc()) device_set_clock_rate(DEVICE_LOW_POWER_FAST);;
+            if (device_is_nfc()) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
 			u2f_request_nfc(&buf[1], len, &ctap_resp);
-            if (device_is_nfc())  device_set_clock_rate(DEVICE_LOW_POWER_IDLE);;
+            if (device_is_nfc())  device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
 			// if (!WTX_off())
 			// 	return;
 
@@ -572,7 +565,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
         case APDU_FIDO_NFCCTAP_MSG:
 			if (NFC_STATE.selected_applet != APP_FIDO) {
 				nfc_write_response(buf[0], SW_INS_INVALID);
-				break;
+				return;
 			}
 
 			printf1(TAG_NFC, "FIDO2 CTAP message. %d\r\n", timestamp());
@@ -602,36 +595,32 @@ void nfc_process_iblock(uint8_t * buf, int len)
         break;
 
         case APDU_INS_READ_BINARY:
-
+            // response length
+            reslen = apdu.le & 0xffff; 
             switch(NFC_STATE.selected_applet)
             {
                 case APP_CAPABILITY_CONTAINER:
                     printf1(TAG_NFC,"APP_CAPABILITY_CONTAINER\r\n");
-                    if (plen > 15)
-                    {
-                        printf1(TAG_ERR, "Truncating requested CC length %d\r\n", apdu.lc);
-                        plen = 15;
-                    }
-                    nfc_write_response_ex(buf[0], (uint8_t *)&NFC_CC, plen, SW_SUCCESS);
+                    if (reslen == 0 || reslen > sizeof(NFC_CC) - 1)
+                        reslen = sizeof(NFC_CC) - 1;
+                    nfc_write_response_ex(buf[0], (uint8_t *)&NFC_CC, reslen, SW_SUCCESS);
                     ams_wait_for_tx(10);
                 break;
                 case APP_NDEF_TAG:
                     printf1(TAG_NFC,"APP_NDEF_TAG\r\n");
-                    if (plen > (sizeof(NDEF_SAMPLE) -  1))
-                    {
-                        printf1(TAG_ERR, "Truncating requested CC length %d\r\n", apdu.lc);
-                        plen = sizeof(NDEF_SAMPLE) -  1;
-                    }
-                    nfc_write_response_ex(buf[0], NDEF_SAMPLE, plen, SW_SUCCESS);
+                    if (reslen == 0 || reslen > sizeof(NDEF_SAMPLE) - 1)
+                        reslen = sizeof(NDEF_SAMPLE) - 1;
+                    nfc_write_response_ex(buf[0], NDEF_SAMPLE, reslen, SW_SUCCESS);
                     ams_wait_for_tx(10);
                 break;
                 default:
+                    nfc_write_response(buf[0], SW_FILE_NOT_FOUND);
                     printf1(TAG_ERR, "No binary applet selected!\r\n");
                     return;
                 break;
             }
-
         break;
+        
         default:
             printf1(TAG_NFC, "Unknown INS %02x\r\n", apdu.ins);
 			nfc_write_response(buf[0], SW_INS_INVALID);
