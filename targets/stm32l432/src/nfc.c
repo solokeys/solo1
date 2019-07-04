@@ -554,16 +554,15 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			// WTX_on(WTX_TIME_DEFAULT);
             // SystemClock_Config_LF32();
             // delay(300);
-            if (device_is_nfc()) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
-			u2f_request_nfc(&buf[1], len, &ctap_resp);
-            if (device_is_nfc())  device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
+            if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
+			u2f_request_nfc(&buf[block_offset], len - block_offset, &ctap_resp);
+            if (device_is_nfc() == NFC_IS_ACTIVE)  device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
 			// if (!WTX_off())
 			// 	return;
 
+			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Register P2 took %d\r\n", timestamp());
             nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
-
-			// printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
 
             printf1(TAG_NFC,"U2F Register answered %d (took %d)\r\n", millis(), timestamp());
        break;
@@ -586,7 +585,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			timestamp();
 			// WTX_on(WTX_TIME_DEFAULT);
-			u2f_request_nfc(&buf[1], len, &ctap_resp);
+			u2f_request_nfc(&buf[block_offset], len - block_offset, &ctap_resp);
 			// if (!WTX_off())
 			// 	return;
 
