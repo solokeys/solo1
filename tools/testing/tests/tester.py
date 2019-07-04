@@ -51,6 +51,7 @@ class Tester:
         self.host = "examplo.org"
         self.user_count = 10
         self.is_sim = False
+        self.nfc_interface_only = False;
         if tester:
             self.initFromTester(tester)
 
@@ -61,9 +62,11 @@ class Tester:
         self.ctap = tester.ctap
         self.ctap1 = tester.ctap1
         self.client = tester.client
+        self.nfc_interface_only = tester.nfc_interface_only
 
     def find_device(self, nfcInterfaceOnly=False):
         dev = None
+        self.nfc_interface_only = nfcInterfaceOnly
         if not nfcInterfaceOnly:
             print("--- HID ---")
             print(list(CtapHidDevice.list_devices()))
@@ -102,7 +105,7 @@ class Tester:
         else:
             print("Please reboot authentictor and hit enter")
             input()
-            self.find_device()
+            self.find_device(self.nfc_interface_only)
 
     def send_data(self, cmd, data):
         if not isinstance(data, bytes):
@@ -196,7 +199,7 @@ class Tester:
             print("You must power cycle authentictor.  Hit enter when done.")
             input()
             time.sleep(0.2)
-            self.find_device()
+            self.find_device(self.nfc_interface_only)
             self.ctap.reset()
 
     def testMC(self, test, *args, **kwargs):
