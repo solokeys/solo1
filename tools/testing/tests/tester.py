@@ -51,7 +51,7 @@ class Tester:
         self.host = "examplo.org"
         self.user_count = 10
         self.is_sim = False
-        self.nfc_interface_only = False;
+        self.nfc_interface_only = False
         if tester:
             self.initFromTester(tester)
 
