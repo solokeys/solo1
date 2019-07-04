@@ -51,6 +51,7 @@ extern int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu);
 #define SW_COND_USE_NOT_SATISFIED     0x6985
 #define SW_FILE_NOT_FOUND             0x6a82
 #define SW_INS_INVALID                0x6d00  // Instruction code not supported or invalid
+#define SW_CLA_INVALID                0x6e00  
 #define SW_INTERNAL_EXCEPTION         0x6f00
 
 #endif //_APDU_H_
