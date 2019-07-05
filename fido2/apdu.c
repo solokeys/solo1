@@ -77,6 +77,7 @@ int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu)
        if (len == 7U + extlen)
         {
             apdu->case_type = 0x13;
+            apdu->extended_apdu = true;
             apdu->lc = extlen;
         }
 
@@ -84,6 +85,7 @@ int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu)
        if (len == 7U + extlen + 2U)
         {
             apdu->case_type = 0x14;
+            apdu->extended_apdu = true;
             apdu->lc = extlen;
             apdu->le = (data[len - 2] << 8) + data[len - 1];
         if (!apdu->le)
@@ -94,6 +96,7 @@ int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu)
        if (len == 7U + extlen + 3U && data[len - 3] == 0)
         {
             apdu->case_type = 0x24;
+            apdu->extended_apdu = true;
             apdu->lc = extlen;
             apdu->le = (data[len - 2] << 8) + data[len - 1];
         if (!apdu->le)
