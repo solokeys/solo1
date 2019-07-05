@@ -10,6 +10,8 @@ Install the [latest ARM compiler toolchain](https://developer.arm.com/open-sourc
 You can also install the ARM toolchain  using a package manager like `apt-get` or `pacman`,
 but be warned they might be out of date.  Typically it will be called `gcc-arm-none-eabi binutils-arm-none-eabi`.
 
+Install `solo-python` usually with `pip3 install solo-python`. The `solo` python application may also be used for [programming](#programming).
+
 To program your build, you'll need one of the following programs.
 
 - [openocd](http://openocd.org)
