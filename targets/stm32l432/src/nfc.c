@@ -637,8 +637,8 @@ void nfc_process_iblock(uint8_t * buf, int len)
             {
                 case APP_CAPABILITY_CONTAINER:
                     printf1(TAG_NFC,"APP_CAPABILITY_CONTAINER\r\n");
-                    if (reslen == 0 || reslen > sizeof(NFC_CC) - 1)
-                        reslen = sizeof(NFC_CC) - 1;
+                    if (reslen == 0 || reslen > sizeof(NFC_CC))
+                        reslen = sizeof(NFC_CC);
                     nfc_write_response_ex(buf[0], (uint8_t *)&NFC_CC, reslen, SW_SUCCESS);
                     ams_wait_for_tx(10);
                 break;
