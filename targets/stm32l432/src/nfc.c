@@ -530,7 +530,8 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			printf1(TAG_NFC, "U2F GetVersion command.\r\n");
 
-			nfc_write_response_ex(buf[0], (uint8_t *)"U2F_V2", 6, SW_SUCCESS);
+			u2f_request_nfc(&buf[block_offset], apdu.data, apdu.lc, &ctap_resp);
+            nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
         break;
 
         case APDU_FIDO_U2F_REGISTER:
