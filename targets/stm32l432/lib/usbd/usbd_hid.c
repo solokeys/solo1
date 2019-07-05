@@ -309,7 +309,7 @@ static uint8_t  USBD_HID_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 }
 
 /**
-  * @brief  USBD_HID_Init
+  * @brief  USBD_HID_DeInit
   *         DeInitialize the HID layer
   * @param  pdev: device instance
   * @param  cfgidx: Configuration index
