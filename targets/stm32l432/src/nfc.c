@@ -244,7 +244,7 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 					break;
 				}
 
-                uint8_t rblock_offset = p14443_block_offset(res[0]);
+                uint8_t rblock_offset = p14443_block_offset(recbuf[0]);
 				if (reclen != rblock_offset)
 				{
 					printf1(TAG_NFC, "R block length error. len: %d. %d/%d \r\n", reclen, sendlen, len);
