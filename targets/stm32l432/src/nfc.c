@@ -122,6 +122,7 @@ bool ams_receive_with_timeout(uint32_t timeout_ms, uint8_t * data, int maxlen, i
 	while (tstart + timeout_ms > millis())
 	{
 		uint8_t int0 = ams_read_reg(AMS_REG_INT0);
+		if (int0) process_int0(int0);
 		uint8_t buffer_status2 = ams_read_reg(AMS_REG_BUF2);
 
         if (buffer_status2 && (int0 & AMS_INT_RXE))
@@ -389,7 +390,12 @@ int answer_rats(uint8_t parameter)
 
 
     nfc_write_frame(res, sizeof(res));
-	ams_wait_for_tx(10);
+	if (!ams_wait_for_tx(10))
+	{
+		printf1(TAG_NFC, "RATS TX timeout.\r\n");
+		ams_write_command(AMS_CMD_DEFAULT);
+		return 1;
+	}
 
 
     return 0;
