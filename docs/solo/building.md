@@ -16,23 +16,23 @@ Install `solo-python` usually with `pip3 install solo-python`. The `solo` python
 
 To program your build, you'll need one of the following programs.
 
--  [openocd](http://openocd.org)
--  [stlink](https://github.com/texane/stlink)
--  [STM32CubeProg](https://www.st.com/en/development-tools/stm32cubeprog.html)
+-   [openocd](http://openocd.org)
+-   [stlink](https://github.com/texane/stlink)
+-   [STM32CubeProg](https://www.st.com/en/development-tools/stm32cubeprog.html)
 
 ## Obtain source code and solo tool
 
 Source code can be downloaded from:
 
--  [github releases list](https://github.com/solokeys/solo/releases)
--  [github repository](https://github.com/solokeys/solo)
+-   [github releases list](https://github.com/solokeys/solo/releases)
+-   [github repository](https://github.com/solokeys/solo)
 
 **solo** tool can be downloaded from:
 
--  from python programs [repository](https://pypi.org/project/solo-python/) `pip install solo-python`
--  from installing prerequisites `pip3 install -r tools/requirements.txt`
--  github repository: [repository](https://github.com/solokeys/solo-python)
--  installation python enviroment witn command `make venv` from root directory of source code
+-   from python programs [repository](https://pypi.org/project/solo-python/) `pip install solo-python`
+-   from installing prerequisites `pip3 install -r tools/requirements.txt`
+-   github repository: [repository](https://github.com/solokeys/solo-python)
+-   installation python enviroment witn command `make venv` from root directory of source code
 
 ## Compilation
 
