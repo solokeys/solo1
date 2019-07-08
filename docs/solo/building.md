@@ -1,9 +1,11 @@
+# Building solo
+
 To build, develop and debug the firmware for the STM32L432.  This will work
 for Solo Hacker, the Nucleo development board, or your own homemade Solo.
 
 There exists a development board [NUCLEO-L432KC](https://www.st.com/en/evaluation-tools/nucleo-l432kc.html) you can use;  The board does contain a debugger, so all you need is a USB cable (and some [udev](/udev) [rules](https://rust-embedded.github.io/book/intro/install/linux.html#udev-rules)).
 
-# Prerequisites
+## Prerequisites
 
 Install the [latest ARM compiler toolchain](https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads) for your system.  We recommend getting the latest compilers from ARM.
 
@@ -14,11 +16,25 @@ Install `solo-python` usually with `pip3 install solo-python`. The `solo` python
 
 To program your build, you'll need one of the following programs.
 
-- [openocd](http://openocd.org)
-- [stlink](https://github.com/texane/stlink)
-- [STM32CubeProg](https://www.st.com/en/development-tools/stm32cubeprog.html)
+-  [openocd](http://openocd.org)
+-  [stlink](https://github.com/texane/stlink)
+-  [STM32CubeProg](https://www.st.com/en/development-tools/stm32cubeprog.html)
 
-# Compilation
+## Obtain source code and solo tool
+
+Source code can be downloaded from:
+
+-  [github releases list](https://github.com/solokeys/solo/releases)
+-  [github repository](https://github.com/solokeys/solo)
+
+**solo** tool can be downloaded from:
+
+-  from python programs [repository](https://pypi.org/project/solo-python/) `pip install solo-python`
+-  from installing prerequisites `pip3 install -r tools/requirements.txt`
+-  github repository: [repository](https://github.com/solokeys/solo-python)
+-  installation python enviroment witn command `make venv` from root directory of source code
+
+## Compilation
 
 Enter the `stm32l4xx` target directory.
 
@@ -82,8 +98,7 @@ make build-release-locked
 
 Programming `all.hex` will cause the device to permanently lock itself.
 
-
-# Programming
+## Programming
 
 It's recommended to test a debug/hacker build first to make sure Solo is working as expected.
 Then you can switch to a locked down build, which cannot be reprogrammed as easily (or not at all!).
@@ -97,7 +112,7 @@ pip3 install -r tools/requirements.txt
 
 If you're on Windows, you must also install [libusb](https://sourceforge.net/projects/libusb-win32/files/libusb-win32-releases/1.2.6.0/).
 
-## Pre-programmed Solo Hacker
+### Pre-programmed Solo Hacker
 
 If your Solo device is already programmed (it flashes green when powered), we recommend
 programming it using the Solo bootloader.
@@ -120,7 +135,7 @@ If something bad happens, you can always boot the Solo bootloader by doing the f
 If you hold the button for an additional 5 seconds, it will boot to the ST DFU (device firmware update).
 Don't use the ST DFU unless you know what you're doing.
 
-## ST USB DFU
+### ST USB DFU
 
 If your Solo has never been programmed, it will boot the ST USB DFU.  The LED is turned
 off and it enumerates as "STM BOOTLOADER".
@@ -138,7 +153,7 @@ Make sure to program `all.hex`, as this contains both the bootloader and the Sol
 
 If all goes well, you should see a slow-flashing green light.
 
-##  Solo Hacker vs Solo
+### Solo Hacker vs Solo
 
 A Solo hacker device doesn't need to be in bootloader mode to be programmed, it will automatically switch.
 
@@ -146,7 +161,7 @@ Solo (locked) needs the button to be held down when plugged in to boot to the bo
 
 A locked Solo will only accept signed updates.
 
-## Signed updates
+### Signed updates
 
 If this is not a device with a hacker build, you can only program signed updates.
 
@@ -164,7 +179,7 @@ solo sign /path/to/signing-key.pem /path/to/solo.hex /output-path/to/firmware.js
 If your Solo isn't locked, you can always reprogram it using a debugger connected directly
 to the token.
 
-# Permanently locking the device
+## Permanently locking the device
 
 If you plan to be using your Solo for real, you should lock it permanently.  This prevents
 someone from connecting a debugger to your token and stealing credentials.
