@@ -42,12 +42,14 @@ class U2FTests(Tester):
         with Test("Check bad INS"):
             try:
                 self.ctap1.send_apdu(0, 0, 0, 0, b"")
+                assert False
             except ApduError as e:
                 assert e.code == 0x6D00
 
         with Test("Check bad CLA"):
             try:
                 self.ctap1.send_apdu(1, CTAP1.INS.VERSION, 0, 0, b"abc")
+                assert False
             except ApduError as e:
                 assert e.code == 0x6E00
 

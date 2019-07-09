@@ -222,9 +222,7 @@ class FIDO2Tests(Tester):
         )
 
         with Test("Get shared secret"):
-            key_agreement, shared_secret = (
-                self.client.pin_protocol._init_shared_secret()
-            )
+            key_agreement, shared_secret = self.client.pin_protocol.get_shared_secret()
             cipher = Cipher(
                 algorithms.AES(shared_secret),
                 modes.CBC(b"\x00" * 16),

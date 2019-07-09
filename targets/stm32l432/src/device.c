@@ -43,6 +43,7 @@ uint32_t __last_update = 0;
 extern PCD_HandleTypeDef hpcd;
 static int _NFC_status = 0;
 static bool isLowFreq = 0;
+static bool _RequestComeFromNFC = false;
 
 // #define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
 static int is_physical_button_pressed()
@@ -56,6 +57,10 @@ static int is_touch_button_pressed()
 }
 
 int (*IS_BUTTON_PRESSED)() = is_physical_button_pressed;
+
+void request_from_nfc(bool request_active) {
+    _RequestComeFromNFC = request_active;
+}
 
 // Timer6 overflow handler.  happens every ~90ms.
 void TIM6_DAC_IRQHandler()
@@ -491,7 +496,7 @@ static int handle_packets()
 int ctap_user_presence_test(uint32_t up_delay)
 {
     int ret;
-    if (device_is_nfc() == NFC_IS_ACTIVE)
+    if (device_is_nfc() == NFC_IS_ACTIVE || _RequestComeFromNFC)
     {
         return 1;
     }
