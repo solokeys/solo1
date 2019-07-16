@@ -792,6 +792,7 @@ int nfc_loop()
 
 
     read_reg_block(&ams);
+    uint8_t old_int0 = gl_int0;
     process_int0(ams.regs.int0);
     uint8_t state = AMS_STATE_MASK & ams.regs.rfid_status;
 
@@ -806,7 +807,7 @@ int nfc_loop()
         // if (state != AMS_STATE_SENSE)
         //      printf1(TAG_NFC,"    %s  x%02x\r\n", ams_get_state_string(ams.regs.rfid_status), state);
     }
-    if (ams.regs.int0 & AMS_INT_INIT)
+    if (ams.regs.int0 & AMS_INT_INIT || old_int0 & AMS_INT_INIT)
     {
         nfc_state_init();
     }
@@ -815,7 +816,7 @@ int nfc_loop()
         // ams_print_int1(ams.regs.int1);
     }
 
-    if ((ams.regs.int0 & AMS_INT_RXE))
+    if (ams.regs.int0 & AMS_INT_RXE || old_int0 & AMS_INT_RXE)
     {
         if (ams.regs.buffer_status2)
         {
