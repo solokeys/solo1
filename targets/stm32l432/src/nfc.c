@@ -196,7 +196,6 @@ bool nfc_write_response(uint8_t req0, uint16_t resp)
 void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 {
     uint8_t res[32 + 2];
-	int sendlen = 0;
 	uint8_t iBlock = NFC_CMD_IBLOCK | (req0 & 0x0f);
     uint8_t block_offset = p14443_block_offset(req0);
 
@@ -208,6 +207,7 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 			memcpy(&res[block_offset], data, len);
 		nfc_write_frame(res, len + block_offset);
 	} else {
+        int sendlen = 0;
 		do {
 			// transmit I block
 			int vlen = MIN(32 - block_offset, len - sendlen);
@@ -316,7 +316,7 @@ bool WTX_off()
 void WTX_timer_exec()
 {
 	// condition: (timer on) or (not expired[300ms])
-	if ((WTX_timer <= 0) || WTX_timer + 300 > millis())
+	if ((WTX_timer == 0) || WTX_timer + 300 > millis())
 		return;
 
 	WTX_process(10);
@@ -327,12 +327,12 @@ void WTX_timer_exec()
 // read timeout must be 10 ms to call from interrupt
 bool WTX_process(int read_timeout)
 {
-	uint8_t wtx[] = {0xf2, 0x01};
 	if (WTX_fail)
 		return false;
 
 	if (!WTX_sent)
 	{
+        uint8_t wtx[] = {0xf2, 0x01};
 		nfc_write_frame(wtx, sizeof(wtx));
 		WTX_sent = true;
 		return true;
@@ -618,7 +618,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			if (!WTX_off())
 				return;
 
-			printf1(TAG_NFC, "CTAP resp: 0x%02�  len: %d\r\n", status, ctap_resp.length);
+			printf1(TAG_NFC, "CTAP resp: 0x%02x  len: %d\r\n", status, ctap_resp.length);
 
 			if (status == CTAP1_ERR_SUCCESS)
 			{
