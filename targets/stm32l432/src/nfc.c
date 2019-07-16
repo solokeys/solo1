@@ -792,6 +792,7 @@ int nfc_loop()
 
 
     read_reg_block(&ams);
+    process_int0(ams.regs.int0);
     uint8_t state = AMS_STATE_MASK & ams.regs.rfid_status;
 
     if (state != AMS_STATE_SELECTED && state != AMS_STATE_SELECTEDX)
