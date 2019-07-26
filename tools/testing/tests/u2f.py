@@ -78,6 +78,16 @@ class U2FTests(Tester):
                 auth = self.authenticate(chal, appid, regs[i].key_handle)
                 auth.verify(appid, chal, regs[i].public_key)
 
+        self.reboot()
+
+        for i in range(0, self.user_count):
+            with Test(
+                "Post reboot, Checking previous registration %d/%d"
+                % (i + 1, self.user_count)
+            ):
+                auth = self.authenticate(chal, appid, regs[i].key_handle)
+                auth.verify(appid, chal, regs[i].public_key)
+
         print("Check that all previous credentials are registered...")
         for i in range(0, self.user_count):
             with Test("Check that previous credential %d is registered" % i):

@@ -743,6 +743,40 @@ class FIDO2Tests(Tester):
             expectedError=CtapError.ERR.SUCCESS,
         )
 
+        with Test("Check assertion is correct"):
+            credential_data = AttestedCredentialData(prev_reg.auth_data.credential_data)
+            prev_auth.verify(cdh, credential_data.public_key)
+            assert (
+                prev_auth.credential["id"]
+                == prev_reg.auth_data.credential_data.credential_id
+            )
+
+        self.reboot()
+
+        prev_auth = self.testGA(
+            "Send GA request after reboot, expect success",
+            rp["id"],
+            cdh,
+            allow_list,
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        with Test("Check assertion is correct"):
+            credential_data = AttestedCredentialData(prev_reg.auth_data.credential_data)
+            prev_auth.verify(cdh, credential_data.public_key)
+            assert (
+                prev_auth.credential["id"]
+                == prev_reg.auth_data.credential_data.credential_id
+            )
+
+        prev_auth = self.testGA(
+            "Send GA request, expect success",
+            rp["id"],
+            cdh,
+            allow_list,
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
         with Test("Test auth_data is 37 bytes"):
             assert len(prev_auth.auth_data) == 37
 
