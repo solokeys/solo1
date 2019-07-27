@@ -2,6 +2,7 @@ import time, struct
 
 from fido2.hid import CtapHidDevice
 from fido2.client import Fido2Client
+from fido2.attestation import Attestation
 from fido2.ctap1 import CTAP1
 from fido2.utils import Timeout
 
@@ -201,7 +202,19 @@ class Tester:
             self.ctap.reset()
 
     def testMC(self, test, *args, **kwargs):
-        return self.testFunc(self.ctap.make_credential, test, *args, **kwargs)
+        attestation_object = self.testFunc(
+            self.ctap.make_credential, test, *args, **kwargs
+        )
+        if attestation_object:
+            print(attestation_object)
+            verifier = Attestation.for_type(attestation_object.fmt)
+            client_data = args[0]
+            verifier().verify(
+                attestation_object.att_statement,
+                attestation_object.auth_data,
+                client_data,
+            )
+        return attestation_object
 
     def testGA(self, test, *args, **kwargs):
         return self.testFunc(self.ctap.get_assertion, test, *args, **kwargs)
