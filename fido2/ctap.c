@@ -355,9 +355,9 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
         }
 
         // Generate credRandom
-        crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY, 0, credRandom);
+        crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY2, 0, credRandom);
         crypto_sha256_update((uint8_t*)&ext->hmac_secret.credential->id, sizeof(CredentialId));
-        crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY, 0, credRandom);
+        crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY2, 0, credRandom);
 
         // Decrypt saltEnc
         crypto_aes256_init(shared_secret, NULL);
@@ -605,7 +605,6 @@ int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHa
     crypto_sha256_final(hashbuf);
 
     crypto_ecc256_sign(hashbuf, 32, sigbuf);
-
     return ctap_encode_der_sig(sigbuf,sigder);
 }
 
@@ -1056,7 +1055,7 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
     else
 #endif
     {
-        sigder_sz = ctap_calculate_signature(auth_data_buf, sizeof(CTAP_authDataHeader), clientDataHash, auth_data_buf, sigbuf, sigder);
+        sigder_sz = ctap_calculate_signature(auth_data_buf, auth_data_buf_sz, clientDataHash, auth_data_buf, sigbuf, sigder);
     }
 
     {

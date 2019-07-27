@@ -211,7 +211,7 @@ class FIDO2Tests(Tester):
             assert "hmac-secret" in reg.auth_data.extensions
             assert reg.auth_data.extensions["hmac-secret"] == True
 
-        reg = self.testMC(
+        self.testMC(
             "Send MC with fake extension set to true, expect SUCCESS",
             cdh,
             rp,
@@ -277,6 +277,10 @@ class FIDO2Tests(Tester):
                 if len(salt_list) == 2:
                     assert shannon_entropy(ext["hmac-secret"]) > 5.4
                     assert shannon_entropy(key) > 5.4
+
+            with Test("Check that the assertion is valid"):
+                credential_data = AttestedCredentialData(reg.auth_data.credential_data)
+                auth.verify(cdh, credential_data.public_key)
 
         salt_enc, salt_auth = get_salt_params((salt3,))
 
@@ -734,6 +738,40 @@ class FIDO2Tests(Tester):
                 "type": "public-key",
             }
         ]
+
+        prev_auth = self.testGA(
+            "Send GA request, expect success",
+            rp["id"],
+            cdh,
+            allow_list,
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        with Test("Check assertion is correct"):
+            credential_data = AttestedCredentialData(prev_reg.auth_data.credential_data)
+            prev_auth.verify(cdh, credential_data.public_key)
+            assert (
+                prev_auth.credential["id"]
+                == prev_reg.auth_data.credential_data.credential_id
+            )
+
+        self.reboot()
+
+        prev_auth = self.testGA(
+            "Send GA request after reboot, expect success",
+            rp["id"],
+            cdh,
+            allow_list,
+            expectedError=CtapError.ERR.SUCCESS,
+        )
+
+        with Test("Check assertion is correct"):
+            credential_data = AttestedCredentialData(prev_reg.auth_data.credential_data)
+            prev_auth.verify(cdh, credential_data.public_key)
+            assert (
+                prev_auth.credential["id"]
+                == prev_reg.auth_data.credential_data.credential_id
+            )
 
         prev_auth = self.testGA(
             "Send GA request, expect success",
