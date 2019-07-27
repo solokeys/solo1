@@ -211,7 +211,7 @@ class FIDO2Tests(Tester):
             assert "hmac-secret" in reg.auth_data.extensions
             assert reg.auth_data.extensions["hmac-secret"] == True
 
-        reg = self.testMC(
+        self.testMC(
             "Send MC with fake extension set to true, expect SUCCESS",
             cdh,
             rp,
@@ -277,6 +277,10 @@ class FIDO2Tests(Tester):
                 if len(salt_list) == 2:
                     assert shannon_entropy(ext["hmac-secret"]) > 5.4
                     assert shannon_entropy(key) > 5.4
+
+            with Test("Check that the assertion is valid"):
+                credential_data = AttestedCredentialData(reg.auth_data.credential_data)
+                auth.verify(cdh, credential_data.public_key)
 
         salt_enc, salt_auth = get_salt_params((salt3,))
 

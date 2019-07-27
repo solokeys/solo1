@@ -206,7 +206,6 @@ class Tester:
             self.ctap.make_credential, test, *args, **kwargs
         )
         if attestation_object:
-            print(attestation_object)
             verifier = Attestation.for_type(attestation_object.fmt)
             client_data = args[0]
             verifier().verify(
