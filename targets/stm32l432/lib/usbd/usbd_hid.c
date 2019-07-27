@@ -342,6 +342,7 @@ static uint8_t  USBD_HID_Setup (USBD_HandleTypeDef *pdev,
   uint8_t *pbuf = NULL;
   uint16_t status_info = 0U;
   USBD_StatusTypeDef ret = USBD_OK;
+  req->wLength = req->wLength & 0x7f;
 
   switch (req->bmRequest & USB_REQ_TYPE_MASK)
   {
@@ -386,6 +387,7 @@ static uint8_t  USBD_HID_Setup (USBD_HandleTypeDef *pdev,
       break;
 
     case USB_REQ_GET_DESCRIPTOR:
+      req->wLength = req->wLength & 0x7f;
       if(req->wValue >> 8 == HID_REPORT_DESC)
       {
         len = MIN(HID_FIDO_REPORT_DESC_SIZE , req->wLength);
