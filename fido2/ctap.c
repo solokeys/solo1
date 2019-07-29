@@ -704,7 +704,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
         {
                 return CTAP2_ERR_OPERATION_DENIED;
         }
-        return ctap_is_pin_set() == 1 ? CTAP2_ERR_PIN_INVALID : CTAP2_ERR_PIN_NOT_SET;
+        return ctap_is_pin_set() == 1 ? CTAP2_ERR_PIN_AUTH_INVALID : CTAP2_ERR_PIN_NOT_SET;
     }
     if ((MC.paramsParsed & MC_requiredMask) != MC_requiredMask)
     {
@@ -1140,7 +1140,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
         {
                 return CTAP2_ERR_OPERATION_DENIED;
         }
-        return ctap_is_pin_set() == 1 ? CTAP2_ERR_PIN_INVALID : CTAP2_ERR_PIN_NOT_SET;
+        return ctap_is_pin_set() == 1 ? CTAP2_ERR_PIN_AUTH_INVALID : CTAP2_ERR_PIN_NOT_SET;
     }
     if (GA.pinAuthPresent)
     {

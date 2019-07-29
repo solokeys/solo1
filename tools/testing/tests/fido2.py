@@ -1134,7 +1134,10 @@ class FIDO2Tests(Tester):
                 rp["id"],
                 cdh,
                 other={"pin_auth": b"", "pin_protocol": pin_protocol},
-                expectedError=CtapError.ERR.PIN_NOT_SET,
+                expectedError=[
+                    CtapError.ERR.PIN_AUTH_INVALID,
+                    CtapError.ERR.NO_CREDENTIALS,
+                ],
             )
 
         with Test("Setting pin code, expect SUCCESS"):
@@ -1148,14 +1151,17 @@ class FIDO2Tests(Tester):
                 user,
                 key_params,
                 other={"pin_auth": b"", "pin_protocol": pin_protocol},
-                expectedError=CtapError.ERR.PIN_INVALID,
+                expectedError=CtapError.ERR.PIN_AUTH_INVALID,
             )
             self.testGA(
                 "Send MC request with new pin auth",
                 rp["id"],
                 cdh,
                 other={"pin_auth": b"", "pin_protocol": pin_protocol},
-                expectedError=CtapError.ERR.PIN_INVALID,
+                expectedError=[
+                    CtapError.ERR.PIN_AUTH_INVALID,
+                    CtapError.ERR.NO_CREDENTIALS,
+                ],
             )
 
         self.testReset()
@@ -1311,13 +1317,13 @@ class FIDO2Tests(Tester):
 
         self.testReset()
 
-        self.test_get_info()
-
-        self.test_get_assertion()
-
-        self.test_make_credential()
-
-        self.test_rk(None)
+        # self.test_get_info()
+        #
+        # self.test_get_assertion()
+        #
+        # self.test_make_credential()
+        #
+        # self.test_rk(None)
 
         self.test_client_pin()
 
