@@ -477,7 +477,8 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     {
         return CTAP2_ERR_KEEPALIVE_CANCEL;
     }
-    // device_set_status(CTAPHID_STATUS_PROCESSING);
+    
+    device_set_status(CTAPHID_STATUS_PROCESSING);
 
     authData->head.flags = (but << 0);
     authData->head.flags |= (ctap_is_pin_set() << 2);
@@ -1607,7 +1608,6 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     switch(cmd)
     {
         case CTAP_MAKE_CREDENTIAL:
-            device_set_status(CTAPHID_STATUS_PROCESSING);
             printf1(TAG_CTAP,"CTAP_MAKE_CREDENTIAL\n");
             timestamp();
             status = ctap_make_credential(&encoder, pkt_raw, length);
@@ -1618,7 +1618,6 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
 
             break;
         case CTAP_GET_ASSERTION:
-            device_set_status(CTAPHID_STATUS_PROCESSING);
             printf1(TAG_CTAP,"CTAP_GET_ASSERTION\n");
             timestamp();
             status = ctap_get_assertion(&encoder, pkt_raw, length);
