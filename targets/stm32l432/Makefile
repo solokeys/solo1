@@ -15,6 +15,9 @@ merge_hex=solo mergehex
 firmware-hacker:
 	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=0 EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0'
 
+firmware-secure-hacker:
+	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=0 EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0 -DSOLO_HACKER_DISALLOW_ENTERBOOT'
+
 firmware-hacker-debug-1:
 	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=1 EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0'
 
@@ -43,6 +46,9 @@ all:
 all-hacker:
 	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=$(DEBUG) EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0'
 
+all-secure-hacker:
+	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=$(DEBUG) EXTRA_DEFINES='-DSOLO_HACKER -DFLASH_ROP=0 -DSOLO_HACKER_DISALLOW_ENTERBOOT'
+
 all-locked:
 	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) EXTRA_DEFINES='-DFLASH_ROP=2'
 
@@ -67,6 +73,9 @@ build-release: cbor clean2 boot-sig-checking clean all
 	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
 
 build-hacker: cbor clean2 boot-no-sig clean all-hacker
+	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
+
+build-secure-hacker: cbor clean2 boot-no-sig clean all-secure-hacker
 	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
 
 build-debugboot: clean2 debugboot-boot clean debugboot-app

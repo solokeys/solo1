@@ -716,7 +716,7 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
             ctaphid_write(wb, NULL, 0);
             return 1;
 #endif
-#if defined(SOLO_HACKER)
+#if defined(SOLO_HACKER) && !defined(SOLO_HACKER_DISALLOW_ENTERBOOT)
         case CTAPHID_ENTERBOOT:
             printf1(TAG_HID,"CTAPHID_ENTERBOOT\n");
             boot_solo_bootloader();
