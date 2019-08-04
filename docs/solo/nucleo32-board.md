@@ -104,7 +104,7 @@ Do not use it, if you do not plan to do so.
 make env3
 . env3/bin/activate
 # Run flashing
-cd ./targets/stm32l442
+cd ./targets/stm32l432
 make flash
  # which runs: 
  # flash: solo.hex bootloader.hex
@@ -205,6 +205,5 @@ via the Makefile command. It is sufficient to run:
 ```bash
 make env3
 ```
-
 
 
