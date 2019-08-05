@@ -83,6 +83,12 @@ go to bottom page and from STM32CubeProg row select Download button.
 4. In installation directory go to ./bin - there the ./STM32_Programmer_CLI is located
 5. Add symlink to the STM32 CLI binary to .local/bin. Make sure the latter it is in $PATH.
 
+If you're on OsX and installed the STM32CubeProg, you need to add the following to your path:
+```bash
+# ~/.bash_profile
+export PATH="/Applications/STMicroelectronics/STM32Cube/STM32CubeProgrammer/STM32CubeProgrammer.app/Contents/MacOs/bin/":$PATH
+```
+
 # Building and flashing
 ## Building
 Please follow https://docs.solokeys.io/solo/building/, as the build way changes rapidly.
@@ -205,5 +211,4 @@ via the Makefile command. It is sufficient to run:
 ```bash
 make env3
 ```
-
 
