@@ -19,6 +19,12 @@
 #include "ctap_errors.h"
 #include "log.h"
 
+static volatile version_t current_firmware_version __attribute__ ((section (".flag2"))) __attribute__ ((__used__)) =  {
+  .major = SOLO_VERSION_MAJ,
+  .minor = SOLO_VERSION_MIN,
+  .patch = SOLO_VERSION_PATCH,
+  .reserved = 0
+};
 
 extern uint8_t REBOOT_FLAG;
 
@@ -57,6 +63,9 @@ static void erase_application()
 }
 
 #define LAST_ADDR       (APPLICATION_END_ADDR-2048 + 8)
+#define VERSION_ADDR    (AUTH_WORD_ADDR-8)
+#define BOOT_VERSION_PAGE    (APPLICATION_START_PAGE-1)
+#define BOOT_VERSION_ADDR    (0x08000000 + BOOT_VERSION_PAGE*FLASH_PAGE_SIZE)
 #define LAST_PAGE       (APPLICATION_END_PAGE-1)
 static void disable_bootloader()
 {
@@ -103,6 +112,39 @@ int is_bootloader_disabled()
     return *auth == 0;
 }
 
+#include "version.h"
+bool is_firmware_version_newer_or_equal()
+{
+  printf1(TAG_BOOT,"Current firmware version: %d.%d.%d.%d\r\n",
+          current_firmware_version.major, current_firmware_version.minor, current_firmware_version.patch, current_firmware_version.reserved);
+  volatile version_t new_version = *((volatile version_t *) VERSION_ADDR);
+  printf1(TAG_BOOT,"Uploaded firmware version: %d.%d.%d.%d\r\n",
+          new_version.major, new_version.minor, new_version.patch, new_version.reserved);
+  dump_hex1(TAG_BOOT, (uint32_t *) VERSION_ADDR, 20);
+
+  printf1(TAG_BOOT,"AUTH_WORD_ADDR: %p\r\n", AUTH_WORD_ADDR);
+  printf1(TAG_BOOT,"VERSION_ADDR: %p\r\n", VERSION_ADDR);
+  printf1(TAG_BOOT,"APPLICATION_END_ADDR: %p\r\n", APPLICATION_END_ADDR);
+  printf1(TAG_BOOT,"BOOT_VERSION_ADDR: %p\r\n", BOOT_VERSION_ADDR);
+  printf1(TAG_BOOT,"BOOT_VERSION_PAGE: %d\r\n", BOOT_VERSION_PAGE);
+
+  const bool allowed = is_newer(&new_version, &current_firmware_version) || current_firmware_version.raw == 0xFFFFFFFF;
+  if (allowed){
+    printf1(TAG_BOOT, "Update allowed, setting new firmware version as current.\r\n");
+//    current_firmware_version.raw = new_version.raw;
+    uint8_t page[PAGE_SIZE];
+    memmove(page, (uint8_t*)BOOT_VERSION_ADDR, PAGE_SIZE);
+    memmove(page, &new_version, 4);
+    printf1(TAG_BOOT, "Writing\r\n");
+    flash_erase_page(BOOT_VERSION_PAGE);
+    flash_write(BOOT_VERSION_ADDR, page, PAGE_SIZE);
+    printf1(TAG_BOOT, "Finish\r\n");
+  } else {
+    printf1(TAG_BOOT, "Firmware older - update not allowed.\r\n");
+  }
+  return allowed;
+}
+
 /**
  * Execute bootloader commands
  * @param klen key length - length of the bootloader request
@@ -125,10 +167,7 @@ int bootloader_bridge(int klen, uint8_t * keyh)
         return CTAP1_ERR_INVALID_LENGTH;
     }
 #ifndef SOLO_HACKER
-    uint8_t * pubkey = (uint8_t*)"\xd2\xa4\x2f\x8f\xb2\x31\x1c\xc1\xf7\x0c\x7e\x64\x32\xfb\xbb\xb4\xa3\xdd\x32\x20"
-                                 "\x0f\x1b\x88\x9c\xda\x62\xc2\x83\x25\x93\xdd\xb8\x75\x9d\xf9\x86\xee\x03\x6c\xce"
-                                 "\x34\x47\x71\x36\xb3\xb2\xad\x6d\x12\xb7\xbe\x49\x3e\x20\xa4\x61\xac\xc7\x71\xc7"
-                                 "\x1f\xa8\x14\xf2";
+    extern uint8_t *pubkey_nitrokey_boot;
 
     const struct uECC_Curve_t * curve = NULL;
 #endif
@@ -148,6 +187,7 @@ int bootloader_bridge(int klen, uint8_t * keyh)
                 || ((uint32_t)ptr+len) > APPLICATION_END_ADDR)
             {
                 printf1(TAG_BOOT,"Bound exceeded [%08lx, %08lx]\r\n",APPLICATION_START_ADDR,APPLICATION_END_ADDR);
+                printf1(TAG_BOOT, "Expected version addrs: %p, %p\r\n", BOOT_VERSION_ADDR, VERSION_ADDR);
                 return CTAP2_ERR_NOT_ALLOWED;
             }
 
@@ -170,7 +210,7 @@ int bootloader_bridge(int klen, uint8_t * keyh)
             break;
         case BootDone:
             // Writing to flash finished. Request code validation.
-            printf1(TAG_BOOT, "BootDone: ");
+            printf1(TAG_BOOT, "BootDone: \r\n");
 #ifndef SOLO_HACKER
             if (len != 64)
             {
@@ -185,17 +225,24 @@ int bootloader_bridge(int klen, uint8_t * keyh)
             crypto_sha256_final(hash);
             curve = uECC_secp256r1();
             // Verify incoming signature made over the SHA256 hash
-            if (! uECC_verify(pubkey,
-                        hash,
-                        32,
-                        req->payload,
-                        curve))
+            if (
+                    !uECC_verify(pubkey_nitrokey_boot, hash, 32, req->payload, curve)
+            )
             {
+              printf1(TAG_BOOT, "Signature invalid\r\n");
                 return CTAP2_ERR_OPERATION_DENIED;
             }
 #endif
+            if (!is_firmware_version_newer_or_equal()){
+              printf1(TAG_BOOT, "Firmware older - update not allowed.\r\n");
+              dump_hex1(TAG_BOOT, (uint32_t *) VERSION_ADDR, 20);
+              printf1(TAG_BOOT, "Rebooting...\r\n");
+              REBOOT_FLAG = 1;
+              return CTAP2_ERR_OPERATION_DENIED;
+            }
             // Set the application validated, and mark for reboot.
             authorize_application();
+
             REBOOT_FLAG = 1;
             break;
         case BootCheck:
@@ -218,6 +265,7 @@ int bootloader_bridge(int klen, uint8_t * keyh)
             break;
         case BootReboot:
             printf1(TAG_BOOT, "BootReboot.\r\n");
+            printf1(TAG_BOOT, "Application authorized: %d.\r\n", is_authorized_to_boot());
             REBOOT_FLAG = 1;
             break;
         case BootDisable:
