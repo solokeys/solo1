@@ -12,9 +12,17 @@ _estack = 0x2000c000;
 
 _MIN_STACK_SIZE = 0x400;
 
+/*
+flash2 is for storing bootloader data, like last used firmware version.
+_bconfig_start should be equal to (APPLICATION_START_PAGE-1) page address, from targets/stm32l432/src/memory_layout.h:30; and equal to flash2 origin
+*/
+
+_bconfig_start = 0x08000000 + 10*2048;
+
 MEMORY
 {
     flash (rx)      : ORIGIN = 0x08000000, LENGTH = 20K
+    flash2 (rx)     : ORIGIN = 0x08000000 + 10*2048, LENGTH = 2K
     ram (xrw)       : ORIGIN = 0x20000000, LENGTH = 48K
     sram2 (rw)      : ORIGIN = 0x10000000, LENGTH = 16K
 }
@@ -38,6 +46,11 @@ SECTIONS
         . = ALIGN(8);
         _etext = .;
     } >flash
+
+    .flag2 _bconfig_start :
+    {
+      KEEP(*(.flag2)) ;
+    } > flash2
 
     _sidata = LOADADDR(.data);
 
