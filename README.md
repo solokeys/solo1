@@ -94,10 +94,7 @@ Run the Solo application:
 ./main
 ```
 
-In another shell, you can run client software, for example our tests:
-```bash
-python tools/ctap_test.py sim fido2
-```
+In another shell, you can run our [test suite](https://github.com/solokeys/fido2-tests).
 
 You can find more details in our [documentation](https://docs.solokeys.io/solo/), including how to build on the the NUCLEO-L432KC development board.
 
