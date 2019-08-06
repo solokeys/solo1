@@ -69,23 +69,21 @@ See <https://docs.solokeys.io/solo/building/> for the original guide. Here detai
 ### Install ARM tools
 
 1.  Download current [ARM tools] package: [gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2].
+
 2.  Extract the archive.
+
 3.  Add full path to the `./bin` directory as first entry to the `$PATH` variable,
     as in `~/gcc-arm/gcc-arm-none-eabi-8-2018-q4-major/bin/:$PATH`.
-
-[arm tools]: https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads
-
-[gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2]: https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2?revision=d830f9dd-cd4f-406d-8672-cca9210dd220?product=GNU%20Arm%20Embedded%20Toolchain,64-bit,,Linux,8-2018-q4-major
 
 ### Install flashing software
 
 ST provides a CLI flashing tool - `STM32_Programmer_CLI`. It can be downloaded directly from the vendor's site:
-1. Go to [download site URL](https://www.st.com/content/st_com/en/products/development-tools/software-development-tools/stm32-software-development-tools/stm32-programmers/stm32cubeprog.html),
+1\. Go to [download site URL](https://www.st.com/content/st_com/en/products/development-tools/software-development-tools/stm32-software-development-tools/stm32-programmers/stm32cubeprog.html),
 go to bottom page and from STM32CubeProg row select Download button.
-2. Unzip contents of the archive.
-3. Run \*Linux setup
-4. In installation directory go to ./bin - there the ./STM32_Programmer_CLI is located
-5. Add symlink to the STM32 CLI binary to .local/bin. Make sure the latter it is in $PATH.
+2\. Unzip contents of the archive.
+3\. Run \*Linux setup
+4\. In installation directory go to ./bin - there the ./STM32_Programmer_CLI is located
+5\. Add symlink to the STM32 CLI binary to .local/bin. Make sure the latter it is in $PATH.
 
 If you're on OsX and installed the STM32CubeProg, you need to add the following to your path:
 
@@ -247,3 +245,7 @@ make env3
 [usb plug description]: https://en.wikipedia.org/wiki/USB#Receptacle_(socket)_identification
 
 [usb-a_schematic.pdf]: https://github.com/solokeys/solo-hw/releases/download/1.2/USB-A_schematic.pdf
+
+[arm tools]: https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads
+
+[gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2]: https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2?revision=d830f9dd-cd4f-406d-8672-cca9210dd220?product=GNU%20Arm%20Embedded%20Toolchain,64-bit,,Linux,8-2018-q4-major
