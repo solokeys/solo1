@@ -28,12 +28,6 @@ See this [USB plug] image, and Wikipedia's [USB plug description].
 
 Plug in [USB-A_schematic.pdf] has wrong wire order, registered as [solo-hw#1].
 
-[solo-hw#1]: https://github.com/solokeys/solo-hw/issues/1
-
-[usb plug]: https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/USB.svg/1200px-USB.svg.png
-
-[usb plug description]: https://en.wikipedia.org/wiki/USB#Receptacle_(socket)_identification
-
 The power is taken from the debugger / board (unless the board is configured in another way).
 Make sure 5V is not connected, and is covered from contacting with the board elements.
 
@@ -66,15 +60,13 @@ PA0 / pin 6 --> button --> GND
 
 In that case the mentioned patch would not be required.
 
-[usb-a_schematic.pdf]: https://github.com/solokeys/solo-hw/releases/download/1.2/USB-A_schematic.pdf
-
-# Development environment setup
+## Development environment setup
 
 Environment: Fedora 29 x64, Linux 4.19.9
 
 See <https://docs.solokeys.io/solo/building/> for the original guide. Here details not included there will be covered.
 
-## Install ARM tools
+### Install ARM tools
 
 1.  Download current [ARM tools] package: [gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2].
 2.  Extract the archive.
@@ -85,15 +77,15 @@ See <https://docs.solokeys.io/solo/building/> for the original guide. Here detai
 
 [gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2]: https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2?revision=d830f9dd-cd4f-406d-8672-cca9210dd220?product=GNU%20Arm%20Embedded%20Toolchain,64-bit,,Linux,8-2018-q4-major
 
-## Install flashing software
+### Install flashing software
 
 ST provides a CLI flashing tool - `STM32_Programmer_CLI`. It can be downloaded directly from the vendor's site:
-1\. Go to [download site URL](https://www.st.com/content/st_com/en/products/development-tools/software-development-tools/stm32-software-development-tools/stm32-programmers/stm32cubeprog.html),
+1. Go to [download site URL](https://www.st.com/content/st_com/en/products/development-tools/software-development-tools/stm32-software-development-tools/stm32-programmers/stm32cubeprog.html),
 go to bottom page and from STM32CubeProg row select Download button.
-2\. Unzip contents of the archive.
-3\. Run \*Linux setup
-4\. In installation directory go to ./bin - there the ./STM32_Programmer_CLI is located
-5\. Add symlink to the STM32 CLI binary to .local/bin. Make sure the latter it is in $PATH.
+2. Unzip contents of the archive.
+3. Run \*Linux setup
+4. In installation directory go to ./bin - there the ./STM32_Programmer_CLI is located
+5. Add symlink to the STM32 CLI binary to .local/bin. Make sure the latter it is in $PATH.
 
 If you're on OsX and installed the STM32CubeProg, you need to add the following to your path:
 
@@ -102,9 +94,9 @@ If you're on OsX and installed the STM32CubeProg, you need to add the following 
 export PATH="/Applications/STMicroelectronics/STM32Cube/STM32CubeProgrammer/STM32CubeProgrammer.app/Contents/MacOs/bin/":$PATH
 ```
 
-# Building and flashing
+## Building and flashing
 
-## Building
+### Building
 
 Please follow <https://docs.solokeys.io/solo/building/>, as the build way changes rapidly.
 Currently (8.1.19) to build the firmware, following lines should be executed
@@ -119,7 +111,7 @@ make build-hacker DEBUG=1
 Note: `DEBUG=2` stops the device initialization, until a serial client will be attached to its virtual port.
 Do not use it, if you do not plan to do so.
 
-## Flashing via the Makefile command
+### Flashing via the Makefile command
 
 ```bash
 # while in the main project directory
@@ -136,7 +128,7 @@ make flash
  #	STM32_Programmer_CLI -c port=SWD -halt  -d all.hex -rst
 ```
 
-## Manual flashing
+### Manual flashing
 
 In case you already have a firmware to flash (named `all.hex`), please run the following:
 
@@ -145,17 +137,17 @@ STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
 STM32_Programmer_CLI -c port=SWD -halt  -d all.hex -rst
 ```
 
-# Testing
+## Testing
 
-## Internal
+### Internal
 
 Project-provided tests.
 
-### Simulated device
+#### Simulated device
 
 A simulated device is provided to test the HID layer.
 
-#### Build
+##### Build
 
 ```bash
 make clean
@@ -165,7 +157,7 @@ cd ..
 make env2
 ```
 
-#### Execution
+##### Execution
 
 ```bash
 # run simulated device (will create a network UDP server)
@@ -176,7 +168,7 @@ make env2
 ./env2/bin/python python-fido2/examples/credential.py
 ```
 
-### Real device
+#### Real device
 
 ```bash
 # while in the main project directory
@@ -184,27 +176,27 @@ make env2
 make fido2-test
 ```
 
-## External
+### External
 
-### FIDO2 test sites
+#### FIDO2 test sites
 
 1.  <https://webauthn.bin.coffee/>
 2.  <https://github.com/apowers313/fido2-server-demo/>
 3.  <https://webauthn.org/>
 
-### U2F test sites
+#### U2F test sites
 
 1.  <https://u2f.bin.coffee/>
 2.  <https://demo.yubico.com/u2f>
 
-### FIDO2 standalone clients
+#### FIDO2 standalone clients
 
 1.  <https://github.com/Nitrokey/u2f-ref-code>
 2.  <https://github.com/Yubico/libfido2>
 3.  <https://github.com/Yubico/python-fido2>
 4.  <https://github.com/google/pyu2f>
 
-# USB serial console reading
+## USB serial console reading
 
 Device opens an USB-emulated serial port to output its messages. While Nucleo board offers such already,
 the Solo device provides its own.
@@ -223,9 +215,9 @@ sudo picocom -b 115200 /dev/solokey-serial
 
 where `/dev/solokey-serial` is an udev symlink to `/dev/ttyACM1`.
 
-# Other
+## Other
 
-## Dumping firmware
+### Dumping firmware
 
 Size is calculated using bash arithmetic.
 
@@ -233,13 +225,13 @@ Size is calculated using bash arithmetic.
 STM32_Programmer_CLI -c port=SWD -halt  -u 0x0 $((256*1024)) current.hex
 ```
 
-## Software reset
+### Software reset
 
 ```bash
 STM32_Programmer_CLI -c port=SWD  -rst
 ```
 
-## Installing required Python packages
+### Installing required Python packages
 
 Client script requires some Python packages, which could be easily installed locally to the project
 via the Makefile command. It is sufficient to run:
@@ -247,3 +239,11 @@ via the Makefile command. It is sufficient to run:
 ```bash
 make env3
 ```
+
+[solo-hw#1]: https://github.com/solokeys/solo-hw/issues/1
+
+[usb plug]: https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/USB.svg/1200px-USB.svg.png
+
+[usb plug description]: https://en.wikipedia.org/wiki/USB#Receptacle_(socket)_identification
+
+[usb-a_schematic.pdf]: https://github.com/solokeys/solo-hw/releases/download/1.2/USB-A_schematic.pdf
