@@ -77,6 +77,16 @@
       "contributions": [
         "infra"
       ]
+    },
+    {
+      "login": "pjz",
+      "name": "Paul Jimenez",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/11100?v=4",
+      "profile": "https://place.org/~pj/",
+      "contributions": [
+        "infra",
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
