@@ -115,6 +115,16 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "rgerganov",
+      "name": "Radoslav Gerganov",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/271616?v=4",
+      "profile": "https://xakcop.com",
+      "contributions": [
+        "ideas",
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
