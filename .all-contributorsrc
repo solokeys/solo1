@@ -154,6 +154,18 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "hughsie",
+      "name": "Richard Hughes",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/151380?v=4",
+      "profile": "http://blogs.gnome.org/hughsie/",
+      "contributions": [
+        "ideas",
+        "code",
+        "infra",
+        "tool"
+      ]
     }
   ],
   "contributorsPerLine": 7,
