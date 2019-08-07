@@ -115,6 +115,16 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "manuel-domke",
+      "name": "Manuel Domke",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/10274356?v=4",
+      "profile": "http://13-37.org",
+      "contributions": [
+        "ideas",
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
