@@ -1285,11 +1285,13 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
     uint8_t hmac[32];
     int ret;
 
+//    Validate incoming data packet len
     if (len < 64)
     {
         return CTAP1_ERR_OTHER;
     }
 
+//    Validate device's state
     if (ctap_is_pin_set())  // Check first, prevent SCA
     {
         if (ctap_device_locked())
@@ -1302,6 +1304,7 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
         }
     }
 
+//    calculate shared_secret
     crypto_ecc256_shared_secret(platform_pubkey, KEY_AGREEMENT_PRIV, shared_secret);
 
     crypto_sha256_init();
@@ -1324,6 +1327,7 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
         return CTAP2_ERR_PIN_AUTH_INVALID;
     }
 
+//     decrypt new PIN with shared secret
     crypto_aes256_init(shared_secret, NULL);
 
     while((len & 0xf) != 0) // round up to nearest  AES block size multiple
@@ -1333,7 +1337,7 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
 
     crypto_aes256_decrypt(pinEnc, len);
 
-
+//      validate new PIN (length)
 
     ret = trailing_zeros(pinEnc, NEW_PIN_ENC_MIN_SIZE - 1);
     ret = NEW_PIN_ENC_MIN_SIZE  - ret;
@@ -1348,6 +1352,8 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
         printf1(TAG_CP,"new pin: %s [%d bytes]\n", pinEnc, ret);
         dump_hex1(TAG_CP, pinEnc, ret);
     }
+
+//    validate device's state, decrypt and compare pinHashEnc (user provided current PIN hash) with stored PIN_CODE_HASH
 
     if (ctap_is_pin_set())
     {
@@ -1383,6 +1389,7 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
         }
     }
 
+//      set new PIN (update and store PIN_CODE_HASH)
     ctap_update_pin(pinEnc, ret);
 
     return 0;
