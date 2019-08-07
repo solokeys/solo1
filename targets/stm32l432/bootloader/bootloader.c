@@ -167,7 +167,7 @@ int bootloader_bridge(int klen, uint8_t * keyh)
         return CTAP1_ERR_INVALID_LENGTH;
     }
 #ifndef SOLO_HACKER
-    extern uint8_t *pubkey_nitrokey_boot;
+    extern uint8_t *pubkey_boot;
 
     const struct uECC_Curve_t * curve = NULL;
 #endif
@@ -226,7 +226,7 @@ int bootloader_bridge(int klen, uint8_t * keyh)
             curve = uECC_secp256r1();
             // Verify incoming signature made over the SHA256 hash
             if (
-                    !uECC_verify(pubkey_nitrokey_boot, hash, 32, req->payload, curve)
+                    !uECC_verify(pubkey_boot, hash, 32, req->payload, curve)
             )
             {
               printf1(TAG_BOOT, "Signature invalid\r\n");
