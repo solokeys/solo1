@@ -24,6 +24,16 @@
       ]
     },
     {
+      "login": "agl",
+      "name": "Adam Langley",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/21203?v=4",
+      "profile": "https://www.imperialviolet.org",
+      "contributions": [
+        "bug",
+        "code"
+      ]
+    },
+    {    
       "login": "merlokk",
       "name": "Oleg Moiseenko",
       "avatar_url": "https://avatars2.githubusercontent.com/u/807634?v=4",

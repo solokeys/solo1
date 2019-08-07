@@ -121,6 +121,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tr>
     <td align="center"><a href="https://github.com/szszszsz"><img src="https://avatars0.githubusercontent.com/u/17005426?v=4" width="100px;" alt="Szczepan Zalega"/><br /><sub><b>Szczepan Zalega</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=szszszsz" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/Wesseldr"><img src="https://avatars1.githubusercontent.com/u/4012809?v=4" width="100px;" alt="Wessel dR"/><br /><sub><b>Wessel dR</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=Wesseldr" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://www.imperialviolet.org"><img src="https://avatars3.githubusercontent.com/u/21203?v=4" width="100px;" alt="Adam Langley"/><br /><sub><b>Adam Langley</b></sub></a><br /><a href="https://github.com/solokeys/solo/issues?q=author%3Aagl" title="Bug reports">🐛</a> <a href="https://github.com/solokeys/solo/commits?author=agl" title="Code">💻</a></td>
     <td align="center"><a href="http://www.lotteam.com"><img src="https://avatars2.githubusercontent.com/u/807634?v=4" width="100px;" alt="Oleg Moiseenko"/><br /><sub><b>Oleg Moiseenko</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=merlokk" title="Code">💻</a></td>
   </tr>
 </table>
