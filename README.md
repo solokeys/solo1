@@ -1,5 +1,5 @@
 [![License](https://img.shields.io/github/license/solokeys/solo.svg)](https://github.com/solokeys/solo/blob/master/LICENSE)
-[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors)
+[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors)
 [![Build Status](https://travis-ci.com/solokeys/solo.svg?branch=master)](https://travis-ci.com/solokeys/solo)
 [![Discourse Users](https://img.shields.io/discourse/https/discourse.solokeys.com/users.svg)](https://discourse.solokeys.com)
 [![Keybase Chat](https://img.shields.io/badge/chat-on%20keybase-brightgreen.svg)](https://keybase.io/team/solokeys.public)
@@ -120,6 +120,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <table>
   <tr>
     <td align="center"><a href="https://github.com/szszszsz"><img src="https://avatars0.githubusercontent.com/u/17005426?v=4" width="100px;" alt="Szczepan Zalega"/><br /><sub><b>Szczepan Zalega</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=szszszsz" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/Wesseldr"><img src="https://avatars1.githubusercontent.com/u/4012809?v=4" width="100px;" alt="Wessel dR"/><br /><sub><b>Wessel dR</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=Wesseldr" title="Documentation">📖</a></td>
   </tr>
 </table>
 
