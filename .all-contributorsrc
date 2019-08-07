@@ -87,6 +87,16 @@
         "infra",
         "code"
       ]
+    },
+    {
+      "login": "yparitcher",
+      "name": "yparitcher",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/38916402?v=4",
+      "profile": "https://github.com/yparitcher",
+      "contributions": [
+        "ideas",
+        "maintenance"
+      ]
     }
   ],
   "contributorsPerLine": 7,
