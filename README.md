@@ -1,5 +1,5 @@
 [![License](https://img.shields.io/github/license/solokeys/solo.svg)](https://github.com/solokeys/solo/blob/master/LICENSE)
-[![All Contributors](https://img.shields.io/badge/all_contributors-7-orange.svg?style=flat-square)](#contributors)
+[![All Contributors](https://img.shields.io/badge/all_contributors-8-orange.svg?style=flat-square)](#contributors)
 [![Build Status](https://travis-ci.com/solokeys/solo.svg?branch=master)](https://travis-ci.com/solokeys/solo)
 [![Discourse Users](https://img.shields.io/discourse/https/discourse.solokeys.com/users.svg)](https://discourse.solokeys.com)
 [![Keybase Chat](https://img.shields.io/badge/chat-on%20keybase-brightgreen.svg)](https://keybase.io/team/solokeys.public)
@@ -126,6 +126,9 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://github.com/aseigler"><img src="https://avatars1.githubusercontent.com/u/6605560?v=4" width="100px;" alt="Alex Seigler"/><br /><sub><b>Alex Seigler</b></sub></a><br /><a href="https://github.com/solokeys/solo/issues?q=author%3Aaseigler" title="Bug reports">🐛</a></td>
     <td align="center"><a href="https://www.cotech.de/services/"><img src="https://avatars3.githubusercontent.com/u/321888?v=4" width="100px;" alt="Dominik Schürmann"/><br /><sub><b>Dominik Schürmann</b></sub></a><br /><a href="https://github.com/solokeys/solo/issues?q=author%3Adschuermann" title="Bug reports">🐛</a></td>
     <td align="center"><a href="https://github.com/ehershey"><img src="https://avatars0.githubusercontent.com/u/286008?v=4" width="100px;" alt="Ernie Hershey"/><br /><sub><b>Ernie Hershey</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=ehershey" title="Documentation">📖</a></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/YakBizzarro"><img src="https://avatars1.githubusercontent.com/u/767740?v=4" width="100px;" alt="Andrea Corna"/><br /><sub><b>Andrea Corna</b></sub></a><br /><a href="#infra-YakBizzarro" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
   </tr>
 </table>
 
