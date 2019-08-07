@@ -22,6 +22,16 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "agl",
+      "name": "Adam Langley",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/21203?v=4",
+      "profile": "https://www.imperialviolet.org",
+      "contributions": [
+        "bug",
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
