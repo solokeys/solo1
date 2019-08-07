@@ -125,6 +125,26 @@
         "ideas",
         "code"
       ]
+    },
+    {
+      "login": "manuel-domke",
+      "name": "Manuel Domke",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/10274356?v=4",
+      "profile": "http://13-37.org",
+      "contributions": [
+        "ideas",
+        "code",
+        "business"
+      ]
+    },
+    {
+      "login": "esden",
+      "name": "Piotr Esden-Tempski",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/17334?v=4",
+      "profile": "http://1bitsquared.com",
+      "contributions": [
+        "business"
+      ]
     }
   ],
   "contributorsPerLine": 7,
