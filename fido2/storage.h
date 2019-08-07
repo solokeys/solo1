@@ -11,6 +11,8 @@
 
 #define KEY_SPACE_BYTES     128
 #define MAX_KEYS            (1)
+#define PIN_SALT_LEN        (32)
+
 
 #define BACKUP_MARKER       0x5A
 #define INITIALIZED_MARKER  0xA5
@@ -24,8 +26,8 @@ typedef struct
     // Pin information
     uint8_t is_initialized;
     uint8_t is_pin_set;
-    uint8_t pin_code[NEW_PIN_ENC_MIN_SIZE];
-    int pin_code_length;
+    uint8_t PIN_CODE_HASH[32];
+    uint8_t PIN_SALT[PIN_SALT_LEN];
     int8_t remaining_tries;
 
     uint16_t rk_stored;
