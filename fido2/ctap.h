@@ -359,5 +359,6 @@ uint16_t ctap_key_len(uint8_t index);
 extern uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
 extern uint8_t KEY_AGREEMENT_PUB[64];
 
+void lock_device_permanently();
 
 #endif
