@@ -145,6 +145,15 @@
       "contributions": [
         "business"
       ]
+    },
+    {
+      "login": "m3hm00d",
+      "name": "f.m3hm00d",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/42179593?v=4",
+      "profile": "https://github.com/m3hm00d",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
