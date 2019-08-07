@@ -50,6 +50,15 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "dschuermann",
+      "name": "Dominik Schürmann",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/321888?v=4",
+      "profile": "https://www.cotech.de/services/",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
