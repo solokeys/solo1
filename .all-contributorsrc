@@ -59,6 +59,15 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "ehershey",
+      "name": "Ernie Hershey",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/286008?v=4",
+      "profile": "https://github.com/ehershey",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
