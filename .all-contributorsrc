@@ -106,6 +106,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "alphathegeek",
+      "name": "alphathegeek",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/51253712?v=4",
+      "profile": "https://github.com/alphathegeek",
+      "contributions": [
+        "ideas"
+      ]
     }
   ],
   "contributorsPerLine": 7,
