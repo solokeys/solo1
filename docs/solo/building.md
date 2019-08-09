@@ -32,7 +32,7 @@ Source code can be downloaded from:
 -   from python programs [repository](https://pypi.org/project/solo-python/) `pip install solo-python`
 -   from installing prerequisites `pip3 install -r tools/requirements.txt`
 -   github repository: [repository](https://github.com/solokeys/solo-python)
--   installation python enviroment witn command `make venv` from root directory of source code
+-   installation python enviroment with command `make venv` from root directory of source code
 
 ## Compilation
 
