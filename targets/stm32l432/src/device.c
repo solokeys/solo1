@@ -509,6 +509,7 @@ int ctap_user_presence_test(uint32_t up_delay)
     // "cache" button presses for 2 seconds.
     if (millis() - __last_button_press_time < 2000)
     {
+        __last_button_press_time = 0;
         return 1;
     }
 #if SKIP_BUTTON_CHECK_WITH_DELAY
