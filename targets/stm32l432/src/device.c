@@ -38,6 +38,7 @@ void wait_for_usb_tether();
 
 
 uint32_t __90_ms = 0;
+uint32_t __last_button_press_time = 0;
 uint32_t __device_status = 0;
 uint32_t __last_update = 0;
 extern PCD_HandleTypeDef hpcd;
@@ -82,6 +83,11 @@ void TIM6_DAC_IRQHandler()
 		WTX_timer_exec();
 	}
 #endif
+}
+void EXTI0_IRQHandler(void)
+{
+    EXTI->PR1 = EXTI->PR1;
+    __last_button_press_time = millis();
 }
 
 // Global USB interrupt handler
@@ -497,6 +503,11 @@ int ctap_user_presence_test(uint32_t up_delay)
 {
     int ret;
     if (device_is_nfc() == NFC_IS_ACTIVE || _RequestComeFromNFC)
+    {
+        return 1;
+    }
+    // "cache" button presses for 2 seconds.
+    if (millis() - __last_button_press_time < 2000)
     {
         return 1;
     }
