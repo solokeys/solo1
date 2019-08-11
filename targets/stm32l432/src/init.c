@@ -850,7 +850,7 @@ void init_gpio(void)
   LL_GPIO_SetPinMode(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_MODE_INPUT);
   LL_GPIO_SetPinPull(SOLO_BUTTON_PORT,SOLO_BUTTON_PIN,LL_GPIO_PULL_UP);
 
-
+#ifndef IS_BOOTLOADER
   LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE0);
   LL_EXTI_InitTypeDef EXTI_InitStruct;
   EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_0;   // GPIOA_0
@@ -861,6 +861,7 @@ void init_gpio(void)
   LL_EXTI_Init(&EXTI_InitStruct);
 
   NVIC_EnableIRQ(EXTI0_IRQn);
+#endif
 
 }
 
