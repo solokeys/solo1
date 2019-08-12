@@ -700,7 +700,7 @@ void nfc_process_block(uint8_t * buf, unsigned int len)
 
     if (IS_PPSS_CMD(buf[0]))
     {
-        printf1(TAG_NFC, "NFC_CMD_PPSS [%d] 0x%02x %02x\r\n", len, (len > 2) ? buf[2] : 0);
+        printf1(TAG_NFC, "NFC_CMD_PPSS [%d] 0x%02x\r\n", len, (len > 2) ? buf[2] : 0);
         
         if (buf[1] == 0x11 && (buf[2] & 0x0f) == 0x00) {
             nfc_write_frame(buf, 1); // ack with correct start byte
