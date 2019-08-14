@@ -66,7 +66,7 @@ Environment: Fedora 29 x64, Linux 4.19.9
 
 See <https://docs.solokeys.io/solo/building/> for the original guide. Here details not included there will be covered.
 
-### Install ARM tools
+### Install ARM tools Linux
 
 1.  Download current [ARM tools] package: [gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2].
 
@@ -74,6 +74,13 @@ See <https://docs.solokeys.io/solo/building/> for the original guide. Here detai
 
 3.  Add full path to the `./bin` directory as first entry to the `$PATH` variable,
     as in `~/gcc-arm/gcc-arm-none-eabi-8-2018-q4-major/bin/:$PATH`.
+
+### Install ARM tools OsX using brew package manager
+
+```bash
+brew tap ArmMbed/homebrew-formulae
+brew install arm-none-eabi-gcc
+```
 
 ### Install flashing software
 
@@ -114,8 +121,8 @@ Do not use it, if you do not plan to do so.
 ```bash
 # while in the main project directory
 # create Python virtual environment with required packages, and activate
-make env3
-. env3/bin/activate
+make venv
+. venv/bin/activate
 # Run flashing
 cd ./targets/stm32l432
 make flash
@@ -178,8 +185,8 @@ make fido2-test
 
 #### FIDO2 test sites
 
-1.  <https://webauthn.bin.coffee/>
-2.  <https://github.com/apowers313/fido2-server-demo/>
+1.  <https://www.passwordless.dev/overview>
+2.  <https://webauthn.bin.coffee/>
 3.  <https://webauthn.org/>
 
 #### U2F test sites
