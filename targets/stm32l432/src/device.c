@@ -100,11 +100,6 @@ void TIM6_DAC_IRQHandler()
 	}
 #endif
 }
-void EXTI0_IRQHandler(void)
-{
-    EXTI->PR1 = EXTI->PR1;
-    __last_button_press_time = millis();
-}
 
 // Interrupt on rising edge of button (button released)
 void EXTI0_IRQHandler(void)
