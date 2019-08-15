@@ -706,7 +706,7 @@ void nfc_process_block(uint8_t * buf, unsigned int len)
             nfc_write_frame(buf, 1); // ack with correct start byte
         } else {
             printf1(TAG_NFC, "NFC_CMD_PPSS ERROR!!!\r\n");
-            nfc_write_frame("\x00", 1); // this should not happend. but iso14443-4 dont have NACK here, so just 0x00
+            nfc_write_frame((uint8_t*)"\x00", 1); // this should not happend. but iso14443-4 dont have NACK here, so just 0x00
         }        
     }
     else if (IS_IBLOCK(buf[0]))
