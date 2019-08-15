@@ -92,19 +92,27 @@ int nfc_init()
     return NFC_IS_NA;
 }
 
+static uint8_t gl_int0 = 0;
 void process_int0(uint8_t int0)
 {
-
+    gl_int0 = int0;
 }
 
 bool ams_wait_for_tx(uint32_t timeout_ms)
 {
+    if (gl_int0 & AMS_INT_TXE) {
+		uint8_t int0 = ams_read_reg(AMS_REG_INT0);
+		process_int0(int0);
+        
+        return true;
+    }
+    
 	uint32_t tstart = millis();
 	while (tstart + timeout_ms > millis())
 	{
 		uint8_t int0 = ams_read_reg(AMS_REG_INT0);
-		if (int0) process_int0(int0);
-		if (int0 & AMS_INT_TXE)
+		process_int0(int0);
+		if (int0 & AMS_INT_TXE || int0 & AMS_INT_RXE)
 			return true;
 
 		delay(1);
@@ -121,8 +129,13 @@ bool ams_receive_with_timeout(uint32_t timeout_ms, uint8_t * data, int maxlen, i
 	uint32_t tstart = millis();
 	while (tstart + timeout_ms > millis())
 	{
-		uint8_t int0 = ams_read_reg(AMS_REG_INT0);
-		if (int0) process_int0(int0);
+        uint8_t int0 = 0;
+        if (gl_int0 & AMS_INT_RXE) {
+            int0 = gl_int0;
+        } else {
+            int0 = ams_read_reg(AMS_REG_INT0);
+            process_int0(int0);
+        }
 		uint8_t buffer_status2 = ams_read_reg(AMS_REG_BUF2);
 
         if (buffer_status2 && (int0 & AMS_INT_RXE))
@@ -196,7 +209,6 @@ bool nfc_write_response(uint8_t req0, uint16_t resp)
 void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 {
     uint8_t res[32 + 2];
-	int sendlen = 0;
 	uint8_t iBlock = NFC_CMD_IBLOCK | (req0 & 0x0f);
     uint8_t block_offset = p14443_block_offset(req0);
 
@@ -208,6 +220,7 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 			memcpy(&res[block_offset], data, len);
 		nfc_write_frame(res, len + block_offset);
 	} else {
+        int sendlen = 0;
 		do {
 			// transmit I block
 			int vlen = MIN(32 - block_offset, len - sendlen);
@@ -227,11 +240,11 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 			sendlen += vlen;
 
 			// wait for transmit (32 bytes aprox 2,5ms)
-			// if (!ams_wait_for_tx(10))
-			// {
-			// 	printf1(TAG_NFC, "TX timeout. slen: %d \r\n", sendlen);
-			// 	break;
-			// }
+			 if (!ams_wait_for_tx(5))
+			 {
+			 	printf1(TAG_NFC, "TX timeout. slen: %d \r\n", sendlen);
+			 	break;
+			 }
 
 			// if needs to receive R block (not a last block)
 			if (res[0] & 0x10)
@@ -316,7 +329,7 @@ bool WTX_off()
 void WTX_timer_exec()
 {
 	// condition: (timer on) or (not expired[300ms])
-	if ((WTX_timer <= 0) || WTX_timer + 300 > millis())
+	if ((WTX_timer == 0) || WTX_timer + 300 > millis())
 		return;
 
 	WTX_process(10);
@@ -327,12 +340,12 @@ void WTX_timer_exec()
 // read timeout must be 10 ms to call from interrupt
 bool WTX_process(int read_timeout)
 {
-	uint8_t wtx[] = {0xf2, 0x01};
 	if (WTX_fail)
 		return false;
 
 	if (!WTX_sent)
 	{
+        uint8_t wtx[] = {0xf2, 0x01};
 		nfc_write_frame(wtx, sizeof(wtx));
 		WTX_sent = true;
 		return true;
@@ -618,7 +631,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			if (!WTX_off())
 				return;
 
-			printf1(TAG_NFC, "CTAP resp: 0x%02�  len: %d\r\n", status, ctap_resp.length);
+			printf1(TAG_NFC, "CTAP resp: 0x%02x  len: %d\r\n", status, ctap_resp.length);
 
 			if (status == CTAP1_ERR_SUCCESS)
 			{
@@ -779,6 +792,8 @@ int nfc_loop()
 
 
     read_reg_block(&ams);
+    uint8_t old_int0 = gl_int0;
+    process_int0(ams.regs.int0);
     uint8_t state = AMS_STATE_MASK & ams.regs.rfid_status;
 
     if (state != AMS_STATE_SELECTED && state != AMS_STATE_SELECTEDX)
@@ -792,7 +807,7 @@ int nfc_loop()
         // if (state != AMS_STATE_SENSE)
         //      printf1(TAG_NFC,"    %s  x%02x\r\n", ams_get_state_string(ams.regs.rfid_status), state);
     }
-    if (ams.regs.int0 & AMS_INT_INIT)
+    if (ams.regs.int0 & AMS_INT_INIT || old_int0 & AMS_INT_INIT)
     {
         nfc_state_init();
     }
@@ -801,7 +816,7 @@ int nfc_loop()
         // ams_print_int1(ams.regs.int1);
     }
 
-    if ((ams.regs.int0 & AMS_INT_RXE))
+    if (ams.regs.int0 & AMS_INT_RXE || old_int0 & AMS_INT_RXE)
     {
         if (ams.regs.buffer_status2)
         {
