@@ -62,7 +62,6 @@ boot-no-sig:
 
 build-release-locked: cbor clean2 boot-sig-checking clean all-locked
 	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
-	rm -f solo.hex bootloader.hex  # don't program solo.hex ...
 
 build-release: cbor clean2 boot-sig-checking clean all
 	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
