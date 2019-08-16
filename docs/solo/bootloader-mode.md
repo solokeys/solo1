@@ -3,7 +3,7 @@
 You can put Solo into bootloader mode by holding down the button, and plugging in Solo.  After 2 seconds, bootloader mode will activate.
 You'll see a yellowish flashing light and you can let go of the button.
 
-Now Solo is ready to accept firmware updates.  If the Solo is a secured model, it can only accept signed updates, typically in the `firmware-*.json` format.
+Now Solo is ready to [accept firmware updates](/solo/signed-updates).  If the Solo is a secured model, it can only accept signed updates, typically in the `firmware-*.json` format.
 
 If Solo is running a hacker build, it can be put into bootloader mode on command.  This makes it easier for development.
 
