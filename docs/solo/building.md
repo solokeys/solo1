@@ -14,12 +14,6 @@ but be warned they might be out of date.  Typically it will be called `gcc-arm-n
 
 Install `solo-python` usually with `pip3 install solo-python`. The `solo` python application may also be used for [programming](#programming).
 
-To program your build, you'll need one of the following programs.
-
--   [openocd](http://openocd.org)
--   [stlink](https://github.com/texane/stlink)
--   [STM32CubeProg](https://www.st.com/en/development-tools/stm32cubeprog.html)
-
 ## Obtain source code and solo tool
 
 Source code can be downloaded from:
@@ -54,7 +48,7 @@ enabled, like being able to jump to the bootloader on command.  It then merges b
 and solo builds into the same binary.  I.e. it combines `bootloader.hex` and `solo.hex`
 into `all.hex`.
 
-If you're just planning to do development, please don't try to reprogram the bootloader,
+If you're just planning to do development, **please don't try to reprogram the bootloader**,
 as this can be risky if done often.  Just use `solo.hex`.
 
 ### Building with debug messages
@@ -86,6 +80,8 @@ solo monitor <serial-port>
 
 ### Building a Solo release
 
+To build Solo
+
 If you want to build a release of Solo, we recommend trying a Hacker build first
 just to make sure that it's working.  Otherwise it may not be as easy or possible to
 fix any mistakes.
@@ -96,105 +92,6 @@ If you're ready to program a full release, run this recipe to build.
 make build-release-locked
 ```
 
-Programming `all.hex` will cause the device to permanently lock itself.
+Programming `all.hex` will cause the device to permanently lock itself.  This means debuggers cannot be used and signature checking
+will be enforced on all future updates.
 
-## Programming
-
-It's recommended to test a debug/hacker build first to make sure Solo is working as expected.
-Then you can switch to a locked down build, which cannot be reprogrammed as easily (or not at all!).
-
-We recommend using our `solo` tool to manage programming.  It is cross platform.  First you must
-install the prerequisites:
-
-```
-pip3 install -r tools/requirements.txt
-```
-
-If you're on Windows, you must also install [libusb](https://sourceforge.net/projects/libusb-win32/files/libusb-win32-releases/1.2.6.0/).
-
-### Pre-programmed Solo Hacker
-
-If your Solo device is already programmed (it flashes green when powered), we recommend
-programming it using the Solo bootloader.
-
-```
-solo program aux enter-bootloader
-solo program bootloader solo.hex
-```
-
-Make sure to program `solo.hex` and not `all.hex`.  Nothing bad would happen, but you'd
-see errors.
-
-If something bad happens, you can always boot the Solo bootloader by doing the following.
-
-1. Unplug device.
-2. Hold down button.
-3. Plug in device while holding down button.
-4. Wait about 2 seconds for flashing yellow light.  Release button.
-
-If you hold the button for an additional 5 seconds, it will boot to the ST DFU (device firmware update).
-Don't use the ST DFU unless you know what you're doing.
-
-### ST USB DFU
-
-If your Solo has never been programmed, it will boot the ST USB DFU.  The LED is turned
-off and it enumerates as "STM BOOTLOADER".
-
-You can program it by running the following.
-
-```
-solo program aux enter-bootloader
-solo program aux enter-dfu
-# powercycle key
-solo program dfu all.hex
-```
-
-Make sure to program `all.hex`, as this contains both the bootloader and the Solo application.
-
-If all goes well, you should see a slow-flashing green light.
-
-### Solo Hacker vs Solo
-
-A Solo hacker device doesn't need to be in bootloader mode to be programmed, it will automatically switch.
-
-Solo (locked) needs the button to be held down when plugged in to boot to the bootloader.
-
-A locked Solo will only accept signed updates.
-
-### Signed updates
-
-If this is not a device with a hacker build, you can only program signed updates.
-
-```
-solo program bootloader /path/to/firmware.json
-```
-
-If you've provisioned the Solo bootloader with your own secp256r1 public key, you can sign your
-firmware by running the following command.
-
-```
-solo sign /path/to/signing-key.pem /path/to/solo.hex /output-path/to/firmware.json
-```
-
-If your Solo isn't locked, you can always reprogram it using a debugger connected directly
-to the token.
-
-## Permanently locking the device
-
-If you plan to be using your Solo for real, you should lock it permanently.  This prevents
-someone from connecting a debugger to your token and stealing credentials.
-
-To do this, build the locked release firmware.
-```
-make build-release-locked
-```
-
-Now when you program `all.hex`, the device will lock itself when it first boots.  You can only update it
-with signed updates.
-
-If you'd like to also permanently disable signed updates, plug in your programmed Solo and run the following:
-
-```
-# WARNING: No more signed updates.
-solo program disable-bootloader
-```
