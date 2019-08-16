@@ -852,6 +852,7 @@ int nfc_loop()
                 printf1(TAG_NFC, "NFC_CMD_WUPA\r\n");
             break;
             case NFC_CMD_HLTA:
+                ams_write_command(AMS_CMD_SLEEP);
                 printf1(TAG_NFC, "HLTA/Halt\r\n");
             break;
             case NFC_CMD_RATS:
