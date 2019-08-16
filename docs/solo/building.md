@@ -92,6 +92,13 @@ If you're ready to program a full release, run this recipe to build.
 make build-release-locked
 ```
 
+This outputs bootloader.hex, solo.hex, and the combined all.hex.
+
 Programming `all.hex` will cause the device to permanently lock itself.  This means debuggers cannot be used and signature checking
 will be enforced on all future updates.
+
+Note if you program a secured `solo.hex` file onto a Solo Hacker, it will lock the flash, but the bootloader
+will still accept unsigned firmware updates.  So you can switch it back to being a hacker, but you will
+not be able to replace the unlocked bootloader anymore, since the permanently locked flash also disables the DFU.
+[Read more on Solo's boot stages](/solo/bootloader-mode).
 
