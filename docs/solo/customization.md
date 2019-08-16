@@ -19,7 +19,7 @@ and program it.
 ### Creating your attestation key pair
 
 Since we are generating keys, it's important to use a good entropy source.
-You can use the True RNG on your Solo device to generate some good random numbers.
+You can use the [True RNG on your Solo](/solo/solo-extras) to generate some good random numbers.
 
 ```
 # Run for 1 second, then hit control-c
