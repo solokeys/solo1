@@ -14,15 +14,13 @@
 #define check(x) assert(state_prev_0xff->x == state_tmp_ptr->x);
 #define check_buf(x) assert(memcmp(state_prev_0xff->x, state_tmp_ptr->x, sizeof(state_tmp_ptr->x)) == 0);
 
-bool migrate_from_FF_to_01(AuthenticatorState* state_previous_ptr, AuthenticatorState* state_tmp_ptr){
+bool migrate_from_FF_to_01(AuthenticatorState_0xFF* state_prev_0xff, AuthenticatorState_0x01* state_tmp_ptr){
     // Calculate PIN hash, and replace PIN raw storage with it; add version to structure
     // other ingredients do not change
     if (state_tmp_ptr->data_version != 0xFF)
         return false;
 
-    static_assert(sizeof(AuthenticatorState_0xFF) <= sizeof(AuthenticatorState), "New state structure is smaller, than current one, which is not handled");
-
-    AuthenticatorState_0xFF* state_prev_0xff = (AuthenticatorState_0xFF *) state_previous_ptr;
+    static_assert(sizeof(AuthenticatorState_0xFF) <= sizeof(AuthenticatorState_0x01), "New state structure is smaller, than current one, which is not handled");
 
     if (ctap_generate_rng(state_tmp_ptr->PIN_SALT, sizeof(state_tmp_ptr->PIN_SALT)) != 1) {
         printf2(TAG_ERR, "Error, rng failed\n");
@@ -71,7 +69,7 @@ void do_migration_if_required(AuthenticatorState* state_current){
     authenticator_read_state(&state_tmp);
     if(state_current->data_version == 0xFF){
         printf2(TAG_ERR, "Running migration\n");
-        bool success = migrate_from_FF_to_01(&state_previous, &state_tmp);
+        bool success = migrate_from_FF_to_01((AuthenticatorState_0xFF *) &state_previous, &state_tmp);
         if (!success){
             printf2(TAG_ERR, "Failed migration from 0xFF to 1\n");
             // FIXME discuss migration failure behavior
