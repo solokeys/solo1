@@ -1368,12 +1368,13 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
         crypto_aes256_reset_iv(NULL);
         crypto_aes256_decrypt(pinHashEnc, 16);
 
+        uint8_t pinHashEncSalted[32];
         crypto_sha256_init();
         crypto_sha256_update(pinHashEnc, 16);
         crypto_sha256_update(STATE.PIN_SALT, sizeof(STATE.PIN_SALT));
-        crypto_sha256_final(pinHashEnc);
+        crypto_sha256_final(pinHashEncSalted);
 
-        if (memcmp(pinHashEnc, STATE.PIN_CODE_HASH, 16) != 0)
+        if (memcmp(pinHashEncSalted, STATE.PIN_CODE_HASH, 16) != 0)
         {
             ctap_reset_key_agreement();
             ctap_decrement_pin_attempts();
@@ -1409,11 +1410,12 @@ uint8_t ctap_add_pin_if_verified(uint8_t * pinTokenEnc, uint8_t * platform_pubke
 
     crypto_aes256_decrypt(pinHashEnc, 16);
 
+    uint8_t pinHashEncSalted[32];
     crypto_sha256_init();
     crypto_sha256_update(pinHashEnc, 16);
     crypto_sha256_update(STATE.PIN_SALT, sizeof(STATE.PIN_SALT));
-    crypto_sha256_final(pinHashEnc);
-    if (memcmp(pinHashEnc, STATE.PIN_CODE_HASH, 16) != 0)
+    crypto_sha256_final(pinHashEncSalted);
+    if (memcmp(pinHashEncSalted, STATE.PIN_CODE_HASH, 16) != 0)
     {
         printf2(TAG_ERR,"Pin does not match!\n");
         printf2(TAG_ERR,"platform-pin-hash: "); dump_hex1(TAG_ERR, pinHashEnc, 16);
