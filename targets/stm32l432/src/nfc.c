@@ -489,9 +489,6 @@ void nfc_process_iblock(uint8_t * buf, int len)
     CTAP_RESPONSE ctap_resp;
     int status;
     uint16_t reslen;
-    
-    printf1(TAG_NFC,"Iblock: ");
-	dump_hex1(TAG_NFC, buf, len);
 
     uint8_t block_offset = p14443_block_offset(buf[0]);
 
@@ -630,13 +627,15 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			printf1(TAG_NFC, "FIDO2 CTAP message. %d\r\n", timestamp());
 
-			WTX_on(WTX_TIME_DEFAULT);
+			// WTX_on(WTX_TIME_DEFAULT);
             request_from_nfc(true);
+            // if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
             ctap_response_init(&ctap_resp);
             status = ctap_request(apdu.data, apdu.lc, &ctap_resp);
+            // if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
             request_from_nfc(false);
-			if (!WTX_off())
-				return;
+			// if (!WTX_off())
+			// 	return;
 
 			printf1(TAG_NFC, "CTAP resp: 0x%02x  len: %d\r\n", status, ctap_resp.length);
 
@@ -688,6 +687,9 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			nfc_write_response(buf[0], SW_INS_INVALID);
         break;
     }
+    
+    printf1(TAG_NFC,"prev.Iblock: ");
+	dump_hex1(TAG_NFC, buf, len);
 }
 
 static uint8_t ibuf[1024];
