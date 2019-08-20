@@ -1678,7 +1678,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             break;
         default:
             status = CTAP1_ERR_INVALID_COMMAND;
-            printf2(TAG_ERR,"error, invalid cmd\n");
+            printf2(TAG_ERR,"error, invalid cmd: %x\n", cmd);
     }
 
 done:
@@ -1767,7 +1767,7 @@ void ctap_init()
         exit(1);
     }
 
-    if (device_is_nfc() != NFC_IS_ACTIVE)
+    // if (device_is_nfc() != NFC_IS_ACTIVE)
     {
         ctap_reset_key_agreement();
     }
