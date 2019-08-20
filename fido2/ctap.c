@@ -1812,7 +1812,7 @@ uint8_t ctap_is_pin_set()
 
 /**
  * Set new PIN, by updating PIN hash. Save state.
- * Globals: PIN_CODE_HASH STATE
+ * Globals: STATE
  * @param pin new PIN (raw)
  * @param len pin array length
  */
