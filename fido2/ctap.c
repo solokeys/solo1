@@ -256,7 +256,9 @@ static int ctap_generate_cose_key(CborEncoder * cose_key, uint8_t * hmac_input, 
     switch(algtype)
     {
         case COSE_ALG_ES256:
+            if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
             crypto_ecc256_derive_public_key(hmac_input, len, x, y);
+            if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
             break;
         default:
             printf2(TAG_ERR,"Error, COSE alg %d not supported\n", algtype);
@@ -1969,7 +1971,9 @@ int8_t ctap_load_key(uint8_t index, uint8_t * key)
 
 static void ctap_reset_key_agreement()
 {
+    if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
     crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+    if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
 }
 
 void ctap_reset()

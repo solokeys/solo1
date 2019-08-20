@@ -629,10 +629,8 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			// WTX_on(WTX_TIME_DEFAULT);
             request_from_nfc(true);
-            // if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
             ctap_response_init(&ctap_resp);
             status = ctap_request(apdu.data, apdu.lc, &ctap_resp);
-            // if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
             request_from_nfc(false);
 			// if (!WTX_off())
 			// 	return;
