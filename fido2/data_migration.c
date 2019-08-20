@@ -39,14 +39,17 @@ bool migrate_from_FF_to_01(AuthenticatorState_0xFF* state_prev_0xff, Authenticat
         crypto_sha256_final(state_tmp_ptr->PIN_CODE_HASH);
     }
 
+    assert(state_tmp_ptr->_reserved == state_prev_0xff->pin_code_length);
     state_tmp_ptr->_reserved = 0xFF;
     state_tmp_ptr->data_version = 1;
 
+    check(is_initialized);
     check(is_pin_set);
-    check(rk_stored);
     check(remaining_tries);
+    check(rk_stored);
     check_buf(key_lens);
     check_buf(key_space);
+    assert(state_tmp_ptr->data_version != 0xFF);
 
     return true;
 }
