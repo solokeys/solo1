@@ -301,7 +301,6 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len, bool ext
     resp_chain_buffer_len = 0;
     
     // if we dont need to break data to parts that need to exchange via GET RESPONSE command (ISO 7816-4 7.1.3)
-printf1(TAG_NFC, "---%d.\r\n", extapdu);
 	if (len <= 255 || extapdu)
     {
         nfc_write_response_chaining_plain(req0, data, len);
@@ -313,7 +312,7 @@ printf1(TAG_NFC, "---%d.\r\n", extapdu);
         memmove(resp_chain_buffer, data, pcklen);
         append_get_response(&resp_chain_buffer[pcklen], resp_chain_buffer_len);
        
-        nfc_write_response_chaining_plain(req0, data, pcklen + 2); // 2 for 61XX 
+        nfc_write_response_chaining_plain(req0, resp_chain_buffer, pcklen + 2); // 2 for 61XX 
     
         // put the rest data into chain buffer
         memmove(resp_chain_buffer, &data[pcklen], resp_chain_buffer_len);        
