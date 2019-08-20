@@ -577,8 +577,8 @@ void nfc_process_iblock(uint8_t * buf, int len)
             if (pcklen > resp_chain_buffer_len)
                 pcklen = resp_chain_buffer_len;
 
-            printf1(TAG_NFC, "--- %d/%d\r\n", pcklen, resp_chain_buffer_len); 
-
+            printf1(TAG_NFC, "GET RESPONSE. pck len: %d buffer len: %d\r\n", pcklen, resp_chain_buffer_len); 
+            
             // create packet and add 61XX there if we have another portion(s) of data
             memmove(pck, resp_chain_buffer, pcklen);
             size_t dlen = 0;
@@ -589,7 +589,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
             }
 
             // send
-            nfc_write_response_chaining(buf[0], pck, pcklen + dlen, apdu.extended_apdu); // dlen for 61XX
+            nfc_write_response_chaining_plain(buf[0], pck, pcklen + dlen); // dlen for 61XX
             
             // shift the buffer
             resp_chain_buffer_len -= pcklen;
