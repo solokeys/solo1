@@ -14,6 +14,10 @@
 
 #define IS_IRQ_ACTIVE()         (1  == (LL_GPIO_ReadInputPort(SOLO_AMS_IRQ_PORT) & SOLO_AMS_IRQ_PIN))
 
+// chain buffer for 61XX responses
+static uint8_t resp_chain_buffer[2048] = {0};
+static size_t resp_chain_buffer_len = 0;
+
 uint8_t p14443_block_offset(uint8_t pcb) {
     uint8_t offset = 1;
     // NAD following
@@ -213,7 +217,7 @@ bool nfc_write_response(uint8_t req0, uint16_t resp)
 	return nfc_write_response_ex(req0, NULL, 0, resp);
 }
 
-void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
+void nfc_write_response_chaining_plain(uint8_t req0, uint8_t * data, int len)
 {
     uint8_t res[32 + 2];
 	uint8_t iBlock = NFC_CMD_IBLOCK | (req0 & 0x0f);
@@ -282,6 +286,38 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 			iBlock ^= 0x01;
 		} while (sendlen < len);
 	}
+}
+
+void append_get_response(uint8_t *data, size_t rest_len)
+{
+    data[0] = 0x61;
+    data[1] = 0x00;
+    if (rest_len <= 0xff)
+        data[1] = rest_len & 0xff;
+}
+
+void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len, bool extapdu)
+{
+    resp_chain_buffer_len = 0;
+    
+    // if we dont need to break data to parts that need to exchange via GET RESPONSE command (ISO 7816-4 7.1.3)
+printf1(TAG_NFC, "---%d.\r\n", extapdu);
+	if (len <= 255 || extapdu)
+    {
+        nfc_write_response_chaining_plain(req0, data, len);
+    } else {
+        size_t pcklen = MIN(253, len);
+        resp_chain_buffer_len = len - pcklen;
+        printf1(TAG_NFC, "61XX chaining %d/%d.\r\n", pcklen, resp_chain_buffer_len);
+        
+        memmove(resp_chain_buffer, data, pcklen);
+        append_get_response(&resp_chain_buffer[pcklen], resp_chain_buffer_len);
+       
+        nfc_write_response_chaining_plain(req0, data, pcklen + 2); // 2 for 61XX 
+    
+        // put the rest data into chain buffer
+        memmove(resp_chain_buffer, &data[pcklen], resp_chain_buffer_len);        
+    }    
 }
 
 // WTX on/off:
@@ -511,6 +547,47 @@ void nfc_process_iblock(uint8_t * buf, int len)
     // TODO this needs to be organized better
     switch(apdu.ins)
     {
+        // ISO 7816. 7.1 GET RESPONSE command
+        case APDU_GET_RESPONSE:
+            if (apdu.p1 != 0x00 || apdu.p2 != 0x00)
+            {
+                nfc_write_response(buf[0], SW_INCORRECT_P1P2);
+                return;
+            }
+            
+            // too many bytes needs. 0x00 and 0x100 - any length
+            if (apdu.le != 0 && apdu.le != 0x100 && apdu.le > resp_chain_buffer_len)
+            {
+                uint16_t wlresp = SW_WRONG_LENGTH;  // here can be 6700, 6C00, 6FXX. but the most standard way - 67XX or 6700
+                if (resp_chain_buffer_len <= 0xff)
+                    wlresp += resp_chain_buffer_len & 0xff;
+                nfc_write_response(buf[0], wlresp);
+                return;
+            }
+            
+            // create temporary packet
+            uint8_t pck[255] = {0};
+            int pcklen = MIN(253, apdu.le);
+            if (pcklen > resp_chain_buffer_len)
+                pcklen = resp_chain_buffer_len;
+
+            // create packet and add 61XX there if we have another portion(s) of data
+            memmove(pck, resp_chain_buffer, pcklen);
+            size_t dlen = 0;
+            if (resp_chain_buffer_len - pcklen)
+            {
+                append_get_response(&pck[pcklen], resp_chain_buffer_len - pcklen);
+                dlen = 2;
+            }
+
+            // send
+            nfc_write_response_chaining(buf[0], pck, pcklen + dlen, apdu.extended_apdu); // dlen for 61XX
+            
+            // shift the buffer
+            resp_chain_buffer_len -= pcklen;
+            memmove(resp_chain_buffer, &resp_chain_buffer[pcklen], resp_chain_buffer_len);
+        break;
+        
         case APDU_INS_SELECT:
             // if (apdu->p1 == 0 && apdu->p2 == 0x0c)
             // {
@@ -554,7 +631,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			printf1(TAG_NFC, "U2F GetVersion command.\r\n");
 
 			u2f_request_nfc(&buf[block_offset], apdu.data, apdu.lc, &ctap_resp);
-            nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+            nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, apdu.extended_apdu);
         break;
 
         case APDU_FIDO_U2F_REGISTER:
@@ -586,7 +663,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Register P2 took %d\r\n", timestamp());
-            nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+            nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, apdu.extended_apdu);
 
             printf1(TAG_NFC,"U2F Register answered %d (took %d)\r\n", millis(), timestamp());
        break;
@@ -615,7 +692,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Authenticate processing %d (took %d)\r\n", millis(), timestamp());
-			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, apdu.extended_apdu);
             printf1(TAG_NFC,"U2F Authenticate answered %d (took %d)\r\n", millis(), timestamp);
         break;
 
@@ -649,7 +726,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			ctap_resp.data[ctap_resp.length - 1] = SW_SUCCESS & 0xff;
 
             printf1(TAG_NFC,"CTAP processing %d (took %d)\r\n", millis(), timestamp());
-			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, apdu.extended_apdu);
             printf1(TAG_NFC,"CTAP answered %d (took %d)\r\n", millis(), timestamp());
         break;
 
