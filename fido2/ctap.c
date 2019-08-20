@@ -1481,6 +1481,11 @@ uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
 
             ret = cbor_encode_int(&map, RESP_keyAgreement);
             check_ret(ret);
+
+            if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
+            crypto_ecc256_compute_public_key(KEY_AGREEMENT_PRIV, KEY_AGREEMENT_PUB);
+            if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
+
             ret = ctap_add_cose_key(&map, KEY_AGREEMENT_PUB, KEY_AGREEMENT_PUB+32, PUB_KEY_CRED_PUB_KEY, COSE_ALG_ECDH_ES_HKDF_256);
             check_retr(ret);
 
@@ -1769,10 +1774,7 @@ void ctap_init()
         exit(1);
     }
 
-    // if (device_is_nfc() != NFC_IS_ACTIVE)
-    {
-        ctap_reset_key_agreement();
-    }
+    ctap_reset_key_agreement();
 
 #ifdef BRIDGE_TO_WALLET
     wallet_init();
@@ -1971,9 +1973,7 @@ int8_t ctap_load_key(uint8_t index, uint8_t * key)
 
 static void ctap_reset_key_agreement()
 {
-    if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
-    crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
-    if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
+    ctap_generate_rng(KEY_AGREEMENT_PRIV, sizeof(KEY_AGREEMENT_PRIV));
 }
 
 void ctap_reset()
