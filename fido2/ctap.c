@@ -25,6 +25,7 @@
 #include "extensions.h"
 
 #include "device.h"
+#include "data_migration.h"
 
 uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
 uint8_t KEY_AGREEMENT_PUB[64];
@@ -1725,6 +1726,7 @@ static void ctap_state_init()
     STATE.remaining_tries = PIN_LOCKOUT_ATTEMPTS;
     STATE.is_pin_set = 0;
     STATE.rk_stored = 0;
+    STATE.data_version = STATE_VERSION;
 
     ctap_reset_rk();
 
@@ -1767,6 +1769,8 @@ void ctap_init()
 
         }
     }
+
+    do_migration_if_required(&STATE);
 
     crypto_load_master_secret(STATE.key_space);
 

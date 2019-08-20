@@ -81,6 +81,9 @@ void do_migration_if_required(AuthenticatorState* state_current){
         dump_hex1(TAG_ERR, (void*)&state_previous, sizeof(state_previous));
         save_migrated_state(&state_tmp);
     }
+
+    assert(state_current->data_version == STATE_VERSION);
+
     return_cleanup:
     memset(&state_tmp, 0, sizeof(AuthenticatorState));
     memset(&state_previous, 0, sizeof(AuthenticatorState));
