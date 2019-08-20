@@ -28,12 +28,14 @@ typedef struct
     uint8_t is_pin_set;
     uint8_t PIN_CODE_HASH[32];
     uint8_t PIN_SALT[PIN_SALT_LEN];
+    int _reserved_pin_code_length;
     int8_t remaining_tries;
 
     uint16_t rk_stored;
 
     uint16_t key_lens[MAX_KEYS];
     uint8_t key_space[KEY_SPACE_BYTES];
+    uint8_t data_version;
 } AuthenticatorState;
 
 
