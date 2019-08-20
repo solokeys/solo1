@@ -628,3 +628,6 @@ int device_is_nfc()
 {
     return 0;
 }
+
+void request_from_nfc(bool request_active) {
+}
