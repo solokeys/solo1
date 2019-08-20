@@ -628,3 +628,8 @@ int device_is_nfc()
 {
     return 0;
 }
+
+void device_set_clock_rate(DEVICE_CLOCK_RATE param)
+{
+
+}
