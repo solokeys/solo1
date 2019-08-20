@@ -551,6 +551,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
             if (apdu.p1 != 0x00 || apdu.p2 != 0x00)
             {
                 nfc_write_response(buf[0], SW_INCORRECT_P1P2);
+                printf1(TAG_NFC, "P1 or P2 error\r\n");
                 return;
             }
             
@@ -561,14 +562,19 @@ void nfc_process_iblock(uint8_t * buf, int len)
                 if (resp_chain_buffer_len <= 0xff)
                     wlresp += resp_chain_buffer_len & 0xff;
                 nfc_write_response(buf[0], wlresp);
+                printf1(TAG_NFC, "buffer length less than requesteds\r\n");
                 return;
             }
             
             // create temporary packet
             uint8_t pck[255] = {0};
-            int pcklen = MIN(253, apdu.le);
+            size_t pcklen = 253;
+            if (apdu.le)
+                pcklen = apdu.le;
             if (pcklen > resp_chain_buffer_len)
                 pcklen = resp_chain_buffer_len;
+
+            printf1(TAG_NFC, "--- %d/%d\r\n", pcklen, resp_chain_buffer_len); 
 
             // create packet and add 61XX there if we have another portion(s) of data
             memmove(pck, resp_chain_buffer, pcklen);
