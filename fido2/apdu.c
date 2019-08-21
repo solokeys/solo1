@@ -13,7 +13,7 @@ int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu)
 {
     EXT_APDU_HEADER *hapdu = (EXT_APDU_HEADER *)data;
     
-    apdu->cla = hapdu->cla;
+    apdu->cla = hapdu->cla & 0xef; // mask chaining bit if any
     apdu->ins = hapdu->ins;
     apdu->p1 = hapdu->p1;
     apdu->p2 = hapdu->p2;
