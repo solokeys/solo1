@@ -1685,7 +1685,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             break;
         default:
             status = CTAP1_ERR_INVALID_COMMAND;
-            printf2(TAG_ERR,"error, invalid cmd: %x\n", cmd);
+            printf2(TAG_ERR,"error, invalid cmd: 0x%02x\n", cmd);
     }
 
 done:
