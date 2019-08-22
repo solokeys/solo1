@@ -762,6 +762,12 @@ void nfc_process_iblock(uint8_t * buf, int len)
             }
         break;
         
+        case  APDU_SOLO_RESET:
+            printf1(TAG_NFC, "Reset...\r\n");
+            delay(10);
+			nfc_write_response(buf0, SW_INS_INVALID);
+        break;
+        
         default:
             printf1(TAG_NFC, "Unknown INS %02x\r\n", apdu.ins);
 			nfc_write_response(buf[0], SW_INS_INVALID);
