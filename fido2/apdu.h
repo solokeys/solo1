@@ -42,6 +42,10 @@ extern int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu);
 #define APDU_FIDO_U2F_AUTHENTICATE    0x02
 #define APDU_FIDO_U2F_VERSION         0x03
 #define APDU_FIDO_NFCCTAP_MSG         0x10
+#define APDU_FIDO_U2F_VENDOR_FIRST    0xc0    // First vendor defined command
+#define APDU_FIDO_U2F_VENDOR_LAST     0xff    // Last vendor defined command
+#define APDU_SOLO_RESET               0xee
+
 #define APDU_INS_SELECT               0xA4
 #define APDU_INS_READ_BINARY          0xB0
 #define APDU_GET_RESPONSE             0xC0
