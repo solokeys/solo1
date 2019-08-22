@@ -703,9 +703,6 @@ void apdu_process(uint8_t buf0, uint8_t *apduptr, APDU_STRUCT *apdu)
 			// WTX_on(WTX_TIME_DEFAULT);
             request_from_nfc(true);
             ctap_response_init(&ctap_resp);
-            delay(1);
-            printf1(TAG_NFC,"[%d] ", apdu->lc);
-            dump_hex1(TAG_NFC, apdu->data, apdu->lc);
             status = ctap_request(apdu->data, apdu->lc, &ctap_resp);
             request_from_nfc(false);
 			// if (!WTX_off())
@@ -759,7 +756,8 @@ void apdu_process(uint8_t buf0, uint8_t *apduptr, APDU_STRUCT *apdu)
         case  APDU_SOLO_RESET:
             if (apdu->lc == 4 && !memcmp(apdu->data, "\x12\x56\xab\xf0", 4)) {
                 printf1(TAG_NFC, "Reset...\r\n");
-                delay(10);
+                nfc_write_response(buf0, SW_SUCCESS);
+                delay(20);
                 device_reboot();
                 while(1);
             } else {
