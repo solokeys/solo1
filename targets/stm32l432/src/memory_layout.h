@@ -27,7 +27,7 @@
 
 // Start of application code
 #ifndef APPLICATION_START_PAGE
-#define APPLICATION_START_PAGE	(11)
+#define APPLICATION_START_PAGE	(10)
 #endif
 #define APPLICATION_START_ADDR	(0x08000000 + ((APPLICATION_START_PAGE)*PAGE_SIZE))
 
@@ -37,10 +37,31 @@
 
 // End of application code.  Leave some extra room for future data storage.
 // NOT included in application
-#define APPLICATION_END_PAGE	((PAGES - 19))
+#define APPLICATION_END_PAGE	((PAGES - 20))
 #define APPLICATION_END_ADDR	((0x08000000 + ((APPLICATION_END_PAGE)*PAGE_SIZE))-8)
 
 // Bootloader state.
 #define AUTH_WORD_ADDR          (APPLICATION_END_ADDR)
+
+#define LAST_ADDR       (APPLICATION_END_ADDR-2048 + 8)
+#define VERSION_ADDR    (AUTH_WORD_ADDR-8)
+#define BOOT_VERSION_PAGE    (APPLICATION_END_PAGE)
+#define BOOT_VERSION_ADDR    (0x08000000 + BOOT_VERSION_PAGE*FLASH_PAGE_SIZE)
+#define LAST_PAGE       (APPLICATION_END_PAGE-1)
+
+
+struct flash_memory_st{
+  uint8_t bootloader[20*1024];
+  uint8_t application[196*1024-16];
+  uint8_t app_version[8];
+  uint8_t auth_word[8];
+  uint8_t bootloader_data[2*1024];
+  uint8_t user_data[38*1024];
+} __attribute__((packed));
+
+typedef struct flash_memory_st flash_memory_st;
+
+static_assert(sizeof(flash_memory_st) == 256*1024, "Data structure doesn't match flash size");
+
 
 #endif

@@ -62,11 +62,6 @@ static void erase_application()
     }
 }
 
-#define LAST_ADDR       (APPLICATION_END_ADDR-2048 + 8)
-#define VERSION_ADDR    (AUTH_WORD_ADDR-8)
-#define BOOT_VERSION_PAGE    (APPLICATION_START_PAGE-1)
-#define BOOT_VERSION_ADDR    (0x08000000 + BOOT_VERSION_PAGE*FLASH_PAGE_SIZE)
-#define LAST_PAGE       (APPLICATION_END_PAGE-1)
 static void disable_bootloader()
 {
     // Clear last 4 bytes of the last application page-1, which is 108th
