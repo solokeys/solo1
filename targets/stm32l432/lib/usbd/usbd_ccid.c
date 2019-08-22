@@ -32,7 +32,7 @@ USBD_ClassTypeDef  USBD_CCID =
   NULL,                 /* EP0_TxSent, */
   USBD_CCID_EP0_RxReady,
   USBD_CCID_DataIn,
-  usb_ccid_recieve_callback,
+  USBD_CCID_DataOut,
   NULL,
   NULL,
   NULL,
@@ -54,11 +54,10 @@ static uint8_t  USBD_CCID_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx)
     USBD_LL_OpenEP(pdev, CCID_IN_EP, USBD_EP_TYPE_BULK,
                    CCID_DATA_PACKET_SIZE);
 
-    pdev->ep_in[CCID_IN_EP & 0xFU].is_used = 1U;
-
     USBD_LL_OpenEP(pdev, CCID_OUT_EP, USBD_EP_TYPE_BULK,
                    CCID_DATA_PACKET_SIZE);
 
+    pdev->ep_in[CCID_IN_EP & 0xFU].is_used = 1U;
     pdev->ep_out[CCID_OUT_EP & 0xFU].is_used = 1U;
 
 
@@ -202,32 +201,38 @@ static uint8_t  USBD_CCID_Setup (USBD_HandleTypeDef *pdev,
   * @param  epnum: endpoint number
   * @retval status
   */
+static uint8_t  USBD_CCID_DataOut (USBD_HandleTypeDef *pdev, uint8_t epnum)
+{
+  return USBD_OK;
+}
 static uint8_t  USBD_CCID_DataIn (USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
     //N
   USBD_CCID_HandleTypeDef *hcdc = (USBD_CCID_HandleTypeDef*)pdev->pClassData;
   PCD_HandleTypeDef *hpcd = pdev->pData;
 
-  if(pdev->pClassData != NULL)
-  {
-    if((pdev->ep_in[epnum].total_length > 0U) && ((pdev->ep_in[epnum].total_length % hpcd->IN_ep[epnum].maxpacket) == 0U))
-    {
-      /* Update the packet total length */
-      pdev->ep_in[epnum].total_length = 0U;
+  // if(pdev->pClassData != NULL)
+  // {
+  //   if((pdev->ep_in[epnum].total_length > 0U) && ((pdev->ep_in[epnum].total_length % hpcd->IN_ep[epnum].maxpacket) == 0U))
+  //   {
+  //     /* Update the packet total length */
+  //     pdev->ep_in[epnum].total_length = 0U;
 
-      /* Send ZLP */
-      USBD_LL_Transmit (pdev, epnum, NULL, 0U);
-    }
-    else
-    {
-      hcdc->TxState = 0U;
-    }
-    return USBD_OK;
-  }
-  else
-  {
-    return USBD_FAIL;
-  }
+  //     /* Send ZLP */
+  //     USBD_LL_Transmit (pdev, epnum, NULL, 0U);
+  //   }
+  //   else
+  //   {
+  //     hcdc->TxState = 0U;
+  //   }
+  //   return USBD_OK;
+  // }
+  // else
+  // {
+  //   return USBD_FAIL;
+  // }
+  hcdc->TxState = 0U;
+  return USBD_OK;
 }
 
 uint8_t  USBD_CCID_TransmitPacket(uint8_t * msg, int len)
@@ -235,9 +240,20 @@ uint8_t  USBD_CCID_TransmitPacket(uint8_t * msg, int len)
     /* Update the packet total length */
     Solo_USBD_Device.ep_in[CCID_IN_EP & 0xFU].total_length = len;
 
+    while (PCD_GET_EP_TX_STATUS(USB, CCID_IN_EP & 0x0f) == USB_EP_TX_VALID)
+        ;
     /* Transmit next packet */
     USBD_LL_Transmit(&Solo_USBD_Device, CCID_IN_EP, msg,
                    len);
+
+
+    // /* Update the packet total length */
+    // Solo_USBD_Device.ep_in[CCID_CMD_EP & 0xFU].total_length = len;
+
+    // /* Transmit next packet */
+    // USBD_LL_Transmit(&Solo_USBD_Device, CCID_CMD_EP, msg,
+    //                len);
+
 
     return USBD_OK;
 }
@@ -264,8 +280,6 @@ void ccid_send_status(CCID_HEADER * c)
     USBD_CCID_TransmitPacket(msg, sizeof(msg));
 
 }
-
-
 
 
 void handle_ccid(uint8_t * msg, int len)
@@ -316,11 +330,7 @@ uint8_t usb_ccid_recieve_callback(USBD_HandleTypeDef *pdev, uint8_t epnum)
     else
     {
 
-
-        while(1)
-            {
-                led_rgb(0xff3520);
-            }
+        while(1){ led_rgb(0xff3520); }
 
         return USBD_FAIL;
     }

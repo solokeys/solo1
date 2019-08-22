@@ -34,17 +34,17 @@ static uint8_t *USBD_Composite_GetDeviceQualifierDescriptor (uint16_t *length);
 #define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (90 + 8+9 + 4 + 84)
 #define NUM_INTERFACES                      4
 #elif NUM_CLASSES>1
-#define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (90 + 84)
-#define NUM_INTERFACES                      2
+#define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (90 + 8+9 + 4)
+#define NUM_INTERFACES                      3
 #else
 #define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (41)
 #define NUM_INTERFACES                      1
 #endif
 
 #define HID_INTF_NUM                                0
-#define CCID_INTF_NUM                               1
-#define CDC_MASTER_INTF_NUM                         2
-#define CDC_SLAVE_INTF_NUM                          3
+#define CDC_MASTER_INTF_NUM                         1
+#define CDC_SLAVE_INTF_NUM                          2
+#define CCID_INTF_NUM                               3
 __ALIGN_BEGIN uint8_t COMPOSITE_CDC_HID_DESCRIPTOR[COMPOSITE_CDC_HID_DESCRIPTOR_SIZE] __ALIGN_END =
     {
         /*Configuration Descriptor*/
@@ -100,81 +100,6 @@ __ALIGN_BEGIN uint8_t COMPOSITE_CDC_HID_DESCRIPTOR[COMPOSITE_CDC_HID_DESCRIPTOR_
         HID_EPOUT_SIZE,         /*wMaxPacketSize: 4 Byte max */
         0x00,
         HID_BINTERVAL, /*bInterval: Polling Interval */
-
-#if NUM_INTERFACES>1
-
-        /* CCID Interface Descriptor */
-        9,			         /* bLength: Interface Descriptor size */
-        USB_DESC_TYPE_INTERFACE,		 /* bDescriptorType: Interface */
-        CCID_INTF_NUM,	         /* bInterfaceNumber: CCID Interface */
-        0,			         /* Alternate setting for this interface */
-        3,			         /* bNumEndpoints: Bulk-IN, Bulk-OUT, Intr-IN */
-        0x0B,               /* CCID class  */
-        0x00,               /* CCID subclass  */
-        0x00,               /* CCID protocol  */
-        0,				 /* string index for interface */
-
-        /* ICC Descriptor */
-        54,			  /* bLength: */
-        0x21,			  /* bDescriptorType: USBDESCR_ICC */
-        0x10, 0x01,		  /* bcdCCID: revision 1.1 (of CCID) */
-        0,			  /* bMaxSlotIndex: */
-        1,			  /* bVoltageSupport: 5V-only */
-        0x02, 0, 0, 0,	  /* dwProtocols: T=1 */
-        0xa0, 0x0f, 0, 0,	  /* dwDefaultClock: 4000 */
-        0xa0, 0x0f, 0, 0,	  /* dwMaximumClock: 4000 */
-        0,			  /* bNumClockSupported: 0x00 */
-        0x80, 0x25, 0, 0,	  /* dwDataRate: 9600 */
-        0x80, 0x25, 0, 0,	  /* dwMaxDataRate: 9600 */
-        0,			  /* bNumDataRateSupported: 0x00 */
-        0xfe, 0, 0, 0,	  /* dwMaxIFSD: 254 */
-        0, 0, 0, 0,		  /* dwSynchProtocols: 0 */
-        0, 0, 0, 0,		  /* dwMechanical: 0 */
-        0x7a, 0x04, 0x02, 0x00, /* dwFeatures:
-                     *  Short and extended APDU level: 0x40000 ----
-                     *  Short APDU level             : 0x20000  *
-                     *  (ICCD?)                      : 0x00800 ----
-                     *  Automatic IFSD               : 0x00400   *
-                     *  NAD value other than 0x00    : 0x00200
-                     *  Can set ICC in clock stop    : 0x00100
-                     *  Automatic PPS CUR            : 0x00080
-                     *  Automatic PPS PROP           : 0x00040 *
-                     *  Auto baud rate change	   : 0x00020   *
-                     *  Auto clock change		   : 0x00010   *
-                     *  Auto voltage selection	   : 0x00008   *
-                     *  Auto activaction of ICC	   : 0x00004
-                     *  Automatic conf. based on ATR : 0x00002  *
-                     */
-        0x0f, 0x01, 0, 0,	  /* dwMaxCCIDMessageLength: 271 */
-        0xff,			  /* bClassGetResponse: 0xff */
-        0x00,			  /* bClassEnvelope: 0 */
-        0, 0,			  /* wLCDLayout: 0 */
-        0,			  /* bPinSupport: No PIN pad */
-
-        1,			  /* bMaxCCIDBusySlots: 1 */
-        /*Endpoint IN1 Descriptor*/
-        7,			       /* bLength: Endpoint Descriptor size */
-        USB_DESC_TYPE_ENDPOINT,	       /* bDescriptorType: Endpoint */
-        CCID_IN_EP,				/* bEndpointAddress: (IN1) */
-        0x02,				/* bmAttributes: Bulk */
-        HID_FIDO_REPORT_DESC_SIZE, 0x00,      /* wMaxPacketSize: */
-        0x00,				/* bInterval */
-        /*Endpoint OUT1 Descriptor*/
-        7,			       /* bLength: Endpoint Descriptor size */
-        USB_DESC_TYPE_ENDPOINT,	       /* bDescriptorType: Endpoint */
-        CCID_OUT_EP,				/* bEndpointAddress: (OUT1) */
-        0x02,				/* bmAttributes: Bulk */
-        HID_FIDO_REPORT_DESC_SIZE, 0x00,	/* wMaxPacketSize: */
-        0x00,				/* bInterval */
-        /*Endpoint IN2 Descriptor*/
-        7,			       /* bLength: Endpoint Descriptor size */
-        USB_DESC_TYPE_ENDPOINT,	       /* bDescriptorType: Endpoint */
-        CCID_CMD_EP,				/* bEndpointAddress: (IN2) */
-        0x03,				/* bmAttributes: Interrupt */
-        0x04, 0x00,			/* wMaxPacketSize: 4 */
-        0xFF,				/* bInterval (255ms) */
-
-#endif
 
 #if NUM_INTERFACES > 2
 
@@ -274,6 +199,81 @@ __ALIGN_BEGIN uint8_t COMPOSITE_CDC_HID_DESCRIPTOR[COMPOSITE_CDC_HID_DESCRIPTOR_
         0x04,
 #endif
 
+#if NUM_INTERFACES>3
+
+        /* CCID Interface Descriptor */
+        9,			         /* bLength: Interface Descriptor size */
+        USB_DESC_TYPE_INTERFACE,		 /* bDescriptorType: Interface */
+        CCID_INTF_NUM,	         /* bInterfaceNumber: CCID Interface */
+        0,			         /* Alternate setting for this interface */
+        3,			         /* bNumEndpoints: Bulk-IN, Bulk-OUT, Intr-IN */
+        0x0B,               /* CCID class  */
+        0x00,               /* CCID subclass  */
+        0x00,               /* CCID protocol  */
+        0,				 /* string index for interface */
+
+        /* ICC Descriptor */
+        54,			  /* bLength: */
+        0x21,			  /* bDescriptorType: USBDESCR_ICC */
+        0x10, 0x01,		  /* bcdCCID: revision 1.1 (of CCID) */
+        0,			  /* bMaxSlotIndex: */
+        1,			  /* bVoltageSupport: 5V-only */
+        0x02, 0, 0, 0,	  /* dwProtocols: T=1 */
+        0xa0, 0x0f, 0, 0,	  /* dwDefaultClock: 4000 */
+        0xa0, 0x0f, 0, 0,	  /* dwMaximumClock: 4000 */
+        0,			  /* bNumClockSupported: 0x00 */
+        0x80, 0x25, 0, 0,	  /* dwDataRate: 9600 */
+        0x80, 0x25, 0, 0,	  /* dwMaxDataRate: 9600 */
+        0,			  /* bNumDataRateSupported: 0x00 */
+        0xfe, 0, 0, 0,	  /* dwMaxIFSD: 254 */
+        0, 0, 0, 0,		  /* dwSynchProtocols: 0 */
+        0, 0, 0, 0,		  /* dwMechanical: 0 */
+        0x7a, 0x04, 0x02, 0x00, /* dwFeatures:
+                     *  Short and extended APDU level: 0x40000 ----
+                     *  Short APDU level             : 0x20000  *
+                     *  (ICCD?)                      : 0x00800 ----
+                     *  Automatic IFSD               : 0x00400   *
+                     *  NAD value other than 0x00    : 0x00200
+                     *  Can set ICC in clock stop    : 0x00100
+                     *  Automatic PPS CUR            : 0x00080
+                     *  Automatic PPS PROP           : 0x00040 *
+                     *  Auto baud rate change	   : 0x00020   *
+                     *  Auto clock change		   : 0x00010   *
+                     *  Auto voltage selection	   : 0x00008   *
+                     *  Auto activaction of ICC	   : 0x00004
+                     *  Automatic conf. based on ATR : 0x00002  *
+                     */
+        0x0f, 0x01, 0, 0,	  /* dwMaxCCIDMessageLength: 271 */
+        0xff,			  /* bClassGetResponse: 0xff */
+        0x00,			  /* bClassEnvelope: 0 */
+        0, 0,			  /* wLCDLayout: 0 */
+        0,			  /* bPinSupport: No PIN pad */
+
+        1,			  /* bMaxCCIDBusySlots: 1 */
+        /*Endpoint IN1 Descriptor*/
+        7,			       /* bLength: Endpoint Descriptor size */
+        USB_DESC_TYPE_ENDPOINT,	       /* bDescriptorType: Endpoint */
+        CCID_IN_EP,				/* bEndpointAddress: (IN1) */
+        0x02,				/* bmAttributes: Bulk */
+        CCID_DATA_PACKET_SIZE, 0x00,      /* wMaxPacketSize: */
+        0x00,				/* bInterval */
+        /*Endpoint OUT1 Descriptor*/
+        7,			       /* bLength: Endpoint Descriptor size */
+        USB_DESC_TYPE_ENDPOINT,	       /* bDescriptorType: Endpoint */
+        CCID_OUT_EP,				/* bEndpointAddress: (OUT1) */
+        0x02,				/* bmAttributes: Bulk */
+        CCID_DATA_PACKET_SIZE, 0x00,	/* wMaxPacketSize: */
+        0x00,				/* bInterval */
+        /*Endpoint IN2 Descriptor*/
+        7,			       /* bLength: Endpoint Descriptor size */
+        USB_DESC_TYPE_ENDPOINT,	       /* bDescriptorType: Endpoint */
+        CCID_CMD_EP,				/* bEndpointAddress: (IN2) */
+        0x03,				/* bmAttributes: Interrupt */
+        CCID_DATA_PACKET_SIZE, 0x00,			/* wMaxPacketSize: 4 */
+        0xFF,				/* bInterval (255ms) */
+
+#endif
+
 
 };
 
@@ -301,7 +301,7 @@ int in_endpoint_to_class[MAX_ENDPOINTS];
 
 int out_endpoint_to_class[MAX_ENDPOINTS];
 
-void USBD_Composite_Set_Classes(USBD_ClassTypeDef *hid_class, USBD_ClassTypeDef *ccid_class, USBD_ClassTypeDef *cdc_class)) {
+void USBD_Composite_Set_Classes(USBD_ClassTypeDef *hid_class, USBD_ClassTypeDef *ccid_class, USBD_ClassTypeDef *cdc_class) {
     USBD_Classes[0] = hid_class;
     USBD_Classes[1] = ccid_class;
     USBD_Classes[2] = cdc_class;
@@ -314,10 +314,10 @@ static USBD_ClassTypeDef * getClass(uint8_t index)
     case HID_INTF_NUM:
         return USBD_Classes[0];
     case CCID_INTF_NUM:
-        return USBD_Classes[2];
+        return USBD_Classes[1];
     case CDC_MASTER_INTF_NUM:
     case CDC_SLAVE_INTF_NUM:
-        return USBD_Classes[3];
+        return USBD_Classes[2];
 
     }
     return NULL;

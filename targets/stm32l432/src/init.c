@@ -708,12 +708,15 @@ void init_usb()
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
 
 #if DEBUG_LEVEL > 0
-    USBD_Composite_Set_Classes(&USBD_HID, &USBD_CDC, &USBD_CCID);
+    USBD_Composite_Set_Classes(&USBD_HID, &USBD_CCID, &USBD_CDC);
     in_endpoint_to_class[HID_EPIN_ADDR & 0x7F] = 0;
     out_endpoint_to_class[HID_EPOUT_ADDR & 0x7F] = 0;
 
-    in_endpoint_to_class[CDC_IN_EP & 0x7F] = 1;
-    out_endpoint_to_class[CDC_OUT_EP & 0x7F] = 1;
+    in_endpoint_to_class[CCID_IN_EP & 0x7F] = 1;
+    out_endpoint_to_class[CCID_OUT_EP & 0x7F] = 1;
+
+    in_endpoint_to_class[CDC_IN_EP & 0x7F] = 2;
+    out_endpoint_to_class[CDC_OUT_EP & 0x7F] = 2;
 
     USBD_Init(&Solo_USBD_Device, &Solo_Desc, 0);
     USBD_RegisterClass(&Solo_USBD_Device, &USBD_Composite);
