@@ -757,9 +757,15 @@ void apdu_process(uint8_t buf0, uint8_t *apduptr, APDU_STRUCT *apdu)
         break;
         
         case  APDU_SOLO_RESET:
-            printf1(TAG_NFC, "Reset...\r\n");
-            delay(10);
-			nfc_write_response(buf0, SW_INS_INVALID);
+            if (apdu.lc == 18 && !memcmp(apdu.data, "Reset solo please>", 18)) {
+                printf1(TAG_NFC, "Reset...\r\n");
+                delay(10);
+                NVIC_SystemReset();
+                while(1);
+            } else {
+                printf1(TAG_NFC, "Reset FAIL\r\n");
+                nfc_write_response(buf[0], SW_INS_INVALID);
+            }
         break;
         
         default:
