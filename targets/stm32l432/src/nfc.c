@@ -14,6 +14,20 @@
 
 #define IS_IRQ_ACTIVE()         (1  == (LL_GPIO_ReadInputPort(SOLO_AMS_IRQ_PORT) & SOLO_AMS_IRQ_PIN))
 
+// chain buffer for 61XX responses
+static uint8_t resp_chain_buffer[2048] = {0};
+static size_t resp_chain_buffer_len = 0;
+
+uint8_t p14443_block_offset(uint8_t pcb) {
+    uint8_t offset = 1;
+    // NAD following
+    if (pcb & 0x04) offset++;
+    // CID following
+    if (pcb & 0x08) offset++;
+    
+    return offset;
+}
+
 // Capability container
 const CAPABILITY_CONTAINER NFC_CC = {
     .cclen_hi = 0x00, .cclen_lo = 0x0f,
@@ -82,19 +96,27 @@ int nfc_init()
     return NFC_IS_NA;
 }
 
+static uint8_t gl_int0 = 0;
 void process_int0(uint8_t int0)
 {
-
+    gl_int0 = int0;
 }
 
 bool ams_wait_for_tx(uint32_t timeout_ms)
 {
+    if (gl_int0 & AMS_INT_TXE) {
+		uint8_t int0 = ams_read_reg(AMS_REG_INT0);
+		process_int0(int0);
+        
+        return true;
+    }
+    
 	uint32_t tstart = millis();
 	while (tstart + timeout_ms > millis())
 	{
 		uint8_t int0 = ams_read_reg(AMS_REG_INT0);
-		if (int0) process_int0(int0);
-		if (int0 & AMS_INT_TXE)
+		process_int0(int0);
+		if (int0 & AMS_INT_TXE || int0 & AMS_INT_RXE)
 			return true;
 
 		delay(1);
@@ -111,7 +133,13 @@ bool ams_receive_with_timeout(uint32_t timeout_ms, uint8_t * data, int maxlen, i
 	uint32_t tstart = millis();
 	while (tstart + timeout_ms > millis())
 	{
-		uint8_t int0 = ams_read_reg(AMS_REG_INT0);
+        uint8_t int0 = 0;
+        if (gl_int0 & AMS_INT_RXE) {
+            int0 = gl_int0;
+        } else {
+            int0 = ams_read_reg(AMS_REG_INT0);
+            process_int0(int0);
+        }
 		uint8_t buffer_status2 = ams_read_reg(AMS_REG_BUF2);
 
         if (buffer_status2 && (int0 & AMS_INT_RXE))
@@ -161,14 +189,25 @@ bool nfc_write_response_ex(uint8_t req0, uint8_t * data, uint8_t len, uint16_t r
 	if (len > 32 - 3)
 		return false;
 
-	res[0] = NFC_CMD_IBLOCK | (req0 & 3);
+	res[0] = NFC_CMD_IBLOCK | (req0 & 0x0f);
+    res[1] = 0;
+    res[2] = 0;
+
+    uint8_t block_offset = p14443_block_offset(req0);
 
 	if (len && data)
-		memcpy(&res[1], data, len);
+		memcpy(&res[block_offset], data, len);
 
-	res[len + 1] = resp >> 8;
-	res[len + 2] = resp & 0xff;
-	nfc_write_frame(res, 3 + len);
+	res[len + block_offset + 0] = resp >> 8;
+	res[len + block_offset + 1] = resp & 0xff;
+    
+	nfc_write_frame(res, block_offset + len + 2);
+    
+    if (!ams_wait_for_tx(1))
+    {
+        printf1(TAG_NFC, "TX resp timeout. len: %d \r\n", len);
+        return false;
+    }
 
 	return true;
 }
@@ -178,25 +217,28 @@ bool nfc_write_response(uint8_t req0, uint16_t resp)
 	return nfc_write_response_ex(req0, NULL, 0, resp);
 }
 
-void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
+void nfc_write_response_chaining_plain(uint8_t req0, uint8_t * data, int len)
 {
     uint8_t res[32 + 2];
-	int sendlen = 0;
-	uint8_t iBlock = NFC_CMD_IBLOCK | (req0 & 3);
+	uint8_t iBlock = NFC_CMD_IBLOCK | (req0 & 0x0f);
+    uint8_t block_offset = p14443_block_offset(req0);
 
 	if (len <= 31)
 	{
 		uint8_t res[32] = {0};
-		res[0] = iBlock;
+        res[0] = iBlock;
 		if (len && data)
-			memcpy(&res[1], data, len);
-		nfc_write_frame(res, len + 1);
+			memcpy(&res[block_offset], data, len);
+		nfc_write_frame(res, len + block_offset);
 	} else {
+        int sendlen = 0;
 		do {
 			// transmit I block
-			int vlen = MIN(31, len - sendlen);
-			res[0] = iBlock;
-			memcpy(&res[1], &data[sendlen], vlen);
+			int vlen = MIN(32 - block_offset, len - sendlen);
+            res[0] = iBlock;
+            res[1] = 0;
+            res[2] = 0;
+			memcpy(&res[block_offset], &data[sendlen], vlen);
 
 			// if not a last block
 			if (vlen + sendlen < len)
@@ -205,15 +247,15 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 			}
 
 			// send data
-			nfc_write_frame(res, vlen + 1);
+			nfc_write_frame(res, vlen + block_offset);
 			sendlen += vlen;
 
 			// wait for transmit (32 bytes aprox 2,5ms)
-			// if (!ams_wait_for_tx(10))
-			// {
-			// 	printf1(TAG_NFC, "TX timeout. slen: %d \r\n", sendlen);
-			// 	break;
-			// }
+			 if (!ams_wait_for_tx(5))
+			 {
+			 	printf1(TAG_NFC, "TX timeout. slen: %d \r\n", sendlen);
+			 	break;
+			 }
 
 			// if needs to receive R block (not a last block)
 			if (res[0] & 0x10)
@@ -226,9 +268,10 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 					break;
 				}
 
-				if (reclen != 1)
+                uint8_t rblock_offset = p14443_block_offset(recbuf[0]);
+				if (reclen != rblock_offset)
 				{
-					printf1(TAG_NFC, "R block length error. len: %d. %d/%d \r\n", reclen,sendlen,len);
+					printf1(TAG_NFC, "R block length error. len: %d. %d/%d \r\n", reclen, sendlen, len);
                     dump_hex1(TAG_NFC, recbuf, reclen);
 					break;
 				}
@@ -243,6 +286,37 @@ void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len)
 			iBlock ^= 0x01;
 		} while (sendlen < len);
 	}
+}
+
+void append_get_response(uint8_t *data, size_t rest_len)
+{
+    data[0] = 0x61;
+    data[1] = 0x00;
+    if (rest_len <= 0xff)
+        data[1] = rest_len & 0xff;
+}
+
+void nfc_write_response_chaining(uint8_t req0, uint8_t * data, int len, bool extapdu)
+{
+    resp_chain_buffer_len = 0;
+    
+    // if we dont need to break data to parts that need to exchange via GET RESPONSE command (ISO 7816-4 7.1.3)
+	if (len <= 255 || extapdu)
+    {
+        nfc_write_response_chaining_plain(req0, data, len);
+    } else {
+        size_t pcklen = MIN(253, len);
+        resp_chain_buffer_len = len - pcklen;
+        printf1(TAG_NFC, "61XX chaining %d/%d.\r\n", pcklen, resp_chain_buffer_len);
+        
+        memmove(resp_chain_buffer, data, pcklen);
+        append_get_response(&resp_chain_buffer[pcklen], resp_chain_buffer_len);
+       
+        nfc_write_response_chaining_plain(req0, resp_chain_buffer, pcklen + 2); // 2 for 61XX 
+    
+        // put the rest data into chain buffer
+        memmove(resp_chain_buffer, &data[pcklen], resp_chain_buffer_len);        
+    }    
 }
 
 // WTX on/off:
@@ -297,7 +371,7 @@ bool WTX_off()
 void WTX_timer_exec()
 {
 	// condition: (timer on) or (not expired[300ms])
-	if ((WTX_timer <= 0) || WTX_timer + 300 > millis())
+	if ((WTX_timer == 0) || WTX_timer + 300 > millis())
 		return;
 
 	WTX_process(10);
@@ -308,12 +382,12 @@ void WTX_timer_exec()
 // read timeout must be 10 ms to call from interrupt
 bool WTX_process(int read_timeout)
 {
-	uint8_t wtx[] = {0xf2, 0x01};
 	if (WTX_fail)
 		return false;
 
 	if (!WTX_sent)
 	{
+        uint8_t wtx[] = {0xf2, 0x01};
 		nfc_write_frame(wtx, sizeof(wtx));
 		WTX_sent = true;
 		return true;
@@ -371,39 +445,72 @@ int answer_rats(uint8_t parameter)
 
 
     nfc_write_frame(res, sizeof(res));
-	ams_wait_for_tx(10);
+	if (!ams_wait_for_tx(10))
+	{
+		printf1(TAG_NFC, "RATS TX timeout.\r\n");
+		ams_write_command(AMS_CMD_DEFAULT);
+		return 1;
+	}
 
 
     return 0;
 }
 
-void rblock_acknowledge()
+void rblock_acknowledge(uint8_t req0, bool ack)
 {
-    uint8_t buf[32];
+    uint8_t buf[32] = {0};
+
+    uint8_t block_offset = p14443_block_offset(req0);
     NFC_STATE.block_num = !NFC_STATE.block_num;
-    buf[0] = NFC_CMD_RBLOCK | NFC_STATE.block_num;
-    nfc_write_frame(buf,1);
+
+    buf[0] = NFC_CMD_RBLOCK | (req0 & 0x0f);
+    if (ack)
+        buf[0] |= NFC_CMD_RBLOCK_ACK;
+
+    nfc_write_frame(buf, block_offset);
+}
+
+// international AID = RID:PIX
+// RID length == 5 bytes
+// usually aid length must be between 5 and 16 bytes
+int applet_cmp(uint8_t * aid, int len, uint8_t * const_aid, int const_len)
+{
+    if (len > const_len)
+        return 10;
+    
+    // if international AID
+    if ((const_aid[0] & 0xf0) == 0xa0)
+    {
+        if (len < 5)
+            return 11;
+        return memcmp(aid, const_aid, MIN(len, const_len));
+    } else {
+        if (len != const_len)
+            return 11;
+        
+        return memcmp(aid, const_aid, const_len);
+    }
 }
 
 // Selects application.  Returns 1 if success, 0 otherwise
 int select_applet(uint8_t * aid, int len)
 {
-    if (memcmp(aid,AID_FIDO,sizeof(AID_FIDO)) == 0)
+    if (applet_cmp(aid, len, (uint8_t *)AID_FIDO, sizeof(AID_FIDO) - 1) == 0)
     {
         NFC_STATE.selected_applet = APP_FIDO;
         return APP_FIDO;
     }
-    else if (memcmp(aid,AID_NDEF_TYPE_4,sizeof(AID_NDEF_TYPE_4)) == 0)
+    else if (applet_cmp(aid, len, (uint8_t *)AID_NDEF_TYPE_4, sizeof(AID_NDEF_TYPE_4) - 1) == 0)
     {
         NFC_STATE.selected_applet = APP_NDEF_TYPE_4;
         return APP_NDEF_TYPE_4;
     }
-    else if (memcmp(aid,AID_CAPABILITY_CONTAINER,sizeof(AID_CAPABILITY_CONTAINER)) == 0)
+    else if (applet_cmp(aid, len, (uint8_t *)AID_CAPABILITY_CONTAINER, sizeof(AID_CAPABILITY_CONTAINER) - 1) == 0)
     {
         NFC_STATE.selected_applet = APP_CAPABILITY_CONTAINER;
         return APP_CAPABILITY_CONTAINER;
     }
-    else if (memcmp(aid,AID_NDEF_TAG,sizeof(AID_NDEF_TAG)) == 0)
+    else if (applet_cmp(aid, len, (uint8_t *)AID_NDEF_TAG, sizeof(AID_NDEF_TAG) - 1) == 0)
     {
         NFC_STATE.selected_applet = APP_NDEF_TAG;
         return APP_NDEF_TAG;
@@ -413,25 +520,80 @@ int select_applet(uint8_t * aid, int len)
 
 void nfc_process_iblock(uint8_t * buf, int len)
 {
-    APDU_HEADER * apdu = (APDU_HEADER *)(buf + 1);
-    uint8_t * payload = buf + 1 + 5;
-    uint8_t plen = apdu->lc;
     int selected;
     CTAP_RESPONSE ctap_resp;
     int status;
+    uint16_t reslen;
 
-    printf1(TAG_NFC,"Iblock: ");
-	dump_hex1(TAG_NFC, buf, len);
+    uint8_t block_offset = p14443_block_offset(buf[0]);
 
+    APDU_STRUCT apdu;
+    if (apdu_decode(buf + block_offset, len - block_offset, &apdu)) {
+        printf1(TAG_NFC,"apdu decode error\r\n");
+        nfc_write_response(buf[0], SW_COND_USE_NOT_SATISFIED);
+        return;
+    }
+    printf1(TAG_NFC,"apdu ok. %scase=%02x cla=%02x ins=%02x p1=%02x p2=%02x lc=%d le=%d\r\n", 
+        apdu.extended_apdu ? "[e]":"", apdu.case_type, apdu.cla, apdu.ins, apdu.p1, apdu.p2, apdu.lc, apdu.le);
+
+    // check CLA
+    if (apdu.cla != 0x00 && apdu.cla != 0x80) {
+        printf1(TAG_NFC, "Unknown CLA %02x\r\n", apdu.cla);
+        nfc_write_response(buf[0], SW_CLA_INVALID);
+        return;
+    }
+    
     // TODO this needs to be organized better
-    switch(apdu->ins)
+    switch(apdu.ins)
     {
-        case APDU_INS_SELECT:
-            if (plen > len - 6)
+        // ISO 7816. 7.1 GET RESPONSE command
+        case APDU_GET_RESPONSE:
+            if (apdu.p1 != 0x00 || apdu.p2 != 0x00)
             {
-                printf1(TAG_ERR, "Truncating APDU length %d\r\n", apdu->lc);
-                plen = len-6;
+                nfc_write_response(buf[0], SW_INCORRECT_P1P2);
+                printf1(TAG_NFC, "P1 or P2 error\r\n");
+                return;
             }
+            
+            // too many bytes needs. 0x00 and 0x100 - any length
+            if (apdu.le != 0 && apdu.le != 0x100 && apdu.le > resp_chain_buffer_len)
+            {
+                uint16_t wlresp = SW_WRONG_LENGTH;  // here can be 6700, 6C00, 6FXX. but the most standard way - 67XX or 6700
+                if (resp_chain_buffer_len <= 0xff)
+                    wlresp += resp_chain_buffer_len & 0xff;
+                nfc_write_response(buf[0], wlresp);
+                printf1(TAG_NFC, "buffer length less than requesteds\r\n");
+                return;
+            }
+            
+            // create temporary packet
+            uint8_t pck[255] = {0};
+            size_t pcklen = 253;
+            if (apdu.le)
+                pcklen = apdu.le;
+            if (pcklen > resp_chain_buffer_len)
+                pcklen = resp_chain_buffer_len;
+
+            printf1(TAG_NFC, "GET RESPONSE. pck len: %d buffer len: %d\r\n", pcklen, resp_chain_buffer_len); 
+            
+            // create packet and add 61XX there if we have another portion(s) of data
+            memmove(pck, resp_chain_buffer, pcklen);
+            size_t dlen = 0;
+            if (resp_chain_buffer_len - pcklen)
+            {
+                append_get_response(&pck[pcklen], resp_chain_buffer_len - pcklen);
+                dlen = 2;
+            }
+
+            // send
+            nfc_write_response_chaining_plain(buf[0], pck, pcklen + dlen); // dlen for 61XX
+            
+            // shift the buffer
+            resp_chain_buffer_len -= pcklen;
+            memmove(resp_chain_buffer, &resp_chain_buffer[pcklen], resp_chain_buffer_len);
+        break;
+        
+        case APDU_INS_SELECT:
             // if (apdu->p1 == 0 && apdu->p2 == 0x0c)
             // {
             //     printf1(TAG_NFC,"Select NDEF\r\n");
@@ -446,14 +608,9 @@ void nfc_process_iblock(uint8_t * buf, int len)
             // }
             // else
             {
-                selected = select_applet(payload, plen);
+                selected = select_applet(apdu.data, apdu.lc);
                 if (selected == APP_FIDO)
                 {
-                    // block = buf[0] & 1;
-                    // block = NFC_STATE.block_num;
-                    // block = !block;
-                    // NFC_STATE.block_num = block;
-                    // NFC_STATE.block_num = block;
 					nfc_write_response_ex(buf[0], (uint8_t *)"U2F_V2", 6, SW_SUCCESS);
 					printf1(TAG_NFC, "FIDO applet selected.\r\n");
                }
@@ -465,7 +622,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
                 else
                 {
 					nfc_write_response(buf[0], SW_FILE_NOT_FOUND);
-                    printf1(TAG_NFC, "NOT selected\r\n"); dump_hex1(TAG_NFC,payload, plen);
+                    printf1(TAG_NFC, "NOT selected "); dump_hex1(TAG_NFC, apdu.data, apdu.lc);
                 }
             }
         break;
@@ -478,7 +635,8 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			printf1(TAG_NFC, "U2F GetVersion command.\r\n");
 
-			nfc_write_response_ex(buf[0], (uint8_t *)"U2F_V2", 6, SW_SUCCESS);
+			u2f_request_nfc(&buf[block_offset], apdu.data, apdu.lc, &ctap_resp);
+            nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, apdu.extended_apdu);
         break;
 
         case APDU_FIDO_U2F_REGISTER:
@@ -489,9 +647,9 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			printf1(TAG_NFC, "U2F Register command.\r\n");
 
-			if (plen != 64)
+			if (apdu.lc != 64)
 			{
-				printf1(TAG_NFC, "U2F Register request length error. len=%d.\r\n", plen);
+				printf1(TAG_NFC, "U2F Register request length error. len=%d.\r\n", apdu.lc);
 				nfc_write_response(buf[0], SW_WRONG_LENGTH);
 				return;
 			}
@@ -502,19 +660,15 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			// WTX_on(WTX_TIME_DEFAULT);
             // SystemClock_Config_LF32();
             // delay(300);
-            if (device_is_nfc()) device_set_clock_rate(DEVICE_LOW_POWER_FAST);;
-			u2f_request_nfc(&buf[1], len, &ctap_resp);
-            if (device_is_nfc())  device_set_clock_rate(DEVICE_LOW_POWER_IDLE);;
+            if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
+			u2f_request_nfc(&buf[block_offset], apdu.data, apdu.lc, &ctap_resp);
+            if (device_is_nfc() == NFC_IS_ACTIVE)  device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
 			// if (!WTX_off())
 			// 	return;
 
+			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Register P2 took %d\r\n", timestamp());
-            nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
-
-			// printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
-
-
-
+            nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, apdu.extended_apdu);
 
             printf1(TAG_NFC,"U2F Register answered %d (took %d)\r\n", millis(), timestamp());
        break;
@@ -527,41 +681,43 @@ void nfc_process_iblock(uint8_t * buf, int len)
 
 			printf1(TAG_NFC, "U2F Authenticate command.\r\n");
 
-			if (plen != 64 + 1 + buf[6 + 64])
+			if (apdu.lc != 64 + 1 + apdu.data[64])
 			{
 				delay(5);
-				printf1(TAG_NFC, "U2F Authenticate request length error. len=%d keyhlen=%d.\r\n", plen, buf[6 + 64]);
+				printf1(TAG_NFC, "U2F Authenticate request length error. len=%d keyhlen=%d.\r\n", apdu.lc, apdu.data[64]);
 				nfc_write_response(buf[0], SW_WRONG_LENGTH);
 				return;
 			}
 
 			timestamp();
 			// WTX_on(WTX_TIME_DEFAULT);
-			u2f_request_nfc(&buf[1], len, &ctap_resp);
+			u2f_request_nfc(&buf[block_offset], apdu.data, apdu.lc, &ctap_resp);
 			// if (!WTX_off())
 			// 	return;
 
 			printf1(TAG_NFC, "U2F resp len: %d\r\n", ctap_resp.length);
             printf1(TAG_NFC,"U2F Authenticate processing %d (took %d)\r\n", millis(), timestamp());
-			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, apdu.extended_apdu);
             printf1(TAG_NFC,"U2F Authenticate answered %d (took %d)\r\n", millis(), timestamp);
         break;
 
         case APDU_FIDO_NFCCTAP_MSG:
 			if (NFC_STATE.selected_applet != APP_FIDO) {
 				nfc_write_response(buf[0], SW_INS_INVALID);
-				break;
+				return;
 			}
 
 			printf1(TAG_NFC, "FIDO2 CTAP message. %d\r\n", timestamp());
 
-			WTX_on(WTX_TIME_DEFAULT);
+			// WTX_on(WTX_TIME_DEFAULT);
+            request_from_nfc(true);
             ctap_response_init(&ctap_resp);
-            status = ctap_request(payload, plen, &ctap_resp);
-			if (!WTX_off())
-				return;
+            status = ctap_request(apdu.data, apdu.lc, &ctap_resp);
+            request_from_nfc(false);
+			// if (!WTX_off())
+			// 	return;
 
-			printf1(TAG_NFC, "CTAP resp: 0x%02�  len: %d\r\n", status, ctap_resp.length);
+			printf1(TAG_NFC, "CTAP resp: 0x%02x  len: %d\r\n", status, ctap_resp.length);
 
 			if (status == CTAP1_ERR_SUCCESS)
 			{
@@ -575,49 +731,45 @@ void nfc_process_iblock(uint8_t * buf, int len)
 			ctap_resp.data[ctap_resp.length - 1] = SW_SUCCESS & 0xff;
 
             printf1(TAG_NFC,"CTAP processing %d (took %d)\r\n", millis(), timestamp());
-			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length);
+			nfc_write_response_chaining(buf[0], ctap_resp.data, ctap_resp.length, apdu.extended_apdu);
             printf1(TAG_NFC,"CTAP answered %d (took %d)\r\n", millis(), timestamp());
         break;
 
         case APDU_INS_READ_BINARY:
-
-
+            // response length
+            reslen = apdu.le & 0xffff; 
             switch(NFC_STATE.selected_applet)
             {
                 case APP_CAPABILITY_CONTAINER:
                     printf1(TAG_NFC,"APP_CAPABILITY_CONTAINER\r\n");
-                    if (plen > 15)
-                    {
-                        printf1(TAG_ERR, "Truncating requested CC length %d\r\n", apdu->lc);
-                        plen = 15;
-                    }
-                    nfc_write_response_ex(buf[0], (uint8_t *)&NFC_CC, plen, SW_SUCCESS);
+                    if (reslen == 0 || reslen > sizeof(NFC_CC))
+                        reslen = sizeof(NFC_CC);
+                    nfc_write_response_ex(buf[0], (uint8_t *)&NFC_CC, reslen, SW_SUCCESS);
                     ams_wait_for_tx(10);
                 break;
                 case APP_NDEF_TAG:
                     printf1(TAG_NFC,"APP_NDEF_TAG\r\n");
-                    if (plen > (sizeof(NDEF_SAMPLE) -  1))
-                    {
-                        printf1(TAG_ERR, "Truncating requested CC length %d\r\n", apdu->lc);
-                        plen = sizeof(NDEF_SAMPLE) -  1;
-                    }
-                    nfc_write_response_ex(buf[0], NDEF_SAMPLE, plen, SW_SUCCESS);
+                    if (reslen == 0 || reslen > sizeof(NDEF_SAMPLE) - 1)
+                        reslen = sizeof(NDEF_SAMPLE) - 1;
+                    nfc_write_response_ex(buf[0], NDEF_SAMPLE, reslen, SW_SUCCESS);
                     ams_wait_for_tx(10);
                 break;
                 default:
+                    nfc_write_response(buf[0], SW_FILE_NOT_FOUND);
                     printf1(TAG_ERR, "No binary applet selected!\r\n");
                     return;
                 break;
             }
-
         break;
+        
         default:
-            printf1(TAG_NFC, "Unknown INS %02x\r\n", apdu->ins);
+            printf1(TAG_NFC, "Unknown INS %02x\r\n", apdu.ins);
 			nfc_write_response(buf[0], SW_INS_INVALID);
         break;
     }
-
-
+    
+    printf1(TAG_NFC,"prev.Iblock: ");
+	dump_hex1(TAG_NFC, buf, len);
 }
 
 static uint8_t ibuf[1024];
@@ -631,16 +783,24 @@ void clear_ibuf()
 
 void nfc_process_block(uint8_t * buf, unsigned int len)
 {
-
+    printf1(TAG_NFC, "-----\r\n");
 	if (!len)
 		return;
 
     if (IS_PPSS_CMD(buf[0]))
     {
-        printf1(TAG_NFC, "NFC_CMD_PPSS\r\n");
+        printf1(TAG_NFC, "NFC_CMD_PPSS [%d] 0x%02x\r\n", len, (len > 2) ? buf[2] : 0);
+        
+        if (buf[1] == 0x11 && (buf[2] & 0x0f) == 0x00) {
+            nfc_write_frame(buf, 1); // ack with correct start byte
+        } else {
+            printf1(TAG_NFC, "NFC_CMD_PPSS ERROR!!!\r\n");
+            nfc_write_frame((uint8_t*)"\x00", 1); // this should not happend. but iso14443-4 dont have NACK here, so just 0x00
+        }        
     }
     else if (IS_IBLOCK(buf[0]))
     {
+        uint8_t block_offset = p14443_block_offset(buf[0]);
 		if (buf[0] & 0x10)
 		{
 			printf1(TAG_NFC_APDU, "NFC_CMD_IBLOCK chaining blen=%d len=%d\r\n", ibuflen, len);
@@ -654,27 +814,27 @@ void nfc_process_block(uint8_t * buf, unsigned int len)
 			printf1(TAG_NFC_APDU,"i> ");
 			dump_hex1(TAG_NFC_APDU, buf, len);
 
-			if (len)
+			if (len > block_offset)
 			{
-				memcpy(&ibuf[ibuflen], &buf[1], len - 1);
-				ibuflen += len - 1;
+				memcpy(&ibuf[ibuflen], &buf[block_offset], len - block_offset);
+				ibuflen += len - block_offset;
 			}
 
 			// send R block
-			uint8_t rb = NFC_CMD_RBLOCK | NFC_CMD_RBLOCK_ACK | (buf[0] & 3);
-			nfc_write_frame(&rb, 1);
+            rblock_acknowledge(buf[0], true);
 		} else {
 			if (ibuflen)
 			{
-				if (len)
+				if (len > block_offset)
 				{
-					memcpy(&ibuf[ibuflen], &buf[1], len - 1);
-					ibuflen += len - 1;
+					memcpy(&ibuf[ibuflen], &buf[block_offset], len - block_offset);
+					ibuflen += len - block_offset;
 				}
 
-				memmove(&ibuf[1], ibuf, ibuflen);
-				ibuf[0] = buf[0];
-				ibuflen++;
+                // add last chaining to top of the block
+				memmove(&ibuf[block_offset], ibuf, ibuflen);
+				memmove(ibuf, buf, block_offset);
+				ibuflen += block_offset;
 
 				printf1(TAG_NFC_APDU, "NFC_CMD_IBLOCK chaining last block. blen=%d len=%d\r\n", ibuflen, len);
 
@@ -683,7 +843,6 @@ void nfc_process_block(uint8_t * buf, unsigned int len)
 
 				nfc_process_iblock(ibuf, ibuflen);
 			} else {
-				// printf1(TAG_NFC, "NFC_CMD_IBLOCK\r\n");
 				nfc_process_iblock(buf, len);
 			}
 			clear_ibuf();
@@ -691,7 +850,7 @@ void nfc_process_block(uint8_t * buf, unsigned int len)
     }
     else if (IS_RBLOCK(buf[0]))
     {
-        rblock_acknowledge();
+        rblock_acknowledge(buf[0], false);
         printf1(TAG_NFC, "NFC_CMD_RBLOCK\r\n");
     }
     else if (IS_SBLOCK(buf[0]))
@@ -710,6 +869,7 @@ void nfc_process_block(uint8_t * buf, unsigned int len)
         else
         {
             printf1(TAG_NFC, "NFC_CMD_SBLOCK, Unknown. len[%d]\r\n", len);
+            nfc_write_response(buf[0], SW_COND_USE_NOT_SATISFIED);
         }
         dump_hex1(TAG_NFC, buf, len);
     }
@@ -728,6 +888,8 @@ int nfc_loop()
 
 
     read_reg_block(&ams);
+    uint8_t old_int0 = gl_int0;
+    process_int0(ams.regs.int0);
     uint8_t state = AMS_STATE_MASK & ams.regs.rfid_status;
 
     if (state != AMS_STATE_SELECTED && state != AMS_STATE_SELECTEDX)
@@ -741,7 +903,7 @@ int nfc_loop()
         // if (state != AMS_STATE_SENSE)
         //      printf1(TAG_NFC,"    %s  x%02x\r\n", ams_get_state_string(ams.regs.rfid_status), state);
     }
-    if (ams.regs.int0 & AMS_INT_INIT)
+    if (ams.regs.int0 & AMS_INT_INIT || old_int0 & AMS_INT_INIT)
     {
         nfc_state_init();
     }
@@ -750,7 +912,7 @@ int nfc_loop()
         // ams_print_int1(ams.regs.int1);
     }
 
-    if ((ams.regs.int0 & AMS_INT_RXE))
+    if (ams.regs.int0 & AMS_INT_RXE || old_int0 & AMS_INT_RXE)
     {
         if (ams.regs.buffer_status2)
         {
@@ -779,6 +941,7 @@ int nfc_loop()
                 printf1(TAG_NFC, "NFC_CMD_WUPA\r\n");
             break;
             case NFC_CMD_HLTA:
+                ams_write_command(AMS_CMD_SLEEP);
                 printf1(TAG_NFC, "HLTA/Halt\r\n");
             break;
             case NFC_CMD_RATS:

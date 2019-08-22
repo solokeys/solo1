@@ -157,6 +157,11 @@ void crypto_sha256_hmac_final(uint8_t * key, uint32_t klen, uint8_t * hmac)
         key = master_secret;
         klen = sizeof(master_secret)/2;
     }
+    else if (key == CRYPTO_TRANSPORT_KEY2)
+    {
+        key = transport_secret;
+        klen = 32;
+    }
 
 
     if(klen > 64)
@@ -277,6 +282,11 @@ void crypto_ecc256_derive_public_key(uint8_t * data, int len, uint8_t * x, uint8
     memmove(x,pubkey,32);
     memmove(y,pubkey+32,32);
 }
+void crypto_ecc256_compute_public_key(uint8_t * privkey, uint8_t * pubkey)
+{
+    uECC_compute_public_key(privkey, pubkey, _es256_curve);
+}
+
 
 void crypto_load_external_key(uint8_t * key, int len)
 {

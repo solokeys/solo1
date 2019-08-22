@@ -262,6 +262,11 @@ void crypto_ecc256_derive_public_key(uint8_t * data, int len, uint8_t * x, uint8
     memmove(y,pubkey+32,32);
 }
 
+void crypto_ecc256_compute_public_key(uint8_t * privkey, uint8_t * pubkey)
+{
+    uECC_compute_public_key(privkey, pubkey, _es256_curve);
+}
+
 void crypto_load_external_key(uint8_t * key, int len)
 {
     _signing_key = key;

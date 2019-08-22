@@ -105,6 +105,8 @@ void device_set_clock_rate(DEVICE_CLOCK_RATE param);
 #define NFC_IS_AVAILABLE 2
 int device_is_nfc();
 
+void request_from_nfc(bool request_active);
+
 void device_init_button();
 
 #endif

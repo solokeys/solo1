@@ -83,3 +83,5 @@ targets/*/docs/
 main
 
 builds/*
+tools/testing/.idea/*
+tools/testing/tests/__pycache__/*

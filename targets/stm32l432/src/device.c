@@ -38,11 +38,14 @@ void wait_for_usb_tether();
 
 
 uint32_t __90_ms = 0;
+uint32_t __last_button_press_time = 0;
+uint32_t __last_button_bounce_time = 0;
 uint32_t __device_status = 0;
 uint32_t __last_update = 0;
 extern PCD_HandleTypeDef hpcd;
 static int _NFC_status = 0;
 static bool isLowFreq = 0;
+static bool _RequestComeFromNFC = false;
 
 // #define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
 static int is_physical_button_pressed()
@@ -57,6 +60,10 @@ static int is_touch_button_pressed()
 
 int (*IS_BUTTON_PRESSED)() = is_physical_button_pressed;
 
+void request_from_nfc(bool request_active) {
+    _RequestComeFromNFC = request_active;
+}
+
 // Timer6 overflow handler.  happens every ~90ms.
 void TIM6_DAC_IRQHandler()
 {
@@ -70,6 +77,21 @@ void TIM6_DAC_IRQHandler()
             ctaphid_update_status(__device_status);
         }
     }
+
+
+    if (is_touch_button_pressed == IS_BUTTON_PRESSED)
+    {
+        if (IS_BUTTON_PRESSED())
+        {
+            // Only allow 1 press per 25 ms.
+            if ((millis() - __last_button_bounce_time) > 25)
+            {
+                __last_button_press_time = millis();
+            }
+            __last_button_bounce_time = millis();
+        }
+    }
+
 #ifndef IS_BOOTLOADER
 	// NFC sending WTX if needs
 	if (device_is_nfc() == NFC_IS_ACTIVE)
@@ -77,6 +99,21 @@ void TIM6_DAC_IRQHandler()
 		WTX_timer_exec();
 	}
 #endif
+}
+
+// Interrupt on rising edge of button (button released)
+void EXTI0_IRQHandler(void)
+{
+    EXTI->PR1 = EXTI->PR1;
+    if (is_physical_button_pressed == IS_BUTTON_PRESSED)
+    {
+        // Only allow 1 press per 25 ms.
+        if ((millis() - __last_button_bounce_time) > 25)
+        {
+            __last_button_press_time = millis();
+        }
+        __last_button_bounce_time = millis();
+    }
 }
 
 // Global USB interrupt handler
@@ -488,13 +525,49 @@ static int handle_packets()
     return 0;
 }
 
+static int wait_for_button_activate(uint32_t wait)
+{
+    int ret;
+    uint32_t start = millis();
+    do
+    {
+        if ((start + wait) < millis())
+        {
+            return 0;
+        }
+        delay(1);
+        ret = handle_packets();
+        if (ret)
+            return ret;
+    } while (!IS_BUTTON_PRESSED());
+    return 0;
+}
+static int wait_for_button_release(uint32_t wait)
+{
+    int ret;
+    uint32_t start = millis();
+    do
+    {
+        if ((start + wait) < millis())
+        {
+            return 0;
+        }
+        delay(1);
+        ret = handle_packets();
+        if (ret)
+            return ret;
+    } while (IS_BUTTON_PRESSED());
+    return 0;
+}
+
 int ctap_user_presence_test(uint32_t up_delay)
 {
     int ret;
-    if (device_is_nfc() == NFC_IS_ACTIVE)
+    if (device_is_nfc() == NFC_IS_ACTIVE || _RequestComeFromNFC)
     {
         return 1;
     }
+
 #if SKIP_BUTTON_CHECK_WITH_DELAY
     int i=500;
     while(i--)
@@ -507,53 +580,41 @@ int ctap_user_presence_test(uint32_t up_delay)
 #elif SKIP_BUTTON_CHECK_FAST
     delay(2);
     ret = handle_packets();
-    if (ret) return ret;
+    if (ret)
+        return ret;
     goto done;
 #endif
-    uint32_t t1 = millis();
+
+    // If button was pressed within last [2] seconds, succeed.
+    if (__last_button_press_time && (millis() - __last_button_press_time < 2000))
+    {
+        goto done;
+    }
+
+    // Set LED status and wait.
     led_rgb(0xff3520);
 
-if (IS_BUTTON_PRESSED == is_touch_button_pressed)
-{
-    // Wait for user to release touch button if it's already pressed
-    while (IS_BUTTON_PRESSED())
-    {
-        if (t1 + up_delay < millis())
-        {
-            printf1(TAG_GEN,"Button not pressed\n");
-            goto fail;
-        }
-        ret = handle_packets();
-        if (ret) return ret;
-    }
-}
-
-t1 = millis();
-
-do
-{
-    if (t1 + up_delay < millis())
-    {
-        goto fail;
-    }
-    delay(1);
-    ret = handle_packets();
+    // Block and wait for some time.
+    ret = wait_for_button_activate(up_delay);
     if (ret) return ret;
-}
-while (! IS_BUTTON_PRESSED());
+    ret = wait_for_button_release(up_delay);
+    if (ret) return ret;
 
-led_rgb(0x001040);
+    // If button was pressed within last [2] seconds, succeed.
+    if (__last_button_press_time && (millis() - __last_button_press_time < 2000))
+    {
+        goto done;
+    }
 
-delay(50);
+
+    return 0;
 
 
-#if SKIP_BUTTON_CHECK_WITH_DELAY || SKIP_BUTTON_CHECK_FAST
 done:
-#endif
-return 1;
+    ret = wait_for_button_release(up_delay);
+    __last_button_press_time = 0;
+    return 1;
 
-fail:
-return 0;
 }
 
 int ctap_generate_rng(uint8_t * dst, size_t num)

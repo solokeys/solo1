@@ -113,14 +113,14 @@ end:
     printf1(TAG_U2F,"u2f resp: "); dump_hex1(TAG_U2F, _u2f_resp->data, _u2f_resp->length);
 }
 
-void u2f_request_nfc(uint8_t * req, int len, CTAP_RESPONSE * resp)
+void u2f_request_nfc(uint8_t * header, uint8_t * data, int datalen, CTAP_RESPONSE * resp)
 {
-	if (len < 5 || !req)
+	if (!header)
 		return;
 
-    uint32_t alen = req[4];
-
-	u2f_request_ex((APDU_HEADER *)req, &req[5], alen, resp);
+    request_from_nfc(true);  // disable presence test
+	u2f_request_ex((APDU_HEADER *)header, data, datalen, resp);
+    request_from_nfc(false); // enable presence test
 }
 
 void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)

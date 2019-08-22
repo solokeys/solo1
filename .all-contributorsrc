@@ -1,0 +1,178 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "szszszsz",
+      "name": "Szczepan Zalega",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/17005426?v=4",
+      "profile": "https://github.com/szszszsz",
+      "contributions": [
+        "code",
+        "doc",
+        "ideas"
+      ]
+    },
+    {
+      "login": "Wesseldr",
+      "name": "Wessel dR",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/4012809?v=4",
+      "profile": "https://github.com/Wesseldr",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "agl",
+      "name": "Adam Langley",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/21203?v=4",
+      "profile": "https://www.imperialviolet.org",
+      "contributions": [
+        "bug",
+        "code"
+      ]
+    },
+    {
+      "login": "merlokk",
+      "name": "Oleg Moiseenko",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/807634?v=4",
+      "profile": "http://www.lotteam.com",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "aseigler",
+      "name": "Alex Seigler",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/6605560?v=4",
+      "profile": "https://github.com/aseigler",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "dschuermann",
+      "name": "Dominik Schürmann",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/321888?v=4",
+      "profile": "https://www.cotech.de/services/",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "ehershey",
+      "name": "Ernie Hershey",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/286008?v=4",
+      "profile": "https://github.com/ehershey",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "YakBizzarro",
+      "name": "Andrea Corna",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/767740?v=4",
+      "profile": "https://github.com/YakBizzarro",
+      "contributions": [
+        "infra"
+      ]
+    },
+    {
+      "login": "pjz",
+      "name": "Paul Jimenez",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/11100?v=4",
+      "profile": "https://place.org/~pj/",
+      "contributions": [
+        "infra",
+        "code"
+      ]
+    },
+    {
+      "login": "yparitcher",
+      "name": "yparitcher",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/38916402?v=4",
+      "profile": "https://github.com/yparitcher",
+      "contributions": [
+        "ideas",
+        "maintenance"
+      ]
+    },
+    {
+      "login": "StoyanDimitrov",
+      "name": "StoyanDimitrov",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/10962709?v=4",
+      "profile": "https://github.com/StoyanDimitrov",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "alphathegeek",
+      "name": "alphathegeek",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/51253712?v=4",
+      "profile": "https://github.com/alphathegeek",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "rgerganov",
+      "name": "Radoslav Gerganov",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/271616?v=4",
+      "profile": "https://xakcop.com",
+      "contributions": [
+        "ideas",
+        "code"
+      ]
+    },
+    {
+      "login": "manuel-domke",
+      "name": "Manuel Domke",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/10274356?v=4",
+      "profile": "http://13-37.org",
+      "contributions": [
+        "ideas",
+        "code",
+        "business"
+      ]
+    },
+    {
+      "login": "esden",
+      "name": "Piotr Esden-Tempski",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/17334?v=4",
+      "profile": "http://1bitsquared.com",
+      "contributions": [
+        "business"
+      ]
+    },
+    {
+      "login": "m3hm00d",
+      "name": "f.m3hm00d",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/42179593?v=4",
+      "profile": "https://github.com/m3hm00d",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "hughsie",
+      "name": "Richard Hughes",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/151380?v=4",
+      "profile": "http://blogs.gnome.org/hughsie/",
+      "contributions": [
+        "ideas",
+        "code",
+        "infra",
+        "tool"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "solo",
+  "projectOwner": "solokeys",
+  "repoType": "github",
+  "repoHost": "https://github.com"
+}
