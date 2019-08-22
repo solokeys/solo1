@@ -168,6 +168,16 @@
         "infra",
         "tool"
       ]
+    },
+    {
+      "login": "kimusan",
+      "name": "Kim Schulz",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/1150049?v=4",
+      "profile": "http://www.schulz.dk",
+      "contributions": [
+        "business",
+        "ideas"
+      ]
     }
   ],
   "contributorsPerLine": 7,
