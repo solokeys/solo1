@@ -486,7 +486,7 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     
     device_set_status(CTAPHID_STATUS_PROCESSING);
 
-    authData->head.flags = (but << 0);
+    authData->head.flags = (1 << 0);        // User presence
     authData->head.flags |= (ctap_is_pin_set() << 2);
 
 
