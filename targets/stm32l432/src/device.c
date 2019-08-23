@@ -56,12 +56,14 @@ static int is_physical_button_pressed()
 static int is_touch_button_pressed()
 {
     int is_pressed = (tsc_read_button(0) || tsc_read_button(1));
+#ifndef IS_BOOTLOADER
     if (is_pressed)
     {
         // delay for debounce, and longer than polling timer period.
         delay(95);
         return (tsc_read_button(0) || tsc_read_button(1));
     }
+#endif
     return is_pressed;
 }
 
