@@ -802,7 +802,6 @@ void nfc_process_iblock(uint8_t * buf, int len)
         
         memmove(&chain_buffer[chain_buffer_len], apdu.data, apdu.lc);
         chain_buffer_len += apdu.lc;
-        delay(1);
         nfc_write_response(buf[0], SW_SUCCESS);
         printf1(TAG_NFC, "APDU chaining ok. %d/%d\r\n", apdu.lc, chain_buffer_len);
         return;
@@ -810,7 +809,6 @@ void nfc_process_iblock(uint8_t * buf, int len)
     
     // if we have ISO 7816 APDU chain - move there all the data
     if (!chain_buffer_tx && chain_buffer_len > 0) {
-        delay(1);
         memmove(&apdu.data[chain_buffer_len], apdu.data, apdu.lc);
         memmove(apdu.data, chain_buffer, chain_buffer_len);
         apdu.lc += chain_buffer_len; // here apdu struct does not match with memory!
