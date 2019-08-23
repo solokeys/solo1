@@ -51,8 +51,8 @@
 
 
 struct flash_memory_st{
-  uint8_t bootloader[20*1024];
-  uint8_t application[196*1024-16];
+  uint8_t bootloader[APPLICATION_START_PAGE*2*1024];
+  uint8_t application[(APPLICATION_END_PAGE-APPLICATION_START_PAGE)*2*1024-16];
   uint8_t app_version[8];
   uint8_t auth_word[8];
   uint8_t bootloader_data[2*1024];
