@@ -55,7 +55,14 @@ static int is_physical_button_pressed()
 
 static int is_touch_button_pressed()
 {
-    return tsc_read_button(0) || tsc_read_button(1);
+    int is_pressed = (tsc_read_button(0) || tsc_read_button(1));
+    if (is_pressed)
+    {
+        // delay for debounce, and longer than polling timer period.
+        delay(95);
+        return (tsc_read_button(0) || tsc_read_button(1));
+    }
+    return is_pressed;
 }
 
 int (*IS_BUTTON_PRESSED)() = is_physical_button_pressed;
@@ -66,7 +73,7 @@ static void edge_detect_touch_button()
     uint8_t current_touch = 0;
     if (is_touch_button_pressed == IS_BUTTON_PRESSED)
     {
-        current_touch = IS_BUTTON_PRESSED();
+        current_touch = (tsc_read_button(0) || tsc_read_button(1));
 
         // 1 sample per 25 ms
         if ((millis() - __last_button_bounce_time) > 25)
@@ -153,7 +160,6 @@ void device_set_status(uint32_t status)
 
 int device_is_button_pressed()
 {
-
     return IS_BUTTON_PRESSED();
 }
 
