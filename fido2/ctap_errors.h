@@ -49,6 +49,7 @@
 #define CTAP2_ERR_PIN_POLICY_VIOLATION      0x37
 #define CTAP2_ERR_PIN_TOKEN_EXPIRED         0x38
 #define CTAP2_ERR_REQUEST_TOO_LARGE         0x39
+#define CTAP2_ERR_ACTION_TIMEOUT            0x3A
 #define CTAP1_ERR_OTHER                     0x7F
 #define CTAP2_ERR_SPEC_LAST                 0xDF
 #define CTAP2_ERR_EXTENSION_FIRST           0xE0

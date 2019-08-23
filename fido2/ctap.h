@@ -131,7 +131,7 @@
 #define PIN_LOCKOUT_ATTEMPTS        8       // Number of attempts total
 #define PIN_BOOT_ATTEMPTS           3       // number of attempts per boot
 
-#define CTAP2_UP_DELAY_MS           5000
+#define CTAP2_UP_DELAY_MS           29000
 
 typedef struct
 {
