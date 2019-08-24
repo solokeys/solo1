@@ -224,13 +224,13 @@ int bootloader_bridge(int klen, uint8_t * keyh)
               printf1(TAG_BOOT, "Signature invalid\r\n");
                 return CTAP2_ERR_OPERATION_DENIED;
             }
-#endif
             if (!is_firmware_version_newer_or_equal()){
               printf1(TAG_BOOT, "Firmware older - update not allowed.\r\n");
               printf1(TAG_BOOT, "Rebooting...\r\n");
               REBOOT_FLAG = 1;
               return CTAP2_ERR_OPERATION_DENIED;
             }
+#endif
             // Set the application validated, and mark for reboot.
             authorize_application();
 
