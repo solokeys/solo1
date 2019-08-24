@@ -66,6 +66,7 @@ all: $(TARGET).elf
 
 %.elf: $(OBJ)
 	$(CC) $^ $(HW) $(LDFLAGS) -o $@
+	arm-none-eabi-size $@
 
 %.hex: %.elf
 	$(CP) -O ihex $^ $(TARGET).hex

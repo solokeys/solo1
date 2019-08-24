@@ -70,6 +70,7 @@ all: $(TARGET).elf
 
 %.elf: $(OBJ)
 	$(CC) $^ $(HW) $(LDFLAGS) -o $@
+	@echo "Built version: $(VERSION_FLAGS)"
 
 %.hex: %.elf
 	$(SZ) $^
