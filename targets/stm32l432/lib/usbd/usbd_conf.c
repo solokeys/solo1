@@ -123,9 +123,11 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
       case HID_EPOUT_ADDR:
         usb_hid_recieve_callback(epnum);
       break;
+#ifdef ENABLE_CCID
       case CCID_OUT_EP:
         usb_ccid_recieve_callback((USBD_HandleTypeDef*)hpcd->pData, epnum);
       break;
+#endif
   }
 }
 
