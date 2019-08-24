@@ -4,6 +4,7 @@
 #include "usbd_cdc.h"
 #include "usbd_ccid.h"
 #include "usbd_ctlreq.h"
+#include "app.h"
 
 static uint8_t USBD_Composite_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx);
 
@@ -27,19 +28,28 @@ static uint8_t *USBD_Composite_GetOtherSpeedCfgDesc (uint16_t *length);
 
 static uint8_t *USBD_Composite_GetDeviceQualifierDescriptor (uint16_t *length);
 
+#ifdef ENABLE_CCID
+#define CCID_SIZE           84
+#define CCID_NUM_INTERFACE  1
+#else
+#define CCID_NUM_INTERFACE  0
+#define CCID_SIZE           0
+#endif
+
+#if DEBUG_LEVEL > 0
+#define CDC_SIZE            (49 + 8 + 9 + 4)
+#define CDC_NUM_INTERFACE   2
+#else
+#define CDC_SIZE            0
+#define CDC_NUM_INTERFACE   0
+#endif
+
+#define HID_SIZE            41
+
+#define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (HID_SIZE + CDC_SIZE + CCID_SIZE)
+#define NUM_INTERFACES                      (1 + CDC_NUM_INTERFACE + CCID_NUM_INTERFACE)
 #define NUM_CLASSES                         3
 
-
-#if NUM_CLASSES>2
-#define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (90 + 8+9 + 4 + 84)
-#define NUM_INTERFACES                      4
-#elif NUM_CLASSES>1
-#define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (90 + 8+9 + 4)
-#define NUM_INTERFACES                      3
-#else
-#define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (41)
-#define NUM_INTERFACES                      1
-#endif
 
 #define HID_INTF_NUM                                0
 #define CDC_MASTER_INTF_NUM                         1
@@ -101,7 +111,7 @@ __ALIGN_BEGIN uint8_t COMPOSITE_CDC_HID_DESCRIPTOR[COMPOSITE_CDC_HID_DESCRIPTOR_
         0x00,
         HID_BINTERVAL, /*bInterval: Polling Interval */
 
-#if NUM_INTERFACES > 2
+#if DEBUG_LEVEL > 0
 
         /*     */
         /* CDC */
@@ -199,7 +209,7 @@ __ALIGN_BEGIN uint8_t COMPOSITE_CDC_HID_DESCRIPTOR[COMPOSITE_CDC_HID_DESCRIPTOR_
         0x04,
 #endif
 
-#if NUM_INTERFACES>3
+#ifdef ENABLE_CCID
 
         /* CCID Interface Descriptor */
         9,			         /* bLength: Interface Descriptor size */
@@ -295,16 +305,21 @@ USBD_ClassTypeDef USBD_Composite =
   USBD_Composite_GetDeviceQualifierDescriptor,
 };
 
-static USBD_ClassTypeDef *USBD_Classes[MAX_CLASSES];
+static USBD_ClassTypeDef * USBD_Classes[MAX_CLASSES];
 
 int in_endpoint_to_class[MAX_ENDPOINTS];
 
 int out_endpoint_to_class[MAX_ENDPOINTS];
 
 void USBD_Composite_Set_Classes(USBD_ClassTypeDef *hid_class, USBD_ClassTypeDef *ccid_class, USBD_ClassTypeDef *cdc_class) {
+    memset(USBD_Classes, 0 , sizeof(USBD_Classes));
     USBD_Classes[0] = hid_class;
+#ifdef ENABLE_CCID
     USBD_Classes[1] = ccid_class;
+#endif
+#if DEBUG_LEVEL > 0
     USBD_Classes[2] = cdc_class;
+#endif
 }
 
 static USBD_ClassTypeDef * getClass(uint8_t index)
@@ -313,12 +328,15 @@ static USBD_ClassTypeDef * getClass(uint8_t index)
     {
     case HID_INTF_NUM:
         return USBD_Classes[0];
+#ifdef ENABLE_CCID
     case CCID_INTF_NUM:
         return USBD_Classes[1];
+#endif
+#if DEBUG_LEVEL > 0
     case CDC_MASTER_INTF_NUM:
     case CDC_SLAVE_INTF_NUM:
         return USBD_Classes[2];
-
+#endif
     }
     return NULL;
 }
@@ -326,7 +344,7 @@ static USBD_ClassTypeDef * getClass(uint8_t index)
 static uint8_t USBD_Composite_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
     int i;
     for(i = 0; i < NUM_CLASSES; i++) {
-        if (USBD_Classes[i]->Init(pdev, cfgidx) != USBD_OK) {
+        if (USBD_Classes[i] != NULL && USBD_Classes[i]->Init(pdev, cfgidx) != USBD_OK) {
             return USBD_FAIL;
         }
     }
@@ -337,7 +355,7 @@ static uint8_t USBD_Composite_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
 static uint8_t  USBD_Composite_DeInit (USBD_HandleTypeDef *pdev, uint8_t cfgidx) {
     int i;
     for(i = 0; i < NUM_CLASSES; i++) {
-        if (USBD_Classes[i]->DeInit(pdev, cfgidx) != USBD_OK) {
+        if (USBD_Classes[i] != NULL && USBD_Classes[i]->DeInit(pdev, cfgidx) != USBD_OK) {
             return USBD_FAIL;
         }
     }
@@ -363,7 +381,7 @@ static uint8_t USBD_Composite_Setup (USBD_HandleTypeDef *pdev, USBD_SetupReqType
 
                 case USB_REQ_GET_DESCRIPTOR :
                     for(i = 0; i < NUM_CLASSES; i++) {
-                        if (USBD_Classes[i]->Setup(pdev, req) != USBD_OK) {
+                        if (USBD_Classes[i] != NULL && USBD_Classes[i]->Setup(pdev, req) != USBD_OK) {
                             return USBD_FAIL;
                         }
                     }
@@ -386,6 +404,8 @@ static uint8_t USBD_Composite_DataIn (USBD_HandleTypeDef *pdev, uint8_t epnum) {
 
     i = in_endpoint_to_class[epnum];
 
+    if (USBD_Classes[i] == NULL) return USBD_FAIL;
+
     return USBD_Classes[i]->DataIn(pdev, epnum);
 }
 
@@ -394,6 +414,8 @@ static uint8_t USBD_Composite_DataOut (USBD_HandleTypeDef *pdev, uint8_t epnum) 
 
   i = out_endpoint_to_class[epnum];
 
+  if (USBD_Classes[i] == NULL) return USBD_FAIL;
+
   return USBD_Classes[i]->DataOut(pdev, epnum);
 
 }
@@ -401,7 +423,7 @@ static uint8_t USBD_Composite_DataOut (USBD_HandleTypeDef *pdev, uint8_t epnum) 
 static uint8_t USBD_Composite_EP0_RxReady (USBD_HandleTypeDef *pdev) {
     int i;
     for(i = 0; i < NUM_CLASSES; i++) {
-        if (USBD_Classes[i]->EP0_RxReady != NULL) {
+        if (USBD_Classes[i] != NULL && USBD_Classes[i]->EP0_RxReady != NULL) {
             if (USBD_Classes[i]->EP0_RxReady(pdev) != USBD_OK) {
                 return USBD_FAIL;
             }
