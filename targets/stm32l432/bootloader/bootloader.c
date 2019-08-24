@@ -126,8 +126,6 @@ bool is_firmware_version_newer_or_equal()
           new_version->major, new_version->minor, new_version->patch, new_version->reserved
           );
   dump_hex1(TAG_BOOT, (uint8_t *) last_written_app_address, 8);
-  dump_hex1(TAG_BOOT, (uint8_t *) NEW_FW_VERSION_ADDR, 8);
-  dump_hex1(TAG_BOOT, (uint8_t *) NEW_FW_VERSION_ADDR+8, 8);
 
   printf1(TAG_BOOT,"APPLICATION_END_ADDR: %p\r\n", APPLICATION_END_ADDR);
   printf1(TAG_BOOT,"BOOT_VERSION_ADDR: %p\r\n", BOOT_VERSION_ADDR);
@@ -135,8 +133,6 @@ bool is_firmware_version_newer_or_equal()
 
     flash_memory_st * ptr = 0x08000000;
     printf1(TAG_BOOT,"AUTH_WORD_ADDR: %p\r\n", AUTH_WORD_ADDR);
-    printf1(TAG_BOOT,"NEW_FW_VERSION_ADDR: %p\r\n", NEW_FW_VERSION_ADDR);
-    printf1(TAG_BOOT,"NEW_FW_VERSION_ADDR: %p\r\n", ptr->app_version );
     printf1(TAG_BOOT,"NEW_FW_VERSION_ADDR: %p\r\n", new_version );
     printf1(TAG_BOOT,"NEW_FW_VERSION_ADDR last_written_app_address: %p\r\n", last_written_app_address );
     printf1(TAG_BOOT,"current firm add: %p\r\n", &current_firmware_version );

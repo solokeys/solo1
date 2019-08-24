@@ -44,7 +44,6 @@
 #define AUTH_WORD_ADDR          (APPLICATION_END_ADDR)
 
 #define LAST_ADDR       (APPLICATION_END_ADDR-2048 + 8)
-#define NEW_FW_VERSION_ADDR    (AUTH_WORD_ADDR-8)
 #define BOOT_VERSION_PAGE    (APPLICATION_END_PAGE)
 #define BOOT_VERSION_ADDR    (0x08000000 + BOOT_VERSION_PAGE*FLASH_PAGE_SIZE + 8)
 #define LAST_PAGE       (APPLICATION_END_PAGE-1)
@@ -52,8 +51,7 @@
 
 struct flash_memory_st{
   uint8_t bootloader[APPLICATION_START_PAGE*2*1024];
-  uint8_t application[(APPLICATION_END_PAGE-APPLICATION_START_PAGE)*2*1024-16];
-  uint8_t app_version[8];
+  uint8_t application[(APPLICATION_END_PAGE-APPLICATION_START_PAGE)*2*1024-8];
   uint8_t auth_word[4];
   uint8_t bootloader_disabled[4];
   // place for more user data
