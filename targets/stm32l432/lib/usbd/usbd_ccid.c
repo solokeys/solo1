@@ -64,6 +64,8 @@ static uint8_t  USBD_CCID_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx)
     USBD_LL_OpenEP(pdev, CCID_CMD_EP, USBD_EP_TYPE_INTR, CCID_DATA_PACKET_SIZE);
     pdev->ep_in[CCID_CMD_EP & 0xFU].is_used = 1U;
 
+    // dump_pma_header("ccid.c");
+
     static USBD_CCID_HandleTypeDef mem;
     pdev->pClassData = &mem;
 
@@ -207,30 +209,8 @@ static uint8_t  USBD_CCID_DataOut (USBD_HandleTypeDef *pdev, uint8_t epnum)
 }
 static uint8_t  USBD_CCID_DataIn (USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-    //N
   USBD_CCID_HandleTypeDef *hcdc = (USBD_CCID_HandleTypeDef*)pdev->pClassData;
-  PCD_HandleTypeDef *hpcd = pdev->pData;
 
-  // if(pdev->pClassData != NULL)
-  // {
-  //   if((pdev->ep_in[epnum].total_length > 0U) && ((pdev->ep_in[epnum].total_length % hpcd->IN_ep[epnum].maxpacket) == 0U))
-  //   {
-  //     /* Update the packet total length */
-  //     pdev->ep_in[epnum].total_length = 0U;
-
-  //     /* Send ZLP */
-  //     USBD_LL_Transmit (pdev, epnum, NULL, 0U);
-  //   }
-  //   else
-  //   {
-  //     hcdc->TxState = 0U;
-  //   }
-  //   return USBD_OK;
-  // }
-  // else
-  // {
-  //   return USBD_FAIL;
-  // }
   hcdc->TxState = 0U;
   return USBD_OK;
 }
@@ -246,41 +226,39 @@ uint8_t  USBD_CCID_TransmitPacket(uint8_t * msg, int len)
     USBD_LL_Transmit(&Solo_USBD_Device, CCID_IN_EP, msg,
                    len);
 
-
-    // /* Update the packet total length */
-    // Solo_USBD_Device.ep_in[CCID_CMD_EP & 0xFU].total_length = len;
-
-    // /* Transmit next packet */
-    // USBD_LL_Transmit(&Solo_USBD_Device, CCID_CMD_EP, msg,
-    //                len);
-
+    printf1(TAG_GREEN,"ccid<< ");
+    dump_hex1(TAG_GREEN, msg, len);
 
     return USBD_OK;
 }
 
-#define CCID_HEADER_SIZE            10
-typedef struct
-{
-    uint8_t type;
-    uint32_t len;
-    uint8_t slot;
-    uint8_t seq;
-    uint8_t rsvd;
-    uint16_t param;
-}  __attribute__((packed)) CCID_HEADER;
 
-void ccid_send_status(CCID_HEADER * c)
+
+void ccid_send_status(CCID_HEADER * c, uint8_t status)
 {
     uint8_t msg[CCID_HEADER_SIZE];
     memset(msg,0,sizeof(msg));
 
     msg[0] = CCID_SLOT_STATUS_RES;
-    msg[6] = 1;
+    msg[6] = c->seq;
+    msg[7] = status;
 
     USBD_CCID_TransmitPacket(msg, sizeof(msg));
 
 }
 
+void ccid_send_data_block(CCID_HEADER * c, uint8_t status)
+{
+    uint8_t msg[CCID_HEADER_SIZE];
+    memset(msg,0,sizeof(msg));
+
+    msg[0] = CCID_DATA_BLOCK_RES;
+    msg[6] = c->seq;
+    msg[7] = status;
+
+    USBD_CCID_TransmitPacket(msg, sizeof(msg));
+
+}
 
 void handle_ccid(uint8_t * msg, int len)
 {
@@ -288,15 +266,16 @@ void handle_ccid(uint8_t * msg, int len)
     switch(h->type)
     {
         case CCID_SLOT_STATUS:
-            ccid_send_status(h);
+            ccid_send_status(h, CCID_STATUS_ON);
+        break;
+        case CCID_POWER_ON:
+            ccid_send_data_block(h, CCID_STATUS_ON);
+        break;
+        case CCID_POWER_OFF:
+            ccid_send_status(h, CCID_STATUS_OFF);
         break;
         default:
-            // while(1)
-            // {
-            //     led_rgb(0xff3520);
-            // }
-            //Y
-            ccid_send_status(h);
+            ccid_send_status(h, CCID_STATUS_ON);
         break;
     }
 }
@@ -316,24 +295,15 @@ uint8_t usb_ccid_recieve_callback(USBD_HandleTypeDef *pdev, uint8_t epnum)
     /* Get the received data length */
     hcdc->RxLength = USBD_LL_GetRxDataSize (pdev, epnum);
 
-    /* USB data will be immediately processed, this allow next USB traffic being
-    NAKed till the end of the application Xfer */
-    if(pdev->pClassData != NULL)
-    {
-        // printf1(TAG_GREEN,"ccid>> ");
-        // dump_hex1(TAG_GREEN, hcdc->RxBuffer, hcdc->RxLength);
+    printf1(TAG_GREEN, "ccid>> ");
+    dump_hex1(TAG_GREEN, ccidmsg_buf, hcdc->RxLength);
 
-        handle_ccid(hcdc->RxBuffer, hcdc->RxLength);
+    handle_ccid(ccidmsg_buf, hcdc->RxLength);
 
-        return USBD_OK;
-    }
-    else
-    {
+    USBD_LL_PrepareReceive(&Solo_USBD_Device, CCID_OUT_EP, ccidmsg_buf,
+                           CCID_DATA_PACKET_SIZE);
 
-        while(1){ led_rgb(0xff3520); }
-
-        return USBD_FAIL;
-    }
+    return USBD_OK;
 }
 
 
@@ -345,11 +315,5 @@ uint8_t usb_ccid_recieve_callback(USBD_HandleTypeDef *pdev, uint8_t epnum)
   */
 static uint8_t  USBD_CCID_EP0_RxReady (USBD_HandleTypeDef *pdev)
 {
-    USBD_CCID_HandleTypeDef   *hcdc = (USBD_CCID_HandleTypeDef*) pdev->pClassData;
-
-    // if((pdev->pUserData != NULL) && (hcdc->CmdOpCode != 0xFFU))
-    // {
-    //     hcdc->CmdOpCode = 0xFFU;
-    // }
     return USBD_OK;
 }

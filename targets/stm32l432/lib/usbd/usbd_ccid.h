@@ -3,7 +3,18 @@
 
 #include "usbd_ioreq.h"
 
-#define CCID_IN_EP                                   0x84U  /* EP1 for data IN */
+#define CCID_HEADER_SIZE            10
+typedef struct
+{
+    uint8_t type;
+    uint32_t len;
+    uint8_t slot;
+    uint8_t seq;
+    uint8_t rsvd;
+    uint16_t param;
+}  __attribute__((packed)) CCID_HEADER;
+
+#define CCID_IN_EP                                   0x86U  /* EP1 for data IN */
 #define CCID_OUT_EP                                  0x04U  /* EP1 for data OUT */
 #define CCID_CMD_EP                                  0x85U  /* EP2 for CDC commands */
 
@@ -17,6 +28,10 @@
 #define CCID_GET_PARAMS                     0x6C
 #define CCID_RESET_PARAMS                   0x6D
 #define CCID_XFR_BLOCK                      0x6F
+
+#define CCID_STATUS_ON                      0x00
+#define CCID_STATUS_OFF                     0x02
+
 #define CCID_DATA_BLOCK_RES                 0x80
 #define CCID_SLOT_STATUS_RES                0x81
 #define CCID_PARAMS_RES                     0x82
