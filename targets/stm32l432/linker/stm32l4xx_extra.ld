@@ -13,17 +13,16 @@ _estack = 0x2000c000;
 _MIN_STACK_SIZE = 0x400;
 
 /*
-len  |   32 KB/16p|      184KB-8-8/98p   |        2kB/1p         |      38 KB/19p  |
+len  |   32 KB/16p|      184KB-8-8/92p   |        2kB/1p         |      38 KB/19p  |
 pos  |   0->32 KB |     32->216KB-8-8    |   216kB -> 218 kB     |   218->256 KB   |
 posp |    0-16    |      16-113          |        113-114        |       113-128   |
 desc | bootloader |       application    | bootloader data       |  secrets/data   |
 
     Last 8 bytes in application space are occupied by bootloader flags - app
     authorization and bootloader activation flag.
-    Previous 8 bytes are application version.
  */
 
-/* Current firmware version number is stored at the very end of the firmware code */
+/* Current firmware version number is concatenated to the firmware code - see .flag marker */
 /* flash length is (APPLICATION_END_PAGE-20*1024), where 20K is bootloader */
 
 MEMORY

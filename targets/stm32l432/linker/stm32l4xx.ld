@@ -20,10 +20,9 @@ desc | bootloader |       application    | bootloader data       |  secrets/data
 
     Last 8 bytes in application space are occupied by bootloader flags - app
     authorization and bootloader activation flag.
-    Previous 8 bytes are application version.
  */
 
-/* Current firmware version number is stored at the very end of the firmware code */
+/* Current firmware version number is concatenated to the firmware code - see .flag marker */
 /* flash length is (APPLICATION_END_PAGE-20*1024), where 20K is bootloader */
 
 MEMORY
