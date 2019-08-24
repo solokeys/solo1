@@ -30,6 +30,7 @@ void main_loop_delay();
 
 void heartbeat();
 
+void device_reboot();
 
 void authenticator_read_state(AuthenticatorState * );
 

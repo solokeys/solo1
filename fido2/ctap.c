@@ -437,7 +437,19 @@ static unsigned int get_credential_id_size(CTAP_credentialDescriptor * cred)
 static int ctap2_user_presence_test()
 {
     device_set_status(CTAPHID_STATUS_UPNEEDED);
-    return ctap_user_presence_test(CTAP2_UP_DELAY_MS);
+    int ret = ctap_user_presence_test(CTAP2_UP_DELAY_MS);
+    if ( ret > 0 )
+    {
+        return CTAP1_ERR_SUCCESS;
+    }
+    else if (ret < 0)
+    {
+        return CTAP2_ERR_KEEPALIVE_CANCEL;
+    }
+    else
+    {
+        return CTAP2_ERR_ACTION_TIMEOUT;
+    }
 }
 
 static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, uint32_t * len, CTAP_credInfo * credInfo)
@@ -470,19 +482,11 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     int but;
 
     but = ctap2_user_presence_test(CTAP2_UP_DELAY_MS);
-
-    if (!but)
-    {
-        return CTAP2_ERR_OPERATION_DENIED;
-    }
-    else if (but < 0)   // Cancel
-    {
-        return CTAP2_ERR_KEEPALIVE_CANCEL;
-    }
+    check_retr(but);
     
     device_set_status(CTAPHID_STATUS_PROCESSING);
 
-    authData->head.flags = (but << 0);
+    authData->head.flags = (1 << 0);        // User presence
     authData->head.flags |= (ctap_is_pin_set() << 2);
 
 
@@ -707,10 +711,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     }
     if (MC.pinAuthEmpty)
     {
-        if (!ctap2_user_presence_test(CTAP2_UP_DELAY_MS))
-        {
-                return CTAP2_ERR_OPERATION_DENIED;
-        }
+        check_retr( ctap2_user_presence_test(CTAP2_UP_DELAY_MS) );
         return ctap_is_pin_set() == 1 ? CTAP2_ERR_PIN_AUTH_INVALID : CTAP2_ERR_PIN_NOT_SET;
     }
     if ((MC.paramsParsed & MC_requiredMask) != MC_requiredMask)
@@ -1143,10 +1144,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
     if (GA.pinAuthEmpty)
     {
-        if (!ctap2_user_presence_test(CTAP2_UP_DELAY_MS))
-        {
-                return CTAP2_ERR_OPERATION_DENIED;
-        }
+        check_retr( ctap2_user_presence_test(CTAP2_UP_DELAY_MS) );
         return ctap_is_pin_set() == 1 ? CTAP2_ERR_PIN_AUTH_INVALID : CTAP2_ERR_PIN_NOT_SET;
     }
     if (GA.pinAuthPresent)
@@ -1656,13 +1654,10 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             break;
         case CTAP_RESET:
             printf1(TAG_CTAP,"CTAP_RESET\n");
-            if (ctap2_user_presence_test(CTAP2_UP_DELAY_MS))
+            status = ctap2_user_presence_test(CTAP2_UP_DELAY_MS);
+            if (status == CTAP1_ERR_SUCCESS)
             {
                 ctap_reset();
-            }
-            else
-            {
-                status = CTAP2_ERR_OPERATION_DENIED;
             }
             break;
         case GET_NEXT_ASSERTION:
@@ -1685,7 +1680,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             break;
         default:
             status = CTAP1_ERR_INVALID_COMMAND;
-            printf2(TAG_ERR,"error, invalid cmd: %x\n", cmd);
+            printf2(TAG_ERR,"error, invalid cmd: 0x%02x\n", cmd);
     }
 
 done:

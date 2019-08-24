@@ -55,10 +55,42 @@ static int is_physical_button_pressed()
 
 static int is_touch_button_pressed()
 {
-    return tsc_read_button(0) || tsc_read_button(1);
+    int is_pressed = (tsc_read_button(0) || tsc_read_button(1));
+#ifndef IS_BOOTLOADER
+    if (is_pressed)
+    {
+        // delay for debounce, and longer than polling timer period.
+        delay(95);
+        return (tsc_read_button(0) || tsc_read_button(1));
+    }
+#endif
+    return is_pressed;
 }
 
 int (*IS_BUTTON_PRESSED)() = is_physical_button_pressed;
+
+static void edge_detect_touch_button()
+{
+    static uint8_t last_touch = 0;
+    uint8_t current_touch = 0;
+    if (is_touch_button_pressed == IS_BUTTON_PRESSED)
+    {
+        current_touch = (tsc_read_button(0) || tsc_read_button(1));
+
+        // 1 sample per 25 ms
+        if ((millis() - __last_button_bounce_time) > 25)
+        {
+            // Detect "touch / rising edge"
+            if (!last_touch && current_touch)
+            {
+                __last_button_press_time = millis();
+            }
+            __last_button_bounce_time = millis();
+            last_touch = current_touch;
+        }
+    }
+
+}
 
 void request_from_nfc(bool request_active) {
     _RequestComeFromNFC = request_active;
@@ -78,19 +110,7 @@ void TIM6_DAC_IRQHandler()
         }
     }
 
-
-    if (is_touch_button_pressed == IS_BUTTON_PRESSED)
-    {
-        if (IS_BUTTON_PRESSED())
-        {
-            // Only allow 1 press per 25 ms.
-            if ((millis() - __last_button_bounce_time) > 25)
-            {
-                __last_button_press_time = millis();
-            }
-            __last_button_bounce_time = millis();
-        }
-    }
+    edge_detect_touch_button();
 
 #ifndef IS_BOOTLOADER
 	// NFC sending WTX if needs
@@ -142,7 +162,6 @@ void device_set_status(uint32_t status)
 
 int device_is_button_pressed()
 {
-
     return IS_BUTTON_PRESSED();
 }
 
