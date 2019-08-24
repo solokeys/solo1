@@ -54,13 +54,17 @@ struct flash_memory_st{
   uint8_t bootloader[APPLICATION_START_PAGE*2*1024];
   uint8_t application[(APPLICATION_END_PAGE-APPLICATION_START_PAGE)*2*1024-16];
   uint8_t app_version[8];
-  uint8_t auth_word[8];
-  uint8_t bootloader_data[2*1024];
+  uint8_t auth_word[4];
+  uint8_t bootloader_disabled[4];
+  // place for more user data
+  uint8_t _reserved_application_end_mark[8];
+  uint8_t bootloader_data[2*1024-8];
   uint8_t user_data[38*1024];
 } __attribute__((packed));
 
 typedef struct flash_memory_st flash_memory_st;
 
+#include <assert.h>
 static_assert(sizeof(flash_memory_st) == 256*1024, "Data structure doesn't match flash size");
 
 
