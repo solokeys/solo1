@@ -106,26 +106,26 @@ int is_bootloader_disabled()
     uint32_t * auth = (uint32_t *)(AUTH_WORD_ADDR+4);
     return *auth == 0;
 }
-uint8_t * last_addr;
+uint8_t * last_written_app_address;
 
 #include "version.h"
 bool is_firmware_version_newer_or_equal()
 {
 
-    printf1(TAG_BOOT, "Dump last 8 bytes: %p\r\n", last_addr);
-    dump_hex1(TAG_BOOT, last_addr, 8);
+    printf1(TAG_BOOT, "Dump last 8 bytes: %p\r\n", last_written_app_address);
+    dump_hex1(TAG_BOOT, last_written_app_address, 8);
 
     printf1(TAG_BOOT,"Current firmware version: %u.%u.%u.%u (%02x.%02x.%02x.%02x)\r\n",
           current_firmware_version.major, current_firmware_version.minor, current_firmware_version.patch, current_firmware_version.reserved,
           current_firmware_version.major, current_firmware_version.minor, current_firmware_version.patch, current_firmware_version.reserved
           );
   dump_hex1(TAG_BOOT, (uint8_t*)(&current_firmware_version) - 16, 32);
-  volatile version_t * new_version = ((volatile version_t *) last_addr);
+  volatile version_t * new_version = ((volatile version_t *) last_written_app_address);
   printf1(TAG_BOOT,"Uploaded firmware version: %u.%u.%u.%u (%02x.%02x.%02x.%02x)\r\n",
           new_version->major, new_version->minor, new_version->patch, new_version->reserved,
           new_version->major, new_version->minor, new_version->patch, new_version->reserved
           );
-  dump_hex1(TAG_BOOT, (uint8_t *) last_addr, 8);
+  dump_hex1(TAG_BOOT, (uint8_t *) last_written_app_address, 8);
   dump_hex1(TAG_BOOT, (uint8_t *) NEW_FW_VERSION_ADDR, 8);
   dump_hex1(TAG_BOOT, (uint8_t *) NEW_FW_VERSION_ADDR+8, 8);
 
@@ -138,7 +138,7 @@ bool is_firmware_version_newer_or_equal()
     printf1(TAG_BOOT,"NEW_FW_VERSION_ADDR: %p\r\n", NEW_FW_VERSION_ADDR);
     printf1(TAG_BOOT,"NEW_FW_VERSION_ADDR: %p\r\n", ptr->app_version );
     printf1(TAG_BOOT,"NEW_FW_VERSION_ADDR: %p\r\n", new_version );
-    printf1(TAG_BOOT,"NEW_FW_VERSION_ADDR last_addr: %p\r\n", last_addr );
+    printf1(TAG_BOOT,"NEW_FW_VERSION_ADDR last_written_app_address: %p\r\n", last_written_app_address );
     printf1(TAG_BOOT,"current firm add: %p\r\n", &current_firmware_version );
     printf1(TAG_BOOT," ptr->bootloader_data ");
     dump_hex1(TAG_BOOT, (uint8_t *) ptr->bootloader_data, 8);
@@ -220,7 +220,7 @@ int bootloader_bridge(int klen, uint8_t * keyh)
             }
             // Do the actual write
             flash_write((uint32_t)ptr,req->payload, len);
-            last_addr = (uint8_t *)ptr + len - 8 + 4;
+            last_written_app_address = (uint8_t *)ptr + len - 8 + 4;
             break;
         case BootDone:
             // Writing to flash finished. Request code validation.
