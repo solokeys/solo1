@@ -1712,8 +1712,14 @@ static void ctap_state_init()
     ctap_reset_rk();
 }
 
+#include "version.h"
 void ctap_init()
 {
+    printf1(TAG_ERR,"Current firmware version address: %p\r\n", &firmware_version);
+    printf1(TAG_ERR,"Current firmware version: %d.%d.%d.%d (%02x.%02x.%02x.%02x)\r\n",
+            firmware_version.major, firmware_version.minor, firmware_version.patch, firmware_version.reserved,
+            firmware_version.major, firmware_version.minor, firmware_version.patch, firmware_version.reserved
+            );
     crypto_ecc256_init();
 
     authenticator_read_state(&STATE);

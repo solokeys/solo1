@@ -112,7 +112,20 @@ uint8_t * last_addr;
 bool is_firmware_version_newer_or_equal()
 {
 
+    printf1(TAG_BOOT, "Dump last 8 bytes: %p\r\n", last_addr);
+    dump_hex1(TAG_BOOT, last_addr, 8);
+
+    printf1(TAG_BOOT,"Current firmware version: %u.%u.%u.%u (%02x.%02x.%02x.%02x)\r\n",
+          current_firmware_version.major, current_firmware_version.minor, current_firmware_version.patch, current_firmware_version.reserved,
+          current_firmware_version.major, current_firmware_version.minor, current_firmware_version.patch, current_firmware_version.reserved
+          );
+  dump_hex1(TAG_BOOT, (uint8_t*)(&current_firmware_version) - 16, 32);
   volatile version_t * new_version = ((volatile version_t *) last_addr);
+  printf1(TAG_BOOT,"Uploaded firmware version: %u.%u.%u.%u (%02x.%02x.%02x.%02x)\r\n",
+          new_version->major, new_version->minor, new_version->patch, new_version->reserved,
+          new_version->major, new_version->minor, new_version->patch, new_version->reserved
+          );
+  dump_hex1(TAG_BOOT, (uint8_t *) last_addr, 8);
   dump_hex1(TAG_BOOT, (uint8_t *) NEW_FW_VERSION_ADDR, 8);
   dump_hex1(TAG_BOOT, (uint8_t *) NEW_FW_VERSION_ADDR+8, 8);
 
