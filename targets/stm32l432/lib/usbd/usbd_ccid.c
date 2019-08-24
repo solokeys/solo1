@@ -226,8 +226,8 @@ uint8_t  USBD_CCID_TransmitPacket(uint8_t * msg, int len)
     USBD_LL_Transmit(&Solo_USBD_Device, CCID_IN_EP, msg,
                    len);
 
-    printf1(TAG_GREEN,"ccid<< ");
-    dump_hex1(TAG_GREEN, msg, len);
+    printf1(TAG_CCID,"<< ");
+    dump_hex1(TAG_CCID, msg, len);
 
     return USBD_OK;
 }
@@ -295,8 +295,8 @@ uint8_t usb_ccid_recieve_callback(USBD_HandleTypeDef *pdev, uint8_t epnum)
     /* Get the received data length */
     hcdc->RxLength = USBD_LL_GetRxDataSize (pdev, epnum);
 
-    printf1(TAG_GREEN, "ccid>> ");
-    dump_hex1(TAG_GREEN, ccidmsg_buf, hcdc->RxLength);
+    printf1(TAG_CCID, ">> ");
+    dump_hex1(TAG_CCID, ccidmsg_buf, hcdc->RxLength);
 
     handle_ccid(ccidmsg_buf, hcdc->RxLength);
 
