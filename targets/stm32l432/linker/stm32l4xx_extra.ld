@@ -13,30 +13,22 @@ _estack = 0x2000c000;
 _MIN_STACK_SIZE = 0x400;
 
 /*
-    Memory layout of device:
-        20+2 KB            198KB-2KB -8            38 KB
-    | bootloader |          application      |  secrets/data |
-            ----------->
-len  |   32 KB/16p|      184KB-8-8/98p   |     8B              |        2kB/1p         |      38 KB/19p  |
-pos  |   0->32 KB |     32->216KB-8-8    | 216KB-8-8->216KB-8  |   216kB -> 218 kB     |   218->256 KB   |
-posp |    0-16    |      16-113          |     113-113         |        113-114        |       113-128   |
-desc | bootloader |       application    | firmware version    | bootloader data       |  secrets/data   |
+len  |   32 KB/16p|      184KB-8-8/98p   |        2kB/1p         |      38 KB/19p  |
+pos  |   0->32 KB |     32->216KB-8-8    |   216kB -> 218 kB     |   218->256 KB   |
+posp |    0-16    |      16-113          |        113-114        |       113-128   |
+desc | bootloader |       application    | bootloader data       |  secrets/data   |
 
     Last 8 bytes in application space are occupied by bootloader flags - app
     authorization and bootloader activation flag.
     Previous 8 bytes are application version.
  */
 
-/* Current firmware version number
-Should be equal to (APPLICATION_END_ADDR-8) from targets/stm32l432/src/memory_layout.h:40 */
-_version_start = 0x08000000 + 216*1024-8-8;
-
+/* Current firmware version number is stored at the very end of the firmware code */
 /* flash length is (APPLICATION_END_PAGE-20*1024), where 20K is bootloader */
 
 MEMORY
 {
-    flash (rx)      : ORIGIN = 0x08000000 + 20K + 12K, LENGTH = 216K - 20K - 12K - 8 - 8
-    flash_v (rx)    : ORIGIN = 0x08000000 + 216K - 8 - 8, LENGTH = 8
+    flash (rx)      : ORIGIN = 0x08000000 + 20K + 12K, LENGTH = 216K - 20K - 12K - 8
     ram (xrw)       : ORIGIN = 0x20000000, LENGTH = 48K
     sram2 (rw)      : ORIGIN = 0x10000000, LENGTH = 16K
 }
@@ -63,13 +55,6 @@ SECTIONS
 
     _sidata = LOADADDR(.data);
 
-
-    .flag _version_start :
-    {
-      KEEP(*(.flag)) ;
-    } > flash_v
-
-
     .data :
     {
         . = ALIGN(8);
@@ -78,6 +63,12 @@ SECTIONS
         . = ALIGN(8);
         _edata = .;
     } >ram AT> flash
+
+    .flag :
+    {
+        . = ALIGN(8);
+      KEEP(*(.flag)) ;
+    } > flash
 
     .bss :
     {

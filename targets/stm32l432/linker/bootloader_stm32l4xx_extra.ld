@@ -17,7 +17,7 @@ flash2 is for storing bootloader data, like last used firmware version.
 _bconfig_start should be equal to (APPLICATION_END_PAGE) page address, from targets/stm32l432/src/memory_layout.h:30; and equal to flash2 origin
 */
 
-_bconfig_start = 0x08000000 + 216*1024;
+_bconfig_start = 0x08000000 + 216*1024+8;
 
 MEMORY
 {
