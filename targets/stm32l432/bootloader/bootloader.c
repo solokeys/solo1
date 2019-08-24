@@ -112,32 +112,15 @@ uint8_t * last_written_app_address;
 bool is_firmware_version_newer_or_equal()
 {
 
-    printf1(TAG_BOOT, "Dump last 8 bytes: %p\r\n", last_written_app_address);
-    dump_hex1(TAG_BOOT, last_written_app_address, 8);
-
     printf1(TAG_BOOT,"Current firmware version: %u.%u.%u.%u (%02x.%02x.%02x.%02x)\r\n",
           current_firmware_version.major, current_firmware_version.minor, current_firmware_version.patch, current_firmware_version.reserved,
           current_firmware_version.major, current_firmware_version.minor, current_firmware_version.patch, current_firmware_version.reserved
           );
-  dump_hex1(TAG_BOOT, (uint8_t*)(&current_firmware_version) - 16, 32);
   volatile version_t * new_version = ((volatile version_t *) last_written_app_address);
   printf1(TAG_BOOT,"Uploaded firmware version: %u.%u.%u.%u (%02x.%02x.%02x.%02x)\r\n",
           new_version->major, new_version->minor, new_version->patch, new_version->reserved,
           new_version->major, new_version->minor, new_version->patch, new_version->reserved
           );
-  dump_hex1(TAG_BOOT, (uint8_t *) last_written_app_address, 8);
-
-  printf1(TAG_BOOT,"APPLICATION_END_ADDR: %p\r\n", APPLICATION_END_ADDR);
-  printf1(TAG_BOOT,"BOOT_VERSION_ADDR: %p\r\n", BOOT_VERSION_ADDR);
-  printf1(TAG_BOOT,"BOOT_VERSION_PAGE: %d\r\n", BOOT_VERSION_PAGE);
-
-    flash_memory_st * ptr = 0x08000000;
-    printf1(TAG_BOOT,"AUTH_WORD_ADDR: %p\r\n", AUTH_WORD_ADDR);
-    printf1(TAG_BOOT,"NEW_FW_VERSION_ADDR: %p\r\n", new_version );
-    printf1(TAG_BOOT,"NEW_FW_VERSION_ADDR last_written_app_address: %p\r\n", last_written_app_address );
-    printf1(TAG_BOOT,"current firm add: %p\r\n", &current_firmware_version );
-    printf1(TAG_BOOT," ptr->bootloader_data ");
-    dump_hex1(TAG_BOOT, (uint8_t *) ptr->bootloader_data, 8);
 
     const bool allowed = is_newer(new_version, &current_firmware_version) || current_firmware_version.raw == 0xFFFFFFFF;
   if (allowed){
@@ -198,7 +181,6 @@ int bootloader_bridge(int klen, uint8_t * keyh)
                 || ((uint32_t)ptr+len) > APPLICATION_END_ADDR)
             {
                 printf1(TAG_BOOT,"Bound exceeded [%08lx, %08lx]\r\n",APPLICATION_START_ADDR,APPLICATION_END_ADDR);
-                printf1(TAG_BOOT, "Expected version addrs: %p, %p\r\n", BOOT_VERSION_ADDR, NEW_FW_VERSION_ADDR);
                 return CTAP2_ERR_NOT_ALLOWED;
             }
 
@@ -245,7 +227,6 @@ int bootloader_bridge(int klen, uint8_t * keyh)
 #endif
             if (!is_firmware_version_newer_or_equal()){
               printf1(TAG_BOOT, "Firmware older - update not allowed.\r\n");
-              dump_hex1(TAG_BOOT, (uint32_t *) NEW_FW_VERSION_ADDR, 20);
               printf1(TAG_BOOT, "Rebooting...\r\n");
               REBOOT_FLAG = 1;
               return CTAP2_ERR_OPERATION_DENIED;
