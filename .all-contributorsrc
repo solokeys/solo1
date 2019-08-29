@@ -178,6 +178,15 @@
         "business",
         "ideas"
       ]
+    },
+    {
+      "login": "oplik0",
+      "name": "Jakub",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/25460763?v=4",
+      "profile": "https://github.com/oplik0",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
