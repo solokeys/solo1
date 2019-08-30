@@ -228,6 +228,8 @@ void nfc_write_response_chaining_plain(uint8_t req0, uint8_t * data, int len)
 	{
 		uint8_t res[32] = {0};
         res[0] = iBlock;
+        res[1] = 0;
+        res[2] = 0;
 		if (len && data)
 			memcpy(&res[block_offset], data, len);
 		nfc_write_frame(res, len + block_offset);
@@ -268,6 +270,19 @@ void nfc_write_response_chaining_plain(uint8_t req0, uint8_t * data, int len)
 					printf1(TAG_NFC, "R block RX timeout %d/%d.\r\n",sendlen,len);
 					break;
 				}
+                
+                if (!IS_RBLOCK(recbuf[0]))
+                {
+					printf1(TAG_NFC, "R block RX error. Not a R block(0x%02x) %d/%d.\r\n", recbuf[0], sendlen, len);
+					break;
+				}
+                
+                // NAK check
+                if (recbuf[0] & NFC_CMD_RBLOCK_ACK)
+                {
+					printf1(TAG_NFC, "R block RX error. NAK received. %d/%d.\r\n", recbuf[0], sendlen, len);
+					break;
+                }
 
                 uint8_t rblock_offset = p14443_block_offset(recbuf[0]);
 				if (reclen != rblock_offset)
@@ -466,7 +481,8 @@ void rblock_acknowledge(uint8_t req0, bool ack)
     NFC_STATE.block_num = !NFC_STATE.block_num;
 
     buf[0] = NFC_CMD_RBLOCK | (req0 & 0x0f);
-    if (ack)
+    // iso14443-4:2001 page 16. ACK, if bit is set to 0, NAK, if bit is set to 1
+    if (!ack)
         buf[0] |= NFC_CMD_RBLOCK_ACK;
 
     nfc_write_frame(buf, block_offset);
