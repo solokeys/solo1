@@ -9,7 +9,7 @@
 
 #include "apdu.h"
 
-int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu) 
+uint16_t apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu) 
 {
     EXT_APDU_HEADER *hapdu = (EXT_APDU_HEADER *)data;
     
@@ -62,6 +62,11 @@ int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu)
     if (len >= 7 && b0 == 0)
     {
         uint16_t extlen = (hapdu->lc[1] << 8) + hapdu->lc[2];
+
+        if (len - 7 < extlen)
+        {
+            return SW_WRONG_LENGTH;
+        }
         
          // case 2E (Le) - extended
         if (len == 7)
@@ -103,9 +108,18 @@ int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu)
             apdu->le = 0x10000;
         }
     }
+    else
+    {
+        if ((len > 5) && (len - 5 < hapdu->lc[0]))
+        {
+            return SW_WRONG_LENGTH;
+        }
+    }
     
     if (!apdu->case_type)
-        return 1;
+    {
+        return SW_COND_USE_NOT_SATISFIED;
+    }
     
     if (apdu->lc)
     {
