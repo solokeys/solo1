@@ -36,7 +36,7 @@ typedef struct
     uint8_t case_type;
 } __attribute__((packed)) APDU_STRUCT;
 
-extern int apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu);
+extern uint16_t apdu_decode(uint8_t *data, size_t len, APDU_STRUCT *apdu);
 
 #define APDU_FIDO_U2F_REGISTER        0x01
 #define APDU_FIDO_U2F_AUTHENTICATE    0x02

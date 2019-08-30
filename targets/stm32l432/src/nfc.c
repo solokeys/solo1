@@ -784,9 +784,10 @@ void nfc_process_iblock(uint8_t * buf, int len)
     }
     
     APDU_STRUCT apdu;
-    if (apdu_decode(buf + block_offset, len - block_offset, &apdu)) {
+    uint16_t ret = apdu_decode(buf + block_offset, len - block_offset, &apdu);
+    if (ret != 0) {
         printf1(TAG_NFC,"apdu decode error\r\n");
-        nfc_write_response(buf[0], SW_COND_USE_NOT_SATISFIED);
+        nfc_write_response(buf[0], ret);
         return;
     }
     printf1(TAG_NFC,"apdu ok. %scase=%02x cla=%02x ins=%02x p1=%02x p2=%02x lc=%d le=%d\r\n", 
