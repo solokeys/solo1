@@ -31,9 +31,17 @@ struct ResidentKeyStore {
     CTAP_residentKey rks[RK_NUM];
 } RK_STORE;
 
+
+// Function Declartion to Avoid Implicit Redeclarations
+void counter_read_state(uint32_t *cnt); 
+void counter_write_state(uint32_t *cnt); 
 void authenticator_initialize();
 
+// Global Variables
 uint32_t __device_status = 0;
+uint32_t counter1 = 0 ;
+uint32_t* cptr;
+
 void device_set_status(uint32_t status)
 {
     if (status != CTAPHID_STATUS_IDLE && __device_status != status)
@@ -229,6 +237,7 @@ void usage(const char * cmd)
 void device_init(int argc, char *argv[])
 {
 
+    cptr = &counter1; // Global uint32_t counter 
     int opt;
 
     while ((opt = getopt(argc, argv, "b:")) != -1)
@@ -310,16 +319,18 @@ int ctap_user_verification(uint8_t arg)
 
 uint32_t ctap_atomic_count(int sel)
 {
-    static uint32_t counter1 = 25;
-    /*return 713;*/
+    // Replaced with global counter1 -- read from file
+    // static uint32_t counter1 = 25; -- this will cause failures when executable is re-invoked
     if (sel == 0)
     {
         printf1(TAG_RED,"counter1: %d\n", counter1);
-        return counter1++;
+	counter1++; // increment global counter
+	counter_write_state(cptr); // write state of global counter
+	return counter1;
     }
     else
     {
-        printf2(TAG_ERR,"counter2 not imple\n");
+        printf2(TAG_ERR,"counter2 not implemented\n");
         exit(1);
     }
 }
@@ -347,6 +358,40 @@ int ctap_generate_rng(uint8_t * dst, size_t num)
 const char * state_file = "authenticator_state.bin";
 const char * backup_file = "authenticator_state2.bin";
 const char * rk_file = "resident_keys.bin";
+// Added Authenticator Global Count -- 32bit unsigned value
+const char * counter_file = "auth_cntr.bin";
+
+// -------------------------------------------------------------------------------
+// Read State of "global" key counter -- always increment after every auth/registration
+// -------------------------------------------------------------------------------
+void counter_read_state(uint32_t *cnt) {
+        FILE * f;
+        f = fopen(counter_file,"rb");
+        if ( f == NULL ) {
+                perror("fopen -- authenticator count file does not exist - creating default with 0x00000000");
+		counter1 = 0;
+		cptr = &counter1;
+		counter_write_state(cptr);
+		exit(-1);
+	}
+        fread(cnt,1,sizeof(uint32_t),f);
+        printf ("DEBUG: Read Authenticator Count %u \n",*cnt); // u for unsigned int, or will get false negative values
+	fclose(f);
+}
+
+// -------------------------------------------------------------------------------
+// Write State of "global" key counter -- always increment after every auth/registration
+// -------------------------------------------------------------------------------
+void counter_write_state(uint32_t *cnt) {
+        FILE * f;
+	printf ("DEBUG: Writing State of Counter : %u\n",*cnt);
+        f = fopen(counter_file,"wb+");
+        if ( f == NULL ) {
+                perror("fopen");
+        }
+        fwrite(cnt,1,sizeof(uint32_t),f);
+	fclose(f);
+}
 
 void authenticator_read_state(AuthenticatorState * state)
 {
@@ -490,6 +535,9 @@ void authenticator_initialize()
     FILE * f;
     int ret;
     uint8_t * mem;
+
+    counter_read_state(cptr);
+
     if (access(state_file, F_OK) != -1)
     {
         printf("state file exists\n");
