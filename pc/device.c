@@ -32,7 +32,6 @@ struct ResidentKeyStore {
 } RK_STORE;
 
 
-// Function Declartion to Avoid Implicit Redeclarations
 void counter_read_state(uint32_t *cnt); 
 void counter_write_state(uint32_t *cnt); 
 void authenticator_initialize();
@@ -319,14 +318,12 @@ int ctap_user_verification(uint8_t arg)
 
 uint32_t ctap_atomic_count(int sel)
 {
-    // Replaced with global counter1 -- read from file
-    // static uint32_t counter1 = 25; -- this will cause failures when executable is re-invoked
     if (sel == 0)
     {
         printf1(TAG_RED,"counter1: %d\n", counter1);
-	counter1++; // increment global counter
-	counter_write_state(cptr); // write state of global counter
-	return counter1;
+	    counter1++; 
+	    counter_write_state(cptr); // write state of global counter
+	    return counter1;
     }
     else
     {
@@ -369,10 +366,7 @@ void counter_read_state(uint32_t *cnt) {
         f = fopen(counter_file,"rb");
         if ( f == NULL ) {
                 perror("fopen -- authenticator count file does not exist - creating default with 0x00000000");
-		counter1 = 0;
-		cptr = &counter1;
-		counter_write_state(cptr);
-		exit(-1);
+		        exit(-1);
 	}
         fread(cnt,1,sizeof(uint32_t),f);
         printf ("DEBUG: Read Authenticator Count %u \n",*cnt); // u for unsigned int, or will get false negative values
