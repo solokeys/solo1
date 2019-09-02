@@ -95,7 +95,7 @@ int8_t wallet_pin(uint8_t subcmd, uint8_t * pinAuth, uint8_t * arg1, uint8_t * a
             if (ret != 0)
                 return ret;
 
-            printf1(TAG_WALLET,"Success.  Pin = %s\n", STATE.pin_code);
+//            printf1(TAG_WALLET,"Success.  Pin = %s\n", STATE.pin_code);
 
             break;
         case CP_cmdChangePin:
