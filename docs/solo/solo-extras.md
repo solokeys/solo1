@@ -12,7 +12,7 @@ You can easily access the TRNG stream on Solo using our python tool [`solo-pytho
 solo key rng raw > random.bin
 ```
 
-Or you can seed the state of the RNG on your kernel (/dev/random).
+Or you can seed the state of the RNG on your kernel (`/dev/random`).
 
 ```
 solo key rng feedkernel
