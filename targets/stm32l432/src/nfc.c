@@ -18,6 +18,18 @@
 static uint8_t chain_buffer[2048] = {0};
 static size_t chain_buffer_len = 0;
 static bool chain_buffer_tx = false;
+static uint8_t current_cid = 0;
+
+// forward declarations
+void rblock_acknowledge(uint8_t req0, bool ack);
+
+uint8_t p14443_have_cid(uint8_t pcb) {
+    // CID 
+    if (pcb & 0x08)
+        return true;
+    else
+        return false;
+}
 
 uint8_t p14443_block_offset(uint8_t pcb) {
     uint8_t offset = 1;
@@ -191,7 +203,7 @@ bool nfc_write_response_ex(uint8_t req0, uint8_t * data, uint8_t len, uint16_t r
 		return false;
 
 	res[0] = NFC_CMD_IBLOCK | (req0 & 0x0f);
-    res[1] = 0;
+    res[1] = current_cid;
     res[2] = 0;
 
     uint8_t block_offset = p14443_block_offset(req0);
@@ -228,7 +240,7 @@ void nfc_write_response_chaining_plain(uint8_t req0, uint8_t * data, int len)
 	{
 		uint8_t res[32] = {0};
         res[0] = iBlock;
-        res[1] = 0;
+        res[1] = current_cid;
         res[2] = 0;
 		if (len && data)
 			memcpy(&res[block_offset], data, len);
@@ -239,7 +251,7 @@ void nfc_write_response_chaining_plain(uint8_t req0, uint8_t * data, int len)
 			// transmit I block
 			int vlen = MIN(32 - block_offset, len - sendlen);
             res[0] = iBlock;
-            res[1] = 0;
+            res[1] = current_cid;
             res[2] = 0;
 			memcpy(&res[block_offset], &data[sendlen], vlen);
 
@@ -280,6 +292,7 @@ void nfc_write_response_chaining_plain(uint8_t req0, uint8_t * data, int len)
                 // NAK check
                 if (recbuf[0] & NFC_CMD_RBLOCK_ACK)
                 {
+                    rblock_acknowledge(recbuf[0], true);
 					printf1(TAG_NFC, "R block RX error. NAK received. %d/%d.\r\n", recbuf[0], sendlen, len);
 					break;
                 }
@@ -481,6 +494,7 @@ void rblock_acknowledge(uint8_t req0, bool ack)
     NFC_STATE.block_num = !NFC_STATE.block_num;
 
     buf[0] = NFC_CMD_RBLOCK | (req0 & 0x0f);
+    buf[1] = current_cid;
     // iso14443-4:2001 page 16. ACK, if bit is set to 0, NAK, if bit is set to 1
     if (!ack)
         buf[0] |= NFC_CMD_RBLOCK_ACK;
@@ -868,6 +882,8 @@ void nfc_process_block(uint8_t * buf, unsigned int len)
     else if (IS_IBLOCK(buf[0]))
     {
         uint8_t block_offset = p14443_block_offset(buf[0]);
+        if (p14443_have_cid(buf[0])) 
+            current_cid = buf[1];
 		if (buf[0] & 0x10)
 		{
 			printf1(TAG_NFC_APDU, "NFC_CMD_IBLOCK chaining blen=%d len=%d offs=%d\r\n", ibuflen, len, block_offset);
@@ -918,7 +934,9 @@ void nfc_process_block(uint8_t * buf, unsigned int len)
     }
     else if (IS_RBLOCK(buf[0]))
     {
-        rblock_acknowledge(buf[0], false);
+        if (p14443_have_cid(buf[0])) 
+            current_cid = buf[1];
+        rblock_acknowledge(buf[0], true);
         printf1(TAG_NFC, "NFC_CMD_RBLOCK\r\n");
     }
     else if (IS_SBLOCK(buf[0]))
@@ -927,7 +945,10 @@ void nfc_process_block(uint8_t * buf, unsigned int len)
         if ((buf[0] & NFC_SBLOCK_DESELECT) == 0)
         {
             printf1(TAG_NFC, "NFC_CMD_SBLOCK, DESELECTED\r\n");
-            nfc_write_frame(buf, 1);
+            uint8_t block_offset = p14443_block_offset(buf[0]);
+            if (p14443_have_cid(buf[0])) 
+                current_cid = buf[1];
+            nfc_write_frame(buf, block_offset);
             ams_wait_for_tx(2);
             ams_write_command(AMS_CMD_SLEEP);
             nfc_state_init();
