@@ -168,6 +168,25 @@
         "infra",
         "tool"
       ]
+    },
+    {
+      "login": "kimusan",
+      "name": "Kim Schulz",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/1150049?v=4",
+      "profile": "http://www.schulz.dk",
+      "contributions": [
+        "business",
+        "ideas"
+      ]
+    },
+    {
+      "login": "oplik0",
+      "name": "Jakub",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/25460763?v=4",
+      "profile": "https://github.com/oplik0",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,

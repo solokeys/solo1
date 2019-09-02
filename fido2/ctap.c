@@ -256,7 +256,9 @@ static int ctap_generate_cose_key(CborEncoder * cose_key, uint8_t * hmac_input, 
     switch(algtype)
     {
         case COSE_ALG_ES256:
+            if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
             crypto_ecc256_derive_public_key(hmac_input, len, x, y);
+            if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
             break;
         default:
             printf2(TAG_ERR,"Error, COSE alg %d not supported\n", algtype);
@@ -435,7 +437,19 @@ static unsigned int get_credential_id_size(CTAP_credentialDescriptor * cred)
 static int ctap2_user_presence_test()
 {
     device_set_status(CTAPHID_STATUS_UPNEEDED);
-    return ctap_user_presence_test(CTAP2_UP_DELAY_MS);
+    int ret = ctap_user_presence_test(CTAP2_UP_DELAY_MS);
+    if ( ret > 0 )
+    {
+        return CTAP1_ERR_SUCCESS;
+    }
+    else if (ret < 0)
+    {
+        return CTAP2_ERR_KEEPALIVE_CANCEL;
+    }
+    else
+    {
+        return CTAP2_ERR_ACTION_TIMEOUT;
+    }
 }
 
 static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, uint32_t * len, CTAP_credInfo * credInfo)
@@ -468,19 +482,11 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     int but;
 
     but = ctap2_user_presence_test(CTAP2_UP_DELAY_MS);
-
-    if (!but)
-    {
-        return CTAP2_ERR_OPERATION_DENIED;
-    }
-    else if (but < 0)   // Cancel
-    {
-        return CTAP2_ERR_KEEPALIVE_CANCEL;
-    }
+    check_retr(but);
     
     device_set_status(CTAPHID_STATUS_PROCESSING);
 
-    authData->head.flags = (but << 0);
+    authData->head.flags = (1 << 0);        // User presence
     authData->head.flags |= (ctap_is_pin_set() << 2);
 
 
@@ -705,10 +711,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     }
     if (MC.pinAuthEmpty)
     {
-        if (!ctap2_user_presence_test(CTAP2_UP_DELAY_MS))
-        {
-                return CTAP2_ERR_OPERATION_DENIED;
-        }
+        check_retr( ctap2_user_presence_test(CTAP2_UP_DELAY_MS) );
         return ctap_is_pin_set() == 1 ? CTAP2_ERR_PIN_AUTH_INVALID : CTAP2_ERR_PIN_NOT_SET;
     }
     if ((MC.paramsParsed & MC_requiredMask) != MC_requiredMask)
@@ -1141,10 +1144,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
     if (GA.pinAuthEmpty)
     {
-        if (!ctap2_user_presence_test(CTAP2_UP_DELAY_MS))
-        {
-                return CTAP2_ERR_OPERATION_DENIED;
-        }
+        check_retr( ctap2_user_presence_test(CTAP2_UP_DELAY_MS) );
         return ctap_is_pin_set() == 1 ? CTAP2_ERR_PIN_AUTH_INVALID : CTAP2_ERR_PIN_NOT_SET;
     }
     if (GA.pinAuthPresent)
@@ -1497,6 +1497,11 @@ uint8_t ctap_client_pin(CborEncoder * encoder, uint8_t * request, int length)
 
             ret = cbor_encode_int(&map, RESP_keyAgreement);
             check_ret(ret);
+
+            if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
+            crypto_ecc256_compute_public_key(KEY_AGREEMENT_PRIV, KEY_AGREEMENT_PUB);
+            if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
+
             ret = ctap_add_cose_key(&map, KEY_AGREEMENT_PUB, KEY_AGREEMENT_PUB+32, PUB_KEY_CRED_PUB_KEY, COSE_ALG_ECDH_ES_HKDF_256);
             check_retr(ret);
 
@@ -1667,13 +1672,10 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             break;
         case CTAP_RESET:
             printf1(TAG_CTAP,"CTAP_RESET\n");
-            if (ctap2_user_presence_test(CTAP2_UP_DELAY_MS))
+            status = ctap2_user_presence_test(CTAP2_UP_DELAY_MS);
+            if (status == CTAP1_ERR_SUCCESS)
             {
                 ctap_reset();
-            }
-            else
-            {
-                status = CTAP2_ERR_OPERATION_DENIED;
             }
             break;
         case GET_NEXT_ASSERTION:
@@ -1696,7 +1698,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             break;
         default:
             status = CTAP1_ERR_INVALID_COMMAND;
-            printf2(TAG_ERR,"error, invalid cmd\n");
+            printf2(TAG_ERR,"error, invalid cmd: 0x%02x\n", cmd);
     }
 
 done:
@@ -1793,10 +1795,7 @@ void ctap_init()
         exit(1);
     }
 
-    if (device_is_nfc() != NFC_IS_ACTIVE)
-    {
-        ctap_reset_key_agreement();
-    }
+    ctap_reset_key_agreement();
 
 #ifdef BRIDGE_TO_WALLET
     wallet_init();
@@ -1997,7 +1996,7 @@ int8_t ctap_load_key(uint8_t index, uint8_t * key)
 
 static void ctap_reset_key_agreement()
 {
-    crypto_ecc256_make_key_pair(KEY_AGREEMENT_PUB, KEY_AGREEMENT_PRIV);
+    ctap_generate_rng(KEY_AGREEMENT_PRIV, sizeof(KEY_AGREEMENT_PRIV));
 }
 
 void ctap_reset()

@@ -34,9 +34,9 @@ typedef struct
 #define IS_PPSS_CMD(x)                (((x) & 0xf0) == NFC_CMD_PPSS)
 #define NFC_CMD_IBLOCK                0x00
 #define IS_IBLOCK(x)                  ( (((x) & 0xc0) == NFC_CMD_IBLOCK) && (((x) & 0x02) == 0x02) )
-#define NFC_CMD_RBLOCK                0x80
-#define NFC_CMD_RBLOCK_ACK            0x20
-#define IS_RBLOCK(x)                  ( (((x) & 0xc0) == NFC_CMD_RBLOCK) && (((x) & 0x02) == 0x02) )
+#define NFC_CMD_RBLOCK                0xa0
+#define NFC_CMD_RBLOCK_ACK            0x10
+#define IS_RBLOCK(x)                  ( (((x) & 0xe0) == NFC_CMD_RBLOCK) && (((x) & 0x02) == 0x02) )
 #define NFC_CMD_SBLOCK                0xc0
 #define IS_SBLOCK(x)                  ( (((x) & 0xc0) == NFC_CMD_SBLOCK) && (((x) & 0x02) == 0x02) )
 

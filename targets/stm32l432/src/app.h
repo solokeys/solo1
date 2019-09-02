@@ -12,8 +12,12 @@
 #define DEBUG_UART      USART1
 
 #ifndef DEBUG_LEVEL
+// Enable the CDC ACM USB interface & debug logs (DEBUG_LEVEL > 0)
 #define DEBUG_LEVEL     0
 #endif
+
+// Enable the CCID USB interface
+// #define ENABLE_CCID
 
 #define NON_BLOCK_PRINTING 0
 

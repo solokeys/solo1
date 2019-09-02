@@ -43,7 +43,11 @@ void device_set_status(uint32_t status)
     __device_status = status;
 }
 
-
+void device_reboot() 
+{
+    printf1(TAG_RED, "REBOOT command recieved!\r\n");
+    exit(100);
+}
 
 int udp_server()
 {
@@ -629,5 +633,13 @@ int device_is_nfc()
     return 0;
 }
 
-void request_from_nfc(bool request_active) {
+
+void request_from_nfc(bool request_active)
+{
+  
+}
+
+void device_set_clock_rate(DEVICE_CLOCK_RATE param)
+{
+
 }

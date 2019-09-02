@@ -17,7 +17,7 @@ extern int in_endpoint_to_class[MAX_ENDPOINTS];
 
 extern int out_endpoint_to_class[MAX_ENDPOINTS];
 
-void USBD_Composite_Set_Classes(USBD_ClassTypeDef *class0, USBD_ClassTypeDef *class1);
+void USBD_Composite_Set_Classes(USBD_ClassTypeDef *class0, USBD_ClassTypeDef *class1, USBD_ClassTypeDef *class2);
 
 #ifdef __cplusplus
 }
