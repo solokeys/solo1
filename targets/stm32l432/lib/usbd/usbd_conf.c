@@ -50,6 +50,9 @@
 #include "stm32l4xx_hal.h"
 #include "usbd_core.h"
 #include "usbd_hid.h"
+#include "usbd_cdc.h"
+#include "usbd_ccid.h"
+#include "log.h"
 
 void SystemClock_Config(void);
 
@@ -117,9 +120,14 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
   USBD_LL_DataOutStage((USBD_HandleTypeDef*)hpcd->pData, epnum, hpcd->OUT_ep[epnum].xfer_buff);
   switch(epnum)
   {
-      case HID_ENDPOINT:
+      case HID_EPOUT_ADDR:
         usb_hid_recieve_callback(epnum);
       break;
+#ifdef ENABLE_CCID
+      case CCID_OUT_EP:
+        usb_ccid_recieve_callback((USBD_HandleTypeDef*)hpcd->pData, epnum);
+      break;
+#endif
   }
 }
 
@@ -218,7 +226,6 @@ void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef *hpcd)
 {
   USBD_LL_DevDisconnected((USBD_HandleTypeDef*)hpcd->pData);
 }
-
 /**
   * @brief  Initializes the low level portion of the device driver.
   * @param  pdev: Device handle
@@ -252,14 +259,20 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x80 , PCD_SNG_BUF, 0x58);
 
   // HID
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x01 , PCD_SNG_BUF, 0x98);
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x81 , PCD_SNG_BUF, 0xd8);
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , HID_EPOUT_ADDR , PCD_SNG_BUF, 0x98);
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , HID_EPIN_ADDR , PCD_SNG_BUF, 0xd8);
+
+  // CCID
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CCID_OUT_EP , PCD_SNG_BUF, 0xd8 + 64);  // data OUT
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CCID_IN_EP , PCD_SNG_BUF, 0xd8 + 64*2);  // data IN
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CCID_CMD_EP , PCD_SNG_BUF, 0xd8 + 64*3);  // commands
 
   // CDC / uart
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x02 , PCD_SNG_BUF, 0xd8 + 64);  // data OUT
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x82 , PCD_SNG_BUF, 0xd8 + 64*2);  // data IN
-  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , 0x83 , PCD_SNG_BUF, 0xd8 + 64*3);  // commands
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CDC_CMD_EP , PCD_SNG_BUF, 0xd8 + 64*4);  // commands
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CDC_OUT_EP , PCD_SNG_BUF, 0xd8 + 64*5);  // data OUT
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CDC_IN_EP , PCD_SNG_BUF, 0xd8 + 64*6);  // data IN
 
+  // dump_pma_header("usbd_conf");
 
   return USBD_OK;
 }
@@ -310,6 +323,7 @@ USBD_StatusTypeDef USBD_LL_OpenEP(USBD_HandleTypeDef *pdev,
                                   uint8_t ep_type,
                                   uint16_t ep_mps)
 {
+  // printf1(TAG_RED,"LL_Open. ep: %x, %x\r\n", ep_addr, ep_type);
   HAL_PCD_EP_Open((PCD_HandleTypeDef*) pdev->pData,
                   ep_addr,
                   ep_mps,

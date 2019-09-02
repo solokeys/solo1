@@ -28,6 +28,7 @@
 #include "usbd_desc.h"
 #include "usbd_hid.h"
 #include "usbd_cdc.h"
+#include "usbd_ccid.h"
 #include "usbd_composite.h"
 #include "usbd_cdc_if.h"
 #include "device.h"
@@ -705,26 +706,26 @@ void init_usb()
 
     // Enable USB Clock
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
-
-#if DEBUG_LEVEL > 0
-    USBD_Composite_Set_Classes(&USBD_HID, &USBD_CDC);
+#ifndef IS_BOOTLOADER
+    USBD_Composite_Set_Classes(&USBD_HID, &USBD_CCID, &USBD_CDC);
     in_endpoint_to_class[HID_EPIN_ADDR & 0x7F] = 0;
     out_endpoint_to_class[HID_EPOUT_ADDR & 0x7F] = 0;
 
-    in_endpoint_to_class[CDC_IN_EP & 0x7F] = 1;
-    out_endpoint_to_class[CDC_OUT_EP & 0x7F] = 1;
+    in_endpoint_to_class[CCID_IN_EP & 0x7F] = 1;
+    out_endpoint_to_class[CCID_OUT_EP & 0x7F] = 1;
+
+    in_endpoint_to_class[CDC_IN_EP & 0x7F] = 2;
+    out_endpoint_to_class[CDC_OUT_EP & 0x7F] = 2;
 
     USBD_Init(&Solo_USBD_Device, &Solo_Desc, 0);
     USBD_RegisterClass(&Solo_USBD_Device, &USBD_Composite);
-    // USBD_RegisterClass(&Solo_USBD_Device, &USBD_HID);
-    //
-    // USBD_RegisterClass(&Solo_USBD_Device, &USBD_CDC);
+#if DEBUG_LEVEL > 0
     USBD_CDC_RegisterInterface(&Solo_USBD_Device, &USBD_Interface_fops_FS);
+#endif
 #else
     USBD_Init(&Solo_USBD_Device, &Solo_Desc, 0);
     USBD_RegisterClass(&Solo_USBD_Device, &USBD_HID);
 #endif
-
     USBD_Start(&Solo_USBD_Device);
 }
 
