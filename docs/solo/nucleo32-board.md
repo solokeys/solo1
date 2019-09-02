@@ -85,14 +85,13 @@ brew install arm-none-eabi-gcc
 ### Install flashing software
 
 ST provides a CLI flashing tool - `STM32_Programmer_CLI`. It can be downloaded directly from the vendor's site:
-1\. Go to [download site URL](https://www.st.com/content/st_com/en/products/development-tools/software-development-tools/stm32-software-development-tools/stm32-programmers/stm32cubeprog.html),
-go to bottom page and from STM32CubeProg row select Download button.
-2\. Unzip contents of the archive.
-3\. Run \*Linux setup
-4\. In installation directory go to ./bin - there the ./STM32_Programmer_CLI is located
-5\. Add symlink to the STM32 CLI binary to .local/bin. Make sure the latter it is in $PATH.
+1. Go to [download site URL](https://www.st.com/content/st_com/en/products/development-tools/software-development-tools/stm32-software-development-tools/stm32-programmers/stm32cubeprog.html), go to bottom page and from STM32CubeProg row select Download button.
+2. Unzip contents of the archive.
+3. Run \*Linux setup
+4. In installation directory go to `./bin` - there the `./STM32_Programmer_CLI` is located
+5. Add symlink to the STM32 CLI binary to `.local/bin`. Make sure the latter it is in `$PATH`.
 
-If you're on OsX and installed the STM32CubeProg, you need to add the following to your path:
+If you're on MacOS X and installed the STM32CubeProg, you need to add the following to your path:
 
 ```bash
 # ~/.bash_profile
