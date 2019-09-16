@@ -118,9 +118,9 @@ void u2f_request_nfc(uint8_t * header, uint8_t * data, int datalen, CTAP_RESPONS
 	if (!header)
 		return;
 
-    request_from_nfc(true);  // disable presence test
+    device_disable_up(true);  // disable presence test
 	u2f_request_ex((APDU_HEADER *)header, data, datalen, resp);
-    request_from_nfc(false); // enable presence test
+    device_disable_up(false); // enable presence test
 }
 
 void u2f_request(struct u2f_request_apdu* req, CTAP_RESPONSE * resp)

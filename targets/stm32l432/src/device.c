@@ -45,7 +45,7 @@ uint32_t __last_update = 0;
 extern PCD_HandleTypeDef hpcd;
 static int _NFC_status = 0;
 static bool isLowFreq = 0;
-static bool _RequestComeFromNFC = false;
+static bool _up_disabled = false;
 
 // #define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
 static int is_physical_button_pressed()
@@ -92,8 +92,8 @@ static void edge_detect_touch_button()
 
 }
 
-void request_from_nfc(bool request_active) {
-    _RequestComeFromNFC = request_active;
+void device_disable_up(bool disable) {
+    _up_disabled = disable;
 }
 
 // Timer6 overflow handler.  happens every ~90ms.
@@ -582,9 +582,15 @@ static int wait_for_button_release(uint32_t wait)
 int ctap_user_presence_test(uint32_t up_delay)
 {
     int ret;
-    if (device_is_nfc() == NFC_IS_ACTIVE || _RequestComeFromNFC)
+
+    if (device_is_nfc() == NFC_IS_ACTIVE)
     {
         return 1;
+    }
+
+    if (_up_disabled)
+    {
+        return 2;
     }
 
 #if SKIP_BUTTON_CHECK_WITH_DELAY

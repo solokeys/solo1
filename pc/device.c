@@ -26,6 +26,7 @@
 #define RK_NUM  50
 
 bool use_udp = true;
+static bool _up_disabled = false;
 
 struct ResidentKeyStore {
     CTAP_residentKey rks[RK_NUM];
@@ -299,6 +300,10 @@ void ctaphid_write_block(uint8_t * data)
 
 int ctap_user_presence_test(uint32_t d)
 {
+    if (_up_disabled)
+    {
+        return 2;
+    }
     return 1;
 }
 
@@ -633,10 +638,9 @@ int device_is_nfc()
     return 0;
 }
 
-
-void request_from_nfc(bool request_active)
+void device_disable_up(bool disable)
 {
-  
+    _up_disabled = disable;
 }
 
 void device_set_clock_rate(DEVICE_CLOCK_RATE param)

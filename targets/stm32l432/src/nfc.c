@@ -731,10 +731,10 @@ void apdu_process(uint8_t buf0, uint8_t *apduptr, APDU_STRUCT *apdu)
 			printf1(TAG_NFC, "FIDO2 CTAP message. %d\r\n", timestamp());
 
 			// WTX_on(WTX_TIME_DEFAULT);
-            request_from_nfc(true);
+            device_disable_up(true);
             ctap_response_init(&ctap_resp);
             status = ctap_request(apdu->data, apdu->lc, &ctap_resp);
-            request_from_nfc(false);
+            device_disable_up(false);
 			// if (!WTX_off())
 			// 	return;
 

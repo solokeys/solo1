@@ -438,7 +438,11 @@ static int ctap2_user_presence_test()
 {
     device_set_status(CTAPHID_STATUS_UPNEEDED);
     int ret = ctap_user_presence_test(CTAP2_UP_DELAY_MS);
-    if ( ret > 0 )
+    if ( ret > 1 )
+    {
+        return CTAP2_ERR_PROCESSING;
+    }
+    else if ( ret > 0 )
     {
         return CTAP1_ERR_SUCCESS;
     }
@@ -482,11 +486,19 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
     int but;
 
     but = ctap2_user_presence_test(CTAP2_UP_DELAY_MS);
-    check_retr(but);
+    if (CTAP2_ERR_PROCESSING == but)
+    {
+        authData->head.flags = (0 << 0);        // User presence disabled
+    }
+    else
+    {
+        check_retr(but);
+        authData->head.flags = (1 << 0);        // User presence
+    }
+    
     
     device_set_status(CTAPHID_STATUS_PROCESSING);
 
-    authData->head.flags = (1 << 0);        // User presence
     authData->head.flags |= (ctap_is_pin_set() << 2);
 
 
@@ -1236,8 +1248,9 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     else
 #endif
     {
-
+        device_disable_up(!GA.up);
         ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &auth_data_buf_sz, NULL);
+        device_disable_up(false);
         check_retr(ret);
 
         ((CTAP_authDataHeader *)auth_data_buf)->flags &= ~(1 << 2);
