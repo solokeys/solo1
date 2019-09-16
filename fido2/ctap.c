@@ -670,7 +670,16 @@ int ctap_authenticate_credential(struct rpId * rp, CTAP_credentialDescriptor * d
     switch(desc->type)
     {
         case PUB_KEY_CRED_PUB_KEY:
-            make_auth_tag(desc->credential.id.rpIdHash, desc->credential.id.nonce, desc->credential.id.count, tag);
+            crypto_sha256_init();
+            crypto_sha256_update(rp->id, rp->size);
+            crypto_sha256_final(rpIdHash);
+
+            printf1(TAG_RED,"rpId: %s\r\n", rp->id); dump_hex1(TAG_RED,rp->id, rp->size);
+            if (memcmp(desc->credential.id.rpIdHash, rpIdHash, 32) != 0)
+            {
+                return 0;
+            }
+            make_auth_tag(rpIdHash, desc->credential.id.nonce, desc->credential.id.count, tag);
             return (memcmp(desc->credential.id.tag, tag, CREDENTIAL_TAG_SIZE) == 0);
         break;
         case PUB_KEY_CRED_CTAP1:
