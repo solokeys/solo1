@@ -729,6 +729,21 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             ctaphid_write(&wb, NULL, 0);
             is_busy = 0;
         break;
+
+        case CTAPHID_GETVERSION:
+            printf1(TAG_HID,"CTAPHID_GETVERSION\n");
+            ctap_response_init(&ctap_resp);
+            ctaphid_write_buffer_init(&wb);
+            wb.cid = cid;
+            wb.cmd = CTAPHID_GETVERSION;
+            wb.bcnt = 3;
+            ctap_buffer[0] = SOLO_VERSION_MAJ;
+            ctap_buffer[1] = SOLO_VERSION_MIN;
+            ctap_buffer[2] = SOLO_VERSION_PATCH;
+            ctaphid_write(&wb, &ctap_buffer, 3);
+            ctaphid_write(&wb, NULL, 0);
+            is_busy = 0;
+        break;
 #endif
 
         default:
