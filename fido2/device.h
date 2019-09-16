@@ -53,7 +53,7 @@ void device_set_status(uint32_t status);
 int device_is_button_pressed();
 
 // Test for user presence
-// Return 1 for user is present, 0 user not present, -1 if cancel is requested.
+// Return 2 for disabled, 1 for user is present, 0 user not present, -1 if cancel is requested.
 int ctap_user_presence_test(uint32_t delay);
 
 // Generate @num bytes of random numbers to @dest
@@ -106,7 +106,7 @@ void device_set_clock_rate(DEVICE_CLOCK_RATE param);
 #define NFC_IS_AVAILABLE 2
 int device_is_nfc();
 
-void request_from_nfc(bool request_active);
+void device_disable_up(bool request_active);
 
 void device_init_button();
 
