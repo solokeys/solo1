@@ -755,7 +755,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
         }
     }
 
-    if (MC.up)
+    if (MC.up == 1 || MC.up == 0)
     {
         return CTAP2_ERR_INVALID_OPTION;
     }
@@ -1248,7 +1248,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     else
 #endif
     {
-        device_disable_up(!GA.up);
+        device_disable_up(GA.up == 0);
         ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &auth_data_buf_sz, NULL);
         device_disable_up(false);
         check_retr(ret);
