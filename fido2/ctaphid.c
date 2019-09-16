@@ -729,6 +729,7 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             ctaphid_write(&wb, NULL, 0);
             is_busy = 0;
         break;
+#endif
 
         case CTAPHID_GETVERSION:
             printf1(TAG_HID,"CTAPHID_GETVERSION\n");
@@ -744,7 +745,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             ctaphid_write(&wb, NULL, 0);
             is_busy = 0;
         break;
-#endif
 
         default:
             printf2(TAG_ERR,"error, unimplemented HID cmd: %02x\r\n", buffer_cmd());
