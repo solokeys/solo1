@@ -18,7 +18,7 @@ Further progress is tracked in: <https://github.com/solokeys/solo/issues/144>.
 If you still need to setup a rule, a simple way to do it is:
 
 ```
-git clone git@github.com:solokeys/solo.git
+git clone https://github.com/solokeys/solo.git
 cd solo/udev
 make setup
 ```
