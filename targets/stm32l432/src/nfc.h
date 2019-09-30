@@ -6,9 +6,9 @@
 #include "apdu.h"
 
 // Return number of bytes read if any.
-int nfc_loop();
+int nfc_loop(void);
 
-int nfc_init();
+int nfc_init(void);
 
 typedef struct
 {
@@ -61,6 +61,6 @@ typedef enum
 	APP_FIDO,
 } APPLETS;
 
-void WTX_timer_exec();
+void WTX_timer_exec(void);
 
 #endif

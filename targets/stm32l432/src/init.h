@@ -22,7 +22,7 @@
 #ifndef _INIT_H_
 #define _INIT_H_
 
-void init_usb();
+void init_usb(void);
 void init_gpio(void);
 void init_debug_uart(void);
 void init_pwm(void);

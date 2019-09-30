@@ -699,7 +699,7 @@ void SystemClock_Config_LF20(void)
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
 }
 
-void init_usb()
+void init_usb(void)
 {
     // enable USB power
     SET_BIT(PWR->CR2, PWR_CR2_USV);

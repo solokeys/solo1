@@ -359,7 +359,7 @@ static uint32_t WTX_timer;
 
 bool WTX_process(int read_timeout);
 
-void WTX_clear()
+void WTX_clear(void)
 {
 	WTX_sent = false;
 	WTX_fail = false;
@@ -374,7 +374,7 @@ bool WTX_on(int WTX_time)
 	return true;
 }
 
-bool WTX_off()
+bool WTX_off(void)
 {
 	WTX_timer = 0;
 
@@ -398,7 +398,7 @@ bool WTX_off()
 	return true;
 }
 
-void WTX_timer_exec()
+void WTX_timer_exec(void)
 {
 	// condition: (timer on) or (not expired[300ms])
 	if ((WTX_timer == 0) || WTX_timer + 300 > millis())
@@ -856,7 +856,7 @@ void nfc_process_iblock(uint8_t * buf, int len)
 static uint8_t ibuf[1024];
 static int ibuflen = 0;
 
-void clear_ibuf()
+void clear_ibuf(void)
 {
 	ibuflen = 0;
 	memset(ibuf, 0, sizeof(ibuf));
@@ -969,7 +969,7 @@ void nfc_process_block(uint8_t * buf, unsigned int len)
     }
 }
 
-int nfc_loop()
+int nfc_loop(void)
 {
     uint8_t buf[32];
     AMS_DEVICE ams;
