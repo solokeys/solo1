@@ -61,12 +61,13 @@ static uint8_t master_secret[64];
 static uint8_t transport_secret[32];
 
 
-void crypto_sha256_init()
+void crypto_sha256_init(void)
 {
     sha256_init(&sha256_ctx);
 }
 
-void crypto_sha512_init() {
+void crypto_sha512_init(void)
+{
     cf_sha512_init(&sha512_ctx);
 }
 
@@ -79,7 +80,7 @@ void crypto_load_master_secret(uint8_t * key)
     memmove(transport_secret, key+64, 32);
 }
 
-void crypto_reset_master_secret()
+void crypto_reset_master_secret(void)
 {
     memset(master_secret, 0, 64);
     memset(transport_secret, 0, 32);
@@ -107,7 +108,8 @@ void crypto_sha256_final(uint8_t * hash)
     sha256_final(&sha256_ctx, hash);
 }
 
-void crypto_sha512_final(uint8_t * hash) {
+void crypto_sha512_final(uint8_t * hash)
+{
     // NB: there is also cf_sha512_digest
     cf_sha512_digest_final(&sha512_ctx, hash);
 }
@@ -183,14 +185,14 @@ void crypto_sha256_hmac_final(uint8_t * key, uint32_t klen, uint8_t * hmac)
 }
 
 
-void crypto_ecc256_init()
+void crypto_ecc256_init(void)
 {
     uECC_set_rng((uECC_RNG_Function)ctap_generate_rng);
     _es256_curve = uECC_secp256r1();
 }
 
 
-void crypto_ecc256_load_attestation_key()
+void crypto_ecc256_load_attestation_key(void)
 {
     static uint8_t _key [32];
     memmove(_key, (uint8_t*)ATTESTATION_KEY_ADDR, 32);

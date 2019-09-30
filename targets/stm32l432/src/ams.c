@@ -8,21 +8,25 @@
 #include "device.h"
 #include "nfc.h"
 
-static void flush_rx()
+static void flush_rx(void)
 {
     while(LL_SPI_IsActiveFlag_RXNE(SPI1) != 0)
     {
         LL_SPI_ReceiveData8(SPI1);
     }
 }
-static void wait_for_tx()
+
+
+static void wait_for_tx(void)
 {
     // while (LL_SPI_IsActiveFlag_BSY(SPI1) == 1)
     //     ;
     while(LL_SPI_GetTxFIFOLevel(SPI1) != LL_SPI_TX_FIFO_EMPTY)
         ;
 }
-static void wait_for_rx()
+
+
+static void wait_for_rx(void)
 {
     while(LL_SPI_IsActiveFlag_RXNE(SPI1) == 0)
         ;
@@ -270,7 +274,7 @@ void ams_print_int1(uint8_t int0)
 #endif
 }
 
-int ams_init()
+int ams_init(void)
 {
     LL_GPIO_SetPinMode(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN,LL_GPIO_MODE_OUTPUT);
     LL_GPIO_SetOutputPin(SOLO_AMS_CS_PORT,SOLO_AMS_CS_PIN);
@@ -292,7 +296,7 @@ int ams_init()
     return 0;
 }
 
-void ams_configure()
+void ams_configure(void)
 {
     // Should not be used during passive operation.
     uint8_t block[4];

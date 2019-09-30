@@ -34,7 +34,7 @@
 #define LOW_FREQUENCY        1
 #define HIGH_FREQUENCY       0
 
-void wait_for_usb_tether();
+void wait_for_usb_tether(void);
 
 
 uint32_t __90_ms = 0;
@@ -48,12 +48,12 @@ static bool isLowFreq = 0;
 static bool _up_disabled = false;
 
 // #define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
-static int is_physical_button_pressed()
+static int is_physical_button_pressed(void)
 {
     return (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN));
 }
 
-static int is_touch_button_pressed()
+static int is_touch_button_pressed(void)
 {
     int is_pressed = (tsc_read_button(0) || tsc_read_button(1));
 #ifndef IS_BOOTLOADER
@@ -69,7 +69,7 @@ static int is_touch_button_pressed()
 
 int (*IS_BUTTON_PRESSED)() = is_physical_button_pressed;
 
-static void edge_detect_touch_button()
+static void edge_detect_touch_button(void)
 {
     static uint8_t last_touch = 0;
     uint8_t current_touch = 0;
@@ -92,12 +92,13 @@ static void edge_detect_touch_button()
 
 }
 
-void device_disable_up(bool disable) {
+void device_disable_up(bool disable)
+{
     _up_disabled = disable;
 }
 
 // Timer6 overflow handler.  happens every ~90ms.
-void TIM6_DAC_IRQHandler()
+void TIM6_DAC_IRQHandler(void)
 {
     // timer is only 16 bits, so roll it over here
     TIM6->SR = 0;
@@ -142,7 +143,7 @@ void USB_IRQHandler(void)
   HAL_PCD_IRQHandler(&hpcd);
 }
 
-uint32_t millis()
+uint32_t millis(void)
 {
     return (((uint32_t)TIM6->CNT) + (__90_ms * 90));
 }
@@ -160,7 +161,7 @@ void device_set_status(uint32_t status)
     __device_status = status;
 }
 
-int device_is_button_pressed()
+int device_is_button_pressed(void)
 {
     return IS_BUTTON_PRESSED();
 }
@@ -171,12 +172,13 @@ void delay(uint32_t ms)
     while ((millis() - time) < ms)
         ;
 }
-void device_reboot()
+
+void device_reboot(void)
 {
     NVIC_SystemReset();
 }
 
-void device_init_button()
+void device_init_button(void)
 {
     if (tsc_sensor_exists())
     {
@@ -226,12 +228,12 @@ void device_init(int argc, char *argv[])
 
 }
 
-int device_is_nfc()
+int device_is_nfc(void)
 {
     return _NFC_status;
 }
 
-void wait_for_usb_tether()
+void wait_for_usb_tether(void)
 {
     while (USBD_OK != CDC_Transmit_FS((uint8_t*)"tethered\r\n", 10) )
         ;
@@ -242,7 +244,7 @@ void wait_for_usb_tether()
         ;
 }
 
-void usbhid_init()
+void usbhid_init(void)
 {
     if (!isLowFreq)
     {
@@ -292,12 +294,12 @@ void ctaphid_write_block(uint8_t * data)
 }
 
 
-void usbhid_close()
+void usbhid_close(void)
 {
 
 }
 
-void main_loop_delay()
+void main_loop_delay(void)
 {
 
 }
@@ -307,13 +309,14 @@ static uint32_t winkt1 = 0;
 #ifdef LED_WINK_VALUE
 static uint32_t winkt2 = 0;
 #endif
-void device_wink()
+
+void device_wink(void)
 {
     wink_time = 10;
     winkt1 = 0;
 }
 
-void heartbeat()
+void heartbeat(void)
 {
     static int state = 0;
     static uint32_t val = (LED_MAX_SCALER - LED_MIN_SCALER)/2;
@@ -382,7 +385,7 @@ void authenticator_read_backup_state(AuthenticatorState * a)
 }
 
 // Return 1 yes backup is init'd, else 0
-int authenticator_is_backup_initialized()
+int authenticator_is_backup_initialized(void)
 {
     uint8_t header[16];
     uint32_t * ptr = (uint32_t *)flash_addr(STATE2_PAGE);
@@ -499,7 +502,7 @@ uint32_t ctap_atomic_count(int sel)
 
 
 
-void device_manage()
+void device_manage(void)
 {
 #if NON_BLOCK_PRINTING
     int i = 10;
@@ -525,7 +528,7 @@ void device_manage()
 #endif
 }
 
-static int handle_packets()
+static int handle_packets(void)
 {
     static uint8_t hidmsg[HID_PACKET_SIZE];
     memset(hidmsg,0, sizeof(hidmsg));
@@ -561,6 +564,7 @@ static int wait_for_button_activate(uint32_t wait)
     } while (!IS_BUTTON_PRESSED());
     return 0;
 }
+
 static int wait_for_button_release(uint32_t wait)
 {
     int ret;
@@ -654,7 +658,7 @@ int ctap_user_verification(uint8_t arg)
     return 1;
 }
 
-void ctap_reset_rk()
+void ctap_reset_rk(void)
 {
     int i;
     printf1(TAG_GREEN, "resetting RK \r\n");
@@ -664,7 +668,7 @@ void ctap_reset_rk()
     }
 }
 
-uint32_t ctap_rk_size()
+uint32_t ctap_rk_size(void)
 {
     return RK_NUM_PAGES * (PAGE_SIZE / sizeof(CTAP_residentKey));
 }
@@ -726,7 +730,7 @@ void ctap_overwrite_rk(int index,CTAP_residentKey * rk)
     }
 }
 
-void boot_st_bootloader()
+void boot_st_bootloader(void)
 {
     __disable_irq();
 
@@ -738,7 +742,7 @@ void boot_st_bootloader()
     ;
 }
 
-void boot_solo_bootloader()
+void boot_solo_bootloader(void)
 {
     LL_IWDG_Enable(IWDG);
 
