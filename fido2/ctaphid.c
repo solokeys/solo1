@@ -540,7 +540,7 @@ extern void _check_ret(CborError ret, int line, const char * filename);
                             if ((r) != CborNoError) exit(1);
 
 
-uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE_BUFFER * wb);
+uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE_BUFFER * wb);
 
 uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
 {
@@ -557,6 +557,9 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
 
     int bufstatus = ctaphid_buffer_packet(pkt_raw, &cmd, &cid, &len);
     ctaphid_write_buffer_init(&wb);
+
+    wb.cid = cid;
+    wb.cmd = cmd;
 
     if (bufstatus == HID_IGNORE)
     {
@@ -592,8 +595,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
         case CTAPHID_PING:
             printf1(TAG_HID,"CTAPHID_PING\n");
 
-            wb.cid = cid;
-            wb.cmd = CTAPHID_PING;
             wb.bcnt = len;
             timestamp();
             ctaphid_write(&wb, ctap_buffer, len);
@@ -608,9 +609,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
 
 
             device_wink();
-
-            wb.cid = cid;
-            wb.cmd = CTAPHID_WINK;
 
             ctaphid_write(&wb,NULL,0);
 
@@ -636,8 +634,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             ctap_response_init(&ctap_resp);
             status = ctap_request(ctap_buffer, len, &ctap_resp);
 
-            wb.cid = cid;
-            wb.cmd = CTAPHID_CBOR;
             wb.bcnt = (ctap_resp.length+1);
 
 
@@ -668,8 +664,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             ctap_response_init(&ctap_resp);
             u2f_request((struct u2f_request_apdu*)ctap_buffer, &ctap_resp);
 
-            wb.cid = cid;
-            wb.cmd = CTAPHID_MSG;
             wb.bcnt = (ctap_resp.length);
 
             ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
@@ -682,7 +676,7 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             break;
 
         default:
-            if (ctaphid_custom_command(cmd, cid, len, &ctap_resp, &wb) != 0){
+            if (ctaphid_custom_command(len, &ctap_resp, &wb) != 0){
                 is_busy = 0;
             }else{
                 printf2(TAG_ERR, "error, unimplemented HID cmd: %02x\r\n", buffer_cmd());
@@ -698,10 +692,9 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
 
 }
 
-uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE_BUFFER * wb)
+uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE_BUFFER * wb)
 {
     ctap_response_init(ctap_resp);
-    ctaphid_write_buffer_init(wb);
 
 #if !defined(IS_BOOTLOADER) && (defined(SOLO_HACKER) || defined(SOLO_EXPERIMENTAL))
     uint32_t param;
@@ -710,7 +703,7 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
     uint8_t is_busy;
 #endif
 
-    switch(cmd)
+    switch(wb->cmd)
     {
 #if defined(IS_BOOTLOADER)
         case CTAPHID_BOOT:
@@ -718,9 +711,6 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
             u2f_set_writeback_buffer(ctap_resp);
             is_busy = bootloader_bridge(len, ctap_buffer);
 
-            wb->cid = cid;
-            wb->cmd = CTAPHID_BOOT;
-            wb->bcnt = (ctap_resp->length + 1);
             ctaphid_write(wb, &is_busy, 1);
             ctaphid_write(wb, ctap_resp->data, ctap_resp->length);
             ctaphid_write(wb, NULL, 0);
@@ -730,8 +720,6 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
         case CTAPHID_ENTERBOOT:
             printf1(TAG_HID,"CTAPHID_ENTERBOOT\n");
             boot_solo_bootloader();
-            wb->cid = cid;
-            wb->cmd = CTAPHID_ENTERBOOT;
             wb->bcnt = 0;
             ctaphid_write(wb, NULL, 0);
             return 1;
@@ -744,8 +732,6 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
 #if !defined(IS_BOOTLOADER)
         case CTAPHID_GETRNG:
             printf1(TAG_HID,"CTAPHID_GETRNG\n");
-            wb->cid = cid;
-            wb->cmd = CTAPHID_GETRNG;
             wb->bcnt = ctap_buffer[0];
             if (!wb->bcnt)
                 wb->bcnt = 57;
@@ -759,8 +745,6 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
 
         case CTAPHID_GETVERSION:
             printf1(TAG_HID,"CTAPHID_GETVERSION\n");
-            wb->cid = cid;
-            wb->cmd = CTAPHID_GETVERSION;
             wb->bcnt = 3;
             ctap_buffer[0] = SOLO_VERSION_MAJ;
             ctap_buffer[1] = SOLO_VERSION_MIN;
@@ -784,7 +768,7 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
             if (len != 100)
             {
                 printf2(TAG_ERR,"Error, invalid length.\n");
-                ctaphid_send_error(cid, CTAP1_ERR_INVALID_LENGTH);
+                ctaphid_send_error(wb->cid, CTAP1_ERR_INVALID_LENGTH);
                 return 1;
             }
 
@@ -800,8 +784,6 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
                         param |= ctap_buffer[0] << 24;
                         ctap_atomic_count(param);
 
-                        wb->cid = cid;
-                        wb->cmd = CTAPHID_LOADKEY;
                         wb->bcnt = 0;
 
                         ctaphid_write(wb, NULL, 0);
@@ -809,7 +791,7 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
                     }
 
             printf2(TAG_ERR, "Error, invalid length.\n");
-            ctaphid_send_error(cid, CTAP2_ERR_OPERATION_DENIED);
+            ctaphid_send_error(wb->cid, CTAP2_ERR_OPERATION_DENIED);
             return 1;
 #endif
 
