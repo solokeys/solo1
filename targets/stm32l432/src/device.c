@@ -410,6 +410,7 @@ void authenticator_write_state(AuthenticatorState * a, int backup)
     }
 }
 
+#if !defined(IS_BOOTLOADER)
 uint32_t ctap_atomic_count(uint32_t amount)
 {
     int offset = 0;
@@ -501,7 +502,7 @@ uint32_t ctap_atomic_count(uint32_t amount)
 
     return lastc;
 }
-
+#endif
 
 
 void device_manage(void)
