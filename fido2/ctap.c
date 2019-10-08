@@ -698,7 +698,7 @@ int ctap_authenticate_credential(struct rpId * rp, CTAP_credentialDescriptor * d
             crypto_sha256_init();
             crypto_sha256_update(rp->id, rp->size);
             crypto_sha256_final(rpIdHash);
-            return u2f_authenticate_credential((struct u2f_key_handle *)&desc->credential.id, rpIdHash);
+            return u2f_authenticate_credential((struct u2f_key_handle *)&desc->credential.id, U2F_KEY_HANDLE_SIZE,rpIdHash);
         break;
         case PUB_KEY_CRED_CUSTOM:
             return is_extension_request(getAssertionState.customCredId, getAssertionState.customCredIdSize);
