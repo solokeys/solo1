@@ -316,3 +316,10 @@ void bootloader_heartbeat()
 
     led_rgb(((val * g)<<8) | ((val*r) << 16) | (val*b));
 }
+
+uint32_t ctap_atomic_count(uint32_t amount)
+{
+    static uint32_t count = 1000;
+    count += (amount + 1);
+    return count;
+}
