@@ -715,6 +715,7 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
     CborValue it,map;
 
     memset(MC, 0, sizeof(CTAP_makeCredential));
+    MC->up = 0xff;
     ret = cbor_parser_init(request, length, CborValidateCanonicalFormat, &parser, &it);
     check_retr(ret);
 
@@ -1010,6 +1011,7 @@ uint8_t ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int 
 
     memset(GA, 0, sizeof(CTAP_getAssertion));
     GA->creds = getAssertionState.creds;     // Save stack memory
+    GA->up = 0xff;
 
     ret = cbor_parser_init(request, length, CborValidateCanonicalFormat, &parser, &it);
     check_ret(ret);

@@ -14,12 +14,12 @@
 #include "log.h"
 #include "device.h"
 
-static void flash_lock()
+static void flash_lock(void)
 {
     FLASH->CR |= (1U<<31);
 }
 
-static void flash_unlock()
+static void flash_unlock(void)
 {
     if (FLASH->CR & FLASH_CR_LOCK)
     {

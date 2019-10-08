@@ -8,7 +8,7 @@
 #define ELECTRODE_0     TSC_GROUP2_IO1
 #define ELECTRODE_1     TSC_GROUP2_IO2
 
-void tsc_init()
+void tsc_init(void)
 {
     LL_GPIO_InitTypeDef GPIO_InitStruct;
     // Enable TSC clock
@@ -74,7 +74,7 @@ void tsc_set_electrode(uint32_t channel_ids)
     TSC->IOCCR = (channel_ids);
 }
 
-void tsc_start_acq()
+void tsc_start_acq(void)
 {
     TSC->CR &= ~(TSC_CR_START);
 
@@ -86,7 +86,7 @@ void tsc_start_acq()
     TSC->CR |= TSC_CR_START;
 }
 
-void tsc_wait_on_acq()
+void tsc_wait_on_acq(void)
 {
     while ( ! (TSC->ISR & TSC_FLAG_EOA) )
         ;
@@ -117,7 +117,7 @@ uint32_t tsc_read_button(uint32_t index)
     return tsc_read(1) < 45;
 }
 
-int tsc_sensor_exists()
+int tsc_sensor_exists(void)
 {
     static uint8_t does = 0;
     if (does) return 1;

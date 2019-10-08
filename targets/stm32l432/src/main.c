@@ -57,10 +57,11 @@ void TIM6_DAC_IRQHandler()
     __90_ms += 1;
 }
 
-uint32_t millis()
+uint32_t millis(void)
 {
     return (((uint32_t)TIM6->CNT) + (__90_ms * 90));
 }
+
 void _Error_Handler(char *file, int line)
 {
     while(1)

@@ -30,6 +30,7 @@ void main_loop_delay();
 
 void heartbeat();
 
+void device_reboot();
 
 void authenticator_read_state(AuthenticatorState * );
 
@@ -52,7 +53,7 @@ void device_set_status(uint32_t status);
 int device_is_button_pressed();
 
 // Test for user presence
-// Return 1 for user is present, 0 user not present, -1 if cancel is requested.
+// Return 2 for disabled, 1 for user is present, 0 user not present, -1 if cancel is requested.
 int ctap_user_presence_test(uint32_t delay);
 
 // Generate @num bytes of random numbers to @dest
@@ -60,8 +61,8 @@ int ctap_user_presence_test(uint32_t delay);
 int ctap_generate_rng(uint8_t * dst, size_t num);
 
 // Increment atomic counter and return it.
-// Must support two counters, @sel selects counter0 or counter1.
-uint32_t ctap_atomic_count(int sel);
+// @param amount the amount to increase the counter by.
+uint32_t ctap_atomic_count(uint32_t amount);
 
 // Verify the user
 // return 1 if user is verified, 0 if not
@@ -105,7 +106,7 @@ void device_set_clock_rate(DEVICE_CLOCK_RATE param);
 #define NFC_IS_AVAILABLE 2
 int device_is_nfc();
 
-void request_from_nfc(bool request_active);
+void device_disable_up(bool request_active);
 
 void device_init_button();
 

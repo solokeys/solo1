@@ -131,7 +131,7 @@
 #define PIN_LOCKOUT_ATTEMPTS        8       // Number of attempts total
 #define PIN_BOOT_ATTEMPTS           3       // number of attempts per boot
 
-#define CTAP2_UP_DELAY_MS           5000
+#define CTAP2_UP_DELAY_MS           29000
 
 typedef struct
 {
@@ -359,5 +359,8 @@ uint16_t ctap_key_len(uint8_t index);
 extern uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
 extern uint8_t KEY_AGREEMENT_PUB[64];
 
+void lock_device_permanently();
+
+void ctap_load_external_keys(uint8_t * keybytes);
 
 #endif

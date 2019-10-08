@@ -1,30 +1,33 @@
 # Summary
 
-On Linux, by default USB dongles can't be accessed by users, for security reasons. To allow user access, so-called "udev rules" must be installed. (Under Fedora, your key may work without such a rule.)
+On Linux, by default USB dongles can't be accessed by users, for security reasons. To allow user access, so-called "udev rules" must be installed.
 
-Create a file like [`70-solokeys-access.rules`](https://github.com/solokeys/solo/blob/master/udev/70-solokeys-access.rules) in your `/etc/udev/rules.d` directory, for instance the following rule should cover normal access (it has to be on one line):
+For some users, things will work automatically:
+
+  - Fedora seems to use a ["universal" udev rule for FIDO devices](https://github.com/amluto/u2f-hidraw-policy)
+  - Our udev rule made it into [libu2f-host](https://github.com/Yubico/libu2f-host/) v1.1.10
+  - Arch Linux [has this package](https://www.archlinux.org/packages/community/x86_64/libu2f-host/)
+  - [Debian sid](https://packages.debian.org/sid/libu2f-udev) and [Ubuntu Eon](https://packages.ubuntu.com/eoan/libu2f-udev) can use the `libu2f-udev` package
+  - Debian Buster and Ubuntu Disco still distribute v1.1.10, so need the manual rule
+  - FreeBSD has support in [u2f-devd](https://github.com/solokeys/solo/issues/144#issuecomment-500216020)
+
+There is hope that `udev` itself will adopt the Fedora approach (which is to check for HID usage page `F1D0`, and avoids manually whitelisting each U2F/FIDO2 key): <https://github.com/systemd/systemd/issues/11996>.
+
+Further progress is tracked in: <https://github.com/solokeys/solo/issues/144>.
+
+If you still need to setup a rule, a simple way to do it is:
 
 ```
-SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="a2ca", TAG+="uaccess", MODE="0660", GROUP="plugdev"
-```
-
-Additionally, run the following command after you create this file (it is not necessary to do this again in the future):
-
-```
-sudo udevadm control --reload-rules && sudo udevadm trigger
-```
-
-A simple way to setup both the udev rule and the udevadm reload is:
-
-```
-git clone git@github.com:solokeys/solo.git
+git clone https://github.com/solokeys/solo.git
 cd solo/udev
 make setup
 ```
 
-We are working on getting user access to Solo keys enabled automatically in common Linux distributions: <https://github.com/solokeys/solo/issues/144>.
-
-
+Or, manually, create a file like [`70-solokeys-access.rules`](https://github.com/solokeys/solo/blob/master/udev/70-solokeys-access.rules) in your `/etc/udev/rules.d` directory.
+Additionally, run the following command after you create this file (it is not necessary to do this again in the future):
+```
+sudo udevadm control --reload-rules && sudo udevadm trigger
+```
 
 # How do udev rules work and why are they needed
 

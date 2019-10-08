@@ -16,6 +16,7 @@
 #include "util.h"
 #include "log.h"
 #include "extensions.h"
+#include "version.h"
 
 // move custom SHA512 command out,
 // and the following headers too
@@ -538,11 +539,14 @@ extern void _check_ret(CborError ret, int line, const char * filename);
 #define check_hardcore(r)   _check_ret(r,__LINE__, __FILE__);\
                             if ((r) != CborNoError) exit(1);
 
+
+uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE_BUFFER * wb);
+
 uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
 {
-    uint8_t cmd;
+    uint8_t cmd = 0;
     uint32_t cid;
-    int len;
+    int len = 0;
 #ifndef DISABLE_CTAPHID_CBOR
     int status;
 #endif
@@ -552,6 +556,10 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
     CTAP_RESPONSE ctap_resp;
 
     int bufstatus = ctaphid_buffer_packet(pkt_raw, &cmd, &cid, &len);
+    ctaphid_write_buffer_init(&wb);
+
+    wb.cid = cid;
+    wb.cmd = cmd;
 
     if (bufstatus == HID_IGNORE)
     {
@@ -587,9 +595,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
         case CTAPHID_PING:
             printf1(TAG_HID,"CTAPHID_PING\n");
 
-            ctaphid_write_buffer_init(&wb);
-            wb.cid = cid;
-            wb.cmd = CTAPHID_PING;
             wb.bcnt = len;
             timestamp();
             ctaphid_write(&wb, ctap_buffer, len);
@@ -602,12 +607,8 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
         case CTAPHID_WINK:
             printf1(TAG_HID,"CTAPHID_WINK\n");
 
-            ctaphid_write_buffer_init(&wb);
 
             device_wink();
-
-            wb.cid = cid;
-            wb.cmd = CTAPHID_WINK;
 
             ctaphid_write(&wb,NULL,0);
 
@@ -633,9 +634,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             ctap_response_init(&ctap_resp);
             status = ctap_request(ctap_buffer, len, &ctap_resp);
 
-            ctaphid_write_buffer_init(&wb);
-            wb.cid = cid;
-            wb.cmd = CTAPHID_CBOR;
             wb.bcnt = (ctap_resp.length+1);
 
 
@@ -666,9 +664,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             ctap_response_init(&ctap_resp);
             u2f_request((struct u2f_request_apdu*)ctap_buffer, &ctap_resp);
 
-            ctaphid_write_buffer_init(&wb);
-            wb.cid = cid;
-            wb.cmd = CTAPHID_MSG;
             wb.bcnt = (ctap_resp.length);
 
             ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
@@ -679,209 +674,14 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             printf1(TAG_HID,"CTAPHID_CANCEL\n");
             is_busy = 0;
             break;
-#if defined(IS_BOOTLOADER)
-        case CTAPHID_BOOT:
-            printf1(TAG_HID,"CTAPHID_BOOT\n");
-            ctap_response_init(&ctap_resp);
-            u2f_set_writeback_buffer(&ctap_resp);
-            is_busy = bootloader_bridge(len, ctap_buffer);
 
-            ctaphid_write_buffer_init(&wb);
-            wb.cid = cid;
-            wb.cmd = CTAPHID_BOOT;
-            wb.bcnt = (ctap_resp.length + 1);
-            ctaphid_write(&wb, &is_busy, 1);
-            ctaphid_write(&wb, ctap_resp.data, ctap_resp.length);
-            ctaphid_write(&wb, NULL, 0);
-            is_busy = 0;
-        break;
-#endif
-#if defined(SOLO_HACKER)
-        case CTAPHID_ENTERBOOT:
-            printf1(TAG_HID,"CTAPHID_ENTERBOOT\n");
-            boot_solo_bootloader();
-            ctaphid_write_buffer_init(&wb);
-            wb.cid = cid;
-            wb.cmd = CTAPHID_ENTERBOOT;
-            wb.bcnt = 0;
-            ctaphid_write(&wb, NULL, 0);
-            is_busy = 0;
-        break;
-        case CTAPHID_ENTERSTBOOT:
-            printf1(TAG_HID,"CTAPHID_ENTERBOOT\n");
-            boot_st_bootloader();
-        break;
-#endif
-#if !defined(IS_BOOTLOADER)
-        case CTAPHID_GETRNG:
-            printf1(TAG_HID,"CTAPHID_GETRNG\n");
-            ctap_response_init(&ctap_resp);
-            ctaphid_write_buffer_init(&wb);
-            wb.cid = cid;
-            wb.cmd = CTAPHID_GETRNG;
-            wb.bcnt = ctap_buffer[0];
-            if (!wb.bcnt)
-                wb.bcnt = 57;
-            memset(ctap_buffer,0,wb.bcnt);
-            ctap_generate_rng(ctap_buffer, wb.bcnt);
-            ctaphid_write(&wb, &ctap_buffer, wb.bcnt);
-            ctaphid_write(&wb, NULL, 0);
-            is_busy = 0;
-        break;
-#endif
-#if defined(SOLO_HACKER) && (DEBUG_LEVEL > 0) && (!IS_BOOTLOADER == 1)
-        case CTAPHID_PROBE:
-
-            /*
-             * Expects CBOR-serialized data of the form
-             * {"subcommand": "hash_type", "data": b"the_data"}
-             * with hash_type in SHA256, SHA512
-             */
-
-            // some random logging
-            printf1(TAG_HID,"CTAPHID_PROBE\n");
-            // initialise CTAP response object
-            ctap_response_init(&ctap_resp);
-            // initialise write buffer
-            ctaphid_write_buffer_init(&wb);
-            wb.cid = cid;
-            wb.cmd = CTAPHID_PROBE;
-
-            // prepare parsing (or halt)
-            int ret;
-            CborParser parser;
-            CborValue it, map;
-            ret = cbor_parser_init(
-                ctap_buffer, (size_t) buffer_len(),
-                // strictly speaking, CTAP is not RFC canonical...
-                CborValidateCanonicalFormat,
-                &parser, &it);
-            check_hardcore(ret);
-
-            CborType type = cbor_value_get_type(&it);
-            if (type != CborMapType) exit(1);
-
-            ret = cbor_value_enter_container(&it,&map);
-            check_hardcore(ret);
-
-            size_t map_length = 0;
-            ret = cbor_value_get_map_length(&it, &map_length);
-            if (map_length != 2) exit(1);
-
-            // parse subcommand (or halt)
-            CborValue val;
-            ret = cbor_value_map_find_value(&it, "subcommand", &val);
-            check_hardcore(ret);
-            if (!cbor_value_is_text_string(&val))
-                exit(1);
-
-            int sha_version = 0;
-            bool found = false;
-            if (!found) {
-                ret = cbor_value_text_string_equals(
-                        &val, "SHA256", &found);
-                check_hardcore(ret);
-                if (found)
-                    sha_version = 256;
-            }
-            if (!found) {
-                ret = cbor_value_text_string_equals(
-                        &val, "SHA512", &found);
-                check_hardcore(ret);
-                if (found)
-                    sha_version = 512;
-            }
-            if (sha_version == 0)
-                exit(1);
-
-            // parse data (or halt)
-            ret = cbor_value_map_find_value(&it, "data", &val);
-            check_hardcore(ret);
-            if (!cbor_value_is_byte_string(&val))
-                exit(1);
-
-            size_t data_length = 0;
-            ret = cbor_value_calculate_string_length(&val, &data_length);
-            check_hardcore(ret);
-            if (data_length > 6*1024)
-                exit(1);
-
-            unsigned char data[6*1024];
-            ret = cbor_value_copy_byte_string (
-                    &val, &data[0], &data_length, &val);
-            check_hardcore(ret);
-
-            // execute subcommand
-            if (sha_version == 256) {
-                // calculate hash
-                crypto_sha256_init();
-                crypto_sha256_update(data, data_length);
-                crypto_sha256_final(ctap_buffer);
-                // write output
-                wb.bcnt = CF_SHA256_HASHSZ;  // 32 bytes
-                ctaphid_write(&wb, &ctap_buffer, CF_SHA256_HASHSZ);
-            }
-
-            if (sha_version == 512) {
-                // calculate hash
-                crypto_sha512_init();
-                crypto_sha512_update(data, data_length);
-                crypto_sha512_final(ctap_buffer);
-                // write output
-                wb.bcnt = CF_SHA512_HASHSZ;  // 64 bytes
-                ctaphid_write(&wb, &ctap_buffer, CF_SHA512_HASHSZ);
-            }
-
-            // finalize
-            ctaphid_write(&wb, NULL, 0);
-            is_busy = 0;
-        break;
-
-        /*
-        case CTAPHID_SHA256:
-            // some random logging
-            printf1(TAG_HID,"CTAPHID_SHA256\n");
-            // initialise CTAP response object
-            ctap_response_init(&ctap_resp);
-            // initialise write buffer
-            ctaphid_write_buffer_init(&wb);
-            wb.cid = cid;
-            wb.cmd = CTAPHID_SHA256;
-            wb.bcnt = CF_SHA256_HASHSZ;  // 32 bytes
-            // calculate hash
-            crypto_sha256_init();
-            crypto_sha256_update(ctap_buffer, buffer_len());
-            crypto_sha256_final(ctap_buffer);
-            // copy to output
-            ctaphid_write(&wb, &ctap_buffer, CF_SHA256_HASHSZ);
-            ctaphid_write(&wb, NULL, 0);
-            is_busy = 0;
-        break;
-        case CTAPHID_SHA512:
-            // some random logging
-            printf1(TAG_HID,"CTAPHID_SHA512\n");
-            // initialise CTAP response object
-            ctap_response_init(&ctap_resp);
-            // initialise write buffer
-            ctaphid_write_buffer_init(&wb);
-            wb.cid = cid;
-            wb.cmd = CTAPHID_SHA512;
-            wb.bcnt = CF_SHA512_HASHSZ;  // 64 bytes
-            // calculate hash
-            crypto_sha512_init();
-            crypto_sha512_update(ctap_buffer, buffer_len());
-            crypto_sha512_final(ctap_buffer);
-            // copy to output
-            ctaphid_write(&wb, &ctap_buffer, CF_SHA512_HASHSZ);
-            ctaphid_write(&wb, NULL, 0);
-            is_busy = 0;
-        break;
-        */
-#endif
         default:
-            printf2(TAG_ERR,"error, unimplemented HID cmd: %02x\r\n", buffer_cmd());
-            ctaphid_send_error(cid, CTAP1_ERR_INVALID_COMMAND);
-            break;
+            if (ctaphid_custom_command(len, &ctap_resp, &wb) != 0){
+                is_busy = 0;
+            }else{
+                printf2(TAG_ERR, "error, unimplemented HID cmd: %02x\r\n", buffer_cmd());
+                ctaphid_send_error(cid, CTAP1_ERR_INVALID_COMMAND);
+            }
     }
     cid_del(cid);
     buffer_reset();
@@ -890,4 +690,113 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
     if (!is_busy) return cmd;
     else return 0;
 
+}
+
+uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE_BUFFER * wb)
+{
+    ctap_response_init(ctap_resp);
+
+#if !defined(IS_BOOTLOADER) && (defined(SOLO_HACKER) || defined(SOLO_EXPERIMENTAL))
+    uint32_t param;
+#endif
+#if defined(IS_BOOTLOADER)
+    uint8_t is_busy;
+#endif
+
+    switch(wb->cmd)
+    {
+#if defined(IS_BOOTLOADER)
+        case CTAPHID_BOOT:
+            printf1(TAG_HID,"CTAPHID_BOOT\n");
+            u2f_set_writeback_buffer(ctap_resp);
+            is_busy = bootloader_bridge(len, ctap_buffer);
+
+            ctaphid_write(wb, &is_busy, 1);
+            ctaphid_write(wb, ctap_resp->data, ctap_resp->length);
+            ctaphid_write(wb, NULL, 0);
+            return 1;
+#endif
+#if defined(SOLO_HACKER)
+        case CTAPHID_ENTERBOOT:
+            printf1(TAG_HID,"CTAPHID_ENTERBOOT\n");
+            boot_solo_bootloader();
+            wb->bcnt = 0;
+            ctaphid_write(wb, NULL, 0);
+            return 1;
+        case CTAPHID_ENTERSTBOOT:
+            printf1(TAG_HID,"CTAPHID_ENTERBOOT\n");
+            boot_st_bootloader();
+            return 1;
+#endif
+
+#if !defined(IS_BOOTLOADER)
+        case CTAPHID_GETRNG:
+            printf1(TAG_HID,"CTAPHID_GETRNG\n");
+            wb->bcnt = ctap_buffer[0];
+            if (!wb->bcnt)
+                wb->bcnt = 57;
+            memset(ctap_buffer,0,wb->bcnt);
+            ctap_generate_rng(ctap_buffer, wb->bcnt);
+            ctaphid_write(wb, ctap_buffer, wb->bcnt);
+            ctaphid_write(wb, NULL, 0);
+            return 1;
+        break;
+#endif
+
+        case CTAPHID_GETVERSION:
+            printf1(TAG_HID,"CTAPHID_GETVERSION\n");
+            wb->bcnt = 3;
+            ctap_buffer[0] = SOLO_VERSION_MAJ;
+            ctap_buffer[1] = SOLO_VERSION_MIN;
+            ctap_buffer[2] = SOLO_VERSION_PATCH;
+            ctaphid_write(wb, ctap_buffer, 3);
+            ctaphid_write(wb, NULL, 0);
+            return 1;
+        break;
+
+#if !defined(IS_BOOTLOADER) && (defined(SOLO_HACKER) || defined(SOLO_EXPERIMENTAL))
+        case CTAPHID_LOADKEY:
+            /**
+             * Load external key.  Useful for enabling backups.
+             * bytes:            4                   96
+             * payload: | counter_increase (BE) | master_key |
+             * 
+             * Counter should be increased by a large amount, e.g. (0x10000000)
+             * to outdo any previously lost/broken keys.
+            */
+            printf1(TAG_HID,"CTAPHID_LOADKEY\n");
+            if (len != 100)
+            {
+                printf2(TAG_ERR,"Error, invalid length.\n");
+                ctaphid_send_error(wb->cid, CTAP1_ERR_INVALID_LENGTH);
+                return 1;
+            }
+
+            // Ask for THREE button presses
+            if (ctap_user_presence_test(8000) > 0)
+                if (ctap_user_presence_test(8000) > 0)
+                    if (ctap_user_presence_test(8000) > 0)
+                    {
+                        ctap_load_external_keys(ctap_buffer + 4);
+                        param = ctap_buffer[3];
+                        param |= ctap_buffer[2] << 8;
+                        param |= ctap_buffer[1] << 16;
+                        param |= ctap_buffer[0] << 24;
+                        ctap_atomic_count(param);
+
+                        wb->bcnt = 0;
+
+                        ctaphid_write(wb, NULL, 0);
+                        return 1;
+                    }
+
+            printf2(TAG_ERR, "Error, invalid length.\n");
+            ctaphid_send_error(wb->cid, CTAP2_ERR_OPERATION_DENIED);
+            return 1;
+#endif
+
+
+        }
+
+        return 0;
 }
