@@ -122,13 +122,13 @@ bool is_firmware_version_newer_or_equal()
           new_version->major, new_version->minor, new_version->patch, new_version->reserved
           );
 
-    const bool allowed = is_newer(new_version, &current_firmware_version) || current_firmware_version.raw == 0xFFFFFFFF;
+  const bool allowed = is_newer((const version_t *)new_version, (const version_t *)&current_firmware_version) || current_firmware_version.raw == 0xFFFFFFFF;
   if (allowed){
     printf1(TAG_BOOT, "Update allowed, setting new firmware version as current.\r\n");
 //    current_firmware_version.raw = new_version.raw;
     uint8_t page[PAGE_SIZE];
     memmove(page, (uint8_t*)BOOT_VERSION_ADDR, PAGE_SIZE);
-    memmove(page, new_version, 4);
+    memmove(page, (version_t *)new_version, 4);
     printf1(TAG_BOOT, "Writing\r\n");
     flash_erase_page(BOOT_VERSION_PAGE);
     flash_write(BOOT_VERSION_ADDR, page, PAGE_SIZE);
