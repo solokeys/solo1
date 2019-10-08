@@ -427,7 +427,7 @@ uint32_t ctap_atomic_count(uint32_t amount)
         // Use a random count [1-16].
         uint8_t rng[1];
         ctap_generate_rng(rng, 1);
-        amount = (rng[1] & 0x0f) + 1;
+        amount = (rng[0] & 0x0f) + 1;
     }
 
     for (offset = 0; offset < PAGE_SIZE/4; offset += 2) // wear-level the flash
