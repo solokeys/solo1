@@ -26,6 +26,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 int8_t u2f_response_writeback(const uint8_t * buf, uint16_t len);
 void u2f_reset_response();
 
+void make_auth_tag(uint8_t * rpIdHash, uint8_t * nonce, uint32_t count, uint8_t * tag);
 
 static CTAP_RESPONSE * _u2f_resp = NULL;
 
@@ -160,9 +161,9 @@ static void dump_signature_der(uint8_t * sig)
     len = ctap_encode_der_sig(sig, sigder);
     u2f_response_writeback(sigder, len);
 }
-static int8_t u2f_load_key(struct u2f_key_handle * kh, uint8_t * appid)
+static int8_t u2f_load_key(struct u2f_key_handle * kh, uint8_t khl, uint8_t * appid)
 {
-    crypto_ecc256_load_key((uint8_t*)kh, U2F_KEY_HANDLE_SIZE, NULL, 0);
+    crypto_ecc256_load_key((uint8_t*)kh, khl, NULL, 0);
     return 0;
 }
 
@@ -187,21 +188,40 @@ int8_t u2f_new_keypair(struct u2f_key_handle * kh, uint8_t * appid, uint8_t * pu
 
 
 // Return 1 if authenticate, 0 if not.
-int8_t u2f_authenticate_credential(struct u2f_key_handle * kh, uint8_t * appid)
+int8_t u2f_authenticate_credential(struct u2f_key_handle * kh, uint8_t key_handle_len, uint8_t * appid)
 {
+    printf1(TAG_U2F, "checked CRED SIZE %d. (FIDO2: %d)\n", key_handle_len, sizeof(CredentialId));
     uint8_t tag[U2F_KEY_HANDLE_TAG_SIZE];
-    u2f_make_auth_tag(kh, appid, tag);
-    if (memcmp(kh->tag, tag, U2F_KEY_HANDLE_TAG_SIZE) == 0)
+
+    if (key_handle_len == sizeof(CredentialId))
     {
-        return 1;
-    }
-    else
+        printf1(TAG_U2F, "FIDO2 key handle detected.\n");
+        CredentialId * cred = (CredentialId *) kh;
+        // FIDO2 credential.
+
+        if (memcmp(cred->rpIdHash, appid, 32) != 0)
+        {
+            printf1(TAG_U2F, "APPID does not match rpIdHash.\n");
+            return 0;
+        }
+        make_auth_tag(appid, cred->nonce, cred->count, tag);
+
+        if (memcmp(cred->tag, tag, CREDENTIAL_TAG_SIZE) == 0){
+            return 1;
+        }
+
+    }else if (key_handle_len == U2F_KEY_HANDLE_KEY_SIZE)
     {
-        printf1(TAG_U2F, "key handle + appid not authentic\n");
-        printf1(TAG_U2F, "calc tag: \n"); dump_hex1(TAG_U2F,tag, U2F_KEY_HANDLE_TAG_SIZE);
-        printf1(TAG_U2F, "inp  tag: \n"); dump_hex1(TAG_U2F,kh->tag, U2F_KEY_HANDLE_TAG_SIZE);
-        return 0;
+        u2f_make_auth_tag(kh, appid, tag);
+        if (memcmp(kh->tag, tag, U2F_KEY_HANDLE_TAG_SIZE) == 0)
+        {
+            return 1;
+        }
     }
+
+    printf1(TAG_U2F, "key handle + appid not authentic\n");
+    printf1(TAG_U2F, "calc tag: \n"); dump_hex1(TAG_U2F,tag, U2F_KEY_HANDLE_TAG_SIZE);
+    printf1(TAG_U2F, "inp  tag: \n"); dump_hex1(TAG_U2F,kh->tag, U2F_KEY_HANDLE_TAG_SIZE);
 }
 
 
@@ -216,7 +236,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
     if (control == U2F_AUTHENTICATE_CHECK)
     {
         printf1(TAG_U2F, "CHECK-ONLY\r\n");
-        if (u2f_authenticate_credential(&req->kh, req->app))
+        if (u2f_authenticate_credential(&req->kh, req->khl, req->app))
         {
             return U2F_SW_CONDITIONS_NOT_SATISFIED;
         }
@@ -227,9 +247,8 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
     }
     if (
             (control != U2F_AUTHENTICATE_SIGN && control != U2F_AUTHENTICATE_SIGN_NO_USER) ||
-            req->khl != U2F_KEY_HANDLE_SIZE ||
-            (!u2f_authenticate_credential(&req->kh, req->app)) ||     // Order of checks is important
-            u2f_load_key(&req->kh, req->app) != 0
+            (!u2f_authenticate_credential(&req->kh, req->khl, req->app)) ||     // Order of checks is important
+            u2f_load_key(&req->kh, req->khl, req->app) != 0
 
         )
     {
