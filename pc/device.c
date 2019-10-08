@@ -108,6 +108,7 @@ int udp_recv(int fd, uint8_t * buf, int size)
         perror( "recvfrom failed" );
         exit(1);
     }
+    printf1(TAG_DUMP, ">>"); dump_hex1(TAG_DUMP, buf, length);
     return length;
 }
 
@@ -124,6 +125,8 @@ void udp_send(int fd, uint8_t * buf, int size)
         perror( "sendto failed" );
         exit(1);
     }
+
+    printf1(TAG_DUMP, "<<"); dump_hex1(TAG_DUMP, buf, size);
 }
 
 
@@ -316,7 +319,7 @@ int ctap_user_verification(uint8_t arg)
 uint32_t ctap_atomic_count(uint32_t amount)
 {
     static uint32_t counter1 = 25;
-    counter1 += amount;
+    counter1 += (amount + 1);
     return counter1;
 }
 
