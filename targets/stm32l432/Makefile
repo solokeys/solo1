@@ -90,8 +90,7 @@ flash_dfu: solo.hex bootloader.hex
 	# STM32_Programmer_CLI -c port=usb1 -halt -e all --readunprotect
 	STM32_Programmer_CLI -c port=usb1 -halt -rdu  -d all.hex
 
-flashboot: solo.hex bootloader.hex
-	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
+flashboot: bootloader.hex
 	STM32_Programmer_CLI -c port=SWD -halt -e all --readunprotect
 	STM32_Programmer_CLI -c port=SWD -halt  -d bootloader.hex -rst
 

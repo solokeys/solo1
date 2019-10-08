@@ -12,9 +12,22 @@ _estack = 0x2000c000;
 
 _MIN_STACK_SIZE = 0x400;
 
+/*
+len  |   32 KB/16p|      184KB-8-8/92p   |        2kB/1p         |      38 KB/19p  |
+pos  |   0->32 KB |     32->216KB-8-8    |   216kB -> 218 kB     |   218->256 KB   |
+posp |    0-16    |      16-113          |        113-114        |       113-128   |
+desc | bootloader |       application    | bootloader data       |  secrets/data   |
+
+    Last 8 bytes in application space are occupied by bootloader flags - app
+    authorization and bootloader activation flag.
+ */
+
+/* Current firmware version number is concatenated to the firmware code - see .flag marker */
+/* flash length is (APPLICATION_END_PAGE-20*1024), where 20K is bootloader */
+
 MEMORY
 {
-    flash (rx)      : ORIGIN = 0x08008000, LENGTH = 186K - 8
+    flash (rx)      : ORIGIN = 0x08000000 + 20K + 12K, LENGTH = 216K - 20K - 12K - 8
     ram (xrw)       : ORIGIN = 0x20000000, LENGTH = 48K
     sram2 (rw)      : ORIGIN = 0x10000000, LENGTH = 16K
 }
@@ -49,6 +62,12 @@ SECTIONS
         . = ALIGN(8);
         _edata = .;
     } >ram AT> flash
+
+    .flag :
+    {
+        . = ALIGN(8);
+      KEEP(*(.flag)) ;
+    } > flash
 
     .bss :
     {

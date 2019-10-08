@@ -10,6 +10,7 @@ SRC += $(DRIVER_LIBS) $(USB_LIB)
 SRC += ../../fido2/apdu.c ../../fido2/util.c ../../fido2/u2f.c ../../fido2/test_power.c
 SRC += ../../fido2/stubs.c ../../fido2/log.c  ../../fido2/ctaphid.c  ../../fido2/ctap.c
 SRC += ../../fido2/ctap_parse.c ../../fido2/main.c
+SRC += ../../fido2/version.c
 SRC += ../../fido2/data_migration.c
 SRC += ../../fido2/extensions/extensions.c ../../fido2/extensions/solo.c
 SRC += ../../fido2/extensions/wallet.c
@@ -70,6 +71,7 @@ all: $(TARGET).elf
 
 %.elf: $(OBJ)
 	$(CC) $^ $(HW) $(LDFLAGS) -o $@
+	@echo "Built version: $(VERSION_FLAGS)"
 
 %.hex: %.elf
 	$(SZ) $^
