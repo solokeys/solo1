@@ -718,9 +718,9 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
             ctaphid_write_buffer_init(wb);
             wb->cid = cid;
             wb->cmd = CTAPHID_BOOT;
-            wb->bcnt = (ctap_resp.length + 1);
+            wb->bcnt = (ctap_resp->length + 1);
             ctaphid_write(wb, &is_busy, 1);
-            ctaphid_write(wb, ctap_resp.data, ctap_resp.length);
+            ctaphid_write(wb, ctap_resp->data, ctap_resp->length);
             ctaphid_write(wb, NULL, 0);
             return 1;
 #endif
