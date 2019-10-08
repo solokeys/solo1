@@ -544,9 +544,9 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
 
 uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
 {
-    uint8_t cmd;
+    uint8_t cmd = 0;
     uint32_t cid;
-    int len;
+    int len = 0;
 #ifndef DISABLE_CTAPHID_CBOR
     int status;
 #endif
@@ -556,6 +556,7 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
     CTAP_RESPONSE ctap_resp;
 
     int bufstatus = ctaphid_buffer_packet(pkt_raw, &cmd, &cid, &len);
+    ctaphid_write_buffer_init(&wb);
 
     if (bufstatus == HID_IGNORE)
     {
@@ -591,7 +592,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
         case CTAPHID_PING:
             printf1(TAG_HID,"CTAPHID_PING\n");
 
-            ctaphid_write_buffer_init(&wb);
             wb.cid = cid;
             wb.cmd = CTAPHID_PING;
             wb.bcnt = len;
@@ -606,7 +606,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
         case CTAPHID_WINK:
             printf1(TAG_HID,"CTAPHID_WINK\n");
 
-            ctaphid_write_buffer_init(&wb);
 
             device_wink();
 
@@ -637,7 +636,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             ctap_response_init(&ctap_resp);
             status = ctap_request(ctap_buffer, len, &ctap_resp);
 
-            ctaphid_write_buffer_init(&wb);
             wb.cid = cid;
             wb.cmd = CTAPHID_CBOR;
             wb.bcnt = (ctap_resp.length+1);
@@ -670,7 +668,6 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
             ctap_response_init(&ctap_resp);
             u2f_request((struct u2f_request_apdu*)ctap_buffer, &ctap_resp);
 
-            ctaphid_write_buffer_init(&wb);
             wb.cid = cid;
             wb.cmd = CTAPHID_MSG;
             wb.bcnt = (ctap_resp.length);
@@ -703,19 +700,24 @@ uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
 
 uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE_BUFFER * wb)
 {
-    uint8_t is_busy;
+    ctap_response_init(ctap_resp);
+    ctaphid_write_buffer_init(wb);
+
+#if !defined(IS_BOOTLOADER) && (defined(SOLO_HACKER) || defined(SOLO_EXPERIMENTAL))
     uint32_t param;
+#endif
+#if defined(IS_BOOTLOADER)
+    uint8_t is_busy;
+#endif
 
     switch(cmd)
     {
 #if defined(IS_BOOTLOADER)
         case CTAPHID_BOOT:
             printf1(TAG_HID,"CTAPHID_BOOT\n");
-            ctap_response_init(ctap_resp);
             u2f_set_writeback_buffer(ctap_resp);
             is_busy = bootloader_bridge(len, ctap_buffer);
 
-            ctaphid_write_buffer_init(wb);
             wb->cid = cid;
             wb->cmd = CTAPHID_BOOT;
             wb->bcnt = (ctap_resp->length + 1);
@@ -728,7 +730,6 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
         case CTAPHID_ENTERBOOT:
             printf1(TAG_HID,"CTAPHID_ENTERBOOT\n");
             boot_solo_bootloader();
-            ctaphid_write_buffer_init(wb);
             wb->cid = cid;
             wb->cmd = CTAPHID_ENTERBOOT;
             wb->bcnt = 0;
@@ -743,8 +744,6 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
 #if !defined(IS_BOOTLOADER)
         case CTAPHID_GETRNG:
             printf1(TAG_HID,"CTAPHID_GETRNG\n");
-            ctap_response_init(ctap_resp);
-            ctaphid_write_buffer_init(wb);
             wb->cid = cid;
             wb->cmd = CTAPHID_GETRNG;
             wb->bcnt = ctap_buffer[0];
@@ -760,8 +759,6 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
 
         case CTAPHID_GETVERSION:
             printf1(TAG_HID,"CTAPHID_GETVERSION\n");
-            ctap_response_init(ctap_resp);
-            ctaphid_write_buffer_init(wb);
             wb->cid = cid;
             wb->cmd = CTAPHID_GETVERSION;
             wb->bcnt = 3;
@@ -803,8 +800,6 @@ uint8_t ctaphid_custom_command(uint8_t cmd, uint32_t cid, int len, CTAP_RESPONSE
                         param |= ctap_buffer[0] << 24;
                         ctap_atomic_count(param);
 
-                        ctap_response_init(ctap_resp);
-                        ctaphid_write_buffer_init(wb);
                         wb->cid = cid;
                         wb->cmd = CTAPHID_LOADKEY;
                         wb->bcnt = 0;

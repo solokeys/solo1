@@ -39,7 +39,7 @@ INCLUDES += -I./crypto/cifra/src
 
 CFLAGS += $(INCLUDES)
 # for crypto/tiny-AES-c
-CFLAGS += -DAES256=1 -DAPP_CONFIG=\"app.h\"
+CFLAGS += -DAES256=1 -DAPP_CONFIG=\"app.h\" -DSOLO_EXPERIMENTAL=1
 
 name = main
 
