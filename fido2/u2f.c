@@ -210,7 +210,7 @@ int8_t u2f_authenticate_credential(struct u2f_key_handle * kh, uint8_t key_handl
             return 1;
         }
 
-    }else if (key_handle_len == U2F_KEY_HANDLE_KEY_SIZE)
+    }else if (key_handle_len == U2F_KEY_HANDLE_SIZE)
     {
         u2f_make_auth_tag(kh, appid, tag);
         if (memcmp(kh->tag, tag, U2F_KEY_HANDLE_TAG_SIZE) == 0)
@@ -222,6 +222,7 @@ int8_t u2f_authenticate_credential(struct u2f_key_handle * kh, uint8_t key_handl
     printf1(TAG_U2F, "key handle + appid not authentic\n");
     printf1(TAG_U2F, "calc tag: \n"); dump_hex1(TAG_U2F,tag, U2F_KEY_HANDLE_TAG_SIZE);
     printf1(TAG_U2F, "inp  tag: \n"); dump_hex1(TAG_U2F,kh->tag, U2F_KEY_HANDLE_TAG_SIZE);
+    return 0;
 }
 
 
