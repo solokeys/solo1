@@ -410,7 +410,7 @@ void authenticator_write_state(AuthenticatorState * a, int backup)
     }
 }
 
-uint32_t ctap_atomic_count(int sel)
+uint32_t ctap_atomic_count(uint32_t amount)
 {
     int offset = 0;
     uint32_t * ptr = (uint32_t *)flash_addr(COUNTER1_PAGE);
@@ -425,10 +425,12 @@ uint32_t ctap_atomic_count(int sel)
 
     uint32_t lastc = 0;
 
-    if (sel != 0)
+    if (amount == 0)
     {
-        printf2(TAG_ERR,"counter2 not imple\n");
-        exit(1);
+        // Use a random count [1-16].
+        uint8_t rng[1];
+        ctap_generate_rng(rng, 1);
+        amount = (rng[1] & 0x0f) + 1;
     }
 
     for (offset = 0; offset < PAGE_SIZE/4; offset += 2) // wear-level the flash
@@ -461,7 +463,7 @@ uint32_t ctap_atomic_count(int sel)
         return lastc;
     }
 
-    lastc++;
+    lastc += amount;
 
     if (lastc/256 > erases)
     {
