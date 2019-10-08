@@ -313,20 +313,11 @@ int ctap_user_verification(uint8_t arg)
 }
 
 
-uint32_t ctap_atomic_count(int sel)
+uint32_t ctap_atomic_count(uint32_t amount)
 {
     static uint32_t counter1 = 25;
-    /*return 713;*/
-    if (sel == 0)
-    {
-        printf1(TAG_RED,"counter1: %d\n", counter1);
-        return counter1++;
-    }
-    else
-    {
-        printf2(TAG_ERR,"counter2 not imple\n");
-        exit(1);
-    }
+    counter1 += amount;
+    return counter1;
 }
 
 int ctap_generate_rng(uint8_t * dst, size_t num)

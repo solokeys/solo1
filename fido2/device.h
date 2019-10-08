@@ -61,8 +61,8 @@ int ctap_user_presence_test(uint32_t delay);
 int ctap_generate_rng(uint8_t * dst, size_t num);
 
 // Increment atomic counter and return it.
-// Must support two counters, @sel selects counter0 or counter1.
-uint32_t ctap_atomic_count(int sel);
+// @param amount the amount to increase the counter by.
+uint32_t ctap_atomic_count(uint32_t amount);
 
 // Verify the user
 // return 1 if user is verified, 0 if not
