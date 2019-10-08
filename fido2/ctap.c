@@ -1761,7 +1761,18 @@ static void ctap_state_init()
 
     printf1(TAG_STOR, "Generated PIN SALT: ");
     dump_hex1(TAG_STOR, STATE.PIN_SALT, sizeof STATE.PIN_SALT);
+}
 
+/** Overwrite master secret from external source.
+ * @param keybytes an array of KEY_SPACE_BYTES length.
+ * 
+ * This function should only be called from a privilege mode.
+*/
+void ctap_load_external_keys(uint8_t * keybytes){
+    memmove(STATE.key_space, keybytes, KEY_SPACE_BYTES);
+    authenticator_write_state(&STATE, 0);
+    authenticator_write_state(&STATE, 1);
+    crypto_load_master_secret(STATE.key_space);
 }
 
 void ctap_init()
