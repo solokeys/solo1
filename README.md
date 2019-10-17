@@ -1,4 +1,4 @@
-**NEW!** We launched a new tiny security key called Somu, it's live on Crowd Supply and you can [pre-order it now](https://solokeys.com/somu)!
+**NEW!** We launched a new tiny security key called Somu, it's live on Crowd Supply and you can [order it now](https://solokeys.com/somu)!
 
 [<img src="https://miro.medium.com/max/1400/1*PnzCPLqq_5nt1gjgSEY2LQ.png" width="600">](https://solokeys.com/somu)
 
