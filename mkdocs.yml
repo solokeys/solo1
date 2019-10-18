@@ -15,6 +15,7 @@ nav:
     - Bootloader mode: solo/bootloader-mode.md
     - Customization: solo/customization.md
     - Solo Extras: solo/solo-extras.md
+    - Application Ideas: solo/application-ideas.md
     - Running on Nucleo32 board: solo/nucleo32-board.md
     - Signed update process: solo/signed-updates.md
     - Code documentation: solo/code-overview.md
