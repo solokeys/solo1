@@ -5,12 +5,12 @@ RUN apt-get update -qq
 RUN apt-get install -qq bzip2 git make wget >/dev/null
 
 # 1. ARM GCC: for compilation
-RUN wget -q -O gcc.tar.bz2 https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2?revision=d830f9dd-cd4f-406d-8672-cca9210dd220?product=GNU%20Arm%20Embedded%20Toolchain,64-bit,,Linux,8-2018-q4-major
+RUN wget -q -O gcc.tar.bz2 https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2019q3/RC1.1/gcc-arm-none-eabi-8-2019-q3-update-linux.tar.bz2?revision=c34d758a-be0c-476e-a2de-af8c6e16a8a2?product=GNU%20Arm%20Embedded%20Toolchain,64-bit,,Linux,8-2019-q3-update
 #   from website
-RUN echo "f55f90d483ddb3bcf4dae5882c2094cd  gcc.tar.bz2" > gcc.md5
+RUN echo "6341f11972dac8de185646d0fbd73bfc  gcc.tar.bz2" > gcc.md5
 RUN md5sum -c gcc.md5
 #   self-generated
-RUN echo "fb31fbdfe08406ece43eef5df623c0b2deb8b53e405e2c878300f7a1f303ee52  gcc.tar.bz2" > gcc.sha256
+RUN echo "b50b02b0a16e5aad8620e9d7c31110ef285c1dde28980b1a9448b764d77d8f92  gcc.tar.bz2" > gcc.sha256
 RUN sha256sum -c gcc.sha256
 RUN tar -C /opt -xf gcc.tar.bz2
 
