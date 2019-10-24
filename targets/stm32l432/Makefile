@@ -95,7 +95,7 @@ flashboot: bootloader.hex
 	STM32_Programmer_CLI -c port=SWD -halt  -d bootloader.hex -rst
 
 flash-firmware:
-	arm-none-eabi-size -A solo.elf
+	$(SZ) -A solo.elf
 	solo program aux enter-bootloader
 	solo program bootloader solo.hex
 
