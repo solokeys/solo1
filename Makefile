@@ -94,6 +94,7 @@ docker-build:
 	docker build -t $(DOCKER_IMAGE) .
 	docker run --rm -v "$(CURDIR)/builds:/builds" \
 				    -v "$(CURDIR)/in-docker-build.sh:/in-docker-build.sh" \
+					-v "$(CURDIR):/solo" \
 				    $(DOCKER_IMAGE) "./in-docker-build.sh" $(SOLO_VERSIONISH)
 uncached-docker-build:
 	docker build --no-cache -t $(DOCKER_IMAGE) .
