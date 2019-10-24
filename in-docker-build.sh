@@ -40,8 +40,6 @@ build firmware hacker-debug-2 solo
 build firmware secure solo
 build firmware secure-non-solokeys solo
 
-pip install -U pip
-pip install -U solo-python
 cd ${out_dir}
 bundle="bundle-hacker-${version}"
 /opt/conda/bin/solo mergehex bootloader-nonverifying-${version}.hex firmware-hacker-${version}.hex ${bundle}.hex
