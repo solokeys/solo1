@@ -1,9 +1,3 @@
-**NEW!** We launched a new tiny security key called Somu, it's live on Crowd Supply and you can [pre-order it now](https://solokeys.com/somu)!
-
-[<img src="https://miro.medium.com/max/1400/1*PnzCPLqq_5nt1gjgSEY2LQ.png" width="600">](https://solokeys.com/somu)
-
-Somu is the micro version of Solo. We were inspired to make a secure Tomu, so we took its tiny form factor, we added the secure microcontroller and firmware of Solo, et voilà! Here we have Somu.
-
 [![latest release](https://img.shields.io/github/release/solokeys/solo.svg)](https://update.solokeys.com/)
 [![Keybase Chat](https://img.shields.io/badge/chat-on%20keybase-brightgreen.svg)](https://keybase.io/team/solokeys.public)
 [![Build Status](https://travis-ci.com/solokeys/solo.svg?style=flat-square&branch=master)](https://travis-ci.com/solokeys/solo)
