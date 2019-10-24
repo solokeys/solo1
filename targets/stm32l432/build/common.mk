@@ -13,8 +13,8 @@ USB_LIB := lib/usbd/usbd_cdc.c lib/usbd/usbd_cdc_if.c lib/usbd/usbd_composite.c 
        lib/usbd/usbd_ctlreq.c lib/usbd/usbd_desc.c lib/usbd/usbd_hid.c \
 	   lib/usbd/usbd_ccid.c
 
-VERSION:=$(shell git describe --abbrev=0 )
-VERSION_FULL:=$(shell git describe)
+VERSION_FULL?=$(shell git describe)
+VERSION:=$(shell python -c 'print("$(VERSION_FULL)".split("-")[0])')
 VERSION_MAJ:=$(shell python -c 'print("$(VERSION)".split(".")[0])')
 VERSION_MIN:=$(shell python -c 'print("$(VERSION)".split(".")[1])')
 VERSION_PAT:=$(shell python -c 'print("$(VERSION)".split(".")[2])')

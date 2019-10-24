@@ -23,8 +23,8 @@ else
 endif
 LDFLAGS += $(LIBCBOR)
 
-VERSION:=$(shell git describe --abbrev=0 )
 VERSION_FULL:=$(shell git describe)
+VERSION:=$(shell python -c 'print("$(VERSION_FULL)".split("-")[0])')
 VERSION_MAJ:=$(shell python -c 'print("$(VERSION)".split(".")[0])')
 VERSION_MIN:=$(shell python -c 'print("$(VERSION)".split(".")[1])')
 VERSION_PAT:=$(shell python -c 'print("$(VERSION)".split(".")[2])')

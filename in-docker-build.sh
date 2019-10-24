@@ -1,14 +1,9 @@
 #!/bin/bash -xe
-
-version=${1:-master}
+version=$1
 
 export PREFIX=/opt/gcc-arm-none-eabi-8-2019-q3-update/bin/
 
 cd /solo/targets/stm32l432
-git fetch --tags
-git checkout ${version}
-git submodule update --init --recursive
-version=$(git describe)
 
 make cbor
 
@@ -22,7 +17,7 @@ function build() {
 
     make full-clean
 
-    make ${what}
+    make ${what} VERSION_FULL=${version}
 
     out_hex="${what}-${version}.hex"
     out_sha2="${what}-${version}.sha2"

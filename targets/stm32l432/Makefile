@@ -2,8 +2,8 @@ ifndef DEBUG
 DEBUG=0
 endif
 
-APPMAKE=build/application.mk
-BOOTMAKE=build/bootloader.mk
+APPMAKE=build/application.mk VERSION_FULL=${VERSION_FULL} 
+BOOTMAKE=build/bootloader.mk VERSION_FULL=${VERSION_FULL} 
 
 merge_hex=solo mergehex
 
