@@ -29,5 +29,4 @@ RUN ln -s /opt/conda/bin/python /usr/local/bin/python
 RUN ln -s /opt/conda/bin/pip /usr/local/bin/pip3
 RUN ln -s /opt/conda/bin/pip /usr/local/bin/pip
 
-# 3. Source code
-RUN git clone --recurse-submodules https://github.com/solokeys/solo /solo --config core.autocrlf=input
+RUN pip install -U pip && pip install -U solo-python
