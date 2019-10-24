@@ -34,7 +34,8 @@
 *.app
 *.i*86
 *.x86_64
-*.hex
+targets/*/*.hex
+targets/*/*.sha2
 
 # Debug files
 *.dSYM/
