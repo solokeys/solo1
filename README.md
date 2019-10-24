@@ -32,10 +32,58 @@ Check out [solokeys.com](https://solokeys.com), for options on where to buy Solo
 
 If you have a Solo for Hacker, here's how you can load your own code on it. You can find more details, including how to permanently lock it, in our [documentation](https://docs.solokeys.io/solo/building/). We support Python3.
 
+For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/solokeys/solo/blob/master/targets/stm32l432/src/app.h#L48) and change `LED_INIT_VALUE`
+to be a different hex color.
+
+Then recompile, load your new firmware, and enjoy a different LED color Solo.
+
+In the Hacker version, hardware is the same but the firmware is unlocked, so you can 1) load an unsigned application, or 2) entirely reflash the key. By contrast, in a regular Solo you can only upgrade to a firmware signed by SoloKeys, and flash is locked and debug disabled permanently.
+
+Hacker Solo isn't really secure so you should only use it for development. An attacker with physical access to a Solo for Hacker can reflash it following the steps above, and even a malware on your computer could possibly reflash it.
+
+## Checking out the code
 ```bash
 git clone --recurse-submodules https://github.com/solokeys/solo
 cd solo
+```
 
+If you forgot the `--recurse-submodules` while cloning, simply run `git submodule update --init --recursive`.
+
+`make update` will also checkout the latest code on `master` and submodules.
+
+## Checking out the code to build a specific version
+
+You can checkout the code to build a specific version of the firmware with:
+```
+VERSION_TO_BUILD=2.5.3
+git fetch --tags
+git checkout ${VERSION_TO_BUILD}
+git submodule update --init --recursive
+```
+
+## Installing the toolchain
+
+In order to compile ARM code, you need the ARM compiler and other things like bundling bootloader and firmware require the `solo-python` python package. Check our [documentation](https://docs.solokeys.io/solo/) for details
+
+## Installing the toolkit and compiling in Docker 
+Alternatively, you can use Docker to create a container with the toolchain.
+You can run:
+
+```bash
+# Build the toolchain container
+make docker-build-toolchain 
+
+# Build all versions of the firmware in the "builds" folder
+make docker-build-all
+```
+
+The `builds` folder will contain all the variation on the firmware in `.hex` files.
+
+## Build locally
+
+If you have the toolchain installed on your machine you can build the firmware with: 
+
+```bash
 cd targets/stm32l432
 make cbor
 make build-hacker
@@ -46,19 +94,6 @@ source venv/bin/activate
 solo program aux enter-bootloader
 solo program bootloader targets/stm32l432/solo.hex
 ```
-
-Alternatively, run `make docker-build` and use the firmware generated in `/tmp`.
-
-If you forgot the `--recurse-submodules` when cloning, simply `git submodule update --init --recursive`.
-
-For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/solokeys/solo/blob/master/targets/stm32l432/src/app.h#L48) and change `LED_INIT_VALUE`
-to be a different hex color.
-
-Then recompile, load your new firmware, and enjoy a different LED color Solo.
-
-In the Hacker version, hardware is the same but the firmware is unlocked, so you can 1) load an unsigned application, or 2) entirely reflash the key. By contrast, in a regular Solo you can only upgrade to a firmware signed by SoloKeys, and flash is locked and debug disabled permanently.
-
-Hacker Solo isn't really secure so you should only use it for development. An attacker with physical access to a Solo for Hacker can reflash it following the steps above, and even a malware on your computer could possibly reflash it.
 
 # Developing Solo (No Hardware Needed)
 
