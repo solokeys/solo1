@@ -2,6 +2,7 @@ ifndef DEBUG
 DEBUG=0
 endif
 
+VERSION_FULL?=$(shell git describe)
 APPMAKE=build/application.mk VERSION_FULL=${VERSION_FULL} 
 BOOTMAKE=build/bootloader.mk VERSION_FULL=${VERSION_FULL} 
 
