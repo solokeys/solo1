@@ -62,7 +62,7 @@ test: venv
 	$(MAKE) clean
 	$(MAKE) -C . main
 	$(MAKE) clean
-	$(MAKE) -C ./targets/stm32l432 test PREFIX=$(PREFIX) "VENV=$(VENV)"
+	$(MAKE) -C ./targets/stm32l432 test PREFIX=$(PREFIX) "VENV=$(VENV)" VERSION_FULL=${VERSION_FULL}
 	$(MAKE) clean
 	$(MAKE) cppcheck
 
