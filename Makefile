@@ -132,6 +132,18 @@ clean:
 full-clean: clean
 	rm -rf venv
 
+test-docker:
+	rm -rf builds/*
+	$(MAKE) uncached-docker-build-toolchain
+	# Check if there are 4 docker images/tas named "solokeys/solo-firmware-toolchain"
+	NTAGS=$$(docker images | grep -c "solokeys/solo-firmware-toolchain") && [ $$NTAGS -eq 4 ]
+	$(MAKE) docker-build-all
+	# Check that the builds were created
+	NFILES=$$(ls -l builds | grep -c "bootloader") && [ $$NFILES -eq 4 ]
+	NFILES=$$(ls -l builds | grep -c "bundle") && [ $$NFILES -eq 6 ]
+	NFILES=$$(ls -l builds | grep -c "firmware") && [ $$NFILES -eq 10 ]
+
 travis:
 	$(MAKE) test VENV=". ../../venv/bin/activate;"
+	$(MAKE) test-docker
 	$(MAKE) black
