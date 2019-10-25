@@ -6,14 +6,15 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
     packages:
-      - gcc-7
+      - gcc-8
       - cppcheck
+services:
+  - docker
 before_install:
     - sudo add-apt-repository -y ppa:team-gcc-arm-embedded/ppa
     - sudo apt-get update -q
-    - sudo apt-get install -y gcc-arm-embedded
-    - sudo apt-get install -y python3-venv
+    - sudo apt-get install -y gcc-arm-embedded python3-venv
 script:
-  - export CC=gcc-7
+  - export CC=gcc-8
   - pyenv shell 3.6.7
   - make travis
