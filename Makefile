@@ -92,14 +92,14 @@ DOCKER_IMAGE := "solokeys/solo-firmware:local"
 SOLO_VERSIONISH := "master"
 docker-build:
 	docker build -t $(DOCKER_IMAGE) .
-	docker run --rm -v "$(CURDIR)/builds:/builds" \
-				    -v "$(CURDIR)/in-docker-build.sh:/in-docker-build.sh" \
-				    $(DOCKER_IMAGE) "./in-docker-build.sh" $(SOLO_VERSIONISH)
+	docker run --name solo-firmware_build $(DOCKER_IMAGE) "solo/in-docker-build.sh" $(SOLO_VERSIONISH)
+	docker cp solo-firmware_build:/tmp/solo/builds/. builds/
+	docker rm solo-firmware_build
 uncached-docker-build:
 	docker build --no-cache -t $(DOCKER_IMAGE) .
-	docker run --rm -v "$(CURDIR)/builds:/builds" \
-				    -v "$(CURDIR)/in-docker-build.sh:/in-docker-build.sh" \
-				    $(DOCKER_IMAGE) "./in-docker-build.sh" $(SOLO_VERSIONISH)
+	docker run --name solo-firmware_build $(DOCKER_IMAGE) "solo/in-docker-build.sh" $(SOLO_VERSIONISH)
+	docker cp solo-firmware_build:/tmp/solo/builds/. builds/
+	docker rm solo-firmware_build
 
 CPPCHECK_FLAGS=--quiet --error-exitcode=2
 

@@ -4,6 +4,8 @@ MAINTAINER SoloKeys <hello@solokeys.com>
 RUN apt-get update -qq
 RUN apt-get install -qq bzip2 git make wget >/dev/null
 
+WORKDIR /tmp/
+
 # 1. ARM GCC: for compilation
 RUN wget -q -O gcc.tar.bz2 https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2018q4/gcc-arm-none-eabi-8-2018-q4-major-linux.tar.bz2?revision=d830f9dd-cd4f-406d-8672-cca9210dd220?product=GNU%20Arm%20Embedded%20Toolchain,64-bit,,Linux,8-2018-q4-major
 #   from website
@@ -30,4 +32,4 @@ RUN ln -s /opt/conda/bin/pip /usr/local/bin/pip3
 RUN ln -s /opt/conda/bin/pip /usr/local/bin/pip
 
 # 3. Source code
-RUN git clone --recurse-submodules https://github.com/solokeys/solo /solo --config core.autocrlf=input
+COPY . solo/

@@ -4,7 +4,7 @@ version=${1:-master}
 
 export PREFIX=/opt/gcc-arm-none-eabi-8-2018-q4-major/bin/
 
-cd /solo/targets/stm32l432
+cd /tmp/solo/targets/stm32l432
 git fetch --tags
 git checkout ${version}
 git submodule update --init --recursive
@@ -12,7 +12,7 @@ version=$(git describe)
 
 make cbor
 
-out_dir="/builds"
+out_dir="/tmp/solo/builds"
 
 function build() {
     part=${1}
@@ -29,7 +29,7 @@ function build() {
 
     mv ${output}.hex ${out_hex}
     sha256sum ${out_hex} > ${out_sha2}
-    cp ${out_hex} ${out_sha2} ${out_dir}
+    cp -f ${out_hex} ${out_sha2} ${out_dir}
 }
 
 build bootloader nonverifying
