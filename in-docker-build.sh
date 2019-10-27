@@ -4,6 +4,7 @@ version=$1
 export PREFIX=/opt/gcc-arm-none-eabi-8-2019-q3-update/bin/
 
 cd /solo/targets/stm32l432
+ls
 
 make cbor
 
@@ -11,9 +12,8 @@ out_dir="/builds"
 
 function build() {
     part=${1}
-    variant=${2}
-    output=${3:-${part}}
-    what="${part}-${variant}"
+    output=${2}
+    what="${part}"
 
     make full-clean
 
@@ -27,22 +27,27 @@ function build() {
     cp ${out_hex} ${out_sha2} ${out_dir}
 }
 
-build bootloader nonverifying
-build bootloader verifying
-build firmware hacker solo
-build firmware hacker-debug-1 solo
-build firmware hacker-debug-2 solo
-build firmware secure solo
-build firmware secure-non-solokeys solo
+build bootloader-nonverifying bootloader
+build bootloader-verifying bootloader
+build firmware solo
+build firmware-debug-1 solo
+build firmware-debug-2 solo
+build firmware solo
 
 cd ${out_dir}
+
 bundle="bundle-hacker-${version}"
-/opt/conda/bin/solo mergehex bootloader-nonverifying-${version}.hex firmware-hacker-${version}.hex ${bundle}.hex
+/opt/conda/bin/solo mergehex bootloader-nonverifying-${version}.hex firmware-${version}.hex ${bundle}.hex
 sha256sum ${bundle}.hex > ${bundle}.sha2
+
 bundle="bundle-hacker-debug-1-${version}"
-/opt/conda/bin/solo mergehex bootloader-nonverifying-${version}.hex firmware-hacker-debug-1-${version}.hex ${bundle}.hex
+/opt/conda/bin/solo mergehex bootloader-nonverifying-${version}.hex firmware-debug-1-${version}.hex ${bundle}.hex
+sha256sum ${bundle}.hex > ${bundle}.sha2
+
 bundle="bundle-hacker-debug-2-${version}"
-/opt/conda/bin/solo mergehex bootloader-nonverifying-${version}.hex firmware-hacker-debug-2-${version}.hex ${bundle}.hex
+/opt/conda/bin/solo mergehex bootloader-nonverifying-${version}.hex firmware-debug-2-${version}.hex ${bundle}.hex
+sha256sum ${bundle}.hex > ${bundle}.sha2
+
 bundle="bundle-secure-non-solokeys-${version}"
-/opt/conda/bin/solo mergehex bootloader-verifying-${version}.hex firmware-secure-non-solokeys-${version}.hex ${bundle}.hex
+/opt/conda/bin/solo mergehex --lock bootloader-verifying-${version}.hex firmware-${version}.hex ${bundle}.hex
 sha256sum ${bundle}.hex > ${bundle}.sha2
