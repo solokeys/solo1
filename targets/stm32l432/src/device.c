@@ -192,8 +192,8 @@ void device_init_button(void)
 }
 
 int solo_is_locked(){
-    uint8_t flags = ((AuthenticatorState *) STATE1_PAGE_ADDR)->flags;
-    return (flags & SOLO_FLAG_LOCKED) != 0;
+    uint64_t device_settings = ((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->device_settings;
+    return (device_settings & SOLO_FLAG_LOCKED) != 0;
 }
 
 /** device_migrate
@@ -211,18 +211,20 @@ static void device_migrate(){
     extern uint8_t attestation_solo_cert_der[];
     extern uint8_t attestation_hacker_cert_der[];
 
-    AuthenticatorState state;
-    authenticator_read_state(&state);
-    if (state.flags == 0xFF)
+    uint64_t device_settings = ((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->device_settings;
+    uint32_t configure_tag = (uint32_t)(device_settings >> 32);
+
+    if (configure_tag != ATTESTATION_CONFIGURED_TAG)
     {
         printf1(TAG_RED,"Migrating certificate and lock information to data segment.\r\n");
-        // do migrate.
-        state.flags = 0;
+
+        device_settings = ATTESTATION_CONFIGURED_TAG;
+        device_settings <<= 32;
 
         // Read current device lock level.
         uint32_t optr = FLASH->OPTR;
         if ((optr & 0xff) != 0xAA){
-            state.flags |= SOLO_FLAG_LOCKED;
+            device_settings |= SOLO_FLAG_LOCKED;
         }
 
         uint8_t tmp_attestation_key[32];
@@ -273,9 +275,10 @@ static void device_migrate(){
             );
         }
 
-        // Save.
-        authenticator_write_state(&state,0);
-        authenticator_write_state(&state,1);
+        // Save / done.
+        flash_write_dword(
+            (uint32_t) & ((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->device_settings,
+            (uint64_t)device_settings);
     }
 }
 
