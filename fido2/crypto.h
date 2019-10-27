@@ -54,10 +54,7 @@ void crypto_reset_master_secret();
 void crypto_load_master_secret(uint8_t * key);
 
 
-extern const uint8_t attestation_cert_der[];
-extern const uint16_t attestation_cert_der_size;
-
-extern const uint8_t attestation_key[];
-extern const uint16_t attestation_key_size;
+extern const uint8_t * attestation_cert_der;
+uint16_t attestation_cert_der_get_size();
 
 #endif
