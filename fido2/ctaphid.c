@@ -745,7 +745,11 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
             ctap_buffer[0] = SOLO_VERSION_MAJ;
             ctap_buffer[1] = SOLO_VERSION_MIN;
             ctap_buffer[2] = SOLO_VERSION_PATCH;
+#if defined(SOLO)
             ctap_buffer[3] = solo_is_locked();
+#else
+            ctap_buffer[3] = 0;
+#endif
             ctaphid_write(wb, ctap_buffer, 4);
             ctaphid_write(wb, NULL, 0);
             return 1;
