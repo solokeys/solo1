@@ -64,4 +64,9 @@ int is_authorized_to_boot();
 int is_bootloader_disabled();
 void bootloader_heartbeat();
 
+// Return 1 if Solo is secure/locked.
+int solo_is_locked();
+
+
+
 #endif

@@ -13,7 +13,6 @@
 #include "flash.h"
 #include "log.h"
 #include "device.h"
-#include "app.h"
 
 static void flash_lock(void)
 {

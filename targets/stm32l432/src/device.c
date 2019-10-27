@@ -34,6 +34,8 @@
 #define LOW_FREQUENCY        1
 #define HIGH_FREQUENCY       0
 
+#define SOLO_FLAG_LOCKED                    0x2
+
 void wait_for_usb_tether(void);
 
 
