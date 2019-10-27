@@ -17,8 +17,11 @@
 #define	COUNTER1_PAGE	(PAGES - 3)
 
 // State of FIDO2 application
-#define	STATE2_PAGE		(PAGES - 2)
-#define	STATE1_PAGE		(PAGES - 1)
+#define	STATE2_PAGE		      (PAGES - 2)
+#define	STATE1_PAGE		      (PAGES - 1)
+
+#define	STATE1_PAGE_ADDR		(0x08000000 + ((STATE1_PAGE)*PAGE_SIZE)) 
+#define	STATE2_PAGE_ADDR		(0x08000000 + ((STATE2_PAGE)*PAGE_SIZE)) 
 
 // Storage of FIDO2 resident keys
 #define RK_NUM_PAGES    10

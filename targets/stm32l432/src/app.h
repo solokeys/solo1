@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include "version.h"
 
+#define SOLO
+
 #define DEBUG_UART      USART1
 
 #ifndef DEBUG_LEVEL
@@ -45,6 +47,9 @@
 
 void printing_init();
 void hw_init(int lf);
+
+// Return 1 if Solo is secure/locked.
+int solo_is_locked();
 
 //#define TEST
 //#define TEST_POWER
