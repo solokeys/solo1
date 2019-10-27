@@ -101,11 +101,6 @@ const uint8_t * attestation_cert_der = ((flash_attestation_page *)ATTESTATION_PA
 #include "log.h"
 uint16_t attestation_cert_der_get_size(){
     uint16_t sz = (uint16_t)((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_cert_size;
-
-    printf1(TAG_GREEN,"CERT SIZE: %d\r\n", sz);
-    printf1(TAG_GREEN,"CERT bytes: \r\n");
-    dump_hex1(TAG_GREEN, attestation_cert_der, sz);
-
     return sz;
 }
 
