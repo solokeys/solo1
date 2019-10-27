@@ -741,11 +741,12 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
 
         case CTAPHID_GETVERSION:
             printf1(TAG_HID,"CTAPHID_GETVERSION\n");
-            wb->bcnt = 3;
+            wb->bcnt = 4;
             ctap_buffer[0] = SOLO_VERSION_MAJ;
             ctap_buffer[1] = SOLO_VERSION_MIN;
             ctap_buffer[2] = SOLO_VERSION_PATCH;
-            ctaphid_write(wb, ctap_buffer, 3);
+            ctap_buffer[3] = solo_is_locked();
+            ctaphid_write(wb, ctap_buffer, 4);
             ctaphid_write(wb, NULL, 0);
             return 1;
         break;
