@@ -9,7 +9,6 @@
 #define _APP_H_
 #include <stdint.h>
 #include "version.h"
-
 #define DEBUG_UART      USART1
 
 #ifndef DEBUG_LEVEL
@@ -21,6 +20,7 @@
 #define BOOT_TO_DFU         0
 
 
+#define SOLO                1
 #define IS_BOOTLOADER       1
 
 #define ENABLE_U2F_EXTENSIONS

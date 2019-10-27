@@ -710,6 +710,7 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
             printf1(TAG_HID,"CTAPHID_BOOT\n");
             u2f_set_writeback_buffer(ctap_resp);
             is_busy = bootloader_bridge(len, ctap_buffer);
+            wb->bcnt = 1 + ctap_resp->length;
 
             ctaphid_write(wb, &is_busy, 1);
             ctaphid_write(wb, ctap_resp->data, ctap_resp->length);
