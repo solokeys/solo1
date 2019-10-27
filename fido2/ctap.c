@@ -661,7 +661,7 @@ uint8_t ctap_add_attest_statement(CborEncoder * map, uint8_t * sigder, int len)
         ret = cbor_encoder_create_array(&stmtmap, &x5carr, 1);
         check_ret(ret);
         {
-            ret = cbor_encode_byte_string(&x5carr, attestation_cert_der, attestation_cert_der_size);
+            ret = cbor_encode_byte_string(&x5carr, attestation_cert_der, attestation_cert_der_get_size());
             check_ret(ret);
             ret = cbor_encoder_close_container(&stmtmap, &x5carr);
             check_ret(ret);

@@ -194,9 +194,10 @@ void crypto_ecc256_init(void)
 
 void crypto_ecc256_load_attestation_key(void)
 {
-    static uint8_t _key [32];
-    memmove(_key, (uint8_t*)ATTESTATION_KEY_ADDR, 32);
-    _signing_key = _key;
+    // static uint8_t _key [32];
+    flash_attestation_page * page =(flash_attestation_page *)ATTESTATION_PAGE_ADDR;
+    // memmove(_key, (uint8_t *)ATTESTATION_KEY_ADDR, 32);
+    _signing_key = page->attestation_key;
     _key_len = 32;
 }
 

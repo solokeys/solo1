@@ -6,10 +6,10 @@
 // copied, modified, or distributed except according to those terms.
 #include <stdint.h>
 #include "crypto.h"
+#include "memory_layout.h"
 
-#ifdef USE_SOLOKEYS_CERT
 
-const uint8_t attestation_cert_der[] =
+const uint8_t attestation_solo_cert_der[] =
 "\x30\x82\x02\xe1\x30\x82\x02\x88\xa0\x03\x02\x01\x02\x02\x01\x01\x30\x0a\x06\x08"
 "\x2a\x86\x48\xce\x3d\x04\x03\x02\x30\x81\x80\x31\x0b\x30\x09\x06\x03\x55\x04\x06"
 "\x13\x02\x55\x53\x31\x11\x30\x0f\x06\x03\x55\x04\x08\x0c\x08\x4d\x61\x72\x79\x6c"
@@ -49,11 +49,8 @@ const uint8_t attestation_cert_der[] =
 "\xf8\x84\xc3\x78\x35\x93\x63\x81\x2e\xbe\xa6\x12\x32\x6e\x29\x90\xc8\x91\x4b\x71"
 "\x52"
 ;
-#else
 
-// For testing/development only
-
-const uint8_t attestation_cert_der[] =
+const uint8_t attestation_hacker_cert_der[] =
 "\x30\x82\x02\xe9\x30\x82\x02\x8e\xa0\x03\x02\x01\x02\x02\x01\x01\x30\x0a\x06\x08"
 "\x2a\x86\x48\xce\x3d\x04\x03\x02\x30\x81\x82\x31\x0b\x30\x09\x06\x03\x55\x04\x06"
 "\x13\x02\x55\x53\x31\x11\x30\x0f\x06\x03\x55\x04\x08\x0c\x08\x4d\x61\x72\x79\x6c"
@@ -94,8 +91,16 @@ const uint8_t attestation_cert_der[] =
 "\xf3\x87\x61\x82\xd8\xcd\x48\xfc\x57"
 ;
 
-#endif
 
-const uint16_t attestation_cert_der_size = sizeof(attestation_cert_der)-1;
+const uint16_t attestation_solo_cert_der_size = sizeof(attestation_solo_cert_der)-1;
+const uint16_t attestation_hacker_cert_der_size = sizeof(attestation_hacker_cert_der)-1;
 
-const uint16_t attestation_key_size = 32;
+// const uint16_t attestation_key_size = 32;
+const uint8_t * attestation_cert_der = ((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_cert;
+
+uint16_t attestation_cert_der_get_size(){
+    return ((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_cert_size;
+}
+
+
+const uint

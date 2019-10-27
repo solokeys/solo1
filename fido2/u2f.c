@@ -306,7 +306,7 @@ static int16_t u2f_register(struct u2f_register_request * req)
     uint8_t * sig = (uint8_t*)req;
 
 
-    const uint16_t attest_size = attestation_cert_der_size;
+    const uint16_t attest_size = attestation_cert_der_get_size();
 
 	if ( ! ctap_user_presence_test(750))
 	{
