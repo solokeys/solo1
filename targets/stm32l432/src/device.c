@@ -195,7 +195,8 @@ void device_init_button(void)
 
 int solo_is_locked(){
     uint64_t device_settings = ((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->device_settings;
-    return (device_settings & SOLO_FLAG_LOCKED) != 0;
+    uint32_t tag = (uint32_t)(device_settings >> 32ull);
+    return tag == ATTESTATION_CONFIGURED_TAG && (device_settings & SOLO_FLAG_LOCKED) != 0;
 }
 
 /** device_migrate
