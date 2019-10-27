@@ -8,6 +8,7 @@ RUN apt-get update  \
     make \
     wget \
     bzip2 \
+    git \
   && rm -rf /var/lib/apt/lists/*
 
 # Install ARM compiler
