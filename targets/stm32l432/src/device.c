@@ -191,6 +191,90 @@ void device_init_button(void)
     }
 }
 
+/** device_migrate
+ * Depending on version of device, migrates:
+ * * Moves attestation certificate to data segment. 
+ * * Creates locked variable and stores in data segment.
+ * 
+ * Once in place, this allows all devices to accept same firmware,
+ * rather than using "hacker" and "secure" builds.
+*/
+static void device_migrate(){
+    extern const uint16_t attestation_solo_cert_der_size;
+    extern const uint16_t attestation_hacker_cert_der_size;
+
+    extern uint8_t attestation_solo_cert_der[];
+    extern uint8_t attestation_hacker_cert_der[];
+
+    AuthenticatorState state;
+    authenticator_read_state(&state);
+    printf1(TAG_GREEN,"flags: %02x\r\n", state.flags);
+    // if (state.flags == 0xFF)
+    {
+        printf1(TAG_GREEN,"MIGRATING\r\n");
+        // do migrate.
+        state.flags = 0;
+
+        // Read current device lock level.
+        uint32_t optr = FLASH->OPTR;
+        if ((optr & 0xff) != 0xAA){
+            state.flags |= SOLO_FLAG_LOCKED;
+        }
+
+        uint8_t tmp_attestation_key[32];
+
+        memmove(tmp_attestation_key,
+            ((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_key,
+            32);
+
+        flash_erase_page(ATTESTATION_PAGE);
+        flash_write(
+            (uint32_t)((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_key,
+            tmp_attestation_key,
+            32
+        );
+
+        // Check if this is Solo Hacker attestation (not confidential)
+        // then write solo or hacker attestation cert to flash page.
+        uint8_t solo_hacker_attestation_key[32] = "\x1b\x26\x26\xec\xc8\xf6\x9b\x0f\x69\xe3\x4f"
+                                                  "\xb2\x36\xd7\x64\x66\xba\x12\xac\x16\xc3\xab"
+                                                  "\x57\x50\xba\x06\x4e\x8b\x90\xe0\x24\x48";
+
+        if (memcmp(solo_hacker_attestation_key,
+                   tmp_attestation_key,
+                   32) == 0)
+        {
+            printf1(TAG_GREEN,"Updating solo hacker cert\r\n");
+            flash_write_dword(
+             (uint32_t)&((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_cert_size,
+             (uint64_t)attestation_hacker_cert_der_size
+             );
+            flash_write(
+                (uint32_t)((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_cert,
+                attestation_hacker_cert_der,
+                attestation_hacker_cert_der_size
+            );
+        }
+        else
+        {
+            printf1(TAG_GREEN,"Updating solo secure cert\r\n");
+            flash_write_dword(
+             (uint32_t)&((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_cert_size,
+             (uint64_t)attestation_solo_cert_der_size
+             );
+            flash_write(
+                (uint32_t)((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_cert,
+                attestation_solo_cert_der,
+                attestation_solo_cert_der_size
+            );
+        }
+
+        // Save.
+        authenticator_write_state(&state,0);
+        authenticator_write_state(&state,1);
+    }
+}
+
 void device_init(int argc, char *argv[])
 {
 
@@ -218,6 +302,8 @@ void device_init(int argc, char *argv[])
     usbhid_init();
     ctaphid_init();
     ctap_init();
+
+    device_migrate();
 
 #if BOOT_TO_DFU
     flash_option_bytes_init(1);

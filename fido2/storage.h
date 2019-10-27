@@ -53,6 +53,7 @@ typedef struct
     uint16_t key_lens[MAX_KEYS];
     uint8_t key_space[KEY_SPACE_BYTES];
     uint8_t data_version;
+    uint8_t flags;
 } AuthenticatorState_0x01;
 
 typedef AuthenticatorState_0x01 AuthenticatorState;

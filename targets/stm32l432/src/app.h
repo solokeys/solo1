@@ -78,4 +78,6 @@ void hw_init(int lf);
 #define SKIP_BUTTON_CHECK_WITH_DELAY        0
 #define SKIP_BUTTON_CHECK_FAST              0
 
+#define SOLO_FLAG_LOCKED                    0x2
+
 #endif
