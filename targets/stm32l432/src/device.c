@@ -191,6 +191,11 @@ void device_init_button(void)
     }
 }
 
+int solo_is_locked(){
+    uint8_t flags = ((AuthenticatorState *) STATE1_PAGE_ADDR)->flags;
+    return (flags & SOLO_FLAG_LOCKED) != 0;
+}
+
 /** device_migrate
  * Depending on version of device, migrates:
  * * Moves attestation certificate to data segment. 
@@ -208,10 +213,9 @@ static void device_migrate(){
 
     AuthenticatorState state;
     authenticator_read_state(&state);
-    printf1(TAG_GREEN,"flags: %02x\r\n", state.flags);
-    // if (state.flags == 0xFF)
+    if (state.flags == 0xFF)
     {
-        printf1(TAG_GREEN,"MIGRATING\r\n");
+        printf1(TAG_RED,"Migrating certificate and lock information to data segment.\r\n");
         // do migrate.
         state.flags = 0;
 

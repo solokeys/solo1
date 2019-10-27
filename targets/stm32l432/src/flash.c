@@ -13,6 +13,7 @@
 #include "flash.h"
 #include "log.h"
 #include "device.h"
+#include "app.h"
 
 static void flash_lock(void)
 {
@@ -31,16 +32,10 @@ static void flash_unlock(void)
 // Locks flash and turns off DFU
 void flash_option_bytes_init(int boot_from_dfu)
 {
-#ifndef FLASH_ROP
-#define FLASH_ROP 0
-#endif
-#if FLASH_ROP == 0
     uint32_t val = 0xfffff8aa;
-#elif FLASH_ROP == 2
-    uint32_t val = 0xfffff8cc;
-#else
-    uint32_t val = 0xfffff8b9;
-#endif
+    if (solo_is_locked()){
+        val = 0xfffff8cc;
+    }
 
     if (boot_from_dfu)
     {
