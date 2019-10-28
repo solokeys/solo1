@@ -114,28 +114,27 @@ If the checks succeed, you are ready to program the device attestation key and c
 
 ### Programming an attestation key and certificate
 
-Convert the DER format of the device attestation certificate to "C" bytes using our utility script.  You may first need to
-first install prerequisite python modules (`pip install -r tools/requirements.txt`).
+First, [Build your solo application and bootloader](/solo/building).
 
-```
-python tools/gencert/cbytes.py device_cert.der
-```
-
-Copy the byte string portion into the [`attestation.c` source file of Solo](https://github.com/solokeys/solo/blob/master/targets/stm32l432/src/attestation.c).  Overwrite the development or "default" certificate that is already there.
-
-Now [build the Solo firmware](/solo/building), either a secure or hacker build.  You will need to produce a `bootloader.hex` file and a `solo.hex` file.
-
-Print your attestation key in a hex string format.
+Print your attestation key in a hex string format.  Using our utility script:
 
 ```
 python tools/print_x_y.py device_key.pem
 ```
 
-Merge the `bootloader.hex`, `solo.hex`, and attestion key into one firmware file.
+Merge the `bootloader.hex`, `solo.hex`, attestion key, and certificate into one firmware file.
 
 ```
-solo mergehex --attestation-key <attestation-key-hex-string> bootloader.hex solo.hex all.hex
+solo mergehex  \
+    --attestation-key "(The 32-byte hex string extracted from device_key.pem)" \
+    --attestation-cert device_cert.der \
+    --lock \
+    solo.hex \
+    bootloader.hex \
+    bundle.hex
 ```
 
-Now you have a newly create `all.hex` file with a custom attestation key.  You can [program this `all.hex` file
+Now you have a newly created `bundle.hex` file with a custom attestation key and cert.  You can [program this `bundle.hex` file
 with Solo in DFU mode](/solo/programming#procedure).
+
+Are you interested in customizing in bulk?  Contact hello@solokeys.com and we can help.

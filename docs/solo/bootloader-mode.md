@@ -1,15 +1,16 @@
 # Booting into bootloader mode
 
-You can put Solo into bootloader mode by holding down the button, and plugging in Solo.  After 2 seconds, bootloader mode will activate.
-You'll see a yellowish flashing light and you can let go of the button.
-
-Now Solo is ready to [accept firmware updates](/solo/signed-updates).  If the Solo is a secured model, it can only accept signed updates, typically in the `firmware-*.json` format.
-
-If Solo is running a hacker build, it can be put into bootloader mode on command.  This makes it easier for development.
+If you have a recent version of Solo, you can put it into bootloader mode by running this command.
 
 ```bash
 solo program aux enter-bootloader
 ```
+
+If your Solo is a bit older (<=2.5.3) You can put Solo into bootloader mode by using the button method:  
+Hold down button while plugging in Solo.  After 2 seconds, bootloader mode will activate.
+You'll see a yellowish flashing light and you can let go of the button.
+
+Now Solo is ready to [accept firmware updates](/solo/signed-updates).  If the Solo is a secured model, it can only accept signed updates, typically in the `firmware-*.json` format.
 
 # The boot stages of Solo
 
@@ -21,7 +22,8 @@ The first stage is the DFU (Device Firmware Update) which is in a ROM on Solo.  
 This is what allows the entire firmware of Solo to be programmed.  **It's not recommended to develop for Solo using the DFU because 
 if you program broken firmware, you could brick your device**.
 
-On hacker devices, you can boot into the DFU by holding down the button for 5 seconds, when Solo is already in bootloader mode.
+On hacker/nonverifying-bootloader devices, you can boot into the DFU by holding down the button for 5 seconds, 
+when Solo is already in bootloader mode.
 
 You can also run this command when Solo is in bootloader mode to put it in DFU mode.
 
@@ -29,7 +31,7 @@ You can also run this command when Solo is in bootloader mode to put it in DFU m
 solo program aux enter-dfu
 ```
 
-Note it will stay in DFU mode until to tell it to boot again.  You can boot it again by running the following.
+Note it will stay in DFU mode until you to tell it to boot again.  You can boot it again by running the following.
 
 ```bash
 solo program aux leave-dfu

@@ -22,12 +22,11 @@ solo key update <--secure | --hacker>
 You can manually install the [latest release](https://github.com/solokeys/solo/releases), or use a build that you made.
 
 ```bash
-# If it's a hacker, it will automatically boot into bootloader mode.
 solo program bootloader <firmware.hex | firmware.json>
 ```
 
 Note you won't be able to use `all.hex` or the `bundle-*.hex` builds, as these include the solo bootloader.  You shouldn't
-risk changing the Solo bootloader unless you want to make it a secure device, or [make other customizations]().
+risk changing the Solo bootloader unless you want to make it a secure device, or [make other customizations](/solo/customization/).
 
 ## Updating a Hacker to a Secure Solo
 
@@ -38,14 +37,14 @@ You can use a firmware build from the [latest release](https://github.com/soloke
 a build that you made yourself.
 
 You need to use a firmware file that has the combined bootloader and application (or at the very least just the bootloader).
-This means using the `bundle-*.hex` file or the `all.hex` from your build.  If you overwrite the Solo flash with a missing bootloader,
+This means using the `bundle-*.hex` file or the `bundle.hex` from your build.  If you overwrite the Solo flash with a missing bootloader,
 it will be bricked.
 
 We provide two types of bundled builds.  The `bundle-hacker-*.hex` build is the hacker build.  If you update with this,
 you will update the bootloader and application, but nothing will be secured.  The `bundle-secure-non-solokeys.hex`
 is a secured build that will lock your device and it will behave just like a Secure Solo.  The main difference is that
 it uses a "default" attestation key in the device, rather than the SoloKeys attestation key.  There is no security
-concern with using our default attestation key, aside from a privacy implication that services can distinguish it from Solo Secure.
+concern with using our default attestation key, aside from a small privacy implication that services can distinguish it from Solo Secure.
 
 ### Procedure
 
@@ -61,7 +60,7 @@ concern with using our default attestation key, aside from a privacy implication
 
 2. Program the device
 
-        solo program dfu <bundle-secure-non-solokeys.hex | all.hex>
+        solo program dfu <bundle-secure-non-solokeys.hex | bundle.hex>
 
     Double check you programmed it with bootloader + application (or just bootloader).
     If you messed it up, simply don't do the next step and repeat this step correctly.
