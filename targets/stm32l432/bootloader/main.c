@@ -46,9 +46,7 @@ int main()
 {
     uint8_t hidmsg[64];
     uint32_t t1 = 0;
-#ifdef SOLO_HACKER
     uint32_t stboot_time = 0;
-#endif
     uint32_t boot = 1;
 
     set_logging_mask(
@@ -98,7 +96,6 @@ int main()
     }
 
 
-#ifdef SOLO_HACKER
     if (!is_bootloader_disabled())
     {
         stboot_time = millis();
@@ -108,7 +105,6 @@ int main()
             goto start_bootloader;
         }
     }
-#endif
 
     if (is_authorized_to_boot() && (boot || is_bootloader_disabled()))
     {
@@ -119,9 +115,8 @@ int main()
 
         printf1(TAG_RED,"Not authorized to boot (%08x == %08lx)\r\n", AUTH_WORD_ADDR, *(uint32_t*)AUTH_WORD_ADDR);
     }
-#ifdef SOLO_HACKER
     start_bootloader:
-#endif
+
     SystemClock_Config();
     init_gpio();
     init_millisecond_timer(0);
