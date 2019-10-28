@@ -36,17 +36,21 @@ Enter the `stm32l4xx` target directory.
 cd targets/stm32l432
 ```
 
-Now build Solo.
+Now build the Solo application.
 
 ```
-make build-hacker
+make firmware
 ```
 
-The `build-hacker` recipe does a few things.  First it builds the bootloader, with
+The `firmware` recipe builds the solo application, and outputs `solo.hex`.  You can use this
+to reprogram any unlocked/hacker Solo model.  Note that it does not include the Solo bootloader,
+so it is not a full reprogram.
+
+<!-- First it builds the bootloader, with
 signature checking disabled.  Then it builds the Solo application with "hacker" features
 enabled, like being able to jump to the bootloader on command.  It then merges bootloader
 and solo builds into the same binary.  I.e. it combines `bootloader.hex` and `solo.hex`
-into `all.hex`.
+into `all.hex`. -->
 
 If you're just planning to do development, **please don't try to reprogram the bootloader**,
 as this can be risky if done often.  Just use `solo.hex`.
@@ -57,13 +61,13 @@ If you're developing, you probably want to see debug messages!  Solo has a USB
 Serial port that it will send debug messages through (from `printf`).  You can read them using
 a normal serial terminal like `picocom` or `putty`.
 
-Just add `DEBUG=1` or `DEBUG=2` to your build recipe, like this.
+Just add `-debug-1` or `-debug-2` to your build recipe, like this.
 
 ```
-make build-hacker DEBUG=1
+make firmware-debug-1
 ```
 
-If you use `DEBUG=2`, that means Solo will not boot until something starts reading
+If you use `debug-2`, that means Solo will not boot until something starts reading
 its debug messages.  So it basically waits to tether to a serial terminal so that you don't
 miss any debug messages.
 
@@ -78,27 +82,45 @@ solo monitor <serial-port>
 
 [See issue 62](https://github.com/solokeys/solo/issues/62).
 
-### Building a Solo release
+### Building a complete Solo build (application + bootloader + certificate)
 
-To build Solo
+To make a complete Solo build, you need to build the bootloader.  We provide
+two easy recipes:
 
-If you want to build a release of Solo, we recommend trying a Hacker build first
-just to make sure that it's working.  Otherwise it may not be as easy or possible to
-fix any mistakes.
+* `bootloader-nonverifying`: bootloader with no signature checking on updates.  I.e. "unlocked".
+* `bootloader-verifying`: bootloader with signature checking enforced on updated.  I.e. "Locked".
 
-If you're ready to program a full release, run this recipe to build.
+To be safe, let's use the `-nonverifying` build.
 
 ```
-make build-release-locked
+make bootloader-nonverifying
 ```
 
-This outputs bootloader.hex, solo.hex, and the combined all.hex.
+This outputs `bootloader.hex`.  We can then merge the bootloader and application.
 
-Programming `all.hex` will cause the device to permanently lock itself.  This means debuggers cannot be used and signature checking
-will be enforced on all future updates.
+```
+solo mergehex bootloader.hex solo.hex bundle.hex
+```
 
-Note if you program a secured `solo.hex` file onto a Solo Hacker, it will lock the flash, but the bootloader
-will still accept unsigned firmware updates.  So you can switch it back to being a hacker, but you will
-not be able to replace the unlocked bootloader anymore, since the permanently locked flash also disables the DFU.
-[Read more on Solo's boot stages](/solo/bootloader-mode).
+`bundle.hex` is our complete firmware build.  Note it is in this step that you can
+include a custom attestation certificate or lock the device from debugging/DFU.
+By default the "hacker" attestation certifcate and key is used.
+
+```
+solo mergehex  \
+    --attestation-key "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF" \
+    --attestation-cert attestation.der \
+    --lock \
+    solo.hex \
+    bootloader.hex \
+    bundle.hex
+```
+
+See [here for more information on custom attestation](/solo/customization/).
+
+If you use `--lock`, this will permanently lock the device to this new bootloader.  You
+won't be able to program the bootloader again or be able to connect a hardware debugger.
+The new bootloader may be able to accept (signed) updates still, depending on how you configured it.
+
+To learn more about normal updates or a "full" update, you should [read more on Solo's boot stages](/solo/bootloader-mode).
 
