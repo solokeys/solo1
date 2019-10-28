@@ -197,6 +197,16 @@
         "code",
         "doc"
       ]
+    },
+    {
+      "login": "ccinelli",
+      "name": "ccinelli",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/38021940?v=4",
+      "profile": "https://github.com/ccinelli",
+      "contributions": [
+        "infra",
+        "test"
+      ]
     }
   ],
   "contributorsPerLine": 7,
