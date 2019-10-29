@@ -776,8 +776,8 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
 
             // Ask for THREE button presses
             if (ctap_user_presence_test(8000) > 0)
-                if (ctap_user_presence_test(8000) > 0)
-                    if (ctap_user_presence_test(8000) > 0)
+                if (ctap_user_presence_test(2000) > 0)
+                    if (ctap_user_presence_test(2000) > 0)
                     {
                         ctap_load_external_keys(ctap_buffer + 4);
                         param = ctap_buffer[3];
