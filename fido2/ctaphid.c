@@ -779,18 +779,25 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
         case CTAPHID_LOADKEY:
             /**
              * Load external key.  Useful for enabling backups.
-             * bytes:            4                   96
-             * payload: | counter_increase (BE) | master_key |
+             * bytes:                   4                     4                      96
+             * payload:  version [maj rev patch RFU]| counter_replacement (BE) | master_key |
              * 
              * Counter should be increased by a large amount, e.g. (0x10000000)
              * to outdo any previously lost/broken keys.
             */
             printf1(TAG_HID,"CTAPHID_LOADKEY\n");
-            if (len != 100)
+            if (len != 104)
             {
                 printf2(TAG_ERR,"Error, invalid length.\n");
                 ctaphid_send_error(wb->cid, CTAP1_ERR_INVALID_LENGTH);
                 return 1;
+            }
+            param = ctap_buffer[0] << 16;
+            param |= ctap_buffer[1] << 8;
+            param |= ctap_buffer[2] << 0;
+            if (param != 0){
+                ctaphid_send_error(wb->cid, CTAP1_ERR_INVALID_LENGTH);
+                return CTAP2_ERR_UNSUPPORTED_OPTION;
             }
 
             // Ask for THREE button presses
@@ -799,10 +806,10 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
                     if (ctap_user_presence_test(2000) > 0)
                     {
                         ctap_load_external_keys(ctap_buffer + 4);
-                        param = ctap_buffer[3];
-                        param |= ctap_buffer[2] << 8;
-                        param |= ctap_buffer[1] << 16;
-                        param |= ctap_buffer[0] << 24;
+                        param = ctap_buffer[7];
+                        param |= ctap_buffer[6] << 8;
+                        param |= ctap_buffer[5] << 16;
+                        param |= ctap_buffer[4] << 24;
                         ctap_atomic_count(param);
 
                         wb->bcnt = 0;
