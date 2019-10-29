@@ -777,8 +777,8 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
             param |= ctap_buffer[1] << 8;
             param |= ctap_buffer[2] << 0;
             if (param != 0){
-                ctaphid_send_error(wb->cid, CTAP1_ERR_INVALID_LENGTH);
-                return CTAP2_ERR_UNSUPPORTED_OPTION;
+                ctaphid_send_error(wb->cid, CTAP2_ERR_UNSUPPORTED_OPTION);
+                return 1;
             }
 
             // Ask for THREE button presses
