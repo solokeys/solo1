@@ -805,7 +805,7 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
                 if (ctap_user_presence_test(2000) > 0)
                     if (ctap_user_presence_test(2000) > 0)
                     {
-                        ctap_load_external_keys(ctap_buffer + 4);
+                        ctap_load_external_keys(ctap_buffer + 8);
                         param = ctap_buffer[7];
                         param |= ctap_buffer[6] << 8;
                         param |= ctap_buffer[5] << 16;
