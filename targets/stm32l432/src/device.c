@@ -560,7 +560,11 @@ uint32_t ctap_atomic_count(uint32_t amount)
         return lastc;
     }
 
-    lastc += amount;
+    if (amount > lastc){
+        lastc = amount;
+    } else {
+        lastc += amount;
+    }
 
     if (lastc/256 > erases)
     {
