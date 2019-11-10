@@ -186,7 +186,7 @@ You may use Solo software under the terms of either the Apache 2.0 license or MI
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
 
 All hardware, unless otherwise noted, is dual licensed under CERN and CC-BY-SA.
-You may use Solo hardware under the terms of either the CERN 2.1 license or CC-BY-SA 4.0 license.
+You may use Solo hardware under the terms of either the CERN 1.2 license or CC-BY-SA 4.0 license.
 
 All documentation, unless otherwise noted, is licensed under CC-BY-SA.
 You may use Solo documentation under the terms of the CC-BY-SA 4.0 license
