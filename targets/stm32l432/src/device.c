@@ -290,7 +290,7 @@ void device_init()
 
     hw_init(LOW_FREQUENCY);
 
-    if (! tsc_sensor_exists())
+    if (nfc_peripheral_exists())
     {
         _NFC_status = nfc_init();
     }

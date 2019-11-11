@@ -6,6 +6,7 @@
 void tsc_init(void);
 
 int tsc_sensor_exists(void);
+int nfc_peripheral_exists(void);
 
 // Read button0 or button1
 // Returns 1 if pressed, 0 if not.
