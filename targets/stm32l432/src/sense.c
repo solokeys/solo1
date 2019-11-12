@@ -6,53 +6,47 @@
 #include "stm32l4xx_hal_tsc.h"
 
 /**
-USB A Nano TSC GPIO Configuration:
+USB A Nano & USB C Touch TSC GPIO Configuration:
 PB4   ------> Channel 1 (electrode 1)
 PB5   ------> Channel 2 (electrode 2)
 PB6   ------> Channel 3 (sampling capacitor)
 PB7   ------> Channel 4 (unused)
-
-USB C Touch TSC GPIO Configuration
-PB4   ------> Channel 1 (sampling cap)
-PB5   ------> Channel 2 (electrode 2)
-PB6   ------> Channel 3 (unused)
-PB7   ------> Channel 4 (electrode 1)
 */
-int get_sampling_cap_io(void)
+inline int get_sampling_cap_io(void)
 {
-    return nfc_peripheral_exists() ? TSC_GROUP2_IO1 : TSC_GROUP2_IO3;
+    return TSC_GROUP2_IO3;
 }
 
-int get_sampling_cap_pin(void)
+inline int get_sampling_cap_pin(void)
 {
-    return nfc_peripheral_exists() ? LL_GPIO_PIN_4 : LL_GPIO_PIN_6;
+    return LL_GPIO_PIN_6;
 }
 
-int get_first_electrode_io(void)
+inline int get_first_electrode_io(void)
 {
-    return nfc_peripheral_exists() ? TSC_GROUP2_IO4 : TSC_GROUP2_IO1;
+    return TSC_GROUP2_IO1;
 }
 
-int get_first_electrode_pin(void)
+inline int get_first_electrode_pin(void)
 {
-    return nfc_peripheral_exists() ? LL_GPIO_PIN_7 : LL_GPIO_PIN_4;
+    return LL_GPIO_PIN_4;
 }
 
-int get_second_electrode_io(void)
+inline int get_second_electrode_io(void)
 {
     return TSC_GROUP2_IO2;
 }
 
-int get_second_electrode_pin(void)
+inline int get_second_electrode_pin(void)
 {
     return LL_GPIO_PIN_5;
 }
 
-int get_tsc_threshold(void)
+int unsigned get_tsc_threshold(void)
 {
     // Threshold for USB A nano is 45
     // Threshold for USB C touch is not yet calibrated so this is a dummy value
-    return nfc_peripheral_exists() ? 59 : 45;
+    return has_10nF_sampling_cap() ? 59 : 45;
 }
 
 void tsc_init(void)
@@ -161,7 +155,7 @@ uint32_t tsc_read_button(uint32_t index)
 #define PIN_SHORTED_YES 1
 #define PIN_SHORTED_NO 2
 
-int pin_grounded(int bank, int pin_mask) {
+int pin_grounded(GPIO_TypeDef* bank, int pin_mask) {
     LL_GPIO_SetPinMode(bank, (pin_mask), LL_GPIO_MODE_INPUT);
     LL_GPIO_SetPinPull(bank, (pin_mask), LL_GPIO_PULL_UP);
 
@@ -183,10 +177,9 @@ int tsc_sensor_exists(void)
     return does == PIN_SHORTED_YES;
 }
 
-int nfc_peripheral_exists(void)
+int has_10nF_sampling_cap(void)
 {
-    // USB A & USB C don't have TSC sensors and do support NFC
-    if (!tsc_sensor_exists()) return 1;
+    if (!tsc_sensor_exists()) return 0;
     // Must be either USB A nano or USB C touch. PA8 is only grounded in USB C touch.
     static uint8_t does = PIN_SHORTED_UNDEF;
     if (does == PIN_SHORTED_UNDEF) does = pin_grounded(GPIOA, LL_GPIO_PIN_8);
