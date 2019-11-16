@@ -12,42 +12,15 @@ PB5   ------> Channel 2 (electrode 2)
 PB6   ------> Channel 3 (sampling capacitor)
 PB7   ------> Channel 4 (unused)
 */
-inline int get_sampling_cap_io(void)
-{
-    return TSC_GROUP2_IO3;
-}
-
-inline int get_sampling_cap_pin(void)
-{
-    return LL_GPIO_PIN_6;
-}
-
-inline int get_first_electrode_io(void)
-{
-    return TSC_GROUP2_IO1;
-}
-
-inline int get_first_electrode_pin(void)
-{
-    return LL_GPIO_PIN_4;
-}
-
-inline int get_second_electrode_io(void)
-{
-    return TSC_GROUP2_IO2;
-}
-
-inline int get_second_electrode_pin(void)
-{
-    return LL_GPIO_PIN_5;
-}
-
-int unsigned get_tsc_threshold(void)
-{
-    // Threshold for USB A nano is 45
-    // Threshold for USB C touch is not yet calibrated so this is a dummy value
-    return has_10nF_sampling_cap() ? 59 : 45;
-}
+#define get_sampling_cap_io() TSC_GROUP2_IO3
+#define get_sampling_cap_pin() LL_GPIO_PIN_6
+#define get_first_electrode_io() TSC_GROUP2_IO1
+#define get_first_electrode_pin() LL_GPIO_PIN_4
+#define get_second_electrode_io() TSC_GROUP2_IO2
+#define get_second_electrode_pin() LL_GPIO_PIN_5
+// Threshold for USB A nano is 45
+// Threshold for USB C touch is not yet calibrated so this is a dummy value
+#define get_tsc_threshold() (has_10nF_sampling_cap() ? 59 : 45)
 
 void tsc_init(void)
 {
