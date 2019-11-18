@@ -9,9 +9,9 @@ INC += -I../tinycbor/src
 INC += -I../crypto/sha256 -I../crypto/micro-ecc -I../crypto/tiny-AES-c
 INC += -I../crypto/cifra/src -I../crypto/cifra/src/ext
 
-CFLAGS += -DAPP_CONFIG=\"$(APP_CONFIG)\"
-CFLAGS += $(INC)
-CFLAGS += $(SOLO_VERSION_FLAGS)
+INT_CFLAGS = -DAPP_CONFIG=\"$(APP_CONFIG)\"
+INT_CFLAGS += $(INC)
+INT_CFLAGS += $(SOLO_VERSION_FLAGS)
 
 SRC = apdu.c util.c u2f.c test_power.c
 SRC += stubs.c log.c  ctaphid.c  ctap.c
@@ -34,10 +34,10 @@ libsolo.a: $(OBJ)
 	$(AR) cqs $@ $^
 
 %.o: %.c
-	$(CC) $^ $(CFLAGS) -c -o $@
+	$(CC) $^ $(INT_CFLAGS) $(CFLAGS) -c -o $@
 
 ../crypto/micro-ecc/uECC.o: ../crypto/micro-ecc/uECC.c
-	$(CC) $^ $(ECC_CFLAGS) -c -o $@
+	$(CC) $^ $(INT_CFLAGS) $(ECC_CFLAGS) -c -o $@
 
 clean:
 	rm $(OBJ) libsolo.a

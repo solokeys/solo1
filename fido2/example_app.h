@@ -13,8 +13,6 @@
 
 #define USING_PC
 
-#define DEBUG_LEVEL 1
-
 #define ENABLE_U2F
 #define ENABLE_U2F_EXTENSIONS
 //#define BRIDGE_TO_WALLET
