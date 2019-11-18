@@ -95,12 +95,14 @@ const uint8_t attestation_hacker_cert_der[] =
 const uint16_t attestation_solo_cert_der_size = sizeof(attestation_solo_cert_der)-1;
 const uint16_t attestation_hacker_cert_der_size = sizeof(attestation_hacker_cert_der)-1;
 
-// const uint16_t attestation_key_size = 32;
 const uint8_t * attestation_cert_der = ((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_cert;
 
-#include "log.h"
-uint16_t attestation_cert_der_get_size(){
+uint8_t * device_get_attestation_key(){
+    flash_attestation_page * page =(flash_attestation_page *)ATTESTATION_PAGE_ADDR;
+    return page->attestation_key;
+}
+
+uint16_t device_attestation_cert_der_get_size(){
     uint16_t sz = (uint16_t)((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_cert_size;
     return sz;
 }
-

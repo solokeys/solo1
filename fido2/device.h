@@ -110,4 +110,11 @@ void device_disable_up(bool request_active);
 
 void device_init_button();
 
+/** Return pointer to attestation key.
+*/
+uint8_t * device_get_attestation_key();
+extern const uint8_t * attestation_cert_der;
+
+uint16_t device_attestation_cert_der_get_size();
+
 #endif
