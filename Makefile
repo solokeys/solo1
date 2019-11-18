@@ -9,37 +9,28 @@
 
 ecc_platform=2
 
-src = $(wildcard pc/*.c) $(wildcard fido2/*.c) $(wildcard fido2/extensions/*.c) \
-	$(wildcard crypto/sha256/*.c) crypto/tiny-AES-c/aes.c
+src = pc/device.c # pc/main.c
 
-obj = $(src:.c=.o) crypto/micro-ecc/uECC.o
+obj = $(src:.c=.o)
 
 LIBCBOR = tinycbor/lib/libtinycbor.a
+LIBSOLO = fido2/libsolo.a
 
 ifeq ($(shell uname -s),Darwin)
   export LDFLAGS = -Wl,-dead_strip
 else
   export LDFLAGS = -Wl,--gc-sections
 endif
-LDFLAGS += $(LIBCBOR)
+LDFLAGS += $(LIBCBOR) $(LIBSOLO)
 
-VERSION_FULL:=$(shell git describe)
-VERSION:=$(shell python -c 'print("$(VERSION_FULL)".split("-")[0])')
-VERSION_MAJ:=$(shell python -c 'print("$(VERSION)".split(".")[0])')
-VERSION_MIN:=$(shell python -c 'print("$(VERSION)".split(".")[1])')
-VERSION_PAT:=$(shell python -c 'print("$(VERSION)".split(".")[2])')
 
-VERSION_FLAGS= -DSOLO_VERSION_MAJ=$(VERSION_MAJ) -DSOLO_VERSION_MIN=$(VERSION_MIN) \
-	-DSOLO_VERSION_PATCH=$(VERSION_PAT) -DSOLO_VERSION=\"$(VERSION_FULL)\"
+CFLAGS = -O2 -fdata-sections -ffunction-sections -g
+ECC_CFLAGS = -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform)
 
-CFLAGS = -O2 -fdata-sections -ffunction-sections $(VERSION_FLAGS) -g
-
-INCLUDES = -I./tinycbor/src -I./crypto/sha256 -I./crypto/micro-ecc/ -Icrypto/tiny-AES-c/ -I./fido2/ -I./pc -I./fido2/extensions
-INCLUDES += -I./crypto/cifra/src
+INCLUDES =  -I./fido2/ -I./pc -I../pc -I./tinycbor/src
 
 CFLAGS += $(INCLUDES)
-# for crypto/tiny-AES-c
-CFLAGS += -DAES256=1 -DAPP_CONFIG=\"app.h\" -DSOLO_EXPERIMENTAL=1
+CFLAGS += -DAES256=1  -DSOLO_EXPERIMENTAL=1 -DDEBUG_LEVEL=1
 
 name = main
 
@@ -53,7 +44,10 @@ tinycbor/Makefile crypto/tiny-AES-c/aes.c:
 cbor: $(LIBCBOR)
 
 $(LIBCBOR):
-	cd tinycbor/ && $(MAKE) clean && $(MAKE)  LDFLAGS='' -j8
+	cd tinycbor/ && $(MAKE)  LDFLAGS='' -j8
+
+$(LIBSOLO):
+	cd fido2/ && $(MAKE) CFLAGS="$(CFLAGS)" ECC_CFLAGS="$(ECC_CFLAGS)" APP_CONFIG=app.h -j8
 
 version:
 	@git describe
@@ -66,11 +60,8 @@ test: venv
 	$(MAKE) clean
 	$(MAKE) cppcheck
 
-$(name): $(obj) $(LIBCBOR)
+$(name): $(obj) $(LIBCBOR) $(LIBSOLO)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
-
-crypto/micro-ecc/uECC.o: ./crypto/micro-ecc/uECC.c
-	$(CC) -c -o $@ $^ -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform) -I./crypto/micro-ecc/
 
 venv:
 	python3 -m venv venv
@@ -128,6 +119,7 @@ clean:
 	    	(cd `dirname $$f` ; git checkout -- .) ;\
 	    fi ;\
 	done
+	cd fido2 && $(MAKE) clean
 
 full-clean: clean
 	rm -rf venv

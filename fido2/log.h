@@ -7,7 +7,10 @@
 #ifndef _LOG_H
 #define _LOG_H
 
+#ifdef APP_CONFIG
 #include APP_CONFIG
+#endif 
+
 #include <stdint.h>
 
 #ifndef DEBUG_LEVEL
@@ -50,7 +53,7 @@ typedef enum
     TAG_FILENO   = (1UL << 31)
 } LOG_TAG;
 
-#if DEBUG_LEVEL > 0
+#if defined(DEBUG_LEVEL) && DEBUG_LEVEL > 0
 
 void set_logging_mask(uint32_t mask);
 #define printf1(tag,fmt, ...) LOG(tag & ~(TAG_FILENO), NULL, 0, fmt, ##__VA_ARGS__)
