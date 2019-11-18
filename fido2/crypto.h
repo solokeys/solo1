@@ -9,8 +9,6 @@
 
 #include <stddef.h>
 
-#define USE_SOFTWARE_IMPLEMENTATION
-
 void crypto_sha256_init();
 void crypto_sha256_update(uint8_t * data, size_t len);
 void crypto_sha256_update_secret();
@@ -22,7 +20,6 @@ void crypto_sha256_hmac_final(uint8_t * key, uint32_t klen, uint8_t * hmac);
 void crypto_sha512_init();
 void crypto_sha512_update(const uint8_t * data, size_t len);
 void crypto_sha512_final(uint8_t * hash);
-
 
 void crypto_ecc256_init();
 void crypto_ecc256_derive_public_key(uint8_t * data, int len, uint8_t * x, uint8_t * y);
@@ -53,8 +50,5 @@ void crypto_aes256_encrypt(uint8_t * buf, int lenth);
 void crypto_reset_master_secret();
 void crypto_load_master_secret(uint8_t * key);
 
-
-extern const uint8_t * attestation_cert_der;
-uint16_t attestation_cert_der_get_size();
 
 #endif
