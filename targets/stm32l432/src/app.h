@@ -8,6 +8,7 @@
 #define _APP_H_
 #include <stdint.h>
 #include "version.h"
+#include "solo.h"
 
 #define SOLO
 

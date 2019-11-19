@@ -9,11 +9,8 @@
 
 #include "storage.h"
 
-void device_init(int argc, char *argv[]);
 
 uint32_t millis();
-
-void delay(uint32_t ms);
 
 // HID message size in bytes
 #define HID_MESSAGE_SIZE        64
@@ -26,9 +23,6 @@ void usbhid_send(uint8_t * msg);
 
 void usbhid_close();
 
-void main_loop_delay();
-
-void heartbeat();
 
 void device_reboot();
 
@@ -42,8 +36,7 @@ int authenticator_is_backup_initialized();
 
 void authenticator_write_state(AuthenticatorState *, int backup);
 
-// Called each main loop.  Doesn't need to do anything.
-void device_manage();
+
 
 // sets status that's uses for sending status updates ~100ms.
 // A timer should be set up to call `ctaphid_update_status`
@@ -64,14 +57,6 @@ int ctap_generate_rng(uint8_t * dst, size_t num);
 // @param amount the amount to increase the counter by.
 uint32_t ctap_atomic_count(uint32_t amount);
 
-// Verify the user
-// return 1 if user is verified, 0 if not
-int ctap_user_verification(uint8_t arg);
-
-// Must be implemented by application
-// data is HID_MESSAGE_SIZE long in bytes
-void ctaphid_write_block(uint8_t * data);
-
 
 // Resident key
 void ctap_reset_rk();
@@ -80,9 +65,7 @@ void ctap_store_rk(int index,CTAP_residentKey * rk);
 void ctap_load_rk(int index,CTAP_residentKey * rk);
 void ctap_overwrite_rk(int index,CTAP_residentKey * rk);
 
-// For Solo hacker
-void boot_solo_bootloader();
-void boot_st_bootloader();
+
 
 // HID wink command
 void device_wink();
@@ -108,7 +91,6 @@ int device_is_nfc();
 
 void device_disable_up(bool request_active);
 
-void device_init_button();
 
 /** Return pointer to attestation key.
 */
