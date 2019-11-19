@@ -11,7 +11,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <time.h>
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
@@ -25,8 +24,7 @@
 
 #define RK_NUM  50
 
-bool use_udp = true;
-static bool _up_disabled = false;
+static bool use_udp = true;
 
 struct ResidentKeyStore {
     CTAP_residentKey rks[RK_NUM];
@@ -34,21 +32,6 @@ struct ResidentKeyStore {
 
 void authenticator_initialize();
 
-uint32_t __device_status = 0;
-void device_set_status(uint32_t status)
-{
-    if (status != CTAPHID_STATUS_IDLE && __device_status != status)
-    {
-        ctaphid_update_status(status);
-    }
-    __device_status = status;
-}
-
-void device_reboot() 
-{
-    printf1(TAG_RED, "REBOOT command recieved!\r\n");
-    exit(100);
-}
 
 int udp_server()
 {
@@ -193,7 +176,7 @@ int usbhid_recv(uint8_t * msg)
 }
 
 // Send 64 byte USB HID message
-void usbhid_send(uint8_t * msg)
+static void _usbhid_send(uint8_t * msg)
 {
     if (use_udp)
     {
@@ -208,6 +191,12 @@ void usbhid_send(uint8_t * msg)
         }
     }
 }
+void usbhid_send(uint8_t * msg)
+{
+    _usbhid_send(msg);
+}
+
+
 
 void usbhid_close()
 {
@@ -272,14 +261,6 @@ void device_init(int argc, char *argv[])
 }
 
 
-void main_loop_delay()
-{
-    struct timespec ts;
-    ts.tv_sec = 0;
-    ts.tv_nsec = 1000*1000*100;
-    nanosleep(&ts,NULL);
-}
-
 void delay(uint32_t ms)
 {
     struct timespec ts;
@@ -288,40 +269,6 @@ void delay(uint32_t ms)
     nanosleep(&ts,NULL);
 }
 
-
-void heartbeat()
-{
-
-}
-
-void ctaphid_write_block(uint8_t * data)
-{
-    /*printf("<< "); dump_hex(data, 64);*/
-    usbhid_send(data);
-}
-
-
-int ctap_user_presence_test(uint32_t d)
-{
-    if (_up_disabled)
-    {
-        return 2;
-    }
-    return 1;
-}
-
-int ctap_user_verification(uint8_t arg)
-{
-    return 1;
-}
-
-
-uint32_t ctap_atomic_count(uint32_t amount)
-{
-    static uint32_t counter1 = 25;
-    counter1 += (amount + 1);
-    return counter1;
-}
 
 int ctap_generate_rng(uint8_t * dst, size_t num)
 {
@@ -458,12 +405,6 @@ int authenticator_is_backup_initialized()
 
 }
 
-// Return 1 yes backup is init'd, else 0
-/*int authenticator_is_initialized()*/
-/*{*/
-
-
-/*}*/
 
 static void sync_rk()
 {
@@ -569,18 +510,11 @@ void authenticator_initialize()
     }
 }
 
-void device_manage()
-{
-
-}
-
-
 
 void ctap_reset_rk()
 {
     memset(&RK_STORE,0xff,sizeof(RK_STORE));
     sync_rk();
-
 }
 
 uint32_t ctap_rk_size()
@@ -622,22 +556,9 @@ void ctap_overwrite_rk(int index, CTAP_residentKey * rk)
     }
 }
 
-void device_wink()
-{
-    printf("*WINK*\n");
-}
 
-int device_is_nfc()
-{
-    return 0;
-}
 
-void device_disable_up(bool disable)
-{
-    _up_disabled = disable;
-}
 
-void device_set_clock_rate(DEVICE_CLOCK_RATE param)
-{
 
-}
+
+

@@ -13,11 +13,14 @@
  * with some other platform specific implementation.
  * 
 */
-
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
+#include "ctaphid.h"
+#include "log.h"
 #include APP_CONFIG
 
+static bool _up_disabled = false;
 
 static uint8_t _attestation_cert_der[] =
 "\x30\x82\x01\xfb\x30\x82\x01\xa1\xa0\x03\x02\x01\x02\x02\x01\x00\x30\x0a\x06\x08"
@@ -47,9 +50,9 @@ static uint8_t _attestation_cert_der[] =
 "\x06\xf1\xe3\xab\x16\x21\x8e\xd8\xc0\x14\xaf\x09\x4f\x5b\x73\xef\x5e\x9e\x4b\xe7"
 "\x35\xeb\xdd\x9b\x6d\x8f\x7d\xf3\xc4\x3a\xd7";
 
-uint8_t * attestation_cert_der = _attestation_cert_der;
+__attribute__((weak)) const uint8_t * attestation_cert_der = _attestation_cert_der;
 
-uint8_t * device_get_attestation_key(){
+__attribute__((weak)) uint8_t * device_get_attestation_key(){
     static uint8_t attestation_key[] = 
         "\xcd\x67\xaa\x31\x0d\x09\x1e\xd1\x6e\x7e\x98\x92\xaa"
         "\x07\x0e\x19\x94\xfc\xd7\x14\xae\x7c\x40\x8f\xb9\x46"
@@ -57,7 +60,76 @@ uint8_t * device_get_attestation_key(){
     return attestation_key;
 }
 
-uint16_t device_attestation_cert_der_get_size(){
+__attribute__((weak)) uint16_t device_attestation_cert_der_get_size(){
     return sizeof(_attestation_cert_der)-1;
 }
 
+__attribute__((weak)) void device_reboot() 
+{
+    printf1(TAG_RED, "REBOOT command recieved!\r\n");
+    exit(100);
+}
+
+__attribute__((weak)) void device_set_status(uint32_t status)
+{
+    static uint32_t __device_status = 0;
+    if (status != CTAPHID_STATUS_IDLE && __device_status != status)
+    {
+        ctaphid_update_status(status);
+    }
+    __device_status = status;
+}
+
+
+__attribute__((weak)) void usbhid_close(){/**/}
+
+
+__attribute__((weak)) void device_init(int argc, char *argv[]){/**/}
+
+__attribute__((weak)) void device_disable_up(bool disable)
+{
+    _up_disabled = disable;
+}
+
+__attribute__((weak)) int ctap_user_presence_test(uint32_t d)
+{
+    if (_up_disabled)
+    {
+        return 2;
+    }
+    return 1;
+}
+
+__attribute__((weak)) int ctap_user_verification(uint8_t arg)
+{
+    return 1;
+}
+
+__attribute__((weak)) uint32_t ctap_atomic_count(uint32_t amount)
+{
+    static uint32_t counter1 = 25;
+    counter1 += (amount + 1);
+    return counter1;
+}
+
+
+__attribute__((weak)) int ctap_generate_rng(uint8_t * dst, size_t num)
+{
+    int i;
+    printf1(TAG_ERR, "Insecure RNG being used.\r\n");
+    for (i = 0; i < num; i++){
+        dst[i] = (uint8_t)rand();
+    }
+}
+
+__attribute__((weak)) int device_is_nfc()
+{
+    return 0;
+}
+
+__attribute__((weak)) void device_wink()
+{
+    printf1(TAG_GREEN,"*WINK*\n");
+}
+
+__attribute__((weak)) void device_set_clock_rate(DEVICE_CLOCK_RATE param){/**/}

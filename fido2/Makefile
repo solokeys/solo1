@@ -15,7 +15,7 @@ INT_CFLAGS += $(SOLO_VERSION_FLAGS)
 
 SRC = apdu.c util.c u2f.c test_power.c
 SRC += stubs.c log.c  ctaphid.c  ctap.c
-SRC += ctap_parse.c crypto.c main.c
+SRC += ctap_parse.c crypto.c
 SRC += device.c
 SRC += version.c
 SRC += data_migration.c
