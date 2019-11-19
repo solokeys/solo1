@@ -2,6 +2,7 @@ CC=$(PREFIX)arm-none-eabi-gcc
 CP=$(PREFIX)arm-none-eabi-objcopy
 SZ=$(PREFIX)arm-none-eabi-size
 AR=$(PREFIX)arm-none-eabi-ar
+AS=$(PREFIX)arm-none-eabi-as
 
 DRIVER_LIBS := lib/stm32l4xx_hal_pcd.c lib/stm32l4xx_hal_pcd_ex.c lib/stm32l4xx_ll_gpio.c  \
        lib/stm32l4xx_ll_rcc.c lib/stm32l4xx_ll_rng.c lib/stm32l4xx_ll_tim.c  \
@@ -27,3 +28,6 @@ _all:
 	echo $(VERSION_MAJ)
 	echo $(VERSION_MIN)
 	echo $(VERSION_PAT)
+
+%.o: %.s
+	$(AS) -o $@ $^
