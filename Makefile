@@ -9,7 +9,7 @@
 
 ecc_platform=2
 
-src = pc/device.c # pc/main.c
+src = pc/device.c pc/main.c
 
 obj = $(src:.c=.o)
 
@@ -21,20 +21,20 @@ ifeq ($(shell uname -s),Darwin)
 else
   export LDFLAGS = -Wl,--gc-sections
 endif
-LDFLAGS += $(LIBCBOR) $(LIBSOLO)
+LDFLAGS += $(LIBSOLO) $(LIBCBOR)
 
 
 CFLAGS = -O2 -fdata-sections -ffunction-sections -g
 ECC_CFLAGS = -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform)
 
-INCLUDES =  -I./fido2/ -I./pc -I../pc -I./tinycbor/src
+INCLUDES =  -I../ -I./fido2/ -I./pc -I../pc -I./tinycbor/src
 
 CFLAGS += $(INCLUDES)
 CFLAGS += -DAES256=1  -DSOLO_EXPERIMENTAL=1 -DDEBUG_LEVEL=1
 
 name = main
 
-.PHONY: all $(LIBCBOR) black blackcheck cppcheck wink fido2-test clean full-clean travis test clean version
+.PHONY: all $(LIBCBOR) $(LIBSOLO) black blackcheck cppcheck wink fido2-test clean full-clean travis test clean version
 all: main
 
 tinycbor/Makefile crypto/tiny-AES-c/aes.c:

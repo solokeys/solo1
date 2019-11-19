@@ -275,7 +275,7 @@ static void ctaphid_write(CTAPHID_WRITE_BUFFER * wb, void * _data, int len)
         if (wb->offset > 0)
         {
             memset(wb->buf + wb->offset, 0, HID_MESSAGE_SIZE - wb->offset);
-            ctaphid_write_block(wb->buf);
+            usbhid_send(wb->buf);
         }
         return;
     }
@@ -304,7 +304,7 @@ static void ctaphid_write(CTAPHID_WRITE_BUFFER * wb, void * _data, int len)
         wb->bytes_written += 1;
         if (wb->offset == HID_MESSAGE_SIZE)
         {
-            ctaphid_write_block(wb->buf);
+            usbhid_send(wb->buf);
             wb->offset = 0;
         }
     }

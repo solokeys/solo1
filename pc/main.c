@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "cbor.h"
 #include "device.h"
@@ -17,7 +18,7 @@
 #include "util.h"
 #include "log.h"
 #include "ctap.h"
-#include APP_CONFIG
+#include "app.h"
 
 #if !defined(TEST)
 
@@ -58,13 +59,6 @@ int main(int argc, char *argv[])
 
     while(1)
     {
-        if (millis() - t1 > HEARTBEAT_PERIOD)
-        {
-            heartbeat();
-            t1 = millis();
-        }
-
-        device_manage();
 
         if (usbhid_recv(hidmsg) > 0)
         {
@@ -74,8 +68,13 @@ int main(int argc, char *argv[])
         else
         {
         }
+
         ctaphid_check_timeouts();
 
+        struct timespec ts;
+        ts.tv_sec = 0;
+        ts.tv_nsec = 1000*1000*10;
+        nanosleep(&ts,NULL);
     }
 
     // Should never get here
