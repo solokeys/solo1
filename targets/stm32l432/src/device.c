@@ -285,7 +285,7 @@ static void device_migrate(){
     }
 }
 
-void device_init(int argc, char *argv[])
+void device_init()
 {
 
     hw_init(LOW_FREQUENCY);

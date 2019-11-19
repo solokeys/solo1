@@ -20,8 +20,8 @@
 #include "ctap.h"
 #include "app.h"
 
-#if !defined(TEST)
 
+void device_init(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
@@ -82,5 +82,3 @@ int main(int argc, char *argv[])
     printf1(TAG_GREEN, "done\n");
     return 0;
 }
-
-#endif
