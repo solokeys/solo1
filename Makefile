@@ -56,7 +56,7 @@ test: venv
 	$(MAKE) clean
 	$(MAKE) -C . main
 	$(MAKE) clean
-	$(MAKE) -C ./targets/stm32l432 test PREFIX=$(PREFIX) "VENV=$(VENV)" VERSION_FULL=${VERSION_FULL}
+	$(MAKE) -C ./targets/stm32l432 test PREFIX=$(PREFIX) "VENV=$(VENV)" VERSION_FULL=${SOLO_VERSION_FULL}
 	$(MAKE) clean
 	$(MAKE) cppcheck
 
@@ -89,20 +89,20 @@ DOCKER_TOOLCHAIN_IMAGE := "solokeys/solo-firmware-toolchain"
 
 docker-build-toolchain:
 	docker build -t $(DOCKER_TOOLCHAIN_IMAGE) .
-	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${VERSION}
-	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${VERSION_MAJ}
-	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${VERSION_MAJ}.${VERSION_MIN}
+	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION}
+	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION_MAJ}
+	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION_MAJ}.${SOLO_VERSION_MIN}
 
 uncached-docker-build-toolchain:
 	docker build --no-cache -t $(DOCKER_TOOLCHAIN_IMAGE) .
-	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${VERSION}
-	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${VERSION_MAJ}
-	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${VERSION_MAJ}.${VERSION_MIN}
+	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION}
+	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION_MAJ}
+	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION_MAJ}.${SOLO_VERSION_MIN}
 
 docker-build-all: 
 	docker run --rm -v "$(CURDIR)/builds:/builds" \
 					-v "$(CURDIR):/solo" \
-				    $(DOCKER_TOOLCHAIN_IMAGE) "solo/in-docker-build.sh" ${VERSION_FULL}
+				    $(DOCKER_TOOLCHAIN_IMAGE) "solo/in-docker-build.sh" ${SOLO_VERSION_FULL}
 
 CPPCHECK_FLAGS=--quiet --error-exitcode=2
 
