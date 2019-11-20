@@ -81,7 +81,6 @@ int main(int argc, char *argv[])
     }
 
     // Should never get here
-    usbhid_close();
     printf1(TAG_GREEN, "done\n");
     return 0;
 }
