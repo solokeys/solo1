@@ -18,6 +18,7 @@ nav:
     - Application Ideas: solo/application-ideas.md
     - Running on Nucleo32 board: solo/nucleo32-board.md
     - Signed update process: solo/signed-updates.md
+    - Usage and Porting guide: solo/porting.md
     - Code documentation: solo/code-overview.md
     - Contributing Code: solo/contributing.md
     - Contributing Docs: solo/documenting.md
