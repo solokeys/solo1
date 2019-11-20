@@ -1,3 +1,5 @@
+include fido2/version.mk
+
 #define uECC_arch_other 0
 #define uECC_x86        1
 #define uECC_x86_64     2
@@ -6,7 +8,6 @@
 #define uECC_arm_thumb2 5
 #define uECC_arm64      6
 #define uECC_avr        7
-
 ecc_platform=2
 
 src = pc/device.c pc/main.c
