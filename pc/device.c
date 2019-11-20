@@ -291,10 +291,9 @@ int ctap_generate_rng(uint8_t * dst, size_t num)
 
 
 const char * state_file = "authenticator_state.bin";
-const char * backup_file = "authenticator_state2.bin";
 const char * rk_file = "resident_keys.bin";
 
-void authenticator_read_state(AuthenticatorState * state)
+int authenticator_read_state(AuthenticatorState * state)
 {
     FILE * f;
     int ret;
@@ -313,95 +312,32 @@ void authenticator_read_state(AuthenticatorState * state)
         perror("fwrite");
         exit(1);
     }
-
+    if (state->is_initialized == INITIALIZED_MARKER)
+        return 1;
+    else
+        return 0;
+    
 }
 
-void authenticator_read_backup_state(AuthenticatorState * state )
+
+void authenticator_write_state(AuthenticatorState * state)
 {
     FILE * f;
     int ret;
 
-    f = fopen(backup_file, "rb");
+    f = fopen(state_file, "wb+");
     if (f== NULL)
     {
         perror("fopen");
         exit(1);
     }
-
-    ret = fread(state, 1, sizeof(AuthenticatorState), f);
+    ret = fwrite(state, 1, sizeof(AuthenticatorState), f);
     fclose(f);
-    if(ret != sizeof(AuthenticatorState))
+    if (ret != sizeof(AuthenticatorState))
     {
         perror("fwrite");
         exit(1);
     }
-}
-
-void authenticator_write_state(AuthenticatorState * state, int backup)
-{
-    FILE * f;
-    int ret;
-
-    if (! backup)
-    {
-        f = fopen(state_file, "wb+");
-        if (f== NULL)
-        {
-            perror("fopen");
-            exit(1);
-        }
-        ret = fwrite(state, 1, sizeof(AuthenticatorState), f);
-        fclose(f);
-        if (ret != sizeof(AuthenticatorState))
-        {
-            perror("fwrite");
-            exit(1);
-        }
-    }
-    else
-    {
-
-        f = fopen(backup_file, "wb+");
-        if (f== NULL)
-        {
-            perror("fopen");
-            exit(1);
-        }
-        ret = fwrite(state, 1, sizeof(AuthenticatorState), f);
-        fclose(f);
-        if (ret != sizeof(AuthenticatorState))
-        {
-            perror("fwrite");
-            exit(1);
-        }
-    }
-}
-
-// Return 1 yes backup is init'd, else 0
-int authenticator_is_backup_initialized()
-{
-    uint8_t header[16];
-    AuthenticatorState * state = (AuthenticatorState*) header;
-    FILE * f;
-    int ret;
-
-    printf("state file exists\n");
-    f = fopen(backup_file, "rb");
-    if (f== NULL)
-    {
-        printf("Warning, backup file doesn't exist\n");
-        return 0;
-    }
-
-    ret = fread(header, 1, sizeof(header), f);
-    fclose(f);
-    if(ret != sizeof(header))
-    {
-        perror("fwrite");
-        exit(1);
-    }
-
-    return state->is_initialized == INITIALIZED_MARKER;
 
 }
 
@@ -484,28 +420,9 @@ void authenticator_initialize()
             exit(1);
         }
 
-        f = fopen(backup_file, "wb+");
-        if (f== NULL)
-        {
-            perror("fopen");
-            exit(1);
-        }
-        mem = malloc(sizeof(AuthenticatorState));
-        memset(mem,0xff,sizeof(AuthenticatorState));
-        ret = fwrite(mem, 1, sizeof(AuthenticatorState), f);
-        free(mem);
-        fclose(f);
-        if (ret != sizeof(AuthenticatorState))
-        {
-            perror("fwrite");
-            exit(1);
-        }
-
         // resident_keys
         memset(&RK_STORE,0xff,sizeof(RK_STORE));
         sync_rk();
-
-
 
     }
 }

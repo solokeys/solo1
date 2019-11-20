@@ -468,20 +468,8 @@ void heartbeat(void)
 
 }
 
-void authenticator_read_state(AuthenticatorState * a)
-{
-    uint32_t * ptr = (uint32_t *)flash_addr(STATE1_PAGE);
-    memmove(a,ptr,sizeof(AuthenticatorState));
-}
 
-void authenticator_read_backup_state(AuthenticatorState * a)
-{
-    uint32_t * ptr = (uint32_t *)flash_addr(STATE2_PAGE);
-    memmove(a,ptr,sizeof(AuthenticatorState));
-}
-
-// Return 1 yes backup is init'd, else 0
-int authenticator_is_backup_initialized(void)
+static int authenticator_is_backup_initialized(void)
 {
     uint8_t header[16];
     uint32_t * ptr = (uint32_t *)flash_addr(STATE2_PAGE);
@@ -490,20 +478,35 @@ int authenticator_is_backup_initialized(void)
     return state->is_initialized == INITIALIZED_MARKER;
 }
 
-void authenticator_write_state(AuthenticatorState * a, int backup)
+int authenticator_read_state(AuthenticatorState * a)
 {
-    if (! backup)
-    {
-        flash_erase_page(STATE1_PAGE);
+    uint32_t * ptr = (uint32_t *) flash_addr(STATE1_PAGE);
+    memmove(a, ptr, sizeof(AuthenticatorState));
 
-        flash_write(flash_addr(STATE1_PAGE), (uint8_t*)a, sizeof(AuthenticatorState));
-    }
-    else
-    {
-        flash_erase_page(STATE2_PAGE);
+    if (a->is_initialized != INITIALIZED_MARKER){
 
-        flash_write(flash_addr(STATE2_PAGE), (uint8_t*)a, sizeof(AuthenticatorState));
+        if (authenticator_is_backup_initialized()){
+            printf1(TAG_ERR,"Warning: memory corruption detected.  restoring from backup..\n");
+            ptr = (uint32_t *) flash_addr(STATE2_PAGE);
+            memmove(a, ptr, sizeof(AuthenticatorState));
+            authenticator_write_state(a);
+            return 1;
+        }
+
+        return 0;
     }
+
+    return 1;
+}
+
+
+void authenticator_write_state(AuthenticatorState * a)
+{
+    flash_erase_page(STATE1_PAGE);
+    flash_write(flash_addr(STATE1_PAGE), (uint8_t*)a, sizeof(AuthenticatorState));
+
+    flash_erase_page(STATE2_PAGE);
+    flash_write(flash_addr(STATE2_PAGE), (uint8_t*)a, sizeof(AuthenticatorState));
 }
 
 #if !defined(IS_BOOTLOADER)

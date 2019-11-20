@@ -22,6 +22,9 @@
 
 
 void device_init(int argc, char *argv[]);
+int usbhid_recv(uint8_t * msg);
+
+
 
 int main(int argc, char *argv[])
 {

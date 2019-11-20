@@ -56,8 +56,7 @@ bool migrate_from_FF_to_01(AuthenticatorState_0xFF* state_prev_0xff, Authenticat
 
 void save_migrated_state(AuthenticatorState *state_tmp_ptr) {
     memmove(&STATE, state_tmp_ptr, sizeof(AuthenticatorState));
-    authenticator_write_state(state_tmp_ptr, 0);
-    authenticator_write_state(state_tmp_ptr, 1);
+    authenticator_write_state(state_tmp_ptr);
 }
 
 void do_migration_if_required(AuthenticatorState* state_current){
