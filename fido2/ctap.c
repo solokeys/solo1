@@ -282,13 +282,9 @@ void make_auth_tag(uint8_t * rpIdHash, uint8_t * nonce, uint32_t count, uint8_t 
     memmove(tag, hashbuf, CREDENTIAL_TAG_SIZE);
 }
 
-void ctap_flush_state(int backup)
+void ctap_flush_state()
 {
-    authenticator_write_state(&STATE, 0);
-    if (backup)
-    {
-        authenticator_write_state(&STATE, 1);
-    }
+    authenticator_write_state(&STATE);
 }
 
 static uint32_t auth_data_update_count(CTAP_authDataHeader * authData)
@@ -312,7 +308,7 @@ static uint32_t auth_data_update_count(CTAP_authDataHeader * authData)
 static void ctap_increment_rk_store()
 {
     STATE.rk_stored++;
-    ctap_flush_state(1);
+    ctap_flush_state();
 }
 
 static int is_matching_rk(CTAP_residentKey * rk, CTAP_residentKey * rk2)
@@ -1770,8 +1766,7 @@ static void ctap_state_init()
 */
 void ctap_load_external_keys(uint8_t * keybytes){
     memmove(STATE.key_space, keybytes, KEY_SPACE_BYTES);
-    authenticator_write_state(&STATE, 0);
-    authenticator_write_state(&STATE, 1);
+    authenticator_write_state(&STATE);
     crypto_load_master_secret(STATE.key_space);
 }
 
@@ -1785,30 +1780,18 @@ void ctap_init()
             );
     crypto_ecc256_init();
 
-    authenticator_read_state(&STATE);
+    int is_init = authenticator_read_state(&STATE);
 
     device_set_status(CTAPHID_STATUS_IDLE);
 
-    if (STATE.is_initialized == INITIALIZED_MARKER)
+    if (is_init)
     {
         printf1(TAG_STOR,"Auth state is initialized\n");
     }
     else
     {
-        printf1(TAG_STOR,"Auth state is NOT initialized.  Initializing..\n");
-        if (authenticator_is_backup_initialized())
-        {
-            printf1(TAG_ERR,"Warning: memory corruption detected.  restoring from backup..\n");
-            authenticator_read_backup_state(&STATE);
-            authenticator_write_state(&STATE, 0);
-        }
-        else
-        {
-            ctap_state_init();
-            authenticator_write_state(&STATE, 0);
-            authenticator_write_state(&STATE, 1);
-
-        }
+        ctap_state_init();
+        authenticator_write_state(&STATE);
     }
 
     do_migration_if_required(&STATE);
@@ -1875,8 +1858,7 @@ void ctap_update_pin(uint8_t * pin, int len)
 
     STATE.is_pin_set = 1;
 
-    authenticator_write_state(&STATE, 1);
-    authenticator_write_state(&STATE, 0);
+    authenticator_write_state(&STATE);
 
     printf1(TAG_CTAP, "New pin set: %s [%d]\n", pin, len);
     dump_hex1(TAG_ERR, STATE.PIN_CODE_HASH, sizeof(STATE.PIN_CODE_HASH));
@@ -1891,7 +1873,7 @@ uint8_t ctap_decrement_pin_attempts()
     if (! ctap_device_locked())
     {
         STATE.remaining_tries--;
-        ctap_flush_state(0);
+        ctap_flush_state();
         printf1(TAG_CP, "ATTEMPTS left: %d\n", STATE.remaining_tries);
 
         if (ctap_device_locked())
@@ -1926,7 +1908,7 @@ void ctap_reset_pin_attempts()
 {
     STATE.remaining_tries = PIN_LOCKOUT_ATTEMPTS;
     PIN_BOOT_ATTEMPTS_LEFT = PIN_BOOT_ATTEMPTS;
-    ctap_flush_state(0);
+    ctap_flush_state();
 }
 
 void ctap_reset_state()
@@ -2000,7 +1982,7 @@ int8_t ctap_store_key(uint8_t index, uint8_t * key, uint16_t len)
 
     memmove(STATE.key_space + offset, key, len);
 
-    ctap_flush_state(1);
+    ctap_flush_state();
 
     return 0;
 }
@@ -2042,8 +2024,7 @@ void ctap_reset()
 {
     ctap_state_init();
 
-    authenticator_write_state(&STATE, 0);
-    authenticator_write_state(&STATE, 1);
+    authenticator_write_state(&STATE);
 
     if (ctap_generate_rng(PIN_TOKEN, PIN_TOKEN_SIZE) != 1)
     {
@@ -2063,6 +2044,5 @@ void lock_device_permanently() {
 
     printf1(TAG_CP, "Device locked!\n");
 
-    authenticator_write_state(&STATE, 0);
-    authenticator_write_state(&STATE, 1);
+    authenticator_write_state(&STATE);
 }

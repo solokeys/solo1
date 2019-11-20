@@ -59,6 +59,8 @@
 
 #define CTAP_CAPABILITIES           (CAPABILITY_WINK | CAPABILITY_CBOR)
 
+#define HID_MESSAGE_SIZE        64
+
 typedef struct
 {
     uint32_t cid;
