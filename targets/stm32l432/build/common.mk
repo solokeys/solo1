@@ -1,3 +1,5 @@
+include ../../fido2/version.mk
+
 CC=$(PREFIX)arm-none-eabi-gcc
 CP=$(PREFIX)arm-none-eabi-objcopy
 SZ=$(PREFIX)arm-none-eabi-size
@@ -14,20 +16,20 @@ USB_LIB := lib/usbd/usbd_cdc.c lib/usbd/usbd_cdc_if.c lib/usbd/usbd_composite.c 
        lib/usbd/usbd_ctlreq.c lib/usbd/usbd_desc.c lib/usbd/usbd_hid.c \
 	   lib/usbd/usbd_ccid.c
 
-VERSION_FULL?=$(shell git describe)
-VERSION:=$(shell python -c 'print("$(VERSION_FULL)".split("-")[0])')
-VERSION_MAJ:=$(shell python -c 'print("$(VERSION)".split(".")[0])')
-VERSION_MIN:=$(shell python -c 'print("$(VERSION)".split(".")[1])')
-VERSION_PAT:=$(shell python -c 'print("$(VERSION)".split(".")[2])')
+VERSION_FULL?=$(SOLO_VERSION_FULL)
+VERSION:=$(SOLO_VERSION)
+VERSION_MAJ:=$(SOLO_VERSION_MAJ)
+VERSION_MIN:=$(SOLO_VERSION_MIN)
+VERSION_PAT:=$(SOLO_VERSION_PAT)
 
 VERSION_FLAGS= -DSOLO_VERSION_MAJ=$(VERSION_MAJ) -DSOLO_VERSION_MIN=$(VERSION_MIN) \
 	-DSOLO_VERSION_PATCH=$(VERSION_PAT) -DSOLO_VERSION=\"$(VERSION_FULL)\"
 
 _all:
-	echo $(VERSION_FULL)
-	echo $(VERSION_MAJ)
-	echo $(VERSION_MIN)
-	echo $(VERSION_PAT)
+	echo $(SOLO_VERSION_FULL)
+	echo $(SOLO_VERSION_MAJ)
+	echo $(SOLO_VERSION_MIN)
+	echo $(SOLO_VERSION_PAT)
 
 %.o: %.s
 	$(AS) -o $@ $^
