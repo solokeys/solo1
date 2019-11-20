@@ -20,6 +20,13 @@
 #include "log.h"
 #include APP_CONFIG
 
+#define RK_NUM  50
+
+struct ResidentKeyStore {
+    CTAP_residentKey rks[RK_NUM];
+} RK_STORE;
+
+
 static bool _up_disabled = false;
 
 static uint8_t _attestation_cert_der[] =
@@ -133,3 +140,60 @@ __attribute__((weak)) void device_wink()
 }
 
 __attribute__((weak)) void device_set_clock_rate(DEVICE_CLOCK_RATE param){/**/}
+
+static  AuthenticatorState _tmp_state = {0};
+__attribute__((weak)) int authenticator_read_state(AuthenticatorState * s){
+    if (_tmp_state.is_initialized != INITIALIZED_MARKER){
+        return 0;
+    }
+    else {
+        memmove(s, &_tmp_state, sizeof(AuthenticatorState));
+        return 1;
+    }
+}
+
+__attribute__((weak)) void authenticator_write_state(AuthenticatorState * s){
+    memmove(&_tmp_state, s, sizeof(AuthenticatorState));
+}
+
+__attribute__((weak)) void ctap_reset_rk()
+{
+    memset(&RK_STORE,0xff,sizeof(RK_STORE));
+}
+
+__attribute__((weak)) uint32_t ctap_rk_size()
+{
+    return RK_NUM;
+}
+
+
+__attribute__((weak)) void ctap_store_rk(int index, CTAP_residentKey * rk)
+{
+    if (index < RK_NUM)
+    {
+        memmove(RK_STORE.rks + index, rk, sizeof(CTAP_residentKey));
+    }
+    else
+    {
+        printf1(TAG_ERR,"Out of bounds for store_rk\r\n");
+    }
+
+}
+
+__attribute__((weak)) void ctap_load_rk(int index, CTAP_residentKey * rk)
+{
+    memmove(rk, RK_STORE.rks + index, sizeof(CTAP_residentKey));
+}
+
+__attribute__((weak)) void ctap_overwrite_rk(int index, CTAP_residentKey * rk)
+{
+    if (index < RK_NUM)
+    {
+        memmove(RK_STORE.rks + index, rk, sizeof(CTAP_residentKey));
+    }
+    else
+    {
+        printf1(TAG_ERR,"Out of bounds for store_rk\r\n");
+    }
+}
+
