@@ -12,6 +12,8 @@
  * aren't what you want to keep, but are designed to be replaced
  * with some other platform specific implementation.
  * 
+ * For real examples, see the STM32L4 implementation and the PC implementation of device.c.
+ * 
 */
 #include <stdint.h>
 #include <stdlib.h>

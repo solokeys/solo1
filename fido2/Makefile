@@ -40,5 +40,5 @@ libsolo.a: $(OBJ)
 	$(CC) $^ $(INT_CFLAGS) $(ECC_CFLAGS) -c -o $@
 
 clean:
-	rm $(OBJ) libsolo.a
+	rm -f $(OBJ) libsolo.a
 
