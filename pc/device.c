@@ -175,8 +175,7 @@ int usbhid_recv(uint8_t * msg)
     return l;
 }
 
-// Send 64 byte USB HID message
-static void _usbhid_send(uint8_t * msg)
+void usbhid_send(uint8_t * msg)
 {
     if (use_udp)
     {
@@ -190,10 +189,6 @@ static void _usbhid_send(uint8_t * msg)
             exit(1);
         }
     }
-}
-void usbhid_send(uint8_t * msg)
-{
-    _usbhid_send(msg);
 }
 
 
