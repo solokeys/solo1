@@ -755,11 +755,6 @@ int ctap_generate_rng(uint8_t * dst, size_t num)
 }
 
 
-int ctap_user_verification(uint8_t arg)
-{
-    return 1;
-}
-
 void ctap_reset_rk(void)
 {
     int i;
