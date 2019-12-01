@@ -19,9 +19,6 @@
 #define CTAP_VENDOR_FIRST           0x40
 #define CTAP_VENDOR_LAST            0xBF
 
-// AAGUID For Solo
-#define CTAP_AAGUID                 ((uint8_t*)"\x88\x76\x63\x1b\xd4\xa0\x42\x7f\x57\x73\x0e\xc7\x1c\x9e\x02\x79")
-
 #define MC_clientDataHash         0x01
 #define MC_rp                     0x02
 #define MC_user                   0x03

@@ -69,6 +69,8 @@ uint8_t ctap_get_info(CborEncoder * encoder)
     CborEncoder map;
     CborEncoder options;
     CborEncoder pins;
+    uint8_t aaguid[16];
+    device_read_aaguid(aaguid);
 
     ret = cbor_encoder_create_map(encoder, &map, 6);
     check_ret(ret);
@@ -105,7 +107,7 @@ uint8_t ctap_get_info(CborEncoder * encoder)
         ret = cbor_encode_uint(&map, RESP_aaguid);
         check_ret(ret);
         {
-            ret = cbor_encode_byte_string(&map, CTAP_AAGUID, 16);
+            ret = cbor_encode_byte_string(&map, aaguid, 16);
             check_ret(ret);
         }
 
@@ -505,7 +507,7 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
 
         cbor_encoder_init(&cose_key, cose_key_buf, *len - sizeof(CTAP_authData), 0);
 
-        memmove(authData->attest.aaguid, CTAP_AAGUID, 16);
+        device_read_aaguid(authData->attest.aaguid);
         authData->attest.credLenL =  sizeof(CredentialId) & 0x00FF;
         authData->attest.credLenH = (sizeof(CredentialId) & 0xFF00) >> 8;
 
