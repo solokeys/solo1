@@ -299,7 +299,7 @@ static int16_t u2f_authenticate(struct u2f_authenticate_request * req, uint8_t c
 static int16_t u2f_register(struct u2f_register_request * req)
 {
     uint8_t i[] = {0x0,U2F_EC_FMT_UNCOMPRESSED};
-
+    uint8_t cert[1024];
     struct u2f_key_handle key_handle;
     uint8_t pubkey[64];
     uint8_t hash[32];
@@ -307,6 +307,11 @@ static int16_t u2f_register(struct u2f_register_request * req)
 
 
     const uint16_t attest_size = device_attestation_cert_der_get_size();
+
+    if (attest_size > sizeof(cert)){
+        printf2(TAG_ERR,"Certificate is too large for buffer\r\n");
+        return U2F_SW_INSUFFICIENT_MEMORY;
+    }
 
 	if ( ! ctap_user_presence_test(750))
 	{
@@ -341,7 +346,8 @@ static int16_t u2f_register(struct u2f_register_request * req)
     u2f_response_writeback(i,1);
     u2f_response_writeback((uint8_t*)&key_handle,U2F_KEY_HANDLE_SIZE);
 
-    u2f_response_writeback(attestation_cert_der,attest_size);
+    device_attestation_read_cert_der(cert);
+    u2f_response_writeback(cert,attest_size);
 
     dump_signature_der(sig);
 

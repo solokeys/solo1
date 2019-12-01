@@ -199,9 +199,12 @@ int device_is_nfc();
 */
 uint8_t * device_get_attestation_key();
 
-/** Pointer to a ASN.1/DER encoded byte array of the attestation certificate.
+/** Read the device's attestation certificate into buffer @dst.
+ * @param dst the destination to write the certificate.
+ * 
+ * The size of the certificate can be retrieved using `device_attestation_cert_der_get_size()`.
 */
-extern const uint8_t * attestation_cert_der;
+void device_attestation_read_cert_der(uint8_t * dst);
 
 /** Returns the size in bytes of attestation_cert_der.
  * @return number of bytes in attestation_cert_der, not including any C string null byte.
