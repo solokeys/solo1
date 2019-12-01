@@ -59,7 +59,10 @@ static uint8_t _attestation_cert_der[] =
 "\x06\xf1\xe3\xab\x16\x21\x8e\xd8\xc0\x14\xaf\x09\x4f\x5b\x73\xef\x5e\x9e\x4b\xe7"
 "\x35\xeb\xdd\x9b\x6d\x8f\x7d\xf3\xc4\x3a\xd7";
 
-__attribute__((weak)) const uint8_t * attestation_cert_der = _attestation_cert_der;
+
+__attribute__((weak)) void device_attestation_read_cert_der(uint8_t * dst){
+    memmove(dst, _attestation_cert_der, device_attestation_cert_der_get_size());
+}
 
 __attribute__((weak)) uint8_t * device_get_attestation_key(){
     static uint8_t attestation_key[] = 
@@ -197,5 +200,10 @@ __attribute__((weak)) void ctap_overwrite_rk(int index, CTAP_residentKey * rk)
     {
         printf1(TAG_ERR,"Out of bounds for store_rk\r\n");
     }
+}
+
+__attribute__((weak)) void device_read_aaguid(uint8_t * dst){
+    uint8_t * aaguid = (uint8_t *)"\x00\x76\x63\x1b\xd4\xa0\x42\x7f\x57\x73\x0e\xc7\x1c\x9e\x02\x79";
+    memmove(dst, aaguid, 16);
 }
 
