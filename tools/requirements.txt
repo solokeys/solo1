@@ -1,5 +1,5 @@
 ecdsa
-fido2
+fido2==0.7.3
 intelhex
 pyserial
 solo-python
