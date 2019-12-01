@@ -67,7 +67,7 @@ typedef struct flash_memory_st flash_memory_st;
 #include <assert.h>
 static_assert(sizeof(flash_memory_st) == 256*1024, "Data structure doesn't match flash size");
 
-#define ATTESTATION_CONFIGURED_TAG      0xaa551e78
+#define ATTESTATION_CONFIGURED_TAG      0xaa551e79
 
 struct flash_attestation_page{
   uint8_t attestation_key[32];
