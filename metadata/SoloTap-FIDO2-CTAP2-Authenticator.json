@@ -1,6 +1,6 @@
 {
-    "description": "Solo Secp256R1 FIDO2 CTAP2 Authenticator",
-    "aaguid": "8876631b-d4a0-427f-5773-0ec71c9e0279",
+    "description": "Solo Tap Secp256R1 FIDO2 CTAP2 Authenticator",
+    "aaguid": "8976631b-d4a0-427f-5773-0ec71c9e0279",
     "alternativeDescriptions": {
     },
     "protocolFamily": "fido2",
@@ -30,7 +30,7 @@
     "keyProtection": 2,
     "matcherProtection": 4,
     "cryptoStrength": 128,
-    "attachmentHint": 2,
+    "attachmentHint": 26,
     "isSecondFactorOnly": false,
     "tcDisplay": 0,
     "attestationRootCertificates": [
