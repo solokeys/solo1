@@ -211,4 +211,9 @@ void device_attestation_read_cert_der(uint8_t * dst);
 */
 uint16_t device_attestation_cert_der_get_size();
 
+/** Read the device's 16 byte AAGUID into a buffer.
+ * @param dst buffer to write 16 byte AAGUID into.
+ * */
+void device_read_aaguid(uint8_t * dst);
+
 #endif
