@@ -5,8 +5,11 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 #include <stdint.h>
+#include <string.h>
 #include "crypto.h"
 #include "memory_layout.h"
+#include "device.h"
+#include "sense.h"
 
 
 const uint8_t attestation_solo_cert_der[] =
@@ -96,7 +99,6 @@ const uint8_t attestation_hacker_cert_der[] =
 const uint16_t attestation_solo_cert_der_size = sizeof(attestation_solo_cert_der)-1;
 const uint16_t attestation_hacker_cert_der_size = sizeof(attestation_hacker_cert_der)-1;
 
-const uint8_t * attestation_cert_der = ((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_cert;
 
 uint8_t * device_get_attestation_key(){
     flash_attestation_page * page =(flash_attestation_page *)ATTESTATION_PAGE_ADDR;
@@ -106,4 +108,23 @@ uint8_t * device_get_attestation_key(){
 uint16_t device_attestation_cert_der_get_size(){
     uint16_t sz = (uint16_t)((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_cert_size;
     return sz;
+}
+
+void device_attestation_read_cert_der(uint8_t * dst){
+    const uint8_t * der = ((flash_attestation_page *)ATTESTATION_PAGE_ADDR)->attestation_cert;
+    uint16_t sz = device_attestation_cert_der_get_size();
+    memmove(dst, der, sz);
+
+    // Overwrite respective x509 fields if Tap or Somu.
+    if (memcmp(dst + 0x2c6, "\xea\x09\x15\x6c\x86\x48\x57\x2a\xa8\x8d", 10) == 0){
+        if (device_is_nfc()){
+            dst[0x2a3] = 0x89;//tap aaguid byte
+            memmove(dst + 0xac, "\x34\x33\x38\x5a\x18\x0f\x32\x30\x36\x39\x31\x31\x31\x38\x31\x39\x32\x34\x33\x38", 20);//tap-id
+            memmove(dst + 0x2c5, "\x6d\x7b\x41\x2b\xff\x57\xf0\x03\xbd\x5b\x39\x4a\xf7\xa9\x2d\x6d\xcb\x9e\x2d\x88\xbf\xb3\x93\xc5\x66\x3b\xd1\xbc\x34\xfa\x5c\x4c\x02\x20\x59\x01\x49\x39\x1b\xb7\xa9\x1c\xed\x49\x78\x4f\x92\xa9\x61\x14\xa5\x6e\x96\x3f\x29\x02\x93\xe0\x5d\xe2\x75\xd0\x60\xd9\x74\xc2", 66);//tap-sig 
+        } else if (tsc_sensor_exists()) {
+            dst[0x2a3] = 0x98;//somu aaguid byte
+            memmove(dst + 0xac, "\x35\x30\x32\x5a\x18\x0f\x32\x30\x36\x39\x31\x31\x31\x38\x31\x39\x32\x35\x30\x32", 20);//somu-id
+            memmove(dst + 0x2c5, "\x4d\x08\xc8\x9d\xc4\x50\x49\x70\x48\x4d\xd0\x12\xd9\x7c\x62\x5e\x6b\xd3\x84\xd5\x36\x42\xfe\x86\x8e\x7a\x23\x59\xa0\x20\xf0\xc5\x02\x20\x5f\x70\x93\x61\x5a\xe4\x20\xcf\xb9\x8a\xf5\xdd\x87\xd0\x48\x6d\x7d\x59\xef\x9e\x0e\x11\xa3\x8e\xf7\xe3\xe2\xf5\x35\x37\x99\x1a", 66);//somu-sig
+        }
+    }
 }
