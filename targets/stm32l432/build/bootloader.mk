@@ -3,9 +3,13 @@ include build/common.mk
 # ST related
 SRC = bootloader/main.c bootloader/bootloader.c
 SRC += bootloader/pubkey_bootloader.c bootloader/version_check.c
-SRC += src/init.c src/redirect.c src/flash.c src/rng.c src/led.c src/device.c
 SRC += src/fifo.c src/attestation.c src/sense.c
 SRC += src/startup_stm32l432xx.s src/system_stm32l4xx.c
+# Important: device.c must come after startup_stm32l432xx.s to work around
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83967. If the order is switched,
+# compilation will succeed but the output will be missing overridden weak
+# symbols.
+SRC += src/init.c src/redirect.c src/flash.c src/rng.c src/led.c src/device.c
 SRC += $(DRIVER_LIBS) $(USB_LIB)
 
 # FIDO2 lib
@@ -45,8 +49,8 @@ endif
 DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAPP_CONFIG=\"bootloader.h\" $(EXTRA_DEFINES)
 # DEFINES += -DTEST_SOLO_STM32 -DTEST -DTEST_FIFO=1
 
-CFLAGS=$(INC) -c $(DEFINES)   -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections $(HW) -g $(VERSION_FLAGS)
-LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections  -lnosys
+CFLAGS=$(INC) -c $(DEFINES)   -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections $(HW) -g $(VERSION_FLAGS) -flto
+LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections  -lnosys -flto
 LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref  -Wl,-Bstatic
 
 
