@@ -68,7 +68,7 @@ venv:
 	python3 -m venv venv
 	venv/bin/pip -q install --upgrade pip
 	venv/bin/pip -q install --upgrade -r tools/requirements.txt
-	venv/bin/pip -q install --upgrade black
+	venv/bin/pip -q install --upgrade black==19.3b0 # Versions newer than this require regex, which fails to compile
 
 # selectively reformat our own code
 black: venv
