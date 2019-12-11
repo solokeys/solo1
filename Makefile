@@ -110,7 +110,8 @@ CPPCHECK_FLAGS=--quiet --error-exitcode=2
 cppcheck:
 	cppcheck $(CPPCHECK_FLAGS) crypto/aes-gcm
 	cppcheck $(CPPCHECK_FLAGS) crypto/sha256
-	cppcheck $(CPPCHECK_FLAGS) fido2
+	cppcheck $(CPPCHECK_FLAGS) fido2 -DAPP_CONFIG=app.h
+	cppcheck $(CPPCHECK_FLAGS) fido2 -DAPP_CONFIG=bootloader.h
 	cppcheck $(CPPCHECK_FLAGS) pc
 
 clean:
