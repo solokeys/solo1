@@ -18,9 +18,7 @@ PB7   ------> Channel 4 (unused)
 #define get_first_electrode_pin() LL_GPIO_PIN_4
 #define get_second_electrode_io() TSC_GROUP2_IO2
 #define get_second_electrode_pin() LL_GPIO_PIN_5
-// Threshold for USB A nano is 45
-// Threshold for USB C touch is not yet calibrated so this is a dummy value
-#define get_tsc_threshold() (has_10nF_sampling_cap() ? 59 : 45)
+#define get_tsc_threshold() 45
 
 void tsc_init(void)
 {
@@ -147,14 +145,5 @@ int tsc_sensor_exists(void)
     // PB1 is grounded in USB A nano & USB C touch
     static uint8_t does = PIN_SHORTED_UNDEF;
     if (does == PIN_SHORTED_UNDEF) does = pin_grounded(GPIOB, LL_GPIO_PIN_1);
-    return does == PIN_SHORTED_YES;
-}
-
-int has_10nF_sampling_cap(void)
-{
-    if (!tsc_sensor_exists()) return 0;
-    // Must be either USB A nano or USB C touch. PA8 is only grounded in USB C touch.
-    static uint8_t does = PIN_SHORTED_UNDEF;
-    if (does == PIN_SHORTED_UNDEF) does = pin_grounded(GPIOA, LL_GPIO_PIN_8);
     return does == PIN_SHORTED_YES;
 }

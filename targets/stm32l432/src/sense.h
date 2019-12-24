@@ -6,7 +6,6 @@
 void tsc_init(void);
 
 int tsc_sensor_exists(void);
-int has_10nF_sampling_cap(void);
 
 // Read button0 or button1
 // Returns 1 if pressed, 0 if not.
