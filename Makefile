@@ -100,9 +100,10 @@ uncached-docker-build-toolchain:
 	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION_MAJ}
 	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION_MAJ}.${SOLO_VERSION_MIN}
 
-docker-build-all: 
+docker-build-all:
 	docker run --rm -v "$(CURDIR)/builds:/builds" \
 					-v "$(CURDIR):/solo" \
+					-u $(shell id -u ${USER}):$(shell id -g ${USER}) \
 				    $(DOCKER_TOOLCHAIN_IMAGE) "solo/in-docker-build.sh" ${SOLO_VERSION_FULL}
 
 CPPCHECK_FLAGS=--quiet --error-exitcode=2
