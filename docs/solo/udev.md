@@ -8,7 +8,7 @@ For some users, things will work automatically:
   - Our udev rule made it into [libu2f-host](https://github.com/Yubico/libu2f-host/) v1.1.10
   - Arch Linux [has this package](https://www.archlinux.org/packages/community/x86_64/libu2f-host/)
   - [Debian sid](https://packages.debian.org/sid/libu2f-udev) and [Ubuntu Eon](https://packages.ubuntu.com/eoan/libu2f-udev) can use the `libu2f-udev` package
-  - Debian Buster and Ubuntu Disco still distribute v1.1.10, so need the manual rule
+  - Debian Buster and Ubuntu Disco still distribute v1.1.9, so need the manual rule
   - FreeBSD has support in [u2f-devd](https://github.com/solokeys/solo/issues/144#issuecomment-500216020)
 
 There is hope that `udev` itself will adopt the Fedora approach (which is to check for HID usage page `F1D0`, and avoids manually whitelisting each U2F/FIDO2 key): <https://github.com/systemd/systemd/issues/11996>.
