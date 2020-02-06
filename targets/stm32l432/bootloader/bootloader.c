@@ -50,12 +50,15 @@ typedef struct {
     uint8_t payload[255 - 10];
 } __attribute__((packed)) BootloaderReq;
 
+uint8_t * last_written_app_address;
+
 /**
  * Erase all application pages. **APPLICATION_END_PAGE excluded**.
  */
 static void erase_application()
 {
     int page;
+    last_written_app_address = (uint8_t*) APPLICATION_START_ADDR;
     for(page = APPLICATION_START_PAGE; page < APPLICATION_END_PAGE; page++)
     {
         flash_erase_page(page);
@@ -106,7 +109,6 @@ int is_bootloader_disabled()
     uint32_t * auth = (uint32_t *)(AUTH_WORD_ADDR+4);
     return *auth == 0;
 }
-uint8_t * last_written_app_address;
 
 #include "version.h"
 bool is_firmware_version_newer_or_equal()
@@ -116,7 +118,7 @@ bool is_firmware_version_newer_or_equal()
           current_firmware_version.major, current_firmware_version.minor, current_firmware_version.patch, current_firmware_version.reserved,
           current_firmware_version.major, current_firmware_version.minor, current_firmware_version.patch, current_firmware_version.reserved
           );
-  volatile version_t * new_version = ((volatile version_t *) last_written_app_address);
+  volatile version_t * new_version = ((volatile version_t *) (last_written_app_address-8+4));
   printf1(TAG_BOOT,"Uploaded firmware version: %u.%u.%u.%u (%02x.%02x.%02x.%02x)\r\n",
           new_version->major, new_version->minor, new_version->patch, new_version->reserved,
           new_version->major, new_version->minor, new_version->patch, new_version->reserved
@@ -170,6 +172,7 @@ int bootloader_bridge(int klen, uint8_t * keyh)
     uint32_t addr = ((*((uint32_t*)req->addr)) & 0xffffff) | 0x8000000;
 
     uint32_t * ptr = (uint32_t *)addr;
+    uint32_t current_address;
 
     switch(req->op){
         case BootWrite:
@@ -196,9 +199,16 @@ int bootloader_bridge(int klen, uint8_t * keyh)
                 printf2(TAG_ERR, "Error, boot check bypassed\n");
                 exit(1);
             }
+            current_address = addr + len;
+            if (current_address < (uint32_t) last_written_app_address) {
+                printf2(TAG_ERR, "Error, only ascending writes allowed.\n");
+                has_erased = 0;
+                return CTAP2_ERR_NOT_ALLOWED;
+            }
+            last_written_app_address = (uint8_t*) current_address;
+
             // Do the actual write
             flash_write((uint32_t)ptr,req->payload, len);
-            last_written_app_address = (uint8_t *)ptr + len - 8 + 4;
             break;
         case BootDone:
             // Writing to flash finished. Request code validation.
