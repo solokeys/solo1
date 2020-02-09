@@ -36,9 +36,13 @@ So it's important to not mess this up or you may brick your device.
 You can use a firmware build from the [latest release](https://github.com/solokeys/solo/releases) or use
 a build that you made yourself.
 
-You need to use a firmware file that has the combined bootloader and application (or at the very least just the bootloader).
-This means using the `bundle-*.hex` file or the `bundle.hex` from your build.  If you overwrite the Solo flash with a missing bootloader,
-it will be bricked.
+You need to use a firmware file that has the combined bootloader, application, and attestation key pair (bootloader + firmware + key).
+This means using the `bundle-*.hex` file or the `bundle.hex` from your build.  
+
+#### *Warning*
+
+* **If you overwrite the Solo flash with a missing bootloader, it will be bricked**.  
+* **If you program bootloader and firmware with no attestation, you will run into FIDO registration issues**
 
 We provide two types of bundled builds.  The `bundle-hacker-*.hex` build is the hacker build.  If you update with this,
 you will update the bootloader and application, but nothing will be secured.  The `bundle-secure-non-solokeys.hex`
