@@ -89,7 +89,7 @@ void crypto_reset_master_secret(void)
 }
 
 
-void crypto_sha256_update(uint8_t * data, size_t len)
+void crypto_sha256_update(const uint8_t * data, size_t len)
 {
     sha256_update(&sha256_ctx, data, len);
 }
@@ -198,7 +198,7 @@ void crypto_ecc256_load_attestation_key(void)
     _key_len = 32;
 }
 
-void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig)
+void crypto_ecc256_sign(const uint8_t * data, int len, uint8_t * sig)
 {
     if ( uECC_sign(_signing_key, data, len, sig, _es256_curve) == 0)
     {
@@ -207,7 +207,7 @@ void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig)
     }
 }
 
-void crypto_ecc256_load_key(uint8_t * data, int len, uint8_t * data2, int len2)
+void crypto_ecc256_load_key(const uint8_t * data, int len, uint8_t * data2, int len2)
 {
     static uint8_t privkey[32];
     generate_private_key(data,len,data2,len2,privkey);
@@ -256,7 +256,7 @@ fail:
 
 }
 
-void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey)
+void generate_private_key(const uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey)
 {
     crypto_sha256_hmac_init(CRYPTO_MASTER_KEY, 0, privkey);
     crypto_sha256_update(data, len);
@@ -270,7 +270,7 @@ void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, ui
 
 
 /*int uECC_compute_public_key(const uint8_t *private_key, uint8_t *public_key, uECC_Curve curve);*/
-void crypto_ecc256_derive_public_key(uint8_t * data, int len, uint8_t * x, uint8_t * y)
+void crypto_ecc256_derive_public_key(const uint8_t * data, int len, uint8_t * x, uint8_t * y)
 {
     uint8_t privkey[32];
     uint8_t pubkey[64];

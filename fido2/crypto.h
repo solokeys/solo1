@@ -10,7 +10,7 @@
 #include <stddef.h>
 
 void crypto_sha256_init();
-void crypto_sha256_update(uint8_t * data, size_t len);
+void crypto_sha256_update(const uint8_t * data, size_t len);
 void crypto_sha256_update_secret();
 void crypto_sha256_final(uint8_t * hash);
 
@@ -22,17 +22,17 @@ void crypto_sha512_update(const uint8_t * data, size_t len);
 void crypto_sha512_final(uint8_t * hash);
 
 void crypto_ecc256_init();
-void crypto_ecc256_derive_public_key(uint8_t * data, int len, uint8_t * x, uint8_t * y);
+void crypto_ecc256_derive_public_key(const uint8_t * data, int len, uint8_t * x, uint8_t * y);
 void crypto_ecc256_compute_public_key(uint8_t * privkey, uint8_t * pubkey);
 
-void crypto_ecc256_load_key(uint8_t * data, int len, uint8_t * data2, int len2);
+void crypto_ecc256_load_key(const uint8_t * data, int len, uint8_t * data2, int len2);
 void crypto_ecc256_load_attestation_key();
 void crypto_load_external_key(uint8_t * key, int len);
-void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig);
+void crypto_ecc256_sign(const uint8_t * data, int len, uint8_t * sig);
 void crypto_ecdsa_sign(uint8_t * data, int len, uint8_t * sig, int MBEDTLS_ECP_ID);
 
 
-void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey);
+void generate_private_key(const uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey);
 void crypto_ecc256_make_key_pair(uint8_t * pubkey, uint8_t * privkey);
 void crypto_ecc256_shared_secret(const uint8_t * pubkey, const uint8_t * privkey, uint8_t * shared_secret);
 
