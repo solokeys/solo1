@@ -45,7 +45,7 @@ email=example@example.com
 openssl ecparam -genkey -name "$curve" -out root_key.pem -rand seed.bin
 
 # generate a "signing request"
-openssl req -new -key root_key.pem -out root_key.pem.csr  -subj "/C=$country/ST=$state/O=$organization/OU=$unit/CN=example.com/emailAddress=$email"
+openssl req -new -key root_key.pem -out root_key.pem.csr  -subj "/C=$country/ST=$state/O=$organization/OU=$unit/CN=$CN/emailAddress=$email"
 
 # self sign the request
 openssl x509 -trustout -req -days 18250  -in root_key.pem.csr -signkey root_key.pem -out root_cert.pem -sha256
@@ -82,7 +82,7 @@ email=example@example.com
 openssl ecparam -genkey -name "$curve" -out device_key.pem -rand seed.bin
 
 # generate a "signing request"
-openssl req -new -key device_key.pem -out device_key.pem.csr -subj "/C=$country/ST=$state/O=$organization/OU=$unit/CN=example.com/emailAddress=$email"
+openssl req -new -key device_key.pem -out device_key.pem.csr -subj "/C=$country/ST=$state/O=$organization/OU=$unit/CN=$CN/emailAddress=$email"
 
 # sign the request
 openssl x509 -req -days 18250  -in device_key.pem.csr -extfile v3.ext -CA root_cert.pem -CAkey root_key.pem -set_serial 01 -out device_cert.pem -sha256
