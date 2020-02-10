@@ -13,3 +13,6 @@
 [submodule "crypto/cifra"]
 	path = crypto/cifra
 	url = https://github.com/solokeys/cifra.git
+[submodule "openpgp"]
+	path = openpgp
+	url = https://github.com/solokeys/openpgp.git
