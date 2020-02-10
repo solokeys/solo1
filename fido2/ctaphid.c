@@ -17,6 +17,7 @@
 #include "log.h"
 #include "extensions.h"
 #include "version.h"
+#include "ssh_agent.h"
 
 // move custom SHA512 command out,
 // and the following headers too
@@ -801,8 +802,23 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
             printf2(TAG_ERR, "Error, invalid length.\n");
             ctaphid_send_error(wb->cid, CTAP2_ERR_OPERATION_DENIED);
             return 1;
+        break;
 #endif
 
+#ifndef IS_BOOTLOADER
+        case CTAPHID_SSH_AGENT:
+            printf1(TAG_HID,"CTAPHID_SSH_AGENT\n");
+
+            // relies on ctap_response_init at start of function
+            ssh_agent(len, ctap_buffer, ctap_resp);
+
+            wb->bcnt = ctap_resp->length;
+            ctaphid_write(wb, ctap_resp->data, ctap_resp->length);
+            ctaphid_write(wb, NULL, 0);
+
+            return 1;
+        break;
+#endif
 
         }
 

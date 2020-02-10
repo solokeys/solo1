@@ -21,6 +21,7 @@ SRC += version.c
 SRC += data_migration.c
 SRC += extensions/extensions.c extensions/solo.c
 SRC += extensions/wallet.c
+SRC += extensions/ssh_agent.c
 
 # Crypto libs
 SRC += ../crypto/sha256/sha256.c ../crypto/micro-ecc/uECC.c ../crypto/tiny-AES-c/aes.c

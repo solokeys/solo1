@@ -94,10 +94,12 @@ uint8_t ctap_get_info(CborEncoder * encoder)
         ret = cbor_encode_uint(&map, RESP_extensions);
         check_ret(ret);
         {
-            ret = cbor_encoder_create_array(&map, &array, 1);
+            ret = cbor_encoder_create_array(&map, &array, 2);
             check_ret(ret);
             {
                 ret = cbor_encode_text_stringz(&array, "hmac-secret");
+                check_ret(ret);
+                ret = cbor_encode_text_stringz(&array, "solo-ssh-agent");
                 check_ret(ret);
             }
             ret = cbor_encoder_close_container(&map, &array);
