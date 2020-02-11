@@ -19,6 +19,25 @@ SRC += ../../fido2/extensions/wallet.c
 SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c
 SRC += ../../crypto/cifra/src/sha512.c ../../crypto/cifra/src/blockwise.c
 
+# spiffs
+SP_PATH = ../../openpgp/libs/spiffs/spiffs/src/
+SRC += $(SP_PATH)spiffs_nucleus.c $(SP_PATH)spiffs_gc.c $(SP_PATH)spiffs_hydrogen.c 
+SRC += $(SP_PATH)spiffs_cache.c $(SP_PATH)spiffs_check.c 
+
+# mbedtls
+MBEDTLS_PATH = ../../openpgp/libs/mbedtls/mbedtls/crypto/library/
+_SRCS=aes.c asn1parse.c asn1write.c \
+            bignum.c timing.c \
+            ccm.c cipher.c cipher_wrap.c ctr_drbg.c \
+            rsa_internal.c platform_util.c \
+            sha1.c rsa.c sha256.c sha512.c \
+            havege.c dhm.c entropy.c entropy_poll.c \
+            ecp.c ecp_curves.c ecdsa.c ecdh.c \
+            md.c md2.c md4.c md5.c oid.c
+MBEDTLS_SRCS := $(foreach var, $(_SRCS), $(MBEDTLS_PATH)$(var))
+SRC += $(MBEDTLS_SRCS)
+MBEDTLS_CONFIG= -DMBEDTLS_CONFIG_FILE=\"mbedtls_config.h\"
+
 OBJ1=$(SRC:.c=.o)
 OBJ=$(OBJ1:.s=.o)
 
@@ -28,6 +47,8 @@ INC+= -I../../fido2/ -I../../fido2/extensions
 INC += -I../../tinycbor/src -I../../crypto/sha256 -I../../crypto/micro-ecc
 INC += -I../../crypto/tiny-AES-c
 INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
+INC += -I../../openpgp/libs/spiffs -I../../openpgp/libs/spiffs/spiffs/src/
+INC += -I../../openpgp/libs/mbedtls -I../../openpgp/libs/mbedtls/mbedtls/include/ -I../../openpgp/libs/mbedtls/mbedtls/crypto/include/
 
 SEARCH=-L../../tinycbor/lib
 
@@ -50,7 +71,7 @@ endif
 DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAPP_CONFIG=\"app.h\" $(EXTRA_DEFINES)
 
 CFLAGS=$(INC) -c $(DEFINES)   -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections \
-	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS)
+	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS) $(MBEDTLS_CONFIG)
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -lnosys
 LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor
 

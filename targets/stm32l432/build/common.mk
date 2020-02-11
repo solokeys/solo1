@@ -1,6 +1,7 @@
 include ../../fido2/version.mk
 
 CC=$(PREFIX)arm-none-eabi-gcc
+CPP=$(PREFIX)arm-none-eabi-g++
 CP=$(PREFIX)arm-none-eabi-objcopy
 SZ=$(PREFIX)arm-none-eabi-size
 AR=$(PREFIX)arm-none-eabi-ar
