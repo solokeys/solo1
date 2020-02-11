@@ -26,8 +26,7 @@ SRC += $(SP_PATH)spiffs_cache.c $(SP_PATH)spiffs_check.c
 
 # mbedtls
 MBEDTLS_PATH = ../../openpgp/libs/mbedtls/mbedtls/crypto/library/
-_SRCS=aes.c asn1parse.c asn1write.c \
-            bignum.c timing.c \
+_SRCS=aes.c asn1parse.c asn1write.c bignum.c \
             ccm.c cipher.c cipher_wrap.c ctr_drbg.c \
             rsa_internal.c platform_util.c \
             sha1.c rsa.c sha256.c sha512.c \
