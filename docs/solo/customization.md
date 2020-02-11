@@ -119,7 +119,7 @@ First, [Build your solo application and bootloader](/solo/building).
 Print your attestation key in a hex string format.  Using our utility script:
 
 ```
-python tools/print_x_y.py device_key.pem
+python3 tools/gencert/print_x_y.py device_key.pem
 ```
 
 Merge the `bootloader.hex`, `solo.hex`, attestion key, and certificate into one firmware file.
