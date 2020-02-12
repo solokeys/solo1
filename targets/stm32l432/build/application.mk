@@ -82,7 +82,7 @@ DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAP
 CFLAGS=$(INC) -c $(DEFINES) -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections \
 	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS) $(MBEDTLS_CONFIG)
 CPPFLAGS=$(INC) -c $(DEFINES) -std=c++17 -Os -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections \
-	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS)
+	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS) -fno-exceptions
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -lnosys
 LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor
 
