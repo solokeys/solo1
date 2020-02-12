@@ -51,13 +51,13 @@ OBJ=$(OBJ1:.s=.o)
 
 INC = -I. -Isrc/ -Isrc/cmsis/ -Ilib/ -Ilib/usbd/
 
-INC+= -I../../fido2/ -I../../fido2/extensions
+INC += -I../../fido2/ -I../../fido2/extensions
 INC += -I../../tinycbor/src -I../../crypto/sha256 -I../../crypto/micro-ecc
 INC += -I../../crypto/tiny-AES-c
 INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
-INC += -I../../openpgp/libs/spiffs -I../../openpgp/libs/spiffs/spiffs/src/
-INC += -I../../openpgp/libs/mbedtls -I../../openpgp/libs/mbedtls/mbedtls/include/ -I../../openpgp/libs/mbedtls/mbedtls/crypto/include/
 INC += -I../../openpgp/stm32l432 -I../../openpgp/src
+INC += -I../../openpgp/libs/spiffs -I../../openpgp/libs/spiffs/spiffs/src
+INC += -I../../openpgp/libs/mbedtls -I../../openpgp/libs/mbedtls/mbedtls/include -I../../openpgp/libs/mbedtls/mbedtls/crypto/include
 
 SEARCH=-L../../tinycbor/lib
 
