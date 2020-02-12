@@ -12,6 +12,7 @@
 
 #include "cbor.h"
 #include "device.h"
+#include "openpgplib.h"
 #include "ctaphid.h"
 //#include "bsp.h"
 #include "util.h"
@@ -51,6 +52,7 @@ int main(int argc, char *argv[])
 	);
 
     device_init(argc, argv);
+    OpenpgpInit();
 
     memset(hidmsg,0,sizeof(hidmsg));
 
