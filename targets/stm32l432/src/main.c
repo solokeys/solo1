@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
 		// TAG_CTAP|
 		//TAG_HID|
 		TAG_U2F|
+        TAG_OPENPGP|
 		//TAG_PARSE |
 		//TAG_TIME|
 		// TAG_DUMP|
