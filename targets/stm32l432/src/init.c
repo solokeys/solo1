@@ -146,12 +146,14 @@ void device_set_clock_rate(DEVICE_CLOCK_RATE param)
         case DEVICE_LOW_POWER_IDLE:
             SET_CLOCK_RATE0();
         break;
+#if !defined(IS_BOOTLOADER)
         case DEVICE_LOW_POWER_FAST:
             SET_CLOCK_RATE1();
         break;
         case DEVICE_FAST:
             SET_CLOCK_RATE2();
         break;
+#endif
     }
 }
 
