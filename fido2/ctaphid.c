@@ -542,6 +542,9 @@ extern void _check_ret(CborError ret, int line, const char * filename);
 
 uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE_BUFFER * wb);
 
+
+extern void solo_lock_if_not_already();
+
 uint8_t ctaphid_handle_packet(uint8_t * pkt_raw)
 {
     uint8_t cmd = 0;
@@ -761,6 +764,16 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
             ctaphid_write(wb, NULL, 0);
             return 1;
         break;
+
+        // Remove on next release
+#if !defined(IS_BOOTLOADER) && defined(SOLO)
+        case 0x99:
+            solo_lock_if_not_already();
+            wb->bcnt = 0;
+            ctaphid_write(wb, NULL, 0);
+            return 1;
+        break;
+#endif
 
 #if !defined(IS_BOOTLOADER) && (defined(SOLO_EXPERIMENTAL))
         case CTAPHID_LOADKEY:
