@@ -199,6 +199,20 @@ int solo_is_locked(){
     return tag == ATTESTATION_CONFIGURED_TAG && (device_settings & SOLO_FLAG_LOCKED) != 0;
 }
 
+// Locks solo flash from debugging.  Locks on next reboot.
+// This should be removed in next Solo release.
+void solo_lock_if_not_already() {
+    uint8_t buf[2048];
+
+    memmove(buf, (uint8_t*)ATTESTATION_PAGE_ADDR, 2048);
+
+    ((flash_attestation_page *)buf)->device_settings |= SOLO_FLAG_LOCKED;
+
+    flash_erase_page(ATTESTATION_PAGE);
+
+    flash_write(ATTESTATION_PAGE_ADDR, buf, 2048);
+}
+
 /** device_migrate
  * Depending on version of device, migrates:
  * * Moves attestation certificate to data segment. 
