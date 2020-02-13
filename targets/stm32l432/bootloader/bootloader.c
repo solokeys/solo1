@@ -50,7 +50,7 @@ typedef struct {
     uint8_t payload[255 - 10];
 } __attribute__((packed)) BootloaderReq;
 
-uint8_t * last_written_app_address;
+uint8_t * last_written_app_address = 0;
 
 /**
  * Erase all application pages. **APPLICATION_END_PAGE excluded**.
@@ -58,7 +58,7 @@ uint8_t * last_written_app_address;
 static void erase_application()
 {
     int page;
-    last_written_app_address = (uint8_t*) APPLICATION_START_ADDR;
+    last_written_app_address = (uint8_t*) 0;
     for(page = APPLICATION_START_PAGE; page < APPLICATION_END_PAGE; page++)
     {
         flash_erase_page(page);
@@ -113,6 +113,10 @@ int is_bootloader_disabled()
 #include "version.h"
 bool is_firmware_version_newer_or_equal()
 {
+
+    if (last_written_app_address == 0) {
+        return false;
+    }
 
     printf1(TAG_BOOT,"Current firmware version: %u.%u.%u.%u (%02x.%02x.%02x.%02x)\r\n",
           current_firmware_version.major, current_firmware_version.minor, current_firmware_version.patch, current_firmware_version.reserved,
