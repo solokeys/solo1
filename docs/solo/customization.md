@@ -74,7 +74,7 @@ Note you must use a prime256v1 curve for this step, and you must leave the unit/
 country=US
 state=Maine
 organization=OpenSourceSecurity
-unit="Authenticator Attestation"
+unit="Authenticator Attestation"    # MUST KEEP THIS AS "Authenticator Attestation" for FIDO2.
 CN=example.com
 email=example@example.com
 
