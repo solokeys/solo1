@@ -10,7 +10,6 @@
 #include "version.h"
 
 #define SOLO
-#define SOLO_EXPERIMENTAL
 
 #define DEBUG_UART      USART1
 
