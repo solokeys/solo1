@@ -104,9 +104,24 @@ solo mergehex bootloader.hex solo.hex bundle.hex
 
 `bundle.hex` is our complete firmware build.  Note it is in this step that you can
 include a custom attestation certificate or lock the device from debugging/DFU.
-By default the "hacker" attestation certifcate and key is used.
+By default the "hacker" attestation certifcate and key is used.  Use the `--lock` flag
+to make this permanent.
 
 ```
+solo mergehex  \
+    --attestation-key "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF" \
+    --attestation-cert attestation.der \
+    solo.hex \
+    bootloader.hex \
+    bundle.hex
+```
+
+**Warning**: If you use `--lock`, this will permanently lock the device to this new bootloader.  You
+won't be able to program the bootloader again or be able to connect a hardware debugger.
+The new bootloader may be able to accept (signed) updates still, depending on how you configured it.
+
+```
+# Permanent!
 solo mergehex  \
     --attestation-key "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF" \
     --attestation-cert attestation.der \
@@ -117,10 +132,6 @@ solo mergehex  \
 ```
 
 See [here for more information on custom attestation](/solo/customization/).
-
-If you use `--lock`, this will permanently lock the device to this new bootloader.  You
-won't be able to program the bootloader again or be able to connect a hardware debugger.
-The new bootloader may be able to accept (signed) updates still, depending on how you configured it.
 
 To learn more about normal updates or a "full" update, you should [read more on Solo's boot stages](/solo/bootloader-mode).
 
