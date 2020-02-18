@@ -134,6 +134,8 @@ solo mergehex  \
     bundle.hex
 ```
 
+**Warning**: Using the `--lock` flag prevents the DFU from being accessed on the device again.  It's recommended to try first without the `--lock` flag to make sure it works.
+
 Now you have a newly created `bundle.hex` file with a custom attestation key and cert.  You can [program this `bundle.hex` file
 with Solo in DFU mode](/solo/programming#procedure).
 
