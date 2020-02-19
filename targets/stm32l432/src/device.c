@@ -201,9 +201,9 @@ int solo_is_locked(){
 
 /** device_migrate
  * Depending on version of device, migrates:
- * * Moves attestation certificate to data segment. 
+ * * Moves attestation certificate to data segment.
  * * Creates locked variable and stores in data segment.
- * 
+ *
  * Once in place, this allows all devices to accept same firmware,
  * rather than using "hacker" and "secure" builds.
 */
@@ -507,6 +507,8 @@ void authenticator_write_state(AuthenticatorState * a, int backup)
 }
 
 #if !defined(IS_BOOTLOADER)
+// amounts <= 256 increment the counter
+// amounts > 256 set the counter
 uint32_t ctap_atomic_count(uint32_t amount)
 {
     int offset = 0;

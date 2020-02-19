@@ -762,9 +762,23 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
              * Load external key.  Useful for enabling backups.
              * bytes:                   4                     4                      96
              * payload:  version [maj rev patch RFU]| counter_replacement (BE) | master_key |
-             * 
-             * Counter should be increased by a large amount, e.g. (0x10000000)
-             * to outdo any previously lost/broken keys.
+             *
+             * The version should be set to 0 until future versions of this interface
+             * are released.
+             *
+             * The counter_replacement value will be used to set the counter that must be
+             * monotonically-increasing in each execution of the FIDO protocol.
+             * If the value is <= 256, it will be added to the current counter.
+             * If the value is > 256, it will replace the current counter.
+             * Alas, we can't know if the user has previously loaded this key into another
+             * SoloKey token, what the initial counter value was on that key, and how many
+             * times it was incremented.
+             * So, we suggest the convention of setting the value to
+             *    (seconds since Jan 1, 2019 GMT) / 3
+             * If this convention is followed, and this should ensure a SoloKey
+             * always has a higher counter than the one it replaces, so long as that
+             * SoloKey also used the same convention and did was not used to authenticate
+             * at a rate greater than once every 3 seconds.
             */
             printf1(TAG_HID,"CTAPHID_LOADKEY\n");
             if (len != 104)
@@ -773,18 +787,24 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
                 ctaphid_send_error(wb->cid, CTAP1_ERR_INVALID_LENGTH);
                 return 1;
             }
-            param = ctap_buffer[0] << 16;
-            param |= ctap_buffer[1] << 8;
-            param |= ctap_buffer[2] << 0;
+            // Store the current operation version into param
+            param = (ctap_buffer[0] << 24) |
+                (ctap_buffer[1] << 16) |
+                (ctap_buffer[2] << 8) |
+                (ctap_buffer[3] << 0);
+            // This code is written for version 0 of the load key operation,
+            // and we cannot know if future versions of the operation will be
+            // compatible with it.  So, reject any version other than 0 as
+            // unsupported
             if (param != 0){
                 ctaphid_send_error(wb->cid, CTAP2_ERR_UNSUPPORTED_OPTION);
                 return 1;
             }
 
             // Ask for THREE button presses
-            if (ctap_user_presence_test(8000) > 0)
-                if (ctap_user_presence_test(2000) > 0)
-                    if (ctap_user_presence_test(2000) > 0)
+            if (ctap_user_presence_test(CTAP_USER_PRESENCE_TEST_MS_TO_WAIT_ONE_BUTTON_PRESS) > 0)
+                if (ctap_user_presence_test(CTAP_USER_PRESENCE_TEST_MS_TO_WAIT_SUBSEQUENT_BUTTON_PRESSES) > 0)
+                    if (ctap_user_presence_test(CTAP_USER_PRESENCE_TEST_MS_TO_WAIT_SUBSEQUENT_BUTTON_PRESSES) > 0)
                     {
                         ctap_load_external_keys(ctap_buffer + 8);
                         param = ctap_buffer[7];

@@ -54,7 +54,11 @@ int device_is_button_pressed();
 
 // Test for user presence
 // Return 2 for disabled, 1 for user is present, 0 user not present, -1 if cancel is requested.
-int ctap_user_presence_test(uint32_t delay);
+int ctap_user_presence_test(uint32_t ms_to_wait_for_user_consent);
+
+// Suggested delays for user presence test
+#define CTAP_USER_PRESENCE_TEST_MS_TO_WAIT_ONE_BUTTON_PRESS 8000
+#define CTAP_USER_PRESENCE_TEST_MS_TO_WAIT_SUBSEQUENT_BUTTON_PRESSES 2000
 
 // Generate @num bytes of random numbers to @dest
 // return 1 if success, error otherwise
