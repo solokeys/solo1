@@ -19,4 +19,8 @@ void dump_hex(uint8_t * buf, int size);
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 
+#ifndef ABS
+#define ABS(a) (((a) > 0) ? (a) : (-a))
+#endif
+
 #endif
