@@ -187,7 +187,7 @@ void flash_write_ex(uint32_t addr, uint8_t * data, size_t sz)
     uint8_t delta = addr & 0x07;
     uint32_t addr_bg = addr & ~(0x07);
     uint32_t addr_en = ((addr + sz - 1) & ~(0x07)) + 0x07;
-    size_t blocks_cnt = (sz + delta) / 8;
+    size_t blocks_cnt = (sz + delta + 7) / 8;
     
     bool needs_erase = false;
     
@@ -200,7 +200,7 @@ void flash_write_ex(uint32_t addr, uint8_t * data, size_t sz)
         if (d_flash == d_ram)
             continue;
         
-        if (d_flash == 0xffffffffffffffffU)
+        if (d_flash == 0xffffffffffffffffULL)
             continue;
         
         needs_erase = true;
