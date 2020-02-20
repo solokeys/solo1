@@ -1,10 +1,13 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include "usbd_ccid.h"
 #include "usbd_ctlreq.h"
 #include "usbd_conf.h"
 #include "usbd_core.h"
 
 #include "log.h"
+
+//#include "openpgplib.h"
 
 static uint8_t  USBD_CCID_Init (USBD_HandleTypeDef *pdev,
                                uint8_t cfgidx);
@@ -24,6 +27,14 @@ static uint8_t  USBD_CCID_DataOut (USBD_HandleTypeDef *pdev,
 static uint8_t  USBD_CCID_EP0_RxReady (USBD_HandleTypeDef *pdev);
 
 
+static bool ICCStateChanged = true;
+static bool ICCPowered = false;
+
+static const uint8_t ATRResponse[] = {
+    0x3B, 0xDA, 0x11, 0xFF, 0x81, 0xB1, 0xFE, 0x55, 
+    0x1F, 0x03, 0x00, 0x31, 0x84, 0x73, 0x80, 0x01, 
+    0x80, 0x00, 0x90, 0x00, 0xE4 };
+    
 USBD_ClassTypeDef  USBD_CCID =
 {
   USBD_CCID_Init,
@@ -223,41 +234,42 @@ uint8_t  USBD_CCID_TransmitPacket(uint8_t * msg, int len)
     while (PCD_GET_EP_TX_STATUS(USB, CCID_IN_EP & 0x0f) == USB_EP_TX_VALID)
         ;
     /* Transmit next packet */
-    USBD_LL_Transmit(&Solo_USBD_Device, CCID_IN_EP, msg,
-                   len);
+    USBD_LL_Transmit(&Solo_USBD_Device, CCID_IN_EP, msg, len);
 
-    printf1(TAG_CCID,"<< ");
-    dump_hex1(TAG_CCID, msg, len);
+    //printf1(TAG_CCID,"<< ");
+    //dump_hex1(TAG_CCID, msg, len);
 
     return USBD_OK;
 }
 
 
 
-void ccid_send_status(CCID_HEADER * c, uint8_t status)
+void ccid_send_status(CCID_HEADER * c, uint8_t status, uint8_t error)
 {
     uint8_t msg[CCID_HEADER_SIZE];
     memset(msg,0,sizeof(msg));
 
     msg[0] = CCID_SLOT_STATUS_RES;
+    msg[5] = c->slot;
     msg[6] = c->seq;
     msg[7] = status;
+    msg[8] = error;
 
     USBD_CCID_TransmitPacket(msg, sizeof(msg));
-
 }
 
-void ccid_send_data_block(CCID_HEADER * c, uint8_t status)
+void ccid_send_data_block(CCID_HEADER * c, uint8_t *data, uint8_t len, uint8_t status, uint8_t error)
 {
     uint8_t msg[CCID_HEADER_SIZE];
     memset(msg,0,sizeof(msg));
 
     msg[0] = CCID_DATA_BLOCK_RES;
+    msg[5] = c->slot;
     msg[6] = c->seq;
     msg[7] = status;
+    msg[8] = error;
 
     USBD_CCID_TransmitPacket(msg, sizeof(msg));
-
 }
 
 void handle_ccid(uint8_t * msg, int len)
@@ -266,18 +278,31 @@ void handle_ccid(uint8_t * msg, int len)
     switch(h->type)
     {
         case CCID_SLOT_STATUS:
-            ccid_send_status(h, CCID_STATUS_ON);
+            ccid_send_status(h, BM_COMMAND_STATUS_NO_ERROR | (ICCPowered ? BM_ICC_PRESENT_ACTIVE : BM_ICC_NO_ICC_PRESENT), CCID_SLOT_NO_ERROR);
         break;
         case CCID_POWER_ON:
-            ccid_send_data_block(h, CCID_STATUS_ON);
+            ccid_send_data_block(h, ATRResponse, sizeof(ATRResponse), BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
+            ICCPowered = true;
+            ICCStateChanged = true;
         break;
         case CCID_POWER_OFF:
-            ccid_send_status(h, CCID_STATUS_OFF);
+            ccid_send_status(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_NO_ICC_PRESENT, CCID_SLOT_NO_ERROR);
+            ICCPowered = false;
+            ICCStateChanged = true;
         break;
         default:
-            ccid_send_status(h, CCID_STATUS_ON);
+            ccid_send_status(h, CCID_STATUS_ON, CCID_SLOT_NO_ERROR);
         break;
     }
+}
+
+void handle_int()
+{
+    uint8_t state = (ICCPowered ? CCID_ICC_PRESENT : CCID_ICC_NOT_PRESENT) | (ICCStateChanged ? CCID_ICC_CHANGE : 0x00);
+    uint8_t data[] = {CCID_RDR_TO_PC_NOTIFYSLOTCHANGE, state}; 
+    ICCStateChanged = false;
+    
+    USBD_CCID_TransmitPacket(data, sizeof(data));
 }
 
 /**
@@ -289,14 +314,25 @@ void handle_ccid(uint8_t * msg, int len)
   */
 uint8_t usb_ccid_recieve_callback(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
+    printf1(TAG_CCID, "%d", epnum);
+/*    if (epnum == 5)
+    handle_int()
+    if (epnum == 4)
+        printf1(TAG_CCID, "~");
+*/
+    if (epnum == 5) {
+        handle_int();
+        return USBD_OK;
+    }
+
 
     USBD_CCID_HandleTypeDef *hcdc = (USBD_CCID_HandleTypeDef*) pdev->pClassData;
 
     /* Get the received data length */
     hcdc->RxLength = USBD_LL_GetRxDataSize (pdev, epnum);
 
-    printf1(TAG_CCID, ">> ");
-    dump_hex1(TAG_CCID, ccidmsg_buf, hcdc->RxLength);
+    //printf1(TAG_CCID, ">> ");
+    //dump_hex1(TAG_CCID, ccidmsg_buf, hcdc->RxLength);
 
     handle_ccid(ccidmsg_buf, hcdc->RxLength);
 
@@ -305,7 +341,6 @@ uint8_t usb_ccid_recieve_callback(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
     return USBD_OK;
 }
-
 
 /**
   * @brief  USBD_CDC_EP0_RxReady
