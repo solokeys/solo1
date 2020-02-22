@@ -325,17 +325,10 @@ void handle_int()
   */
 uint8_t usb_ccid_recieve_callback(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-    printf1(TAG_CCID, "%d", epnum);
-/*    if (epnum == 5)
-    handle_int()
-    if (epnum == 4)
-        printf1(TAG_CCID, "~");
-*/
     if (epnum == 5) {
         handle_int();
         return USBD_OK;
     }
-
 
     USBD_CCID_HandleTypeDef *hcdc = (USBD_CCID_HandleTypeDef*) pdev->pClassData;
 
