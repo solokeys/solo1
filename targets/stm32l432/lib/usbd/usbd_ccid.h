@@ -91,6 +91,31 @@ typedef struct {
 #define CCID_SLOT_NO_ERROR                  0x81
 #define CCID_SLOTERROR_UNKNOWN              0x82
 
+/*
+Failure of a command 
+The CCID cannot parse one parameter or the ICC is not supporting one parameter. 
+Then the Slot Error register contains the index of the first bad parameter as a 
+positive number (1-127). For instance, if the CCID receives an ICC command to 
+an unimplemented slot, then the Slot Error register shall be set to 
+‘5’ (index of bSlot field). */
+#define CCID_SLOTERROR_BAD_LENTGH                 0x01
+#define CCID_SLOTERROR_BAD_SLOT                   0x05
+#define CCID_SLOTERROR_BAD_POWERSELECT            0x07
+#define CCID_SLOTERROR_BAD_PROTOCOLNUM            0x07
+#define CCID_SLOTERROR_BAD_CLOCKCOMMAND           0x07
+#define CCID_SLOTERROR_BAD_ABRFU_3B               0x07
+#define CCID_SLOTERROR_BAD_BMCHANGES              0x07
+#define CCID_SLOTERROR_BAD_BFUNCTION_MECHANICAL   0x07
+#define CCID_SLOTERROR_BAD_ABRFU_2B               0x08
+#define CCID_SLOTERROR_BAD_LEVELPARAMETER         0x08
+#define CCID_SLOTERROR_BAD_FIDI                   0x0A
+#define CCID_SLOTERROR_BAD_T01CONVCHECKSUM        0x0B
+#define CCID_SLOTERROR_BAD_GUARDTIME              0x0C
+#define CCID_SLOTERROR_BAD_WAITINGINTEGER         0x0D
+#define CCID_SLOTERROR_BAD_CLOCKSTOP              0x0E
+#define CCID_SLOTERROR_BAD_IFSC                   0x0F
+#define CCID_SLOTERROR_BAD_NAD                    0x10
+#define CCID_SLOTERROR_BAD_DWLENGTH               0x08  /* Used in PC_to_RDR_XfrBlock*/
 /* Table 6.2-2 Slot error register when bmCommandStatus = 1 (BM_COMMAND_STATUS_FAILED) */
 #define CCID_SLOTERROR_CMD_ABORTED                0xFF
 #define CCID_SLOTERROR_ICC_MUTE                   0xFE
@@ -108,6 +133,12 @@ typedef struct {
 #define CCID_SLOTERROR_PIN_CANCELLED              0xEF
 #define CCID_SLOTERROR_CMD_SLOT_BUSY              0xE0
 #define CCID_SLOTERROR_CMD_NOT_SUPPORTED          0x00
+
+/* CCID rev 1.1, p.27 */
+#define VOLTS_AUTO                          0x00
+#define VOLTS_5_0                           0x01
+#define VOLTS_3_0                           0x02
+#define VOLTS_1_8                           0x03
 
 extern USBD_ClassTypeDef  USBD_CCID;
 

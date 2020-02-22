@@ -281,6 +281,12 @@ void handle_ccid(uint8_t * msg, int len)
             ccid_send_status(h, BM_COMMAND_STATUS_NO_ERROR | (ICCPowered ? BM_ICC_PRESENT_ACTIVE : BM_ICC_NO_ICC_PRESENT), CCID_SLOT_NO_ERROR);
         break;
         case CCID_POWER_ON:
+            if (h->rsvd >= VOLTS_1_8) {
+                /* The Voltage specified is out of Spec */
+                ccid_send_status(h, BM_COMMAND_STATUS_FAILED | BM_ICC_PRESENT_ACTIVE, CCID_SLOTERROR_BAD_POWERSELECT);
+                return; 
+            }
+            
             ccid_send_data_block(h, ATRResponse, sizeof(ATRResponse), BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
             ICCPowered = true;
             ICCStateChanged = true;
