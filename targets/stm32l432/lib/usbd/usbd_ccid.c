@@ -290,8 +290,13 @@ void handle_ccid(uint8_t * msg, int len)
             ICCPowered = false;
             ICCStateChanged = true;
         break;
+        case CCID_XFR_BLOCK:
+            //TODO add transfer
+            ccid_send_status(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
+        break;
         default:
-            ccid_send_status(h, CCID_STATUS_ON, CCID_SLOT_NO_ERROR);
+            //ccid_send_status(h, CCID_STATUS_ON, CCID_SLOT_NO_ERROR);
+            ccid_send_status(h, BM_COMMAND_STATUS_FAILED | BM_ICC_PRESENT_ACTIVE, CCID_SLOTERROR_CMD_NOT_SUPPORTED);
         break;
     }
 }

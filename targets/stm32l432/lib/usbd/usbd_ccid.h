@@ -91,6 +91,24 @@ typedef struct {
 #define CCID_SLOT_NO_ERROR                  0x81
 #define CCID_SLOTERROR_UNKNOWN              0x82
 
+/* Table 6.2-2 Slot error register when bmCommandStatus = 1 (BM_COMMAND_STATUS_FAILED) */
+#define CCID_SLOTERROR_CMD_ABORTED                0xFF
+#define CCID_SLOTERROR_ICC_MUTE                   0xFE
+#define CCID_SLOTERROR_XFR_PARITY_ERROR           0xFD
+#define CCID_SLOTERROR_XFR_OVERRUN                0xFC
+#define CCID_SLOTERROR_HW_ERROR                   0xFB
+#define CCID_SLOTERROR_BAD_ATR_TS                 0xF8
+#define CCID_SLOTERROR_BAD_ATR_TCK                0xF7
+#define CCID_SLOTERROR_ICC_PROTOCOL_NOT_SUPPORTED 0xF6
+#define CCID_SLOTERROR_ICC_CLASS_NOT_SUPPORTED    0xF5
+#define CCID_SLOTERROR_PROCEDURE_BYTE_CONFLICT    0xF4
+#define CCID_SLOTERROR_DEACTIVATED_PROTOCOL       0xF3
+#define CCID_SLOTERROR_BUSY_WITH_AUTO_SEQUENCE    0xF2
+#define CCID_SLOTERROR_PIN_TIMEOUT                0xF0
+#define CCID_SLOTERROR_PIN_CANCELLED              0xEF
+#define CCID_SLOTERROR_CMD_SLOT_BUSY              0xE0
+#define CCID_SLOTERROR_CMD_NOT_SUPPORTED          0x00
+
 extern USBD_ClassTypeDef  USBD_CCID;
 
 typedef struct
