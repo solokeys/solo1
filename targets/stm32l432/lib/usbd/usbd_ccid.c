@@ -287,7 +287,7 @@ void handle_ccid(uint8_t * msg, int len)
                 return; 
             }
             
-            ccid_send_data_block(h, ATRResponse, sizeof(ATRResponse), BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
+            ccid_send_data_block(h, (uint8_t *)ATRResponse, sizeof(ATRResponse), BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
             ICCPowered = true;
             ICCStateChanged = true;
         break;
@@ -307,13 +307,18 @@ void handle_ccid(uint8_t * msg, int len)
     }
 }
 
-void handle_int()
-{
+uint8_t usb_ccid_int_tx_callback(USBD_HandleTypeDef *pdev, uint8_t epnum) {
     uint8_t state = (ICCPowered ? CCID_ICC_PRESENT : CCID_ICC_NOT_PRESENT) | (ICCStateChanged ? CCID_ICC_CHANGE : 0x00);
     uint8_t data[] = {CCID_RDR_TO_PC_NOTIFYSLOTCHANGE, state}; 
     ICCStateChanged = false;
     
-    USBD_CCID_TransmitPacket(data, sizeof(data));
+    Solo_USBD_Device.ep_in[CCID_CMD_EP & 0xFU].total_length = sizeof(data);
+
+    //while (PCD_GET_EP_TX_STATUS(USB, CCID_CMD_EP & 0x0f) == USB_EP_TX_VALID)
+    //    ;
+    USBD_LL_Transmit(&Solo_USBD_Device, CCID_CMD_EP, data, sizeof(data));
+    
+    return USBD_OK;
 }
 
 /**
@@ -325,11 +330,6 @@ void handle_int()
   */
 uint8_t usb_ccid_recieve_callback(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-    if (epnum == 5) {
-        handle_int();
-        return USBD_OK;
-    }
-
     USBD_CCID_HandleTypeDef *hcdc = (USBD_CCID_HandleTypeDef*) pdev->pClassData;
 
     /* Get the received data length */

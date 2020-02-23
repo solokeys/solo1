@@ -140,7 +140,11 @@ void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
   // From device --> host
 void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 {
-  USBD_LL_DataInStage((USBD_HandleTypeDef*)hpcd->pData, epnum, hpcd->IN_ep[epnum].xfer_buff);
+    if (epnum == (CCID_CMD_EP & 0x0fU)) {
+        usb_ccid_int_tx_callback((USBD_HandleTypeDef*)hpcd->pData, epnum);
+        return;
+    }
+    USBD_LL_DataInStage((USBD_HandleTypeDef*)hpcd->pData, epnum, hpcd->IN_ep[epnum].xfer_buff);
 }
 
 /**
