@@ -51,6 +51,7 @@ int _write (int fd, const void *buf, unsigned long int len)
     // USB donest have a send buffer...
     size_t sendlen = MIN(logbuflen, sizeof(sendbuf));
     memcpy(sendbuf, logbuf, sendlen);
+    
 	// Send out USB serial
 	if (CDC_Transmit_FS(sendbuf, sendlen) == USBD_OK) {
         if (logbuflen > sendlen) {

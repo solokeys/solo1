@@ -349,6 +349,7 @@ void ccid_send_parameters(CCID_HEADER * c, uint8_t status, uint8_t error)
 void handle_ccid(uint8_t * msg, int len)
 {
     CCID_HEADER * h = (CCID_HEADER *) msg;
+    uint32_t rlength = 0;
     switch(h->type)
     {
         case CCID_SLOT_STATUS:
@@ -383,15 +384,8 @@ void handle_ccid(uint8_t * msg, int len)
         break;
 #ifdef ENABLE_CCID
         case CCID_XFR_BLOCK:
-            printf1(TAG_CCID, "a> ");
-            dump_hex1(TAG_CCID, &msg[CCID_HEADER_SIZE], h->len);
-
-            uint32_t rlength = 0;
             OpenpgpExchange(&msg[CCID_HEADER_SIZE], h->len, pck.abData, &rlength);
             pck.dwLength = rlength;
-
-            printf1(TAG_CCID, "a< ");
-            dump_hex1(TAG_CCID, pck.abData, pck.dwLength);
 
             ccid_send_data_block_noclear(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
         break;
