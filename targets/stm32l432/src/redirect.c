@@ -24,24 +24,42 @@ void _putchar(char c)
 }
 
 
+static uint8_t logbuf[1000] = {0};
+static uint8_t sendbuf[512] = {0};
+static int logbuflen = 0;
+
 int _write (int fd, const void *buf, unsigned long int len)
 {
     uint8_t * data = (uint8_t *) buf;
 #if DEBUG_LEVEL>0
-	// static uint8_t logbuf[1000] = {0};
-	// static int logbuflen = 0;
-	// if (logbuflen + len > sizeof(logbuf)) {
-	// 	int mlen = logbuflen + len - sizeof(logbuf);
-	// 	memmove(logbuf, &logbuf[mlen], sizeof(logbuf) - mlen);
-	// 	logbuflen -= mlen;
-	// }
-	// memcpy(&logbuf[logbuflen], data, len);
-	// logbuflen += len;
+    if (len > sizeof(logbuf))
+        len = sizeof(logbuf);
+    
+	if (logbuflen + len > sizeof(logbuf)) {
+        int mlen = logbuflen + len - sizeof(logbuf);
+        memmove(logbuf, &logbuf[mlen], sizeof(logbuf) - mlen);
+        logbuflen -= mlen;
+    }
+    memcpy(&logbuf[logbuflen], data, len);
+    logbuflen += len;
 
+    // check if we already sending something
+    USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)Solo_USBD_Device.pClassData;
+    if (hcdc->TxState != 0)
+      return 0;
+  
+    // USB donest have a send buffer...
+    size_t sendlen = MIN(logbuflen, sizeof(sendbuf));
+    memcpy(sendbuf, logbuf, sendlen);
 	// Send out USB serial
-	CDC_Transmit_FS(data, len);
-	// if (res == USBD_OK)
-	// 	logbuflen = 0;
+	if (CDC_Transmit_FS(sendbuf, sendlen) == USBD_OK) {
+        if (logbuflen > sendlen) {
+            memmove(logbuf, &logbuf[sendlen], logbuflen - sendlen);
+            logbuflen -= sendlen;
+        } else {
+            logbuflen = 0;
+        }
+    }
 #endif
 #ifdef ENABLE_SERIAL_PRINTING
     // Send out UART serial
