@@ -226,12 +226,12 @@ static uint8_t  USBD_CCID_DataIn (USBD_HandleTypeDef *pdev, uint8_t epnum)
   return USBD_OK;
 }
 
-uint8_t  USBD_CCID_TransmitPacket(uint8_t * msg, int len)
+uint8_t  USBD_CCID_TransmitPacket(uint8_t * msg, uint16_t len)
 {
     /* Update the packet total length */
     Solo_USBD_Device.ep_in[CCID_IN_EP & 0xFU].total_length = len;
 
-    while (PCD_GET_EP_TX_STATUS(USB, CCID_IN_EP & 0x0f) == USB_EP_TX_VALID)
+    while (PCD_GET_EP_TX_STATUS(USB, CCID_IN_EP & 0x0fU) == USB_EP_TX_VALID)
         ;
     /* Transmit next packet */
     USBD_LL_Transmit(&Solo_USBD_Device, CCID_IN_EP, msg, len);
@@ -242,34 +242,39 @@ uint8_t  USBD_CCID_TransmitPacket(uint8_t * msg, int len)
     return USBD_OK;
 }
 
-
+static CCID_bulkout_data_t pck;
 
 void ccid_send_status(CCID_HEADER * c, uint8_t status, uint8_t error)
 {
-    uint8_t msg[CCID_HEADER_SIZE];
-    memset(msg,0,sizeof(msg));
+    memset((uint8_t *)&pck, 0, sizeof(pck));
 
-    msg[0] = CCID_SLOT_STATUS_RES;
-    msg[5] = c->slot;
-    msg[6] = c->seq;
-    msg[7] = status;
-    msg[8] = error;
-
-    USBD_CCID_TransmitPacket(msg, sizeof(msg));
+    pck.bMessageType = CCID_SLOT_STATUS_RES;
+    pck.bSlot = c->slot;
+    pck.bSeq = c->seq;
+    pck.bStatus = status;
+    pck.bError = error;
+    
+    USBD_CCID_TransmitPacket((uint8_t *)&pck, CCID_HEADER_SIZE);
 }
 
-void ccid_send_data_block(CCID_HEADER * c, uint8_t *data, uint8_t len, uint8_t status, uint8_t error)
+void ccid_send_data_block(CCID_HEADER * c, uint8_t *data, uint32_t len, uint8_t status, uint8_t error)
 {
-    uint8_t msg[CCID_HEADER_SIZE];
-    memset(msg,0,sizeof(msg));
+    memset((uint8_t *)&pck, 0, sizeof(pck));
+    
+    pck.bMessageType = CCID_DATA_BLOCK_RES;
+    pck.dwLength = len;
+    pck.bSlot = c->slot;
+    pck.bSeq = c->seq;
+    pck.bStatus = status;
+    pck.bError = error;
 
-    msg[0] = CCID_DATA_BLOCK_RES;
-    msg[5] = c->slot;
-    msg[6] = c->seq;
-    msg[7] = status;
-    msg[8] = error;
+    memcpy(pck.abData, data, len);
+    
+    if (error != CCID_SLOT_NO_ERROR) {
+        pck.dwLength = 0;
+    }
 
-    USBD_CCID_TransmitPacket(msg, sizeof(msg));
+    USBD_CCID_TransmitPacket((uint8_t *)&pck, CCID_HEADER_SIZE + pck.dwLength);
 }
 
 void handle_ccid(uint8_t * msg, int len)
@@ -278,7 +283,8 @@ void handle_ccid(uint8_t * msg, int len)
     switch(h->type)
     {
         case CCID_SLOT_STATUS:
-            ccid_send_status(h, BM_COMMAND_STATUS_NO_ERROR | (ICCPowered ? BM_ICC_PRESENT_ACTIVE : BM_ICC_NO_ICC_PRESENT), CCID_SLOT_NO_ERROR);
+            //ccid_send_status(h, BM_COMMAND_STATUS_NO_ERROR | (ICCPowered ? BM_ICC_PRESENT_ACTIVE : BM_ICC_NO_ICC_PRESENT), CCID_SLOT_NO_ERROR);
+            ccid_send_status(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, 0);
         break;
         case CCID_POWER_ON:
             if (h->rsvd >= VOLTS_1_8) {
@@ -292,7 +298,7 @@ void handle_ccid(uint8_t * msg, int len)
             ICCStateChanged = true;
         break;
         case CCID_POWER_OFF:
-            ccid_send_status(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_NO_ICC_PRESENT, CCID_SLOT_NO_ERROR);
+            ccid_send_status(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_NO_ICC_PRESENT, 0);
             ICCPowered = false;
             ICCStateChanged = true;
         break;
@@ -301,7 +307,6 @@ void handle_ccid(uint8_t * msg, int len)
             ccid_send_status(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
         break;
         default:
-            //ccid_send_status(h, CCID_STATUS_ON, CCID_SLOT_NO_ERROR);
             ccid_send_status(h, BM_COMMAND_STATUS_FAILED | BM_ICC_PRESENT_ACTIVE, CCID_SLOTERROR_CMD_NOT_SUPPORTED);
         break;
     }
@@ -314,8 +319,8 @@ uint8_t usb_ccid_int_tx_callback(USBD_HandleTypeDef *pdev, uint8_t epnum) {
     
     Solo_USBD_Device.ep_in[CCID_CMD_EP & 0xFU].total_length = sizeof(data);
 
-    //while (PCD_GET_EP_TX_STATUS(USB, CCID_CMD_EP & 0x0f) == USB_EP_TX_VALID)
-    //    ;
+    while (PCD_GET_EP_TX_STATUS(USB, CCID_CMD_EP & 0x0f) == USB_EP_TX_VALID)
+        ;
     USBD_LL_Transmit(&Solo_USBD_Device, CCID_CMD_EP, data, sizeof(data));
     
     return USBD_OK;
