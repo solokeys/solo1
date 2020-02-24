@@ -35,6 +35,16 @@ static const uint8_t ATRResponse[] = {
     0x1F, 0x03, 0x00, 0x31, 0x84, 0x73, 0x80, 0x01, 
     0x80, 0x00, 0x90, 0x00, 0xE4 };
     
+static const uint8_t ParamsT0Default[] = {
+          // bmFindexDindex (B7-4 – FI – Index into the table 7 in ISO/IEC 7816-3:1997 selecting a clock rate conversion factor
+          //                 B3-0 – DI - Index into the table 8 in ISO/IEC 7816-3:1997 selecting a baud rate conversion factor )
+    0x11, // from TA1 ATR: Fi=372, Di=1, 372 cycles/ETU (10752 bits/s at 4.00 MHz, 13440 bits/s for fMax=5 MHz)
+    0x10, // bmTCCKST0 (Checksum: LRC, Convention: direct, ignored by CCID)
+    0x00, // bGuardTimeT0
+    0x00, // bWaitingIntegerT0
+    0x00, // bClockStop. 00h = Stopping the Clock is not allowed
+    };
+    
 USBD_ClassTypeDef  USBD_CCID =
 {
   USBD_CCID_Init,
@@ -277,6 +287,35 @@ void ccid_send_data_block(CCID_HEADER * c, uint8_t *data, uint32_t len, uint8_t 
     USBD_CCID_TransmitPacket((uint8_t *)&pck, CCID_HEADER_SIZE + pck.dwLength);
 }
 
+void ccid_send_parameters(CCID_HEADER * c, uint8_t status, uint8_t error)
+{
+    memset((uint8_t *)&pck, 0, sizeof(pck));
+
+    pck.bMessageType = CCID_PARAMS_RES;
+    pck.dwLength = 0;
+    pck.bSlot = c->slot;
+    pck.bSeq = c->seq;
+    pck.bStatus = status;
+    pck.bError = error;
+    
+    /*
+    bSpecific - Specifies what protocol data structure follows.
+    00h = Structure for protocol T=0
+    01h = Structure for protocol T=1
+    The following values are reserved for future use.
+    80h = Structure for 2-wire protocol
+    81h = Structure for 3-wire protocol
+    82h = Structure for I2C protocol  
+    */
+    pck.bSpecific = 0;
+    if (error == CCID_SLOT_NO_ERROR) {
+        pck.dwLength = sizeof(ParamsT0Default);
+        memcpy(pck.abData, ParamsT0Default, sizeof(ParamsT0Default));
+    }
+    
+    USBD_CCID_TransmitPacket((uint8_t *)&pck, CCID_HEADER_SIZE + pck.dwLength);
+}
+
 void handle_ccid(uint8_t * msg, int len)
 {
     CCID_HEADER * h = (CCID_HEADER *) msg;
@@ -301,6 +340,16 @@ void handle_ccid(uint8_t * msg, int len)
             ccid_send_status(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_NO_ICC_PRESENT, 0);
             ICCPowered = false;
             ICCStateChanged = true;
+        break;
+        case CCID_GET_PARAMS:
+            ccid_send_parameters(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
+        break;
+        case CCID_RESET_PARAMS:
+            ccid_send_parameters(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
+        break;
+        case CCID_SET_PARAMS:
+            ccid_send_status(h, BM_COMMAND_STATUS_FAILED | BM_ICC_PRESENT_ACTIVE, CCID_SLOTERROR_CMD_NOT_SUPPORTED);
+            //ccid_send_parameters(h, BM_COMMAND_STATUS_FAILED | BM_ICC_PRESENT_ACTIVE, 0); // bError field will contain the offset of the "offending" parameter
         break;
         case CCID_XFR_BLOCK:
             //TODO add transfer
