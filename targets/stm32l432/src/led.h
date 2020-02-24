@@ -9,6 +9,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void led_rgb(uint32_t hex);
 void led_test_colors();
 
@@ -16,5 +20,9 @@ void led_test_colors();
 #define LED_PIN_B     LL_GPIO_PIN_1
 #define LED_PIN_R     LL_GPIO_PIN_2
 #define LED_PORT      GPIOA
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
