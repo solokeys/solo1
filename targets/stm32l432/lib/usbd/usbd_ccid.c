@@ -7,7 +7,9 @@
 
 #include "log.h"
 
-//#include "openpgplib.h"
+#ifdef ENABLE_CCID
+#include "openpgplib.h"
+#endif
 
 static uint8_t  USBD_CCID_Init (USBD_HandleTypeDef *pdev,
                                uint8_t cfgidx);
@@ -44,7 +46,17 @@ static const uint8_t ParamsT0Default[] = {
     0x00, // bWaitingIntegerT0
     0x00, // bClockStop. 00h = Stopping the Clock is not allowed
     };
-    
+
+static const uint8_t ParamsT1Default[] = {
+    0x11, // Fi=372, Di=1
+    0x10, // Checksum: LRC, Convention: direct, ignored by CCID
+    0x00, // No extra guard time
+    0x15, // BWI = 1, CWI = 5
+    0x00, // Stopping the Clock is not allowed
+    0xFE, // IFSC = 0xFE
+    0x00  // NAD
+    };
+  
 USBD_ClassTypeDef  USBD_CCID =
 {
   USBD_CCID_Init,
@@ -287,6 +299,23 @@ void ccid_send_data_block(CCID_HEADER * c, uint8_t *data, uint32_t len, uint8_t 
     USBD_CCID_TransmitPacket((uint8_t *)&pck, CCID_HEADER_SIZE + pck.dwLength);
 }
 
+// abData and dwLength comes from old data
+void ccid_send_data_block_noclear(CCID_HEADER * c, uint8_t status, uint8_t error)
+{
+    pck.bMessageType = CCID_DATA_BLOCK_RES;
+    pck.bSlot = c->slot;
+    pck.bSeq = c->seq;
+    pck.bStatus = status;
+    pck.bError = error;
+    pck.bSpecific = 0;
+
+    if (error != CCID_SLOT_NO_ERROR) {
+        pck.dwLength = 0;
+    }
+
+    USBD_CCID_TransmitPacket((uint8_t *)&pck, CCID_HEADER_SIZE + pck.dwLength);
+}
+
 void ccid_send_parameters(CCID_HEADER * c, uint8_t status, uint8_t error)
 {
     memset((uint8_t *)&pck, 0, sizeof(pck));
@@ -307,10 +336,10 @@ void ccid_send_parameters(CCID_HEADER * c, uint8_t status, uint8_t error)
     81h = Structure for 3-wire protocol
     82h = Structure for I2C protocol  
     */
-    pck.bSpecific = 0;
+    pck.bSpecific = 1;
     if (error == CCID_SLOT_NO_ERROR) {
-        pck.dwLength = sizeof(ParamsT0Default);
-        memcpy(pck.abData, ParamsT0Default, sizeof(ParamsT0Default));
+        pck.dwLength = sizeof(ParamsT1Default);
+        memcpy(pck.abData, ParamsT1Default, sizeof(ParamsT1Default));
     }
     
     USBD_CCID_TransmitPacket((uint8_t *)&pck, CCID_HEADER_SIZE + pck.dwLength);
@@ -351,10 +380,19 @@ void handle_ccid(uint8_t * msg, int len)
             ccid_send_status(h, BM_COMMAND_STATUS_FAILED | BM_ICC_PRESENT_ACTIVE, CCID_SLOTERROR_CMD_NOT_SUPPORTED);
             //ccid_send_parameters(h, BM_COMMAND_STATUS_FAILED | BM_ICC_PRESENT_ACTIVE, 0); // bError field will contain the offset of the "offending" parameter
         break;
+#ifdef ENABLE_CCID
         case CCID_XFR_BLOCK:
-            //TODO add transfer
-            ccid_send_status(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
+            printf1(TAG_CCID, "a> ");
+            dump_hex1(TAG_CCID, &msg[CCID_HEADER_SIZE], h->len);
+
+            OpenpgpExchange(&msg[CCID_HEADER_SIZE], h->len, pck.abData, &pck.dwLength);
+
+            printf1(TAG_CCID, "a< ");
+            dump_hex1(TAG_CCID, pck.abData, pck.dwLength);
+
+            ccid_send_data_block_noclear(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
         break;
+#endif
         default:
             ccid_send_status(h, BM_COMMAND_STATUS_FAILED | BM_ICC_PRESENT_ACTIVE, CCID_SLOTERROR_CMD_NOT_SUPPORTED);
         break;
