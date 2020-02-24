@@ -337,6 +337,7 @@ void ccid_send_parameters(CCID_HEADER * c, uint8_t status, uint8_t error)
     82h = Structure for I2C protocol  
     */
     pck.bSpecific = 1;
+    (void)ParamsT0Default; // suppress not using warning
     if (error == CCID_SLOT_NO_ERROR) {
         pck.dwLength = sizeof(ParamsT1Default);
         memcpy(pck.abData, ParamsT1Default, sizeof(ParamsT1Default));
@@ -385,7 +386,9 @@ void handle_ccid(uint8_t * msg, int len)
             printf1(TAG_CCID, "a> ");
             dump_hex1(TAG_CCID, &msg[CCID_HEADER_SIZE], h->len);
 
-            OpenpgpExchange(&msg[CCID_HEADER_SIZE], h->len, pck.abData, &pck.dwLength);
+            uint32_t rlength = 0;
+            OpenpgpExchange(&msg[CCID_HEADER_SIZE], h->len, pck.abData, &rlength);
+            pck.dwLength = rlength;
 
             printf1(TAG_CCID, "a< ");
             dump_hex1(TAG_CCID, pck.abData, pck.dwLength);
