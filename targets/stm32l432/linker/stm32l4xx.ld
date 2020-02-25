@@ -89,6 +89,11 @@ SECTIONS
         . = . + _MIN_STACK_SIZE;
         . = ALIGN(8);
     } > ram
+    
+    .sram2 :
+    {
+        *(.sram2)
+    } > sram2
 
     .preinit_array :
     {

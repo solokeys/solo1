@@ -13,6 +13,10 @@
 extern "C" {
 #endif
 
+#ifndef PUT_TO_SRAM2
+#define PUT_TO_SRAM2 __attribute__((section(".sram2")))
+#endif
+
 /** Return a millisecond timestamp.  Does not need to be synchronized to anything.
  *  *Optional* to compile, but will not calculate delays correctly without a correct implementation.
 */
