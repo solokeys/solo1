@@ -9,6 +9,10 @@
 
 #include "storage.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** Return a millisecond timestamp.  Does not need to be synchronized to anything.
  *  *Optional* to compile, but will not calculate delays correctly without a correct implementation.
 */
@@ -222,5 +226,10 @@ uint16_t device_attestation_cert_der_get_size();
  * @param dst buffer to write 16 byte AAGUID into.
  * */
 void device_read_aaguid(uint8_t * dst);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif
