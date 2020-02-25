@@ -9,6 +9,7 @@
 
 #include APP_CONFIG
 #include "fifo.h"
+#include "device.h"
 
 #if DEBUG_LEVEL>0
 
@@ -23,10 +24,9 @@ void _putchar(char c)
 #endif
 }
 
-
-static uint8_t logbuf[1000] = {0};
-static uint8_t sendbuf[512] = {0};
-static int logbuflen = 0;
+PUT_TO_SRAM2 static uint8_t logbuf[1000] = {0};
+PUT_TO_SRAM2 static uint8_t sendbuf[512] = {0};
+PUT_TO_SRAM2 static int logbuflen = 0;
 
 int _write (int fd, const void *buf, unsigned long int len)
 {
