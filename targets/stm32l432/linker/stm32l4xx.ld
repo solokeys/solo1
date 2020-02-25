@@ -90,4 +90,33 @@ SECTIONS
         . = ALIGN(8);
     } > ram
 
+    .preinit_array :
+    {
+        . = ALIGN(4);
+        _spreinit_array = .;
+        KEEP (*(.preinit_array))
+        KEEP (*(.preinit_array*))
+        _epreinit_array = .;
+        . = ALIGN(4);
+    } > flash
+
+    .init_array :
+    {
+        . = ALIGN(4);
+        _sinit_array = .;
+        KEEP (*(.init_array))
+        KEEP (*(.init_array*))
+        _einit_array = .;
+        . = ALIGN(4);
+    } > flash
+
+    .fini_array :
+    {
+        . = ALIGN(4);
+        _sfini_array = .;
+        KEEP (*(.fini_array))
+        KEEP (*(.fini_array*))
+        _efini_array = .;
+        . = ALIGN(4);
+    } > flash
 }
