@@ -388,6 +388,13 @@ void handle_ccid(uint8_t * msg, int len)
             pck.dwLength = rlength;
 
             ccid_send_data_block_noclear(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
+            
+            if (DoReset) {
+                while (PCD_GET_EP_TX_STATUS(USB, CCID_IN_EP & 0x0fU) == USB_EP_TX_VALID)
+                    ;
+                USBD_LL_Delay(100U);
+                NVIC_SystemReset();
+            }
         break;
 #endif
         default:

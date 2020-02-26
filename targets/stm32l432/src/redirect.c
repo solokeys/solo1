@@ -36,7 +36,7 @@ int _write (int fd, const void *buf, unsigned long int len)
         len = sizeof(logbuf);
     
 	if (logbuflen + len > sizeof(logbuf)) {
-        int mlen = logbuflen + len - sizeof(logbuf);
+        size_t mlen = logbuflen + len - sizeof(logbuf);
         memmove(logbuf, &logbuf[mlen], sizeof(logbuf) - mlen);
         logbuflen -= mlen;
     }
