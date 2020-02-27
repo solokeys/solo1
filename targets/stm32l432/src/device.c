@@ -177,6 +177,10 @@ void delay(uint32_t ms)
 
 void device_reboot(void)
 {
+    device_led(0xffff00);
+    delay(100U);
+    printf1(TAG_RED, "-- reset --\n");
+    delay(100U);
     NVIC_SystemReset();
 }
 
@@ -482,6 +486,9 @@ void heartbeat(void)
 
 }
 
+void device_led(uint32_t color) {
+    led_rgb(color);
+}
 
 static int authenticator_is_backup_initialized(void)
 {

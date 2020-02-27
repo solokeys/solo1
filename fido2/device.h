@@ -179,6 +179,12 @@ void ctap_overwrite_rk(int index,CTAP_residentKey * rk);
 */
 void device_wink();
 
+/** Show color on the led
+ * 
+ * *Optional*.
+*/
+void device_led(uint32_t color);
+
 typedef enum {
     DEVICE_LOW_POWER_IDLE = 0,
     DEVICE_LOW_POWER_FAST = 1,
