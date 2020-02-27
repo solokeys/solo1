@@ -666,8 +666,8 @@ uint8_t ctap_parse_extensions(CborValue * val, CTAP_extensions * ext)
         if (ret == CborErrorOutOfMemory)
         {
             printf2(TAG_ERR,"Error, rp map key is too large. Ignoring.\n");
-            cbor_value_advance(&map);
-            cbor_value_advance(&map);
+            check_ret( cbor_value_advance(&map) );
+            check_ret( cbor_value_advance(&map) );
             continue;
         }
         check_ret(ret);
@@ -1353,11 +1353,21 @@ uint8_t ctap_parse_client_pin(CTAP_clientPin * CP, uint8_t * request, int length
                 break;
             case CP_getKeyAgreement:
                 printf1(TAG_CP,"CP_getKeyAgreement\n");
+                if (cbor_value_get_type(&map) != CborBooleanType)
+                {
+                    printf2(TAG_ERR,"Error, expecting cbor boolean\n");
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
                 ret = cbor_value_get_boolean(&map, &CP->getKeyAgreement);
                 check_ret(ret);
                 break;
             case CP_getRetries:
                 printf1(TAG_CP,"CP_getRetries\n");
+                if (cbor_value_get_type(&map) != CborBooleanType)
+                {
+                    printf2(TAG_ERR,"Error, expecting cbor boolean\n");
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
                 ret = cbor_value_get_boolean(&map, &CP->getRetries);
                 check_ret(ret);
                 break;
