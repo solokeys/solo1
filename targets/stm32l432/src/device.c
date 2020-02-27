@@ -177,7 +177,7 @@ void delay(uint32_t ms)
 
 void device_reboot(void)
 {
-    device_led(0xffff00);
+    device_led(COLOR_MAGENTA);
     delay(100U);
     printf1(TAG_RED, "-- reset --\n");
     delay(100U);

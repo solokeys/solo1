@@ -17,6 +17,16 @@ extern "C" {
 #define PUT_TO_SRAM2 __attribute__((section(".sram2")))
 #endif
 
+#define COLOR_OFF       0x000000
+#define COLOR_WHITE     0xffffff
+#define COLOR_GRAY      0x101010
+#define COLOR_RED       0xff0000
+#define COLOR_GREEN     0x00ff00
+#define COLOR_BLUE      0x0000ff
+#define COLOR_YELLOW    0xffff00
+#define COLOR_CYAN      0x00ffff
+#define COLOR_MAGENTA   0xff00ff
+
 /** Return a millisecond timestamp.  Does not need to be synchronized to anything.
  *  *Optional* to compile, but will not calculate delays correctly without a correct implementation.
 */

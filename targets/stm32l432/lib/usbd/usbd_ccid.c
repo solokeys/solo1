@@ -6,6 +6,7 @@
 #include "usbd_core.h"
 
 #include "log.h"
+#include "device.h"
 
 #ifdef ENABLE_CCID
 #include "openpgplib.h"
@@ -76,7 +77,7 @@ USBD_ClassTypeDef  USBD_CCID =
   NULL,
 };
 
-static uint8_t ccidmsg_buf[CCID_DATA_PACKET_SIZE];
+static uint8_t ccidmsg_buf[CCID_DATA_PACKET_SIZE * 10];
 
 static uint8_t  USBD_CCID_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
@@ -384,16 +385,19 @@ void handle_ccid(uint8_t * msg, int len)
         break;
 #ifdef ENABLE_CCID
         case CCID_XFR_BLOCK:
+            device_led(0x00ffff);
             OpenpgpExchange(&msg[CCID_HEADER_SIZE], h->len, pck.abData, &rlength);
             pck.dwLength = rlength;
+            device_led(0x000ff);
 
             ccid_send_data_block_noclear(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
+            device_led(COLOR_OFF);
             
             if (DoReset) {
+                device_led(COLOR_RED);
                 while (PCD_GET_EP_TX_STATUS(USB, CCID_IN_EP & 0x0fU) == USB_EP_TX_VALID)
                     ;
-                USBD_LL_Delay(100U);
-                NVIC_SystemReset();
+                device_reboot();
             }
         break;
 #endif
@@ -430,7 +434,7 @@ uint8_t usb_ccid_recieve_callback(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
     /* Get the received data length */
     hcdc->RxLength = USBD_LL_GetRxDataSize (pdev, epnum);
-
+    
     //printf1(TAG_CCID, ">> ");
     //dump_hex1(TAG_CCID, ccidmsg_buf, hcdc->RxLength);
 
