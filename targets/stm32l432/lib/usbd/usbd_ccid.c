@@ -77,7 +77,11 @@ USBD_ClassTypeDef  USBD_CCID =
   NULL,
 };
 
-static uint8_t ccidmsg_buf[CCID_DATA_PACKET_SIZE * 10];
+PUT_TO_SRAM2 static uint8_t ccidmsg_buf[CCID_DATA_PACKET_SIZE];
+PUT_TO_SRAM2 static uint8_t usbdata_buf[2048];
+static usbdata_len = 0;
+
+static CCID_bulkout_data_t pck;
 
 static uint8_t  USBD_CCID_Init (USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
@@ -265,8 +269,6 @@ uint8_t  USBD_CCID_TransmitPacket(uint8_t * msg, uint16_t len)
     return USBD_OK;
 }
 
-static CCID_bulkout_data_t pck;
-
 void ccid_send_status(CCID_HEADER * c, uint8_t status, uint8_t error)
 {
     memset((uint8_t *)&pck, 0, sizeof(pck));
@@ -385,10 +387,41 @@ void handle_ccid(uint8_t * msg, int len)
         break;
 #ifdef ENABLE_CCID
         case CCID_XFR_BLOCK:
-            device_led(0x00ffff);
-            OpenpgpExchange(&msg[CCID_HEADER_SIZE], h->len, pck.abData, &rlength);
+            pck.dwLength = 0;
+            pck.bSpecific = 0x00; // bChainParameter
+
+            // chaining...
+            // wLevelParameter in h->param
+            // 0x00 - no chaining
+            if (h->param == 0x00) {
+                usbdata_len = h->len;
+                memcpy(usbdata_buf, &msg[CCID_HEADER_SIZE], h->len);
+            }
+            // 0x01 - start chaining
+            if (h->param == 0x01) {
+                usbdata_len = h->len;
+                memcpy(usbdata_buf, &msg[CCID_HEADER_SIZE], h->len);
+                pck.bSpecific = 0x10; // bChainParameter
+                ccid_send_data_block_noclear(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
+                break;
+            }
+            // 0x02 - finish chaining
+            if (h->param == 0x02) {
+                memcpy(&usbdata_buf[usbdata_len], &msg[CCID_HEADER_SIZE], h->len);
+                usbdata_len += h->len;
+            }
+            // 0x03 - continue chaining
+            if (h->param == 0x03) {
+                memcpy(&usbdata_buf[usbdata_len], &msg[CCID_HEADER_SIZE], h->len);
+                usbdata_len += h->len;
+                pck.bSpecific = 0x10; // bChainParameter
+                ccid_send_data_block_noclear(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
+                break;
+            }
+
+            device_led(COLOR_CYAN);
+            OpenpgpExchange(usbdata_buf, usbdata_len, pck.abData, &rlength);
             pck.dwLength = rlength;
-            device_led(0x000ff);
 
             ccid_send_data_block_noclear(h, BM_COMMAND_STATUS_NO_ERROR | BM_ICC_PRESENT_ACTIVE, CCID_SLOT_NO_ERROR);
             device_led(COLOR_OFF);
