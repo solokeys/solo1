@@ -51,6 +51,7 @@ struct logtag tagtable[] = {
     {TAG_NFC,"[1;38mNFC[0m"},
     {TAG_NFC_APDU, "NAPDU"},
     {TAG_CCID, "CCID"},
+    {TAG_CM, "CRED_MGMT"},
 };
 
 

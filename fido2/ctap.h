@@ -17,6 +17,7 @@
 #define CTAP_RESET                  0x07
 #define GET_NEXT_ASSERTION          0x08
 #define CTAP_VENDOR_FIRST           0x40
+#define CTAP_CBOR_CRED_MGMT_PRE     0x41
 #define CTAP_VENDOR_LAST            0xBF
 
 #define MC_clientDataHash         0x01
@@ -36,6 +37,16 @@
 #define GA_options                0x05
 #define GA_pinAuth                0x06
 #define GA_pinProtocol            0x07
+
+#define CM_cmd                    0x01
+    #define CM_cmdMetadata        0x01
+    #define CM_cmdRPBegin         0x02
+    #define CM_cmdRPNext          0x03
+    #define CM_cmdRKBegin         0x04
+    #define CM_cmdRKNext          0x05
+#define CM_rpIdHash               0x02
+#define CM_pinProtocol            0x03
+#define CM_pinAuth                0x04
 
 #define CP_pinProtocol            0x01
 #define CP_subCommand             0x02
@@ -284,6 +295,16 @@ typedef struct
     CTAP_extensions extensions;
 
 } CTAP_getAssertion;
+
+typedef struct
+{
+    int cmd;
+    uint8_t rpIdHash[32];
+    uint8_t pinAuth[16];
+    uint8_t pinAuthPresent;
+    int pinProtocol;
+} CTAP_credMgmt;
+
 
 typedef struct
 {
