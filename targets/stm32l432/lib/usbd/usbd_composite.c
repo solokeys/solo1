@@ -253,7 +253,7 @@ __ALIGN_BEGIN uint8_t COMPOSITE_CDC_HID_DESCRIPTOR[COMPOSITE_CDC_HID_DESCRIPTOR_
                      *  Auto activaction of ICC	   : 0x00004
                      *  Automatic conf. based on ATR : 0x00002  *
                      */
-        0x0f, 0x01, 0, 0,	  /* dwMaxCCIDMessageLength: 271 */
+        0x40, 0x00, 0, 0,	  /* dwMaxCCIDMessageLength: WAS:271 NOW:64*/
         0xff,			  /* bClassGetResponse: 0xff */
         0x00,			  /* bClassEnvelope: 0 */
         0, 0,			  /* wLCDLayout: 0 */
