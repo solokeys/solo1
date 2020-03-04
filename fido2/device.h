@@ -7,6 +7,7 @@
 #ifndef _DEVICE_H
 #define _DEVICE_H
 
+#include "stdbool.h"
 #include "storage.h"
 
 #ifdef __cplusplus

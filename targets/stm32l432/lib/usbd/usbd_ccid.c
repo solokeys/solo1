@@ -78,8 +78,10 @@ USBD_ClassTypeDef  USBD_CCID =
 };
 
 PUT_TO_SRAM2 static uint8_t ccidmsg_buf[CCID_DATA_PACKET_SIZE];
+#ifdef ENABLE_CCID
 PUT_TO_SRAM2 static uint8_t usbdata_buf[2048];
-static usbdata_len = 0;
+static size_t usbdata_len = 0;
+#endif
 
 static CCID_bulkout_data_t pck;
 
