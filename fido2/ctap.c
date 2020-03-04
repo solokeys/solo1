@@ -38,12 +38,13 @@ static void ctap_reset_key_agreement();
 
 struct _getAssertionState getAssertionState;
 
-uint8_t verify_pin_auth(uint8_t * pinAuth, uint8_t * clientDataHash)
+
+static uint8_t verify_pin_auth_ex(uint8_t * pinAuth, uint8_t *buf, size_t len)
 {
     uint8_t hmac[32];
 
     crypto_sha256_hmac_init(PIN_TOKEN, PIN_TOKEN_SIZE, hmac);
-    crypto_sha256_update(clientDataHash, CLIENT_DATA_HASH_SIZE);
+    crypto_sha256_update(buf, len);
     crypto_sha256_hmac_final(PIN_TOKEN, PIN_TOKEN_SIZE, hmac);
 
     if (memcmp(pinAuth, hmac, 16) == 0)
@@ -57,10 +58,12 @@ uint8_t verify_pin_auth(uint8_t * pinAuth, uint8_t * clientDataHash)
         dump_hex1(TAG_ERR,hmac,16);
         return CTAP2_ERR_PIN_AUTH_INVALID;
     }
-
 }
 
-
+uint8_t verify_pin_auth(uint8_t * pinAuth, uint8_t * clientDataHash)
+{
+    return verify_pin_auth_ex(pinAuth, clientDataHash, CLIENT_DATA_HASH_SIZE);
+}
 
 uint8_t ctap_get_info(CborEncoder * encoder)
 {
@@ -1154,6 +1157,298 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
     return 0;
 }
 
+uint8_t ctap_cred_metadata(CborEncoder * encoder)
+{
+    CborEncoder map;
+    int ret = cbor_encoder_create_map(encoder, &map, 2);
+    check_ret(ret);
+    ret = cbor_encode_int(&map, 1);
+    check_ret(ret);
+    ret = cbor_encode_int(&map, STATE.rk_stored);
+    check_ret(ret);
+    ret = cbor_encode_int(&map, 2);
+    check_ret(ret);
+    int remaining_rks = ctap_rk_size() - STATE.rk_stored;
+    ret = cbor_encode_int(&map, remaining_rks);
+    check_ret(ret);
+    ret = cbor_encoder_close_container(encoder, &map);
+    check_ret(ret);
+    return 0;
+}
+
+uint8_t ctap_cred_rp(CborEncoder * encoder, int rk_ind, int rp_count)
+{
+    CTAP_residentKey rk;
+    ctap_load_rk(rk_ind, &rk);
+    // SHA256 hash of "ssh:"
+    uint8_t ssh_hash[32] = {0xe3, 0x06, 0x10, 0xe8, 0xa1, 0x62, 0x11, 0x59,
+                            0x60, 0xfe, 0x1e, 0xc2, 0x23, 0xe6, 0x52, 0x9c,
+                            0x9f, 0x4b, 0x6e, 0x80, 0x20, 0x0d, 0xcb, 0x5e,
+                            0x5c, 0x32, 0x1c, 0x8a, 0xf1, 0xe2, 0xb1, 0xbf};
+
+    CborEncoder map;
+    size_t map_size = rp_count > 0 ? 3 : 2;
+    int ret = cbor_encoder_create_map(encoder, &map, map_size);
+    check_ret(ret);
+    ret = cbor_encode_int(&map, 3);
+    check_ret(ret);
+    {
+        CborEncoder rp;
+        ret = cbor_encoder_create_map(&map, &rp, 2);
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&rp, "id");
+        check_ret(ret);
+        if (memcmp(ssh_hash, rk.id.rpIdHash, 32) == 0) {
+            // recover the rpId from the hash because Solo stores only the hash :(
+            ret = cbor_encode_text_stringz(&rp, "ssh:");
+        } else {
+            ret = cbor_encode_text_stringz(&rp, "");
+        }
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&rp, "name");
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&rp, rk.user.name);
+        check_ret(ret);
+        ret = cbor_encoder_close_container(&map, &rp);
+        check_ret(ret);
+    }
+    ret = cbor_encode_int(&map, 4);
+    check_ret(ret);
+    cbor_encode_byte_string(&map, rk.id.rpIdHash, 32);
+    check_ret(ret);
+    if (rp_count > 0)
+    {
+        ret = cbor_encode_int(&map, 5);
+        check_ret(ret);
+        ret = cbor_encode_int(&map, rp_count);
+        check_ret(ret);
+    }
+    ret = cbor_encoder_close_container(encoder, &map);
+    check_ret(ret);
+    return 0;
+}
+
+uint8_t ctap_cred_rk(CborEncoder * encoder, int rk_ind, int rk_count)
+{
+    CTAP_residentKey rk;
+    ctap_load_rk(rk_ind, &rk);
+
+    CborEncoder map;
+    size_t map_size = rk_count > 0 ? 4 : 3;
+    int ret = cbor_encoder_create_map(encoder, &map, map_size);
+    check_ret(ret);
+    ret = cbor_encode_int(&map, 6);
+    check_ret(ret);
+    {
+        CborEncoder usr;
+        ret = cbor_encoder_create_map(&map, &usr, 4);
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&usr, "id");
+        check_ret(ret);
+        ret = cbor_encode_byte_string(&usr, rk.user.id, rk.user.id_size);
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&usr, "icon");
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&usr, rk.user.icon);
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&usr, "name");
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&usr, rk.user.name);
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&usr, "displayName");
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&usr, rk.user.displayName);
+        check_ret(ret);
+        ret = cbor_encoder_close_container(&map, &usr);
+        check_ret(ret);
+    }
+
+    ret = cbor_encode_int(&map, 7);
+    check_ret(ret);
+    {
+        CborEncoder credId;
+        ret = cbor_encoder_create_map(&map, &credId, 1);
+        check_ret(ret);
+        ret = cbor_encode_text_stringz(&credId, "id");
+        check_ret(ret);
+        ret = cbor_encode_byte_string(&credId, (uint8_t*)&rk.id, sizeof(CredentialId));
+        check_ret(ret);
+        ret = cbor_encoder_close_container(&map, &credId);
+        check_ret(ret);
+    }
+
+    ret = cbor_encode_int(&map, 8);
+    check_ret(ret);
+    ctap_generate_cose_key(&map, (uint8_t*)&rk.id, sizeof(CredentialId), PUB_KEY_CRED_PUB_KEY, COSE_ALG_ES256);
+
+    if (rk_count > 0)
+    {
+        ret = cbor_encode_int(&map, 9);
+        check_ret(ret);
+        ret = cbor_encode_int(&map, rk_count);
+        check_ret(ret);
+    }
+    ret = cbor_encoder_close_container(encoder, &map);
+    check_ret(ret);
+    return 0;
+}
+
+uint8_t ctap_cred_mgmt_pinauth(CTAP_credMgmt *CM)
+{
+    uint8_t ret = 0;
+    if (CM->cmd != CM_cmdMetadata && CM->cmd != CM_cmdRPBegin && CM->cmd != CM_cmdRKBegin)
+    {
+        // pinAuth is not required for other commands
+        return 0;
+    }
+    if (CM->pinProtocol != 1)
+    {
+        return CTAP1_ERR_OTHER;
+    }
+    if (CM->cmd == CM_cmdMetadata || CM->cmd == CM_cmdRPBegin)
+    {
+        uint8_t cmd = (uint8_t) CM->cmd;
+        ret = verify_pin_auth_ex(CM->pinAuth, &cmd, 1);
+    }
+    else if (CM->cmd == CM_cmdRKBegin)
+    {
+        uint8_t params[5 + sizeof(CM->rpIdHash)] = {CM->cmd, 0xa1, 0x01, 0x58, 0x20};
+        if (CM->pinProtocol != 1)
+        {
+            return CTAP1_ERR_OTHER;
+        }
+        memcpy(&params[5], CM->rpIdHash, sizeof(CM->rpIdHash));
+        ret = verify_pin_auth_ex(CM->pinAuth, params, sizeof(params));
+    }
+    if (ret == CTAP2_ERR_PIN_AUTH_INVALID)
+    {
+        ctap_decrement_pin_attempts();
+        if (ctap_device_boot_locked())
+        {
+            return CTAP2_ERR_PIN_AUTH_BLOCKED;
+        }
+        return CTAP2_ERR_PIN_AUTH_INVALID;
+    }
+    else
+    {
+        ctap_reset_pin_attempts();
+    }
+    return ret;
+}
+
+uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
+{
+    CTAP_credMgmt CM;
+    CTAP_residentKey rk;
+    int i = 0;
+    // use the same index for both RP and RK commands, it make things simpler
+    static int curr_rk_ind = 0;
+    // keep the rpIdHash specified in CM_cmdRKBegin cause it's not present in CM_cmdRKNext
+    static uint8_t rpIdHash[32];
+    // flag that authenticated RPBegin was received
+    static bool rp_auth = false;
+    // flag that authenticated RKBegin was received
+    static bool rk_auth = false;
+    // number of stored RPs
+    int rp_count = 0;
+    // number of RKs with the specified rpIdHash
+    int rk_count = 0;
+
+    int ret = ctap_parse_cred_mgmt(&CM, request, length);
+    if (ret != 0)
+    {
+        printf2(TAG_ERR,"error, ctap_parse_cred_mgmt failed\n");
+        return ret;
+    }
+    ret = ctap_cred_mgmt_pinauth(&CM);
+    check_retr(ret);
+    if (STATE.rk_stored == 0 && CM.cmd != CM_cmdMetadata)
+    {
+        printf2(TAG_ERR,"No resident keys\n");
+        return CTAP2_ERR_NO_CREDENTIALS;
+    }
+    if (CM.cmd == CM_cmdRPBegin)
+    {
+        curr_rk_ind = 0;
+        rp_count = STATE.rk_stored;
+        rp_auth = true;
+        rk_auth = false;
+    }
+    if (CM.cmd == CM_cmdRKBegin)
+    {
+        curr_rk_ind = 0;
+        rk_auth = true;
+        rp_auth = false;
+        // store the specified hash, we will need it for CM_cmdRKNext
+        memcpy(rpIdHash, CM.rpIdHash, 32);
+        // count how many RKs have this hash
+        for (i = 0; i < STATE.rk_stored; i++)
+        {
+            ctap_load_rk(i, &rk);
+            if (memcmp(rk.id.rpIdHash, rpIdHash, 32) == 0)
+            {
+                rk_count++;
+            }
+        }
+    }
+    if (curr_rk_ind >= STATE.rk_stored)
+    {
+        printf2(TAG_ERR,"No more resident keys\n");
+        rk_auth = false;
+        rp_auth = false;
+        return CTAP2_ERR_NO_CREDENTIALS;
+    }
+    if (CM.cmd == CM_cmdRPNext && !rp_auth)
+    {
+        printf2(TAG_ERR, "RPNext without RPBegin\n");
+        return CTAP2_ERR_NO_CREDENTIALS;
+    }
+    if (CM.cmd == CM_cmdRKNext && !rk_auth)
+    {
+        printf2(TAG_ERR, "RKNext without RKBegin\n");
+        return CTAP2_ERR_NO_CREDENTIALS;
+    }
+    if (CM.cmd == CM_cmdRKBegin || CM.cmd == CM_cmdRKNext)
+    {
+        ctap_load_rk(curr_rk_ind, &rk);
+        // skip resident keys with different rpIdHash
+        while (memcmp(rk.id.rpIdHash, rpIdHash, 32) != 0 && curr_rk_ind < STATE.rk_stored)
+        {
+            curr_rk_ind++;
+            ctap_load_rk(curr_rk_ind, &rk);
+        }
+        if (curr_rk_ind == STATE.rk_stored)
+        {
+            printf2(TAG_ERR,"No more resident keys with this rpIdHash\n");
+            rk_auth = false;
+            return CTAP2_ERR_NO_CREDENTIALS;
+        }
+    }
+    switch (CM.cmd)
+    {
+        case CM_cmdMetadata:
+            ret = ctap_cred_metadata(encoder);
+            check_ret(ret);
+            break;
+        case CM_cmdRPBegin:
+        case CM_cmdRPNext:
+            ret = ctap_cred_rp(encoder, curr_rk_ind, rp_count);
+            check_ret(ret);
+            curr_rk_ind++;
+            break;
+        case CM_cmdRKBegin:
+        case CM_cmdRKNext:
+            ret = ctap_cred_rk(encoder, curr_rk_ind, rk_count);
+            check_ret(ret);
+            curr_rk_ind++;
+            break;
+        default:
+            printf2(TAG_ERR, "error, invalid credMgmt cmd: 0x%02x\n", CM.cmd);
+            return CTAP1_ERR_INVALID_COMMAND;
+    }
+    return 0;
+}
+
 uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_getAssertion GA;
@@ -1641,6 +1936,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     {
         case CTAP_MAKE_CREDENTIAL:
         case CTAP_GET_ASSERTION:
+        case CTAP_CBOR_CRED_MGMT_PRE:
             if (ctap_device_locked())
             {
                 status = CTAP2_ERR_PIN_BLOCKED;
@@ -1721,6 +2017,14 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
                 printf2(TAG_ERR, "unwanted GET_NEXT_ASSERTION.  lastcmd == 0x%02x\n", getAssertionState.lastcmd);
                 status = CTAP2_ERR_NOT_ALLOWED;
             }
+            break;
+        case CTAP_CBOR_CRED_MGMT_PRE:
+            printf1(TAG_CTAP,"CTAP_CBOR_CRED_MGMT_PRE\n");
+            status = ctap_cred_mgmt(&encoder, pkt_raw, length);
+
+            resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
+
+            dump_hex1(TAG_DUMP,buf, resp->length);
             break;
         default:
             status = CTAP1_ERR_INVALID_COMMAND;

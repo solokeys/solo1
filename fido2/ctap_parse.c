@@ -999,6 +999,142 @@ uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
     return 0;
 }
 
+static uint8_t parse_rpid_hash(CborValue * val, CTAP_credMgmt * CM)
+{
+    size_t map_length;
+    int key;
+    int ret;
+    unsigned int i;
+    CborValue map;
+    size_t sz = 32;
+
+    if (cbor_value_get_type(val) != CborMapType)
+    {
+        printf2(TAG_ERR,"error, wrong type\n");
+        return CTAP2_ERR_INVALID_CBOR_TYPE;
+    }
+
+    ret = cbor_value_enter_container(val,&map);
+    check_ret(ret);
+    ret = cbor_value_get_map_length(val, &map_length);
+    check_ret(ret);
+
+    for (i = 0; i < map_length; i++)
+    {
+        if (cbor_value_get_type(&map) != CborIntegerType)
+        {
+            printf2(TAG_ERR,"Error, expecting integer type for map key, got %s\n", cbor_value_get_type_string(&map));
+            return CTAP2_ERR_INVALID_CBOR_TYPE;
+        }
+        ret = cbor_value_get_int(&map, &key);
+        check_ret(ret);
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+        switch(key)
+        {
+            case 1:
+                ret = cbor_value_copy_byte_string(&map, CM->rpIdHash, &sz, NULL);
+                if (ret == CborErrorOutOfMemory)
+                {
+                    printf2(TAG_ERR,"Error, map key is too large\n");
+                    return CTAP2_ERR_LIMIT_EXCEEDED;
+                }
+                check_ret(ret);
+                break;
+        }
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+    }
+    return 0;
+}
+
+uint8_t ctap_parse_cred_mgmt(CTAP_credMgmt * CM, uint8_t * request, int length)
+{
+    int ret;
+    unsigned int i;
+    int key;
+    size_t map_length;
+    CborParser parser;
+    CborValue it,map;
+
+    memset(CM, 0, sizeof(CTAP_credMgmt));
+    ret = cbor_parser_init(request, length, CborValidateCanonicalFormat, &parser, &it);
+    check_ret(ret);
+
+    CborType type = cbor_value_get_type(&it);
+    if (type != CborMapType)
+    {
+        printf2(TAG_ERR,"Error, expecting cbor map\n");
+        return CTAP2_ERR_INVALID_CBOR_TYPE;
+    }
+
+    ret = cbor_value_enter_container(&it,&map);
+    check_ret(ret);
+
+    ret = cbor_value_get_map_length(&it, &map_length);
+    check_ret(ret);
+
+    printf1(TAG_CM, "CM map has %d elements\n", map_length);
+
+    for (i = 0; i < map_length; i++)
+    {
+        type = cbor_value_get_type(&map);
+        if (type != CborIntegerType)
+        {
+            printf2(TAG_ERR,"Error, expecting int for map key\n");
+            return CTAP2_ERR_INVALID_CBOR_TYPE;
+        }
+        ret = cbor_value_get_int_checked(&map, &key);
+        check_ret(ret);
+
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+
+        switch(key)
+        {
+            case CM_cmd:
+                printf1(TAG_CM, "CM_cmd\n");
+                if (cbor_value_get_type(&map) == CborIntegerType)
+                {
+                    ret = cbor_value_get_int_checked(&map, &CM->cmd);
+                    check_ret(ret);
+                }
+                else
+                {
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
+                break;
+            case CM_rpIdHash:
+                printf1(TAG_CM, "CM_rpIdHash\n");
+                ret = parse_rpid_hash(&map, CM);
+                check_ret(ret);
+                dump_hex1(TAG_CM, CM->rpIdHash, 32);
+                break;
+            case CM_pinProtocol:
+                printf1(TAG_CM, "CM_pinProtocol\n");
+                if (cbor_value_get_type(&map) == CborIntegerType)
+                {
+                    ret = cbor_value_get_int_checked(&map, &CM->pinProtocol);
+                    check_ret(ret);
+                }
+                else
+                {
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
+                break;
+            case CM_pinAuth:
+                printf1(TAG_CM, "CM_pinAuth\n");
+                ret = parse_fixed_byte_string(&map, CM->pinAuth, 16);
+                check_retr(ret);
+                CM->pinAuthPresent = 1;
+                break;
+        }
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+    }
+
+    return 0;
+}
 
 uint8_t ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int length)
 {
