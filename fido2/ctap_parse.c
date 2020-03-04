@@ -871,7 +871,7 @@ uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encod
         {
             return ret;
         }
-        cbor_value_advance(&map);
+        ret = cbor_value_advance(&map);
         check_ret(ret);
     }
 
@@ -1268,7 +1268,7 @@ uint8_t ctap_parse_get_assertion(CTAP_getAssertion * GA, uint8_t * request, int 
             return ret;
         }
 
-        cbor_value_advance(&map);
+        ret = cbor_value_advance(&map);
         check_ret(ret);
     }
 
