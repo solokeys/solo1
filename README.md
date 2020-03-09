@@ -61,9 +61,11 @@ git checkout ${VERSION_TO_BUILD}
 git submodule update --init --recursive
 ```
 
-## Installing the toolchain
+## Installing the toolchain and applying updates
 
-In order to compile ARM code, you need the ARM compiler and other things like bundling bootloader and firmware require the `solo-python` python package. Check our [documentation](https://docs.solokeys.io/solo/) for details
+In order to compile ARM code, you need the ARM compiler and other things like bundling bootloader and firmware require the [solo-python](https://github.com/solokeys/solo-python) python package. Check our [documentation](https://docs.solokeys.io/solo/) for details.
+
+You can update your solokey after running `pip3 install solo-python` with `solo key update` for the latest version. To apply a custom image use `solo program bootloader <file>(.json|.hex)`.
 
 ## Installing the toolkit and compiling in Docker 
 Alternatively, you can use Docker to create a container with the toolchain.
