@@ -1,4 +1,5 @@
 #include "version.h"
+#include "app.h"
 
 const version_t firmware_version 
 #ifdef SOLO
