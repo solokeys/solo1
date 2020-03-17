@@ -19,6 +19,7 @@
 #define CTAP_CBOR_CRED_MGMT         0x0A
 #define CTAP_VENDOR_FIRST           0x40
 #define CTAP_CBOR_CRED_MGMT_PRE     0x41
+#define CTAP_SOLO_SIGN              0x50
 #define CTAP_VENDOR_LAST            0xBF
 
 #define MC_clientDataHash         0x01
@@ -39,6 +40,9 @@
 #define GA_pinAuth                0x06
 #define GA_pinProtocol            0x07
 
+#define SH_clientDataHash         0x01
+#define SH_credential             0x02
+#define SH_pinAuth                0x03
 #define CM_cmd                    0x01
     #define CM_cmdMetadata        0x01
     #define CM_cmdRPBegin         0x02
@@ -321,6 +325,13 @@ typedef struct
     CTAP_extensions extensions;
 
 } CTAP_getAssertion;
+
+typedef struct
+{
+    uint8_t pinAuth[16];
+    uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
+    CTAP_credentialDescriptor cred;
+} CTAP_signHash;
 
 typedef struct
 {
