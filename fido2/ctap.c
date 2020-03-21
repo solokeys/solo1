@@ -75,19 +75,21 @@ uint8_t ctap_get_info(CborEncoder * encoder)
     uint8_t aaguid[16];
     device_read_aaguid(aaguid);
 
-    ret = cbor_encoder_create_map(encoder, &map, 6);
+    ret = cbor_encoder_create_map(encoder, &map, 8);
     check_ret(ret);
     {
 
         ret = cbor_encode_uint(&map, RESP_versions);     //  versions key
         check_ret(ret);
         {
-            ret = cbor_encoder_create_array(&map, &array, 2);
+            ret = cbor_encoder_create_array(&map, &array, 3);
             check_ret(ret);
             {
                 ret = cbor_encode_text_stringz(&array, "U2F_V2");
                 check_ret(ret);
                 ret = cbor_encode_text_stringz(&array, "FIDO_2_0");
+                check_ret(ret);
+                ret = cbor_encode_text_stringz(&array, "FIDO_2_1_PRE");
                 check_ret(ret);
             }
             ret = cbor_encoder_close_container(&map, &array);
@@ -97,10 +99,13 @@ uint8_t ctap_get_info(CborEncoder * encoder)
         ret = cbor_encode_uint(&map, RESP_extensions);
         check_ret(ret);
         {
-            ret = cbor_encoder_create_array(&map, &array, 1);
+            ret = cbor_encoder_create_array(&map, &array, 2);
             check_ret(ret);
             {
                 ret = cbor_encode_text_stringz(&array, "hmac-secret");
+                check_ret(ret);
+
+                ret = cbor_encode_text_stringz(&array, "credProtect");
                 check_ret(ret);
             }
             ret = cbor_encoder_close_container(&map, &array);
@@ -117,7 +122,7 @@ uint8_t ctap_get_info(CborEncoder * encoder)
         ret = cbor_encode_uint(&map, RESP_options);
         check_ret(ret);
         {
-            ret = cbor_encoder_create_map(&map, &options,4);
+            ret = cbor_encoder_create_map(&map, &options,5);
             check_ret(ret);
             {
                 ret = cbor_encode_text_string(&options, "rk", 2);
@@ -151,6 +156,12 @@ uint8_t ctap_get_info(CborEncoder * encoder)
                     check_ret(ret);
                 }
 
+                ret = cbor_encode_text_string(&options, "credMgmt", 8);
+                check_ret(ret);
+                {
+                    ret = cbor_encode_boolean(&options, 1);
+                    check_ret(ret);
+                }
 
                 ret = cbor_encode_text_string(&options, "clientPin", 9);
                 check_ret(ret);
@@ -158,6 +169,8 @@ uint8_t ctap_get_info(CborEncoder * encoder)
                     ret = cbor_encode_boolean(&options, ctap_is_pin_set());
                     check_ret(ret);
                 }
+
+
 
 
             }
@@ -186,9 +199,19 @@ uint8_t ctap_get_info(CborEncoder * encoder)
         }
 
 
+        ret = cbor_encode_uint(&map, 0x07); //maxCredentialCountInList
+        check_ret(ret);
+        {
+            ret = cbor_encode_uint(&map, ALLOW_LIST_MAX_SIZE);
+            check_ret(ret);
+        }
 
-
-
+        ret = cbor_encode_uint(&map, 0x08); // maxCredentialIdLength 
+        check_ret(ret);
+        {
+            ret = cbor_encode_uint(&map, 128);
+            check_ret(ret);
+        }
 
     }
     ret = cbor_encoder_close_container(encoder, &map);
