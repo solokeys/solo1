@@ -204,7 +204,7 @@ int8_t u2f_authenticate_credential(struct u2f_key_handle * kh, uint8_t key_handl
             printf1(TAG_U2F, "APPID does not match rpIdHash.\n");
             return 0;
         }
-        make_auth_tag(appid, cred->nonce, cred->count, tag);
+        make_auth_tag(appid, (uint8_t*)&cred->entropy, cred->count, tag);
 
         if (memcmp(cred->tag, tag, CREDENTIAL_TAG_SIZE) == 0){
             return 1;

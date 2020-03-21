@@ -69,6 +69,11 @@
 #define EXT_HMAC_SECRET_REQUESTED   0x01
 #define EXT_HMAC_SECRET_PARSED      0x02
 
+#define EXT_CRED_PROTECT_INVALID                0x00
+#define EXT_CRED_PROTECT_OPTIONAL               0x01
+#define EXT_CRED_PROTECT_OPTIONAL_WITH_CREDID   0x02
+#define EXT_CRED_PROTECT_REQUIRED               0x03
+
 #define RESP_versions               0x1
 #define RESP_extensions             0x2
 #define RESP_aaguid                 0x3
@@ -152,7 +157,13 @@ typedef struct
 
 typedef struct {
     uint8_t tag[CREDENTIAL_TAG_SIZE];
-    uint8_t nonce[CREDENTIAL_NONCE_SIZE];
+    union {
+        uint8_t nonce[CREDENTIAL_NONCE_SIZE];
+        struct {
+            uint8_t _pad[CREDENTIAL_NONCE_SIZE - 4];
+            uint32_t value;
+        } metadata;
+    } entropy;
     uint8_t rpIdHash[32];
     uint32_t count;
 }__attribute__((packed)) CredentialId;
@@ -228,6 +239,7 @@ typedef struct
 {
     uint8_t hmac_secret_present;
     CTAP_hmac_secret hmac_secret;
+    uint32_t cred_protect;
 } CTAP_extensions;
 
 typedef struct
