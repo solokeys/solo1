@@ -1289,8 +1289,15 @@ uint8_t ctap_cred_rk(CborEncoder * encoder, int rk_ind, int rk_count)
     CTAP_residentKey rk;
     ctap_load_rk(rk_ind, &rk);
 
+    uint32_t cred_protect = read_metadata_from_masked_credential(&rk.id);
+    if ( cred_protect == 0 || cred_protect > 3 ) 
+    {
+        // Take default value of userVerificationOptional
+        cred_protect = EXT_CRED_PROTECT_OPTIONAL;
+    }
+
     CborEncoder map;
-    size_t map_size = rk_count > 0 ? 4 : 3;
+    size_t map_size = rk_count > 0 ? 5 : 4;
     int ret = cbor_encoder_create_map(encoder, &map, map_size);
     check_ret(ret);
     ret = cbor_encode_int(&map, 6);
@@ -1344,6 +1351,12 @@ uint8_t ctap_cred_rk(CborEncoder * encoder, int rk_ind, int rk_count)
         ret = cbor_encode_int(&map, rk_count);
         check_ret(ret);
     }
+
+    ret = cbor_encode_int(&map, 0x0A);
+    check_ret(ret);
+    ret = cbor_encode_int(&map, cred_protect);
+    check_ret(ret);
+
     ret = cbor_encoder_close_container(encoder, &map);
     check_ret(ret);
     return 0;
