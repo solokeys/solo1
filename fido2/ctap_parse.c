@@ -698,6 +698,14 @@ uint8_t ctap_parse_extensions(CborValue * val, CTAP_extensions * ext)
                 printf1(TAG_RED, "warning: hmac_secret request ignored for being wrong type\r\n");
             }
         }
+        else if (strncmp(key, "credProtect",11) == 0) {
+            if (cbor_value_get_type(&map) != CborIntegerType) {
+                ret = cbor_value_get_int(&map, (int*)&ext->cred_protect);
+                check_ret(ret);
+            } else {
+                printf1(TAG_RED, "warning: credProtect request ignored for being wrong type\r\n");
+            }
+        }
 
         ret = cbor_value_advance(&map);
         check_ret(ret);
