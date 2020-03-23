@@ -61,7 +61,7 @@ SECTIONS
         *(.data*)
         . = ALIGN(8);
         _edata = .;
-    } >ram AT> flash
+    } >sram2 AT> flash
 
     .flag :
     {
