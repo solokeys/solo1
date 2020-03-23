@@ -38,6 +38,50 @@ static void ctap_reset_key_agreement();
 
 struct _getAssertionState getAssertionState;
 
+// Generate a mask to keep the confidentiality of the "metadata" field in the credential ID.
+// Mask = hmac(device-secret, 14-random-bytes-in-credential-id)
+// Masked_output = Mask ^ metadata
+static void add_masked_metadata_for_credential(CredentialId * credential, uint32_t cred_protect){
+    uint8_t mask[32];
+    crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY, 0, mask);
+    crypto_sha256_update(credential->entropy.nonce, CREDENTIAL_NONCE_SIZE - 4);
+    crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY,0, mask);
+
+    credential->entropy.metadata.value = *((uint32_t*)mask) ^ cred_protect;
+}
+
+static uint32_t read_metadata_from_masked_credential(CredentialId * credential){
+    uint8_t mask[32];
+    crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY, 0, mask);
+    crypto_sha256_update(credential->entropy.nonce, CREDENTIAL_NONCE_SIZE - 4);
+    crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY,0, mask);
+
+    return credential->entropy.metadata.value ^ *((uint32_t*)mask);
+}
+
+
+
+uint8_t check_credential_metadata(CredentialId * credential, uint8_t is_verified, uint8_t is_from_credid_list)
+{
+    uint32_t cred_protect = read_metadata_from_masked_credential(credential);
+    switch (cred_protect){
+        case EXT_CRED_PROTECT_OPTIONAL_WITH_CREDID:
+            if (!is_from_credid_list) {
+                if (!is_verified)
+                {
+                    return CTAP2_ERR_NOT_ALLOWED;
+                }
+            }
+        break;
+        case EXT_CRED_PROTECT_REQUIRED:
+            if (!is_verified)
+            {
+                return CTAP2_ERR_NOT_ALLOWED;
+            }
+        break;
+    }
+    return 0;
+}
 
 static uint8_t verify_pin_auth_ex(uint8_t * pinAuth, uint8_t *buf, size_t len)
 {
@@ -511,27 +555,6 @@ static int ctap2_user_presence_test()
     {
         return CTAP2_ERR_ACTION_TIMEOUT;
     }
-}
-
-// Generate a mask to keep the confidentiality of the "metadata" field in the credential ID.
-// Mask = hmac(device-secret, 14-random-bytes-in-credential-id)
-// Masked_output = Mask ^ metadata
-static void add_masked_metadata_for_credential(CredentialId * credential, uint32_t cred_protect){
-    uint8_t mask[32];
-    crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY, 0, mask);
-    crypto_sha256_update(credential->entropy.nonce, CREDENTIAL_NONCE_SIZE - 4);
-    crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY,0, mask);
-
-    credential->entropy.metadata.value = *((uint32_t*)mask) ^ cred_protect;
-}
-
-static uint32_t read_metadata_from_masked_credential(CredentialId * credential){
-    uint8_t mask[32];
-    crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY, 0, mask);
-    crypto_sha256_update(credential->entropy.nonce, CREDENTIAL_NONCE_SIZE - 4);
-    crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY,0, mask);
-
-    return credential->entropy.metadata.value ^ *((uint32_t*)mask);
 }
 
 static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * auth_data_buf, uint32_t * len, CTAP_credInfo * credInfo, CTAP_extensions * extensions)
@@ -1070,9 +1093,21 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
         }
         else
         {
-            // add user info if it exists
-            add_existing_user_info(&GA->creds[i]);
-            count++;
+
+            int protection_status = 
+                check_credential_metadata(&GA->creds[i].credential.id, getAssertionState.user_verified, 1);
+
+            if (protection_status != 0) {
+                printf1(TAG_GREEN,"skipping protected wrapped credential.\r\n");
+                GA->creds[i].credential.id.count = 0;      // invalidate
+            }
+            else 
+            {
+                // add user info if it exists
+                add_existing_user_info(&GA->creds[i]);
+                count++;
+            }
+
         }
     }
 
@@ -1088,6 +1123,15 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
         {
             ctap_load_rk(i, &rk);
             printf1(TAG_GREEN, "rpIdHash%d: ", i);  dump_hex1(TAG_GREEN, rk.id.rpIdHash, 32);
+
+            int protection_status = 
+                check_credential_metadata(&rk.id, getAssertionState.user_verified, 0);
+
+            if (protection_status != 0) {
+                printf1(TAG_GREEN,"skipping protected rk credential.\r\n");
+                continue;
+            }
+
             if (memcmp(rk.id.rpIdHash, rpIdHash, 32) == 0)
             {
                 printf1(TAG_GA, "RK %d is a rpId match!\r\n", i);
@@ -1541,28 +1585,6 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
     return 0;
 }
 
-uint8_t check_credential_metadata(CredentialId * credential, uint8_t auth_data_flags, uint8_t is_from_credid_list)
-{
-    uint32_t cred_protect = read_metadata_from_masked_credential(credential);
-    switch (cred_protect){
-        case EXT_CRED_PROTECT_OPTIONAL_WITH_CREDID:
-            if (!is_from_credid_list) {
-                if ((auth_data_flags & (1<<2)) == 0)
-                {
-                    return CTAP2_ERR_NOT_ALLOWED;
-                }
-            }
-        break;
-        case EXT_CRED_PROTECT_REQUIRED:
-            if ((auth_data_flags & (1<<2)) == 0)
-            {
-                return CTAP2_ERR_NOT_ALLOWED;
-            }
-        break;
-    }
-    return 0;
-}
-
 uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_getAssertion GA;
@@ -1670,9 +1692,6 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
         ((CTAP_authDataHeader *)auth_data_buf)->flags &= ~(1 << 2);
         ((CTAP_authDataHeader *)auth_data_buf)->flags |= (getAssertionState.user_verified << 2);
-
-        ret = check_credential_metadata(&cred->credential.id, ((CTAP_authDataHeader *)auth_data_buf)->flags, uses_allow_list);
-        check_retr(ret);
 
         {
             unsigned int ext_encoder_buf_size = sizeof(auth_data_buf) - auth_data_buf_sz;
