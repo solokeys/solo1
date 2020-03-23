@@ -790,33 +790,21 @@ uint32_t ctap_rk_size(void)
 
 void ctap_store_rk(int index,CTAP_residentKey * rk)
 {
-    int page_offset = (sizeof(CTAP_residentKey) * index) / PAGE_SIZE;
-    uint32_t addr = flash_addr(page_offset + RK_START_PAGE) + ((sizeof(CTAP_residentKey)*index) % PAGE_SIZE);
-
-    printf1(TAG_GREEN, "storing RK %d @ %04x\r\n", index,addr);
-
-    if (page_offset < RK_NUM_PAGES)
-    {
-        flash_write(addr, (uint8_t*)rk, sizeof(CTAP_residentKey));
-        //dump_hex1(TAG_GREEN,rk,sizeof(CTAP_residentKey));
-    }
-    else
-    {
-        printf2(TAG_ERR,"Out of bounds reading index %d for rk\n", index);
-    }
+    ctap_overwrite_rk(index, rk);
 }
 
 void ctap_load_rk(int index,CTAP_residentKey * rk)
 {
-    int page_offset = (sizeof(CTAP_residentKey) * index) / PAGE_SIZE;
-    uint32_t addr = flash_addr(page_offset + RK_START_PAGE) + ((sizeof(CTAP_residentKey)*index) % PAGE_SIZE);
+    int byte_offset_into_page = (sizeof(CTAP_residentKey) * (index % (PAGE_SIZE/sizeof(CTAP_residentKey))));
+    int page_offset = (index)/(PAGE_SIZE/sizeof(CTAP_residentKey));
+
+    uint32_t addr = flash_addr(page_offset + RK_START_PAGE) + byte_offset_into_page;
 
     printf1(TAG_GREEN, "reading RK %d @ %04x\r\n", index, addr);
     if (page_offset < RK_NUM_PAGES)
     {
         uint32_t * ptr = (uint32_t *)addr;
         memmove((uint8_t*)rk,ptr,sizeof(CTAP_residentKey));
-        //dump_hex1(TAG_GREEN,rk,sizeof(CTAP_residentKey));
     }
     else
     {
@@ -827,22 +815,28 @@ void ctap_load_rk(int index,CTAP_residentKey * rk)
 void ctap_overwrite_rk(int index,CTAP_residentKey * rk)
 {
     uint8_t tmppage[PAGE_SIZE];
-    int page_offset = (sizeof(CTAP_residentKey) * index) / PAGE_SIZE;
-    int page = page_offset + RK_START_PAGE;
 
-    printf1(TAG_GREEN, "overwriting RK %d\r\n", index);
+    int byte_offset_into_page = (sizeof(CTAP_residentKey) * (index % (PAGE_SIZE/sizeof(CTAP_residentKey))));
+    int page_offset = (index)/(PAGE_SIZE/sizeof(CTAP_residentKey));
+
+    printf1(TAG_GREEN, "overwriting RK %d @ page %d @ addr 0x%08x-0x%08x\r\n", 
+        index, RK_START_PAGE + page_offset, 
+        flash_addr(RK_START_PAGE + page_offset) + byte_offset_into_page, 
+        flash_addr(RK_START_PAGE + page_offset) + byte_offset_into_page + sizeof(CTAP_residentKey) 
+        );
     if (page_offset < RK_NUM_PAGES)
     {
-        memmove(tmppage, (uint8_t*)flash_addr(page), PAGE_SIZE);
+        memmove(tmppage, (uint8_t*)flash_addr(RK_START_PAGE + page_offset), PAGE_SIZE);
 
-        memmove(tmppage + (sizeof(CTAP_residentKey) * index) % PAGE_SIZE, rk, sizeof(CTAP_residentKey));
-        flash_erase_page(page);
-        flash_write(flash_addr(page), tmppage, PAGE_SIZE);
+        memmove(tmppage + byte_offset_into_page, rk, sizeof(CTAP_residentKey));
+        flash_erase_page(RK_START_PAGE + page_offset);
+        flash_write(flash_addr(RK_START_PAGE + page_offset), tmppage, PAGE_SIZE);
     }
     else
     {
         printf2(TAG_ERR,"Out of bounds reading index %d for rk\n", index);
     }
+    printf1(TAG_GREEN, "4\r\n");
 }
 
 void boot_st_bootloader(void)
