@@ -162,8 +162,8 @@ typedef struct {
         struct {
             uint8_t _pad[CREDENTIAL_NONCE_SIZE - 4];
             uint32_t value;
-        } metadata;
-    } entropy;
+        }__attribute__((packed)) metadata;
+    }__attribute__((packed)) entropy;
     uint8_t rpIdHash[32];
     uint32_t count;
 }__attribute__((packed)) CredentialId;

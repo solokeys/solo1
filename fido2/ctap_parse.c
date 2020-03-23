@@ -699,7 +699,7 @@ uint8_t ctap_parse_extensions(CborValue * val, CTAP_extensions * ext)
             }
         }
         else if (strncmp(key, "credProtect",11) == 0) {
-            if (cbor_value_get_type(&map) != CborIntegerType) {
+            if (cbor_value_get_type(&map) == CborIntegerType) {
                 ret = cbor_value_get_int(&map, (int*)&ext->cred_protect);
                 check_ret(ret);
             } else {
