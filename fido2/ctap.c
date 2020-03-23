@@ -1169,15 +1169,15 @@ static void save_credential_list(CTAP_authDataHeader * head, uint8_t * clientDat
 
     }
     getAssertionState.count = count;
+    getAssertionState.index = 0;
     printf1(TAG_GA,"saved %d credentials\n",count);
 }
 
 static CTAP_credentialDescriptor * pop_credential()
 {
-    if (getAssertionState.count > 0)
+    if (getAssertionState.count > 0 && getAssertionState.index < getAssertionState.count)
     {
-        getAssertionState.count--;
-        return &getAssertionState.creds[getAssertionState.count];
+        return &getAssertionState.creds[getAssertionState.index++];
     }
     else
     {
@@ -1664,14 +1664,14 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
         printf1(TAG_GA,"CRED ID (# %d)\n", GA.creds[j].credential.id.count);
     }
 
-    CTAP_credentialDescriptor * cred = &GA.creds[validCredCount - 1];
+    CTAP_credentialDescriptor * cred = &GA.creds[0];
 
     GA.extensions.hmac_secret.credential = &cred->credential;
 
     uint32_t auth_data_buf_sz = sizeof(auth_data_buf);
 
 #ifdef ENABLE_U2F_EXTENSIONS
-    if ( is_extension_request((uint8_t*)&GA.creds[validCredCount - 1].credential.id, sizeof(CredentialId)) )
+    if ( is_extension_request((uint8_t*)&GA.creds[0].credential.id, sizeof(CredentialId)) )
     {
         auth_data_buf_sz = sizeof(CTAP_authDataHeader);
 
@@ -1708,8 +1708,6 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
     }
 
-    save_credential_list((CTAP_authDataHeader*)auth_data_buf, GA.clientDataHash, GA.creds, validCredCount-1);   // skip last one
-
     ret = ctap_end_get_assertion(&map, cred, auth_data_buf, auth_data_buf_sz, GA.clientDataHash);  // 1,2,3,4
     check_retr(ret);
 
@@ -1723,6 +1721,8 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
     ret = cbor_encoder_close_container(encoder, &map);
     check_ret(ret);
+
+    save_credential_list((CTAP_authDataHeader*)auth_data_buf, GA.clientDataHash, GA.creds + 1, validCredCount - 1);   // skip first one
 
     return 0;
 }
