@@ -1007,7 +1007,7 @@ uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
     return 0;
 }
 
-static uint8_t parse_rpid_hash(CborValue * val, CTAP_credMgmt * CM)
+static uint8_t parse_cred_mgmt_subcommandparams(CborValue * val, CTAP_credMgmt * CM)
 {
     size_t map_length;
     int key;
@@ -1022,8 +1022,12 @@ static uint8_t parse_rpid_hash(CborValue * val, CTAP_credMgmt * CM)
         return CTAP2_ERR_INVALID_CBOR_TYPE;
     }
 
+
     ret = cbor_value_enter_container(val,&map);
     check_ret(ret);
+    
+    const uint8_t * start_byte = cbor_value_get_next_byte(&map) - 1;
+
     ret = cbor_value_get_map_length(val, &map_length);
     check_ret(ret);
 
@@ -1040,8 +1044,8 @@ static uint8_t parse_rpid_hash(CborValue * val, CTAP_credMgmt * CM)
         check_ret(ret);
         switch(key)
         {
-            case 1:
-                ret = cbor_value_copy_byte_string(&map, CM->rpIdHash, &sz, NULL);
+            case CM_subCommandRpId:
+                ret = cbor_value_copy_byte_string(&map, CM->subCommandParams.rpIdHash, &sz, NULL);
                 if (ret == CborErrorOutOfMemory)
                 {
                     printf2(TAG_ERR,"Error, map key is too large\n");
@@ -1049,10 +1053,26 @@ static uint8_t parse_rpid_hash(CborValue * val, CTAP_credMgmt * CM)
                 }
                 check_ret(ret);
                 break;
+            case CM_subCommandCred:
+                ret = parse_credential_descriptor(&map, &CM->subCommandParams.credentialDescriptor);
+                check_ret(ret);;
+                break;
         }
         ret = cbor_value_advance(&map);
         check_ret(ret);
     }
+
+    const uint8_t * end_byte = cbor_value_get_next_byte(&map);
+
+    uint32_t length = (uint32_t)end_byte - (uint32_t)start_byte;
+    if (length > sizeof(CM->hashed.subCommandParamsCborCopy))
+    {
+        return CTAP2_ERR_LIMIT_EXCEEDED;
+    }
+    // Copy the details that were hashed so they can be verified later.
+    memmove(CM->hashed.subCommandParamsCborCopy, start_byte, length);
+    CM->subCommandParamsCborSize = length;
+
     return 0;
 }
 
@@ -1075,6 +1095,7 @@ uint8_t ctap_parse_cred_mgmt(CTAP_credMgmt * CM, uint8_t * request, int length)
         printf2(TAG_ERR,"Error, expecting cbor map\n");
         return CTAP2_ERR_INVALID_CBOR_TYPE;
     }
+
 
     ret = cbor_value_enter_container(&it,&map);
     check_ret(ret);
@@ -1106,17 +1127,17 @@ uint8_t ctap_parse_cred_mgmt(CTAP_credMgmt * CM, uint8_t * request, int length)
                 {
                     ret = cbor_value_get_int_checked(&map, &CM->cmd);
                     check_ret(ret);
+                    CM->hashed.cmd = CM->cmd;
                 }
                 else
                 {
                     return CTAP2_ERR_INVALID_CBOR_TYPE;
                 }
                 break;
-            case CM_rpIdHash:
-                printf1(TAG_CM, "CM_rpIdHash\n");
-                ret = parse_rpid_hash(&map, CM);
+            case CM_subCommandParams:
+                printf1(TAG_CM, "CM_subCommandParams\n");
+                ret = parse_cred_mgmt_subcommandparams(&map, CM);
                 check_ret(ret);
-                dump_hex1(TAG_CM, CM->rpIdHash, 32);
                 break;
             case CM_pinProtocol:
                 printf1(TAG_CM, "CM_pinProtocol\n");
