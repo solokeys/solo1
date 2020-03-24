@@ -140,6 +140,13 @@ uint32_t ctap_rk_size();
 */
 void ctap_store_rk(int index,CTAP_residentKey * rk);
 
+/** Delete a resident key from an index.
+ * @param index to delete resident key from.  Has no effect if no RK exists at index.
+ * 
+ * *Optional*, if not implemented, operates on non-persistant RK's.
+*/
+void ctap_delete_rk(int index);
+
 /** Read a resident key from an index into memory
  * @param index to read resident key from.
  * @param rk pointer to resident key structure to write into with RK.
