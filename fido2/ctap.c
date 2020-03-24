@@ -394,7 +394,22 @@ static int ctap_rk_is_valid(CTAP_residentKey * rk)
     return (rk->id.count > 0 && rk->id.count != 0xffffffff);
 }
 
+static int load_nth_valid_rk(int n, CTAP_residentKey * rk) {
 
+    int valid_count = 0;
+    int i;
+    for (i = 0; i < ctap_rk_size(); i++)
+    {
+        ctap_load_rk(i, rk);
+        if ( ctap_rk_is_valid(rk) ) {
+            if (valid_count == n) {
+                return i;
+            }
+            valid_count++;
+        }
+    }
+    return -1;
+}
 
 static int is_matching_rk(CTAP_residentKey * rk, CTAP_residentKey * rk2)
 {
@@ -651,21 +666,25 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
             unsigned int i;
             for (i = 0; i < index; i++)
             {
-                ctap_load_rk(i, &rk2);
+                int raw_i = load_nth_valid_rk(i, &rk2);
                 if (is_matching_rk(&rk, &rk2))
                 {
-                    ctap_overwrite_rk(i, &rk);
+                    ctap_overwrite_rk(raw_i, &rk);
                     goto done_rk;
                 }
             }
-            if (index >= ctap_rk_size())
-            {
-                printf2(TAG_ERR, "Out of memory for resident keys\r\n");
-                return CTAP2_ERR_KEY_STORE_FULL;
+            for (i = 0; i < ctap_rk_size(); i++){
+                ctap_load_rk(i, &rk2);
+                if ( ! ctap_rk_is_valid(&rk2) ){
+                    ctap_increment_rk_store();
+                    ctap_store_rk(i, &rk);
+                    printf1(TAG_GREEN, "Created rk %d:", i); dump_hex1(TAG_GREEN, rk.id.rpIdHash, 32);
+                    goto done_rk;
+                }
             }
-            ctap_increment_rk_store();
-            ctap_store_rk(index, &rk);
-            dump_hex1(TAG_GREEN, rk.id.rpIdHash, 32);
+
+            printf2(TAG_ERR, "Out of memory for resident keys\r\n");
+            return CTAP2_ERR_KEY_STORE_FULL;
         }
 done_rk:
 
@@ -1067,7 +1086,7 @@ static void add_existing_user_info(CTAP_credentialDescriptor * cred)
     int i;
     for (i = 0; i < index; i++)
     {
-        ctap_load_rk(i, &rk);
+        load_nth_valid_rk(i, &rk);
         if (is_matching_rk(&rk, (CTAP_residentKey *)&cred->credential))
         {
             printf1(TAG_GREEN, "found rk match for allowList item (%d)\r\n", i);
@@ -1342,7 +1361,7 @@ uint8_t ctap_cred_metadata(CborEncoder * encoder)
 uint8_t ctap_cred_rp(CborEncoder * encoder, int rk_ind, int rp_count)
 {
     CTAP_residentKey rk;
-    ctap_load_rk(rk_ind, &rk);
+    load_nth_valid_rk(rk_ind, &rk);
     // SHA256 hash of "ssh:"
     uint8_t ssh_hash[32] = {0xe3, 0x06, 0x10, 0xe8, 0xa1, 0x62, 0x11, 0x59,
                             0x60, 0xfe, 0x1e, 0xc2, 0x23, 0xe6, 0x52, 0x9c,
@@ -1394,7 +1413,7 @@ uint8_t ctap_cred_rp(CborEncoder * encoder, int rk_ind, int rp_count)
 uint8_t ctap_cred_rk(CborEncoder * encoder, int rk_ind, int rk_count)
 {
     CTAP_residentKey rk;
-    ctap_load_rk(rk_ind, &rk);
+    load_nth_valid_rk(rk_ind, &rk);
 
     uint32_t cred_protect = read_metadata_from_masked_credential(&rk.id);
     if ( cred_protect == 0 || cred_protect > 3 ) 
@@ -1563,16 +1582,25 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
         // store the specified hash, we will need it for CM_cmdRKNext
         memcpy(rpIdHash, CM.subCommandParams.rpIdHash, 32);
         // count how many RKs have this hash
+        printf1(TAG_GREEN, "There are %d total creds\n", STATE.rk_stored);
+        printf1(TAG_GREEN, "true rpidHash:"); dump_hex1(TAG_GREEN, rpIdHash, 32);
         for (i = 0; i < STATE.rk_stored; i++)
         {
-            ctap_load_rk(i, &rk);
+            int index = load_nth_valid_rk(i, &rk);
             if (memcmp(rk.id.rpIdHash, rpIdHash, 32) == 0)
             {
                 rk_count++;
             }
+            printf1(TAG_GREEN, "  %d:", index); dump_hex1(TAG_GREEN, rk.id.rpIdHash, 32);
         }
     }
-    if (curr_rk_ind >= STATE.rk_stored)
+    if (CM.cmd == CM_cmdRKDelete) {
+        rk_auth = false;
+        rp_auth = false;
+        curr_rk_ind = 0;
+    }
+    printf1(TAG_GREEN, "CHECK %d\n", curr_rk_ind);
+    if (load_nth_valid_rk( curr_rk_ind, &rk) < 0)
     {
         printf2(TAG_ERR,"No more resident keys\n");
         rk_auth = false;
@@ -1591,12 +1619,15 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
     }
     if (CM.cmd == CM_cmdRKBegin || CM.cmd == CM_cmdRKNext)
     {
-        ctap_load_rk(curr_rk_ind, &rk);
+        load_nth_valid_rk(curr_rk_ind, &rk);
         // skip resident keys with different rpIdHash
-        while (memcmp(rk.id.rpIdHash, rpIdHash, 32) != 0 && curr_rk_ind < STATE.rk_stored)
+        while (memcmp(rk.id.rpIdHash, rpIdHash, 32) != 0)
         {
             curr_rk_ind++;
-            ctap_load_rk(curr_rk_ind, &rk);
+            if (load_nth_valid_rk(curr_rk_ind, &rk) < 0)
+            {
+                break;
+            }
         }
         if (curr_rk_ind == STATE.rk_stored)
         {
