@@ -1499,6 +1499,24 @@ uint8_t ctap_cred_mgmt_pinauth(CTAP_credMgmt *CM)
     return ret;
 }
 
+static int credentialId_to_rk_index(CredentialId * credId){
+    int i;
+    CTAP_residentKey rk;
+
+    for (i = 0; i < ctap_rk_size(); i++)
+    {
+        ctap_load_rk(i, &rk);
+        if ( ctap_rk_is_valid(&rk) ) {
+            if (memcmp(&rk.id, credId, sizeof(CredentialId)) == 0)
+            {
+                return i;
+            }
+        }
+    }
+
+    return -1;
+}
+
 uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_credMgmt CM;
@@ -1606,6 +1624,15 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
             curr_rk_ind++;
             break;
         case CM_cmdRKDelete:
+            i = credentialId_to_rk_index(&CM.subCommandParams.credentialDescriptor.credential.id);
+            if (i >= 0) {
+                ctap_delete_rk(i);
+                ctap_decrement_rk_store();
+                printf1(TAG_CM, "Deleted rk %d\n", i);
+            } else {
+                printf1(TAG_CM, "No Rk by given credId\n");
+                return CTAP2_ERR_NO_CREDENTIALS;
+            }
             break;
         default:
             printf2(TAG_ERR, "error, invalid credMgmt cmd: 0x%02x\n", CM.cmd);
