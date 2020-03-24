@@ -793,6 +793,13 @@ void ctap_store_rk(int index,CTAP_residentKey * rk)
     ctap_overwrite_rk(index, rk);
 }
 
+void ctap_delete_rk(int index)
+{
+    CTAP_residentKey rk;
+    memset(&rk, 0xff, sizeof(CTAP_residentKey));
+    ctap_overwrite_rk(index, &rk);
+}
+
 void ctap_load_rk(int index,CTAP_residentKey * rk)
 {
     int byte_offset_into_page = (sizeof(CTAP_residentKey) * (index % (PAGE_SIZE/sizeof(CTAP_residentKey))));

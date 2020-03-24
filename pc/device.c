@@ -449,6 +449,12 @@ void ctap_store_rk(int index, CTAP_residentKey * rk)
 
 }
 
+void ctap_delete_rk(int index)
+{
+    CTAP_residentKey rk;
+    memset(&rk, 0xff, sizeof(CTAP_residentKey));
+    memmove(RK_STORE.rks + index, &rk, sizeof(CTAP_residentKey));
+}
 
 void ctap_load_rk(int index, CTAP_residentKey * rk)
 {

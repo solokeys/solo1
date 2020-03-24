@@ -185,6 +185,21 @@ __attribute__((weak)) void ctap_store_rk(int index, CTAP_residentKey * rk)
 
 }
 
+__attribute__((weak)) void ctap_delete_rk(int index)
+{
+    CTAP_residentKey rk;
+
+    if (index < RK_NUM)
+    {
+        memmove(RK_STORE.rks + index, &rk, sizeof(CTAP_residentKey));
+    }
+    else
+    {
+        printf1(TAG_ERR,"Out of bounds for delete_rk\r\n");
+    }
+
+}
+
 __attribute__((weak)) void ctap_load_rk(int index, CTAP_residentKey * rk)
 {
     memmove(rk, RK_STORE.rks + index, sizeof(CTAP_residentKey));
