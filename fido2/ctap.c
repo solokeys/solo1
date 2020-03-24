@@ -402,10 +402,12 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
     uint8_t shared_secret[32];
     uint8_t hmac[32];
     uint8_t credRandom[32];
+    uint8_t saltEnc[64];
 
     if (ext->hmac_secret_present == EXT_HMAC_SECRET_PARSED)
     {
         printf1(TAG_CTAP, "Processing hmac-secret..\r\n");
+        memmove(saltEnc, ext->hmac_secret.saltEnc, sizeof(saltEnc));
 
         crypto_ecc256_shared_secret((uint8_t*) &ext->hmac_secret.keyAgreement.pubkey,
                                     KEY_AGREEMENT_PRIV,
@@ -415,7 +417,7 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
         crypto_sha256_final(shared_secret);
 
         crypto_sha256_hmac_init(shared_secret, 32, hmac);
-        crypto_sha256_update(ext->hmac_secret.saltEnc, ext->hmac_secret.saltLen);
+        crypto_sha256_update(saltEnc, ext->hmac_secret.saltLen);
         crypto_sha256_hmac_final(shared_secret, 32, hmac);
 
         if (memcmp(ext->hmac_secret.saltAuth, hmac, 16) == 0)
@@ -435,17 +437,17 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
 
         // Decrypt saltEnc
         crypto_aes256_init(shared_secret, NULL);
-        crypto_aes256_decrypt(ext->hmac_secret.saltEnc, ext->hmac_secret.saltLen);
+        crypto_aes256_decrypt(saltEnc, ext->hmac_secret.saltLen);
 
         // Generate outputs
         crypto_sha256_hmac_init(credRandom, 32, hmac_secret_output);
-        crypto_sha256_update(ext->hmac_secret.saltEnc, 32);
+        crypto_sha256_update(saltEnc, 32);
         crypto_sha256_hmac_final(credRandom, 32, hmac_secret_output);
 
         if (ext->hmac_secret.saltLen == 64)
         {
             crypto_sha256_hmac_init(credRandom, 32, hmac_secret_output + 32);
-            crypto_sha256_update(ext->hmac_secret.saltEnc + 32, 32);
+            crypto_sha256_update(saltEnc + 32, 32);
             crypto_sha256_hmac_final(credRandom, 32, hmac_secret_output + 32);
         }
 
@@ -1154,23 +1156,28 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
 }
 
 
-static void save_credential_list(CTAP_authDataHeader * head, uint8_t * clientDataHash, CTAP_credentialDescriptor * creds, uint32_t count)
+static int8_t save_credential_list( uint8_t * clientDataHash, 
+                                    CTAP_credentialDescriptor * creds, 
+                                    uint32_t count,
+                                    CTAP_extensions * extensions)
 {
     if(count)
     {
         if (count > ALLOW_LIST_MAX_SIZE-1)
         {
             printf2(TAG_ERR, "ALLOW_LIST_MAX_SIZE Exceeded\n");
-            exit(1);
+            return CTAP2_ERR_TOO_MANY_ELEMENTS;
         }
+
         memmove(getAssertionState.clientDataHash, clientDataHash, CLIENT_DATA_HASH_SIZE);
-        memmove(&getAssertionState.authData, head, sizeof(CTAP_authDataHeader));
         memmove(getAssertionState.creds, creds, sizeof(CTAP_credentialDescriptor) * (count));
+        memmove(&getAssertionState.extensions, extensions, sizeof(CTAP_extensions));
 
     }
     getAssertionState.count = count;
     getAssertionState.index = 0;
     printf1(TAG_GA,"saved %d credentials\n",count);
+    return 0;
 }
 
 static CTAP_credentialDescriptor * pop_credential()
@@ -1239,8 +1246,6 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
 {
     int ret;
     CborEncoder map;
-    CTAP_authDataHeader authData;
-    memmove(&authData, &getAssertionState.authData, sizeof(CTAP_authDataHeader));
 
     CTAP_credentialDescriptor * cred = pop_credential();
 
@@ -1249,7 +1254,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
         return CTAP2_ERR_NOT_ALLOWED;
     }
 
-    auth_data_update_count(&authData);
+    auth_data_update_count(&getAssertionState.buf.authData);
 
     if (cred->credential.user.id_size)
     {
@@ -1271,7 +1276,24 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
         memset(cred->credential.user.name, 0, USER_NAME_LIMIT);
     }
 
-    ret = ctap_end_get_assertion(&map, cred, (uint8_t *)&authData, sizeof(CTAP_authDataHeader), getAssertionState.clientDataHash);
+    uint32_t ext_encoder_buf_size = sizeof(getAssertionState.buf.extensions);
+    ret = ctap_make_extensions(&getAssertionState.extensions, getAssertionState.buf.extensions, &ext_encoder_buf_size);
+
+    if (ret == 0)
+    {
+        if (ext_encoder_buf_size)
+        {
+            getAssertionState.buf.authData.flags |= (1 << 7);
+        } else {
+            getAssertionState.buf.authData.flags &= ~(1 << 7);
+        }
+    }
+
+    ret = ctap_end_get_assertion(&map, cred, 
+                                (uint8_t *)&getAssertionState.buf.authData, 
+                                sizeof(CTAP_authDataHeader) + ext_encoder_buf_size, 
+                                getAssertionState.clientDataHash);
+
     check_retr(ret);
 
     ret = cbor_encoder_close_container(encoder, &map);
@@ -1589,7 +1611,6 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_getAssertion GA;
 
-    uint8_t auth_data_buf[sizeof(CTAP_authDataHeader) + 80];
     int ret = ctap_parse_get_assertion(&GA,request,length);
 
     if (ret != 0)
@@ -1668,47 +1689,44 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 
     GA.extensions.hmac_secret.credential = &cred->credential;
 
-    uint32_t auth_data_buf_sz = sizeof(auth_data_buf);
+    uint32_t auth_data_buf_sz = sizeof(CTAP_authDataHeader);
 
 #ifdef ENABLE_U2F_EXTENSIONS
     if ( is_extension_request((uint8_t*)&GA.creds[0].credential.id, sizeof(CredentialId)) )
     {
-        auth_data_buf_sz = sizeof(CTAP_authDataHeader);
-
         crypto_sha256_init();
         crypto_sha256_update(GA.rp.id, GA.rp.size);
-        crypto_sha256_final(((CTAP_authDataHeader *)auth_data_buf)->rpIdHash);
+        crypto_sha256_final(getAssertionState.buf.authData.rpIdHash);
 
-        ((CTAP_authDataHeader *)auth_data_buf)->flags = (1 << 0);
-        ((CTAP_authDataHeader *)auth_data_buf)->flags |= (1 << 2);
+        getAssertionState.buf.authData.flags = (1 << 0);
+        getAssertionState.buf.authData.flags |= (1 << 2);
     }
     else
 #endif
     {
         device_disable_up(GA.up == 0);
-        ret = ctap_make_auth_data(&GA.rp, &map, auth_data_buf, &auth_data_buf_sz, NULL, &GA.extensions);
+        ret = ctap_make_auth_data(&GA.rp, &map, (uint8_t*)&getAssertionState.buf.authData, &auth_data_buf_sz, NULL, &GA.extensions);
         device_disable_up(false);
         check_retr(ret);
 
-        ((CTAP_authDataHeader *)auth_data_buf)->flags &= ~(1 << 2);
-        ((CTAP_authDataHeader *)auth_data_buf)->flags |= (getAssertionState.user_verified << 2);
+        getAssertionState.buf.authData.flags &= ~(1 << 2);
+        getAssertionState.buf.authData.flags |= (getAssertionState.user_verified << 2);
 
         {
-            unsigned int ext_encoder_buf_size = sizeof(auth_data_buf) - auth_data_buf_sz;
-            uint8_t * ext_encoder_buf = auth_data_buf + auth_data_buf_sz;
+            unsigned int ext_encoder_buf_size = sizeof(getAssertionState.buf.extensions);
 
-            ret = ctap_make_extensions(&GA.extensions, ext_encoder_buf, &ext_encoder_buf_size);
+            ret = ctap_make_extensions(&GA.extensions, getAssertionState.buf.extensions, &ext_encoder_buf_size);
             check_retr(ret);
             if (ext_encoder_buf_size)
             {
-                ((CTAP_authDataHeader *)auth_data_buf)->flags |= (1 << 7);
+                getAssertionState.buf.authData.flags |= (1 << 7);
                 auth_data_buf_sz += ext_encoder_buf_size;
             }
         }
 
     }
 
-    ret = ctap_end_get_assertion(&map, cred, auth_data_buf, auth_data_buf_sz, GA.clientDataHash);  // 1,2,3,4
+    ret = ctap_end_get_assertion(&map, cred, (uint8_t*)&getAssertionState.buf, auth_data_buf_sz, GA.clientDataHash);  // 1,2,3,4
     check_retr(ret);
 
     if (validCredCount > 1)
@@ -1722,7 +1740,11 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     ret = cbor_encoder_close_container(encoder, &map);
     check_ret(ret);
 
-    save_credential_list((CTAP_authDataHeader*)auth_data_buf, GA.clientDataHash, GA.creds + 1, validCredCount - 1);   // skip first one
+    ret = save_credential_list( GA.clientDataHash, 
+                                GA.creds + 1 /* skip first credential*/, 
+                                validCredCount - 1,
+                                &GA.extensions);
+    check_retr(ret);
 
     return 0;
 }
