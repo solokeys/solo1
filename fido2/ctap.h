@@ -336,7 +336,12 @@ typedef struct
 
 
 struct _getAssertionState {
-    CTAP_authDataHeader authData;
+    // Room for both authData struct and extensions
+    struct {
+        CTAP_authDataHeader authData;
+        uint8_t extensions[80];
+    } __attribute__((packed)) buf;
+    CTAP_extensions extensions;
     uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
     CTAP_credentialDescriptor creds[ALLOW_LIST_MAX_SIZE];
     uint8_t lastcmd;
