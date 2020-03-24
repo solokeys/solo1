@@ -556,11 +556,11 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
     return 0;
 }
 
-static unsigned int get_credential_id_size(CTAP_credentialDescriptor * cred)
+static unsigned int get_credential_id_size(int type)
 {
-    if (cred->type == PUB_KEY_CRED_CTAP1)
+    if (type == PUB_KEY_CRED_CTAP1)
         return U2F_KEY_HANDLE_SIZE;
-    if (cred->type == PUB_KEY_CRED_CUSTOM)
+    if (type == PUB_KEY_CRED_CUSTOM)
         return getAssertionState.customCredIdSize;
     return sizeof(CredentialId);
 }
@@ -988,21 +988,19 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     /*return -1;*/
 /*}*/
 
-static uint8_t ctap_add_credential_descriptor(CborEncoder * map, CTAP_credentialDescriptor * cred)
+static uint8_t ctap_add_credential_descriptor(CborEncoder * map, struct Credential * cred, int type)
 {
     CborEncoder desc;
-    int ret = cbor_encode_int(map, RESP_credential);
-    check_ret(ret);
 
-    ret = cbor_encoder_create_map(map, &desc, 2);
+    int ret = cbor_encoder_create_map(map, &desc, 2);
     check_ret(ret);
 
     {
         ret = cbor_encode_text_string(&desc, "id", 2);
         check_ret(ret);
 
-        ret = cbor_encode_byte_string(&desc, (uint8_t*)&cred->credential.id,
-            get_credential_id_size(cred));
+        ret = cbor_encode_byte_string(&desc, (uint8_t*)&cred->id,
+            get_credential_id_size(type));
         check_ret(ret);
     }
 
@@ -1021,13 +1019,11 @@ static uint8_t ctap_add_credential_descriptor(CborEncoder * map, CTAP_credential
     return 0;
 }
 
-uint8_t ctap_add_user_entity(CborEncoder * map, CTAP_userEntity * user)
+uint8_t ctap_add_user_entity(CborEncoder * map, CTAP_userEntity * user, int is_verified)
 {
     CborEncoder entity;
-    int ret = cbor_encode_int(map, RESP_publicKeyCredentialUserEntity);
-    check_ret(ret);
-
-    int dispname = (user->name[0] != 0) && getAssertionState.user_verified;
+    int dispname = (user->name[0] != 0) && is_verified;
+    int ret;
 
     if (dispname)
         ret = cbor_encoder_create_map(map, &entity, 4);
@@ -1236,7 +1232,10 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
     uint8_t sigder[72];
     int sigder_sz;
 
-    ret = ctap_add_credential_descriptor(map, cred);  // 1
+    ret = cbor_encode_int(map, RESP_credential);
+    check_ret(ret);
+
+    ret = ctap_add_credential_descriptor(map, &cred->credential, cred->type);  // 1
     check_retr(ret);
 
     {
@@ -1246,7 +1245,7 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
         check_ret(ret);
     }
 
-    unsigned int cred_size = get_credential_id_size(cred);
+    unsigned int cred_size = get_credential_id_size(cred->type);
     crypto_ecc256_load_key((uint8_t*)&cred->credential.id, cred_size, NULL, 0);
 
 #ifdef ENABLE_U2F_EXTENSIONS
@@ -1270,7 +1269,11 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
     if (cred->credential.user.id_size)
     {
         printf1(TAG_GREEN, "adding user details to output\r\n");
-        ret = ctap_add_user_entity(map, &cred->credential.user);  // 4
+
+        int ret = cbor_encode_int(map, RESP_publicKeyCredentialUserEntity);
+        check_ret(ret);
+
+        ret = ctap_add_user_entity(map, &cred->credential.user, getAssertionState.user_verified);  // 4
         check_retr(ret);
     }
 
@@ -1382,9 +1385,9 @@ uint8_t ctap_cred_rp(CborEncoder * encoder, int rk_ind, int rp_count)
         check_ret(ret);
         if (memcmp(ssh_hash, rk.id.rpIdHash, 32) == 0) {
             // recover the rpId from the hash because Solo stores only the hash :(
-            ret = cbor_encode_text_stringz(&rp, "ssh:");
+            ret = cbor_encode_byte_string(&rp, (uint8_t*)"ssh:", 4);
         } else {
-            ret = cbor_encode_text_stringz(&rp, "");
+            ret = cbor_encode_byte_string(&rp, (uint8_t*)"", 0);
         }
         check_ret(ret);
         ret = cbor_encode_text_stringz(&rp, "name");
@@ -1426,49 +1429,26 @@ uint8_t ctap_cred_rk(CborEncoder * encoder, int rk_ind, int rk_count)
     size_t map_size = rk_count > 0 ? 5 : 4;
     int ret = cbor_encoder_create_map(encoder, &map, map_size);
     check_ret(ret);
+
     ret = cbor_encode_int(&map, 6);
     check_ret(ret);
     {
-        CborEncoder usr;
-        ret = cbor_encoder_create_map(&map, &usr, 4);
-        check_ret(ret);
-        ret = cbor_encode_text_stringz(&usr, "id");
-        check_ret(ret);
-        ret = cbor_encode_byte_string(&usr, rk.user.id, rk.user.id_size);
-        check_ret(ret);
-        ret = cbor_encode_text_stringz(&usr, "icon");
-        check_ret(ret);
-        ret = cbor_encode_text_stringz(&usr, (const char *)rk.user.icon);
-        check_ret(ret);
-        ret = cbor_encode_text_stringz(&usr, "name");
-        check_ret(ret);
-        ret = cbor_encode_text_stringz(&usr, (const char *)rk.user.name);
-        check_ret(ret);
-        ret = cbor_encode_text_stringz(&usr, "displayName");
-        check_ret(ret);
-        ret = cbor_encode_text_stringz(&usr, (const char *)rk.user.displayName);
-        check_ret(ret);
-        ret = cbor_encoder_close_container(&map, &usr);
+        ret = ctap_add_user_entity(&map, &rk.user, 1);
         check_ret(ret);
     }
 
     ret = cbor_encode_int(&map, 7);
     check_ret(ret);
     {
-        CborEncoder credId;
-        ret = cbor_encoder_create_map(&map, &credId, 1);
-        check_ret(ret);
-        ret = cbor_encode_text_stringz(&credId, "id");
-        check_ret(ret);
-        ret = cbor_encode_byte_string(&credId, (uint8_t*)&rk.id, sizeof(CredentialId));
-        check_ret(ret);
-        ret = cbor_encoder_close_container(&map, &credId);
+        ret = ctap_add_credential_descriptor(&map, &rk, PUB_KEY_CRED_PUB_KEY);
         check_ret(ret);
     }
 
     ret = cbor_encode_int(&map, 8);
     check_ret(ret);
-    ctap_generate_cose_key(&map, (uint8_t*)&rk.id, sizeof(CredentialId), PUB_KEY_CRED_PUB_KEY, COSE_ALG_ES256);
+    {
+        ctap_generate_cose_key(&map, (uint8_t*)&rk.id, sizeof(CredentialId), PUB_KEY_CRED_PUB_KEY, COSE_ALG_ES256);
+    }
 
     if (rk_count > 0)
     {
