@@ -1255,6 +1255,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
     }
 
     auth_data_update_count(&getAssertionState.buf.authData);
+    memmove(getAssertionState.buf.authData.rpIdHash, cred->credential.id.rpIdHash, 32);
 
     if (cred->credential.user.id_size)
     {
