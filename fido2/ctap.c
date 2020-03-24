@@ -382,6 +382,19 @@ static void ctap_increment_rk_store()
     STATE.rk_stored++;
     ctap_flush_state();
 }
+static void ctap_decrement_rk_store()
+{
+    STATE.rk_stored--;
+    ctap_flush_state();
+}
+
+// Return 1 if rk is valid, 0 if not.
+static int ctap_rk_is_valid(CTAP_residentKey * rk)
+{
+    return (rk->id.count > 0 && rk->id.count != 0xffffffff);
+}
+
+
 
 static int is_matching_rk(CTAP_residentKey * rk, CTAP_residentKey * rk2)
 {
@@ -1121,9 +1134,13 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
         crypto_sha256_final(rpIdHash);
 
         printf1(TAG_GREEN, "true rpIdHash: ");  dump_hex1(TAG_GREEN, rpIdHash, 32);
-        for(i = 0; i < STATE.rk_stored; i++)
+        for(i = 0; i < ctap_rk_size(); i++)
         {
             ctap_load_rk(i, &rk);
+            if (! ctap_rk_is_valid(&rk)) {
+                continue;
+            }
+
             printf1(TAG_GREEN, "rpIdHash%d: ", i);  dump_hex1(TAG_GREEN, rk.id.rpIdHash, 32);
 
             int protection_status = 
@@ -1454,31 +1471,17 @@ uint8_t ctap_cred_rk(CborEncoder * encoder, int rk_ind, int rk_count)
 
 uint8_t ctap_cred_mgmt_pinauth(CTAP_credMgmt *CM)
 {
-    uint8_t ret = 0;
-    if (CM->cmd != CM_cmdMetadata && CM->cmd != CM_cmdRPBegin && CM->cmd != CM_cmdRKBegin)
+    if (CM->cmd != CM_cmdMetadata && 
+        CM->cmd != CM_cmdRPBegin && 
+        CM->cmd != CM_cmdRKBegin &&
+        CM->cmd != CM_cmdRKDelete)
     {
         // pinAuth is not required for other commands
         return 0;
     }
-    if (CM->pinProtocol != 1)
-    {
-        return CTAP1_ERR_OTHER;
-    }
-    if (CM->cmd == CM_cmdMetadata || CM->cmd == CM_cmdRPBegin)
-    {
-        uint8_t cmd = (uint8_t) CM->cmd;
-        ret = verify_pin_auth_ex(CM->pinAuth, &cmd, 1);
-    }
-    else if (CM->cmd == CM_cmdRKBegin)
-    {
-        uint8_t params[5 + sizeof(CM->rpIdHash)] = {CM->cmd, 0xa1, 0x01, 0x58, 0x20};
-        if (CM->pinProtocol != 1)
-        {
-            return CTAP1_ERR_OTHER;
-        }
-        memcpy(&params[5], CM->rpIdHash, sizeof(CM->rpIdHash));
-        ret = verify_pin_auth_ex(CM->pinAuth, params, sizeof(params));
-    }
+
+    int8_t ret = verify_pin_auth_ex(CM->pinAuth, (uint8_t*)&CM->hashed, CM->subCommandParamsCborSize + 1);
+
     if (ret == CTAP2_ERR_PIN_AUTH_INVALID)
     {
         ctap_decrement_pin_attempts();
@@ -1492,6 +1495,7 @@ uint8_t ctap_cred_mgmt_pinauth(CTAP_credMgmt *CM)
     {
         ctap_reset_pin_attempts();
     }
+
     return ret;
 }
 
@@ -1539,7 +1543,7 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
         rk_auth = true;
         rp_auth = false;
         // store the specified hash, we will need it for CM_cmdRKNext
-        memcpy(rpIdHash, CM.rpIdHash, 32);
+        memcpy(rpIdHash, CM.subCommandParams.rpIdHash, 32);
         // count how many RKs have this hash
         for (i = 0; i < STATE.rk_stored; i++)
         {
@@ -1600,6 +1604,8 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
             ret = ctap_cred_rk(encoder, curr_rk_ind, rk_count);
             check_ret(ret);
             curr_rk_ind++;
+            break;
+        case CM_cmdRKDelete:
             break;
         default:
             printf2(TAG_ERR, "error, invalid credMgmt cmd: 0x%02x\n", CM.cmd);

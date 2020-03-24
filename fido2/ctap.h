@@ -44,7 +44,10 @@
     #define CM_cmdRPNext          0x03
     #define CM_cmdRKBegin         0x04
     #define CM_cmdRKNext          0x05
-#define CM_rpIdHash               0x02
+    #define CM_cmdRKDelete        0x06
+#define CM_subCommandParams       0x02
+    #define CM_subCommandRpId     0x01
+    #define CM_subCommandCred     0x02
 #define CM_pinProtocol            0x03
 #define CM_pinAuth                0x04
 
@@ -311,7 +314,17 @@ typedef struct
 typedef struct
 {
     int cmd;
-    uint8_t rpIdHash[32];
+    struct {
+        uint8_t rpIdHash[32];
+        CTAP_credentialDescriptor credentialDescriptor;
+    } subCommandParams;
+
+    struct {
+        uint8_t cmd;
+        uint8_t subCommandParamsCborCopy[sizeof(CTAP_credentialDescriptor) + 16];
+    } hashed;
+    uint32_t subCommandParamsCborSize;
+
     uint8_t pinAuth[16];
     uint8_t pinAuthPresent;
     int pinProtocol;
