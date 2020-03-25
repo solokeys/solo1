@@ -1539,8 +1539,8 @@ static int8_t _rk_counted(uint8_t rpHashes [50][16], uint8_t * hash, int unique_
 static uint8_t count_unique_rks()
 {
     CTAP_residentKey rk;
-    int unique_count = 0;
-    int i;
+    unsigned int unique_count = 0;
+    unsigned int i;
     uint8_t rpHashes [50][16];
     memset(rpHashes, 0, sizeof(rpHashes));
 
@@ -1613,12 +1613,11 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
         printf1(TAG_GREEN, "true rpidHash:"); dump_hex1(TAG_GREEN, rpIdHash, 32);
         for (i = 0; i < STATE.rk_stored; i++)
         {
-            int index = load_nth_valid_rk(i, &rk);
+            load_nth_valid_rk(i, &rk);
             if (memcmp(rk.id.rpIdHash, rpIdHash, 32) == 0)
             {
                 rk_count++;
             }
-            printf1(TAG_GREEN, "  %d:", index); dump_hex1(TAG_GREEN, rk.id.rpIdHash, 32);
         }
     }
     else if (CM.cmd != CM_cmdRKNext && CM.cmd != CM_cmdRPNext)

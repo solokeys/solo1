@@ -188,6 +188,7 @@ __attribute__((weak)) void ctap_store_rk(int index, CTAP_residentKey * rk)
 __attribute__((weak)) void ctap_delete_rk(int index)
 {
     CTAP_residentKey rk;
+    memset(&rk, 0xff, sizeof(CTAP_residentKey));
 
     if (index < RK_NUM)
     {
