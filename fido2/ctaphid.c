@@ -734,6 +734,11 @@ uint8_t ctaphid_custom_command(int len, CTAP_RESPONSE * ctap_resp, CTAPHID_WRITE
             ctaphid_write(wb, NULL, 0);
             return 1;
 #endif
+#if defined(SOLO)
+        case CTAPHID_REBOOT:
+            device_reboot();
+            return 1;
+#endif
 
 #if !defined(IS_BOOTLOADER)
         case CTAPHID_GETRNG:
