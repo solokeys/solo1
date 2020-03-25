@@ -922,8 +922,13 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
 
         if (ctap_authenticate_credential(&MC.rp, excl_cred))
         {
-            printf1(TAG_MC, "Cred %d failed!\r\n",i);
-            return CTAP2_ERR_CREDENTIAL_EXCLUDED;
+            if ( check_credential_metadata(&excl_cred->credential.id, MC.pinAuthPresent, 1) == 0)
+            {
+                ret = ctap2_user_presence_test();
+                check_retr(ret);
+                printf1(TAG_MC, "Cred %d failed!\r\n",i);
+                return CTAP2_ERR_CREDENTIAL_EXCLUDED;
+            }
         }
 
         ret = cbor_value_advance(&MC.excludeList);
