@@ -171,11 +171,18 @@ typedef struct {
     uint32_t count;
 }__attribute__((packed)) CredentialId;
 
-struct Credential {
+struct  __attribute__((packed)) Credential {
     CredentialId id;
     CTAP_userEntity user;
 };
-typedef struct Credential CTAP_residentKey;
+typedef struct {
+    CredentialId id;
+    CTAP_userEntity user;
+
+    // Maximum amount of "extra" space in resident key.
+    uint8_t rpId[48];
+    uint8_t rpIdSize;
+} __attribute__((packed)) CTAP_residentKey;
 
 typedef struct
 {

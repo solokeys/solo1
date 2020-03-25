@@ -397,7 +397,7 @@ static int ctap_rk_is_valid(CTAP_residentKey * rk)
 static int load_nth_valid_rk(int n, CTAP_residentKey * rk) {
 
     int valid_count = 0;
-    int i;
+    unsigned int i;
     for (i = 0; i < ctap_rk_size(); i++)
     {
         ctap_load_rk(i, rk);
@@ -661,6 +661,11 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
         {
             memmove(&rk.id, &authData->attest.id, sizeof(CredentialId));
             memmove(&rk.user, &credInfo->user, sizeof(CTAP_userEntity));
+
+            // Copy rpId to RK, but it could be cropped.
+            int rp_id_size = rp->size < sizeof(rk.rpId) ? rp->size : sizeof(rk.rpId);
+            memmove(rk.rpId, rp->id, rp_id_size);
+            rk.rpIdSize = rp_id_size;
 
             unsigned int index = STATE.rk_stored;
             unsigned int i;
@@ -1098,12 +1103,12 @@ static void add_existing_user_info(CTAP_credentialDescriptor * cred)
 // sorts the credentials.  Most recent creds will be first, invalid ones last.
 int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
 {
-    int i;
+    unsigned int i;
     int count = 0;
     uint8_t rpIdHash[32];
     CTAP_residentKey rk;
 
-    for (i = 0; i < GA->credLen; i++)
+    for (i = 0; i < (unsigned int)GA->credLen; i++)
     {
         if (! ctap_authenticate_credential(&GA->rp, &GA->creds[i]))
         {
@@ -1316,7 +1321,7 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
         memset(cred->credential.user.name, 0, USER_NAME_LIMIT);
     }
 
-    uint32_t ext_encoder_buf_size = sizeof(getAssertionState.buf.extensions);
+    unsigned int ext_encoder_buf_size = sizeof(getAssertionState.buf.extensions);
     ret = ctap_make_extensions(&getAssertionState.extensions, getAssertionState.buf.extensions, &ext_encoder_buf_size);
 
     if (ret == 0)
@@ -1365,11 +1370,6 @@ uint8_t ctap_cred_rp(CborEncoder * encoder, int rk_ind, int rp_count)
 {
     CTAP_residentKey rk;
     load_nth_valid_rk(rk_ind, &rk);
-    // SHA256 hash of "ssh:"
-    uint8_t ssh_hash[32] = {0xe3, 0x06, 0x10, 0xe8, 0xa1, 0x62, 0x11, 0x59,
-                            0x60, 0xfe, 0x1e, 0xc2, 0x23, 0xe6, 0x52, 0x9c,
-                            0x9f, 0x4b, 0x6e, 0x80, 0x20, 0x0d, 0xcb, 0x5e,
-                            0x5c, 0x32, 0x1c, 0x8a, 0xf1, 0xe2, 0xb1, 0xbf};
 
     CborEncoder map;
     size_t map_size = rp_count > 0 ? 3 : 2;
@@ -1383,11 +1383,13 @@ uint8_t ctap_cred_rp(CborEncoder * encoder, int rk_ind, int rp_count)
         check_ret(ret);
         ret = cbor_encode_text_stringz(&rp, "id");
         check_ret(ret);
-        if (memcmp(ssh_hash, rk.id.rpIdHash, 32) == 0) {
-            // recover the rpId from the hash because Solo stores only the hash :(
-            ret = cbor_encode_byte_string(&rp, (uint8_t*)"ssh:", 4);
-        } else {
-            ret = cbor_encode_byte_string(&rp, (uint8_t*)"", 0);
+        if (rk.rpIdSize <= sizeof(rk.rpId))
+        {
+            ret = cbor_encode_text_string(&rp, (const char *)rk.rpId, rk.rpIdSize);
+        }
+        else
+        {
+            ret = cbor_encode_text_string(&rp, "", 0);
         }
         check_ret(ret);
         ret = cbor_encode_text_stringz(&rp, "name");
@@ -1440,7 +1442,7 @@ uint8_t ctap_cred_rk(CborEncoder * encoder, int rk_ind, int rk_count)
     ret = cbor_encode_int(&map, 7);
     check_ret(ret);
     {
-        ret = ctap_add_credential_descriptor(&map, &rk, PUB_KEY_CRED_PUB_KEY);
+        ret = ctap_add_credential_descriptor(&map, (struct Credential*)&rk, PUB_KEY_CRED_PUB_KEY);
         check_ret(ret);
     }
 
@@ -1499,7 +1501,7 @@ uint8_t ctap_cred_mgmt_pinauth(CTAP_credMgmt *CM)
 }
 
 static int credentialId_to_rk_index(CredentialId * credId){
-    int i;
+    unsigned int i;
     CTAP_residentKey rk;
 
     for (i = 0; i < ctap_rk_size(); i++)
@@ -1514,6 +1516,46 @@ static int credentialId_to_rk_index(CredentialId * credId){
     }
 
     return -1;
+}
+
+// Return 1 if Left(rpIdHash, 16) has been counted in rpHashes.
+static int8_t _rk_counted(uint8_t rpHashes [50][16], uint8_t * hash, int unique_count)
+{
+    int i = 0;
+    for (; i < unique_count; i++)
+    {
+        if (memcmp(rpHashes[i], hash, 16) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static uint8_t count_unique_rks()
+{
+    CTAP_residentKey rk;
+    int unique_count = 0;
+    int i;
+    uint8_t rpHashes [50][16];
+    memset(rpHashes, 0, sizeof(rpHashes));
+
+    for(i = 0; i < ctap_rk_size(); i++)
+    {
+        ctap_load_rk(i, &rk);
+        if ( ctap_rk_is_valid(&rk) )
+        {
+            if (! _rk_counted(rpHashes, rk.id.rpIdHash, unique_count)) 
+            {
+                memmove(rpHashes[unique_count], rk.id.rpIdHash, 16);
+                unique_count += 1;
+                if (unique_count >= ctap_rk_size())
+                {
+                    return unique_count;
+                }
+            }
+        }
+    }
+    return unique_count;
 }
 
 uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
@@ -1550,11 +1592,11 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
     if (CM.cmd == CM_cmdRPBegin)
     {
         curr_rk_ind = 0;
-        rp_count = STATE.rk_stored;
+        rp_count = count_unique_rks();
         rp_auth = true;
         rk_auth = false;
     }
-    if (CM.cmd == CM_cmdRKBegin)
+    else if (CM.cmd == CM_cmdRKBegin)
     {
         curr_rk_ind = 0;
         rk_auth = true;
@@ -1574,13 +1616,15 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
             printf1(TAG_GREEN, "  %d:", index); dump_hex1(TAG_GREEN, rk.id.rpIdHash, 32);
         }
     }
-    if (CM.cmd == CM_cmdRKDelete) {
+    else if (CM.cmd != CM_cmdRKNext && CM.cmd != CM_cmdRPNext)
+    {
         rk_auth = false;
         rp_auth = false;
         curr_rk_ind = 0;
     }
-    printf1(TAG_GREEN, "CHECK %d\n", curr_rk_ind);
-    if (load_nth_valid_rk( curr_rk_ind, &rk) < 0)
+
+    printf1(TAG_GREEN, "(0x%02x) CHECK %d\n", CM.cmd, curr_rk_ind);
+    if (load_nth_valid_rk(curr_rk_ind, &rk) < 0)
     {
         printf2(TAG_ERR,"No more resident keys\n");
         rk_auth = false;
@@ -1619,22 +1663,26 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
     switch (CM.cmd)
     {
         case CM_cmdMetadata:
+            printf1(TAG_CM, "CM_cmdMetadata\n");
             ret = ctap_cred_metadata(encoder);
             check_ret(ret);
             break;
         case CM_cmdRPBegin:
         case CM_cmdRPNext:
+            printf1(TAG_CM, "CM_cmdRPBegin %d/%d\n", curr_rk_ind, rp_count);
             ret = ctap_cred_rp(encoder, curr_rk_ind, rp_count);
             check_ret(ret);
             curr_rk_ind++;
             break;
         case CM_cmdRKBegin:
         case CM_cmdRKNext:
+            printf1(TAG_CM, "CM_cmdRKBegin %d/%d\n", curr_rk_ind, rp_count);
             ret = ctap_cred_rk(encoder, curr_rk_ind, rk_count);
             check_ret(ret);
             curr_rk_ind++;
             break;
         case CM_cmdRKDelete:
+            printf1(TAG_CM, "CM_cmdRKDelete\n");
             i = credentialId_to_rk_index(&CM.subCommandParams.credentialDescriptor.credential.id);
             if (i >= 0) {
                 ctap_delete_rk(i);
@@ -1690,7 +1738,6 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     int map_size = 3;
 
     printf1(TAG_GA, "ALLOW_LIST has %d creds\n", GA.credLen);
-    uint8_t uses_allow_list = GA.credLen > 0;
     int validCredCount = ctap_filter_invalid_credentials(&GA);
 
     if (validCredCount == 0)
