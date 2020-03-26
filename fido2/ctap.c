@@ -1628,7 +1628,7 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
     }
 
     printf1(TAG_GREEN, "(0x%02x) CHECK %d\n", CM.cmd, curr_rk_ind);
-    if (load_nth_valid_rk(curr_rk_ind, &rk) < 0)
+    if (CM.cmd != CM_cmdMetadata && load_nth_valid_rk(curr_rk_ind, &rk) < 0)
     {
         printf2(TAG_ERR,"No more resident keys\n");
         rk_auth = false;
