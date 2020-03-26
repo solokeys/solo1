@@ -1034,29 +1034,30 @@ uint8_t ctap_add_user_entity(CborEncoder * map, CTAP_userEntity * user, int is_v
     CborEncoder entity;
     int dispname = (user->name[0] != 0) && is_verified;
     int ret;
+    int map_size = 1;
 
     if (dispname)
-        ret = cbor_encoder_create_map(map, &entity, 4);
-    else
-        ret = cbor_encoder_create_map(map, &entity, 1);
+    {
+        map_size = strlen(user->icon) > 0 ? 4 : 3;
+    }
+    ret = cbor_encoder_create_map(map, &entity, map_size);
     check_ret(ret);
 
-    {
-        ret = cbor_encode_text_string(&entity, "id", 2);
-        check_ret(ret);
+    ret = cbor_encode_text_string(&entity, "id", 2);
+    check_ret(ret);
 
-        ret = cbor_encode_byte_string(&entity, user->id, user->id_size);
-        check_ret(ret);
-    }
+    ret = cbor_encode_byte_string(&entity, user->id, user->id_size);
+    check_ret(ret);
 
     if (dispname)
     {
-
-        ret = cbor_encode_text_string(&entity, "icon", 4);
-        check_ret(ret);
-
-        ret = cbor_encode_text_stringz(&entity, (const char *)user->icon);
-        check_ret(ret);
+        if (strlen(user->icon) > 0)
+        {
+            ret = cbor_encode_text_string(&entity, "icon", 4);
+            check_ret(ret);
+            ret = cbor_encode_text_stringz(&entity, (const char *)user->icon);
+            check_ret(ret);
+        }
 
         ret = cbor_encode_text_string(&entity, "name", 4);
         check_ret(ret);
@@ -1592,7 +1593,7 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
     if (STATE.rk_stored == 0 && CM.cmd != CM_cmdMetadata)
     {
         printf2(TAG_ERR,"No resident keys\n");
-        return CTAP2_ERR_NO_CREDENTIALS;
+        return 0;
     }
     if (CM.cmd == CM_cmdRPBegin)
     {
@@ -2192,6 +2193,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     {
         case CTAP_MAKE_CREDENTIAL:
         case CTAP_GET_ASSERTION:
+        case CTAP_CBOR_CRED_MGMT:
         case CTAP_CBOR_CRED_MGMT_PRE:
             if (ctap_device_locked())
             {
@@ -2274,6 +2276,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
                 status = CTAP2_ERR_NOT_ALLOWED;
             }
             break;
+        case CTAP_CBOR_CRED_MGMT:
         case CTAP_CBOR_CRED_MGMT_PRE:
             printf1(TAG_CTAP,"CTAP_CBOR_CRED_MGMT_PRE\n");
             status = ctap_cred_mgmt(&encoder, pkt_raw, length);

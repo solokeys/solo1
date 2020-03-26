@@ -16,6 +16,7 @@
 #define CTAP_CLIENT_PIN             0x06
 #define CTAP_RESET                  0x07
 #define GET_NEXT_ASSERTION          0x08
+#define CTAP_CBOR_CRED_MGMT         0x0A
 #define CTAP_VENDOR_FIRST           0x40
 #define CTAP_CBOR_CRED_MGMT_PRE     0x41
 #define CTAP_VENDOR_LAST            0xBF
