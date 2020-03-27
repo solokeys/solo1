@@ -1103,7 +1103,7 @@ uint8_t ctap_parse_cred_mgmt(CTAP_credMgmt * CM, uint8_t * request, int length)
     ret = cbor_value_get_map_length(&it, &map_length);
     check_ret(ret);
 
-    printf1(TAG_CM, "CM map has %d elements\n", map_length);
+    printf1(TAG_PARSE, "CM map has %d elements\n", map_length);
 
     for (i = 0; i < map_length; i++)
     {
@@ -1122,7 +1122,7 @@ uint8_t ctap_parse_cred_mgmt(CTAP_credMgmt * CM, uint8_t * request, int length)
         switch(key)
         {
             case CM_cmd:
-                printf1(TAG_CM, "CM_cmd\n");
+                printf1(TAG_PARSE, "CM_cmd\n");
                 if (cbor_value_get_type(&map) == CborIntegerType)
                 {
                     ret = cbor_value_get_int_checked(&map, &CM->cmd);
@@ -1135,12 +1135,12 @@ uint8_t ctap_parse_cred_mgmt(CTAP_credMgmt * CM, uint8_t * request, int length)
                 }
                 break;
             case CM_subCommandParams:
-                printf1(TAG_CM, "CM_subCommandParams\n");
+                printf1(TAG_PARSE, "CM_subCommandParams\n");
                 ret = parse_cred_mgmt_subcommandparams(&map, CM);
                 check_ret(ret);
                 break;
             case CM_pinProtocol:
-                printf1(TAG_CM, "CM_pinProtocol\n");
+                printf1(TAG_PARSE, "CM_pinProtocol\n");
                 if (cbor_value_get_type(&map) == CborIntegerType)
                 {
                     ret = cbor_value_get_int_checked(&map, &CM->pinProtocol);
@@ -1152,7 +1152,7 @@ uint8_t ctap_parse_cred_mgmt(CTAP_credMgmt * CM, uint8_t * request, int length)
                 }
                 break;
             case CM_pinAuth:
-                printf1(TAG_CM, "CM_pinAuth\n");
+                printf1(TAG_PARSE, "CM_pinAuth\n");
                 ret = parse_fixed_byte_string(&map, CM->pinAuth, 16);
                 check_retr(ret);
                 CM->pinAuthPresent = 1;
