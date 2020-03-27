@@ -1524,46 +1524,6 @@ static int credentialId_to_rk_index(CredentialId * credId){
     return -1;
 }
 
-// Return 1 if Left(rpIdHash, 16) has been counted in rpHashes.
-static int8_t _rk_counted(uint8_t rpHashes [50][16], uint8_t * hash, int unique_count)
-{
-    int i = 0;
-    for (; i < unique_count; i++)
-    {
-        if (memcmp(rpHashes[i], hash, 16) == 0) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-static uint8_t count_unique_rks()
-{
-    CTAP_residentKey rk;
-    unsigned int unique_count = 0;
-    unsigned int i;
-    uint8_t rpHashes [50][16];
-    memset(rpHashes, 0, sizeof(rpHashes));
-
-    for(i = 0; i < ctap_rk_size(); i++)
-    {
-        ctap_load_rk(i, &rk);
-        if ( ctap_rk_is_valid(&rk) )
-        {
-            if (! _rk_counted(rpHashes, rk.id.rpIdHash, unique_count)) 
-            {
-                memmove(rpHashes[unique_count], rk.id.rpIdHash, 16);
-                unique_count += 1;
-                if (unique_count >= ctap_rk_size())
-                {
-                    return unique_count;
-                }
-            }
-        }
-    }
-    return unique_count;
-}
-
 // Load the next valid resident key of a different rpIdHash
 static int scan_for_next_rp(int index){
     CTAP_residentKey rk;
@@ -1661,13 +1621,11 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
     static int curr_rp_ind = 0;
     static int curr_rk_ind = 0;
 
-    // flag that authenticated RPBegin was received
+    // flags that authenticate whether *Begin was before *Next
     static bool rp_auth = false;
-    // flag that authenticated RKBegin was received
     static bool rk_auth = false;
-    // number of stored RPs
+
     int rp_count = 0;
-    // number of RKs with the specified rpIdHash
     int rk_count = 0;
 
     int ret = ctap_parse_cred_mgmt(&CM, request, length);
@@ -1686,10 +1644,20 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
     if (CM.cmd == CM_cmdRPBegin)
     {
         curr_rk_ind = -1;
-        curr_rp_ind = scan_for_next_rp(-1);
-        rp_count = count_unique_rks();
         rp_auth = true;
         rk_auth = false;
+        curr_rp_ind = scan_for_next_rp(-1);
+
+        // Count total unique RP's
+        while (curr_rp_ind >= 0)
+        {
+            curr_rp_ind = scan_for_next_rp(curr_rp_ind);
+            rp_count++;
+        }
+
+        // Reset scan
+        curr_rp_ind = scan_for_next_rp(-1);
+
         printf1(TAG_MC, "RP Begin @%d.  %d total.\n", curr_rp_ind, rp_count);
     }
     else if (CM.cmd == CM_cmdRKBegin)
@@ -1716,17 +1684,6 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
         curr_rp_ind = -1;
     }
 
-    if (CM.cmd == CM_cmdRPNext && !rp_auth)
-    {
-        printf2(TAG_ERR, "RPNext without RPBegin\n");
-        return CTAP2_ERR_NO_CREDENTIALS;
-    }
-    if (CM.cmd == CM_cmdRKNext && !rk_auth)
-    {
-        printf2(TAG_ERR, "RKNext without RKBegin\n");
-        return CTAP2_ERR_NO_CREDENTIALS;
-    }
-
     switch (CM.cmd)
     {
         case CM_cmdMetadata:
@@ -1737,7 +1694,7 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
         case CM_cmdRPBegin:
         case CM_cmdRPNext:
             printf1(TAG_CM, "Get RP %d\n", curr_rp_ind);
-            if (curr_rp_ind < 0) {
+            if (curr_rp_ind < 0 || !rp_auth) {
                 rp_auth = false;
                 rk_auth = false;
                 return CTAP2_ERR_NO_CREDENTIALS;
@@ -1751,7 +1708,7 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
         case CM_cmdRKBegin:
         case CM_cmdRKNext:
             printf1(TAG_CM, "Get Cred %d\n", curr_rk_ind);
-            if (curr_rk_ind < 0) {
+            if (curr_rk_ind < 0 || !rk_auth) {
                 rp_auth = false;
                 rk_auth = false;
                 return CTAP2_ERR_NO_CREDENTIALS;
@@ -1764,9 +1721,6 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
 
             break;
         case CM_cmdRKDelete:
-            rp_auth = false;
-            rk_auth = false;
-
             printf1(TAG_CM, "CM_cmdRKDelete\n");
             i = credentialId_to_rk_index(&CM.subCommandParams.credentialDescriptor.credential.id);
             if (i >= 0) {
