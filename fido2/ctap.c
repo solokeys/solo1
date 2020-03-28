@@ -31,6 +31,7 @@ uint8_t PIN_TOKEN[PIN_TOKEN_SIZE];
 uint8_t KEY_AGREEMENT_PUB[64];
 static uint8_t KEY_AGREEMENT_PRIV[32];
 static int8_t PIN_BOOT_ATTEMPTS_LEFT = PIN_BOOT_ATTEMPTS;
+static uint32_t BOOT_TIME = 0;
 
 AuthenticatorState STATE;
 
@@ -2285,10 +2286,17 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             break;
         case CTAP_RESET:
             printf1(TAG_CTAP,"CTAP_RESET\n");
-            status = ctap2_user_presence_test();
-            if (status == CTAP1_ERR_SUCCESS)
+            if ((millis() - BOOT_TIME) > 10 * 1000)
             {
-                ctap_reset();
+                status = CTAP2_ERR_NOT_ALLOWED;
+            }
+            else
+            {
+                status = ctap2_user_presence_test();
+                if (status == CTAP1_ERR_SUCCESS)
+                {
+                    ctap_reset();
+                }
             }
             break;
         case GET_NEXT_ASSERTION:
@@ -2382,6 +2390,7 @@ void ctap_init()
             firmware_version.major, firmware_version.minor, firmware_version.patch, firmware_version.reserved,
             firmware_version.major, firmware_version.minor, firmware_version.patch, firmware_version.reserved
             );
+    BOOT_TIME = millis();
     crypto_ecc256_init();
 
     int is_init = authenticator_read_state(&STATE);
