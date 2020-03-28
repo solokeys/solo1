@@ -1587,18 +1587,15 @@ static int scan_for_next_rk(int index, uint8_t * initialRpIdHash){
 
     if (initialRpIdHash != NULL) {
         memmove(lastRpIdHash, initialRpIdHash, 32);
-        index = 0;
+        index = -1;
     }
     else
     {
         ctap_load_rk(index, &rk);
         memmove(lastRpIdHash, rk.id.rpIdHash, 32);
-        index++;
     }
 
-    ctap_load_rk(index, &rk);
-
-    while ( memcmp( rk.id.rpIdHash, lastRpIdHash, 32 ) != 0 )
+    do
     {
         index++;
         if ((unsigned int)index >= ctap_rk_size()) 
@@ -1607,6 +1604,7 @@ static int scan_for_next_rk(int index, uint8_t * initialRpIdHash){
         }
         ctap_load_rk(index, &rk);
     }
+    while ( memcmp( rk.id.rpIdHash, lastRpIdHash, 32 ) != 0 );
 
     return index;
 }
