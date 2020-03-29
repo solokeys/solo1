@@ -725,12 +725,28 @@ int ctap_encode_der_sig(const uint8_t * const in_sigbuf, uint8_t * const out_sig
     uint8_t lead_s = 0;  // leading zeros
     uint8_t lead_r = 0;
     for (i=0; i < 32; i++)
-        if (in_sigbuf[i] == 0) lead_r++;
-        else break;
+    {
+        if (in_sigbuf[i] == 0)
+        {
+            lead_r++;
+        }
+        else
+        {
+            break;
+        }
+    }
 
     for (i=0; i < 32; i++)
-        if (in_sigbuf[i+32] == 0) lead_s++;
-        else break;
+    {
+        if (in_sigbuf[i+32] == 0)
+        {
+            lead_s++;
+        }
+        else
+        {
+            break;
+        }
+    }
 
     int8_t pad_s = ((in_sigbuf[32 + lead_s] & 0x80) == 0x80);
     int8_t pad_r = ((in_sigbuf[0 + lead_r] & 0x80) == 0x80);
