@@ -7,29 +7,29 @@ SRC += src/startup_stm32l432xx.s src/system_stm32l4xx.c
 SRC += $(DRIVER_LIBS) $(USB_LIB)
 
 # FIDO2 lib
-SRC += ../../fido2/apdu.c ../../fido2/util.c ../../fido2/u2f.c ../../fido2/test_power.c
-SRC += ../../fido2/stubs.c ../../fido2/log.c  ../../fido2/ctaphid.c  ../../fido2/ctap.c
-SRC += ../../fido2/ctap_parse.c ../../fido2/crypto.c
-SRC += ../../fido2/version.c
-SRC += ../../fido2/data_migration.c
-SRC += ../../fido2/extensions/extensions.c ../../fido2/extensions/solo.c
-SRC += ../../fido2/extensions/wallet.c
+SRC += $(LIB_SOLO_PATH)/apdu.c $(LIB_SOLO_PATH)/util.c $(LIB_SOLO_PATH)/u2f.c $(LIB_SOLO_PATH)/test_power.c
+SRC += $(LIB_SOLO_PATH)/stubs.c $(LIB_SOLO_PATH)/log.c  $(LIB_SOLO_PATH)/ctaphid.c  $(LIB_SOLO_PATH)/ctap.c
+SRC += $(LIB_SOLO_PATH)/ctap_parse.c $(LIB_SOLO_PATH)/crypto.c
+SRC += $(LIB_SOLO_PATH)/version.c
+SRC += $(LIB_SOLO_PATH)/data_migration.c
+SRC += $(LIB_SOLO_PATH)/extensions/extensions.c $(LIB_SOLO_PATH)/extensions/solo.c
+SRC += $(LIB_SOLO_PATH)/extensions/wallet.c
 
 # Crypto libs
-SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c
-SRC += ../../crypto/cifra/src/sha512.c ../../crypto/cifra/src/blockwise.c
+SRC += $(LIB_SHA256_PATH)/sha256.c $(LIB_MICRO_ECC_PATH)/uECC.c $(LIB_TINY_AES_PATH)/aes.c
+SRC += $(LIB_CIFRA_PATH)/src/sha512.c $(LIB_CIFRA_PATH)/src/blockwise.c
 
 OBJ1=$(SRC:.c=.o)
 OBJ=$(OBJ1:.s=.o)
 
 INC = -Isrc/ -Isrc/cmsis/ -Ilib/ -Ilib/usbd/
 
-INC+= -I../../fido2/ -I../../fido2/extensions
-INC += -I../../tinycbor/src -I../../crypto/sha256 -I../../crypto/micro-ecc
-INC += -I../../crypto/tiny-AES-c
-INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
+INC+= -I$(LIB_SOLO_PATH)/ -I$(LIB_SOLO_PATH)/extensions
+INC += -I$(LIB_TINYCBOR_PATH)/src -I$(LIB_SHA256_PATH)/ -I$(LIB_MICRO_ECC_PATH)
+INC += -I$(LIB_TINY_AES_PATH)
+INC += -I$(LIB_CIFRA_PATH)/src -I$(LIB_CIFRA_PATH)/src/ext
 
-SEARCH=-L../../tinycbor/lib
+SEARCH=-L$(LIB_TINYCBOR_PATH)/lib
 
 ifndef LDSCRIPT
 LDSCRIPT=linker/stm32l4xx.ld
@@ -65,7 +65,7 @@ all: $(TARGET).elf
 %.o: %.c
 	$(CC) $^ $(HW)  -Os $(CFLAGS) -o $@
 
-../../crypto/micro-ecc/uECC.o: ../../crypto/micro-ecc/uECC.c
+$(LIB_MICRO_ECC_PATH)/uECC.o: $(LIB_MICRO_ECC_PATH)/uECC.c
 	$(CC) $^ $(HW)  -O3 $(ECC_CFLAGS) -o $@
 
 %.elf: $(OBJ)
@@ -81,8 +81,8 @@ clean:
 
 
 cbor:
-	cd ../../tinycbor/ && make clean
-	cd ../../tinycbor/ && make CC="$(CC)" AR=$(AR) \
+	cd $(LIB_TINYCBOR_PATH)/ && make clean
+	cd $(LIB_TINYCBOR_PATH)/ && make CC="$(CC)" AR=$(AR) \
 LDFLAGS="$(LDFLAGS_LIB)" \
 CFLAGS="$(CFLAGS) -Os  -DCBOR_PARSER_MAX_RECURSIONS=3"
 

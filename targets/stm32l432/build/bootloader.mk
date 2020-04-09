@@ -9,22 +9,22 @@ SRC += src/startup_stm32l432xx.s src/system_stm32l4xx.c
 SRC += $(DRIVER_LIBS) $(USB_LIB)
 
 # FIDO2 lib
-SRC += ../../fido2/util.c ../../fido2/u2f.c ../../fido2/extensions/extensions.c
-SRC += ../../fido2/stubs.c ../../fido2/log.c  ../../fido2/ctaphid.c  ../../fido2/ctap.c
-SRC += ../../fido2/crypto.c
+SRC += $(LIB_SOLO_PATH)/util.c $(LIB_SOLO_PATH)/u2f.c $(LIB_SOLO_PATH)/extensions/extensions.c
+SRC += $(LIB_SOLO_PATH)/stubs.c $(LIB_SOLO_PATH)/log.c  $(LIB_SOLO_PATH)/ctaphid.c  $(LIB_SOLO_PATH)/ctap.c
+SRC += $(LIB_SOLO_PATH)/crypto.c
 
 # Crypto libs
-SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c
-SRC += ../../crypto/cifra/src/sha512.c ../../crypto/cifra/src/blockwise.c
+SRC += $(LIB_SHA256_PATH)/sha256.c $(LIB_MICRO_ECC_PATH)/uECC.c
+SRC += $(LIB_CIFRA_PATH)/src/sha512.c $(LIB_CIFRA_PATH)/src/blockwise.c
 
 OBJ1=$(SRC:.c=.o)
 OBJ=$(OBJ1:.s=.o)
 
 
-INC = -Ibootloader/ -Isrc/ -Isrc/cmsis/ -Ilib/ -Ilib/usbd/ -I../../fido2/ -I../../fido2/extensions
-INC += -I../../tinycbor/src -I../../crypto/sha256 -I../../crypto/micro-ecc
-INC += -I../../crypto/tiny-AES-c
-INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
+INC = -Ibootloader/ -Isrc/ -Isrc/cmsis/ -Ilib/ -Ilib/usbd/ -I$(LIB_SOLO_PATH)/ -I$(LIB_SOLO_PATH)/extensions
+INC += -I$(LIB_TINYCBOR_PATH)/src -I$(LIB_SHA256_PATH) -I$(LIB_MICRO_ECC_PATH)
+INC += -I$(LIB_TINY_AES_PATH)
+INC += -I$(LIB_CIFRA_PATH)/src -I$(LIB_CIFRA_PATH)/src/ext
 
 ifndef LDSCRIPT
 LDSCRIPT=linker/bootloader_stm32l4xx.ld
@@ -59,7 +59,7 @@ all: $(TARGET).elf
 %.o: %.c
 	$(CC) $^ $(HW)  -Os $(CFLAGS) -o $@
 
-../../crypto/micro-ecc/uECC.o: ../../crypto/micro-ecc/uECC.c
+$(LIB_MICRO_ECC_PATH)/uECC.o: $(LIB_MICRO_ECC_PATH)/uECC.c
 	$(CC) $^ $(HW)  -Os $(CFLAGS) -o $@
 
 %.o: %.s

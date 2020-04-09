@@ -1,4 +1,5 @@
-include ../../libs/libsolo/version.mk
+# Load paths
+include ../../common.mk
 
 #define uECC_arch_other 0
 #define uECC_x86        1
@@ -10,12 +11,12 @@ include ../../libs/libsolo/version.mk
 #define uECC_avr        7
 ecc_platform=2
 
-src = pc/device.c pc/main.c
+src = device.c main.c
 
 obj = $(src:.c=.o)
 
-LIBCBOR = libs/tinycbor/lib/libtinycbor.a
-LIBSOLO = libs/libsolo/libsolo.a
+LIBCBOR = $(LIB_TINYCBOR_PATH)/lib/libtinycbor.a
+LIBSOLO = $(LIB_SOLO_PATH)/libsolo.a
 
 ifeq ($(shell uname -s),Darwin)
   export LDFLAGS = -Wl,-dead_strip
@@ -28,45 +29,48 @@ LDFLAGS += $(LIBSOLO) $(LIBCBOR)
 CFLAGS = -O2 -fdata-sections -ffunction-sections -g
 ECC_CFLAGS = -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform)
 
-INCLUDES =  -I../ -I./fido2/ -I./pc -I../pc -I./tinycbor/src
+INCLUDES = -I$(LIB_SOLO_PATH) -I$(TARGET_PC_PATH) -I$(LIB_TINYCBOR_PATH)/src
 
 CFLAGS += $(INCLUDES)
 CFLAGS += -DAES256=1  -DSOLO_EXPERIMENTAL=1 -DDEBUG_LEVEL=1
 
 name = main
 
-.PHONY: all $(LIBCBOR) $(LIBSOLO) black blackcheck cppcheck wink fido2-test clean full-clean travis test clean version
+.PHONY: all $(LIBCBOR) $(LIBSOLO) cppcheck clean version
 all: main
 
-libs/tinycbor/Makefile libs/crypto/tiny-AES-c/aes.c:
+$(LIB_TINYCBOR_PATH)/Makefile $(LIB_TINY_AES_PATH)/aes.c:
 	git submodule update --init
 
 .PHONY: cbor
 cbor: $(LIBCBOR)
 
 $(LIBCBOR):
-	cd tinycbor/ && $(MAKE)  LDFLAGS='' -j8
+	cd $(LIB_TINYCBOR_PATH) && $(MAKE)  LDFLAGS='' -j8
 
 $(LIBSOLO):
-	cd fido2/ && $(MAKE) CFLAGS="$(CFLAGS)" ECC_CFLAGS="$(ECC_CFLAGS)" APP_CONFIG=app.h -j8
+	cd $(LIB_SOLO_PATH) && $(MAKE) CFLAGS="$(CFLAGS)" ECC_CFLAGS="$(ECC_CFLAGS)" APP_CONFIG=app.h -j8
 
 version:
 	@git describe
 
-test: venv
+test:
 	$(MAKE) clean
-	$(MAKE) -C . main
+	$(MAKE) main
 	$(MAKE) clean
 	$(MAKE) cppcheck
 
 $(name): $(obj) $(LIBCBOR) $(LIBSOLO)
 	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
 
+cppcheck:
+	cppcheck $(CPPCHECK_FLAGS) $(TARGET_PC_PATH)
+
 clean:
 	rm -f *.o main.exe main $(obj)
-	for f in libs/crypto/tiny-AES-c/Makefile libs/tinycbor/Makefile ; do \
+	for f in $(LIB_TINY_AES_PATH)/Makefile $(LIB_TINYCBOR_PATH)/Makefile ; do \
 	    if [ -f "$$f" ]; then \
 	    	(cd `dirname $$f` ; git checkout -- .) ;\
 	    fi ;\
 	done
-	cd libs/libsolo && $(MAKE) clean
+	cd $(LIB_SOLO_PATH) && $(MAKE) clean
