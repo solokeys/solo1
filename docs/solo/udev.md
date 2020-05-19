@@ -4,10 +4,9 @@ On Linux, by default USB dongles can't be accessed by users, for security reason
 
 For some users, things will work automatically:
 
-  - Recent Linux distributions (such as Ubuntu Focal, Fedora 32) with systemd 244 or higher automatically detect FIDO devices (check with `systemd --version`)
+  - Recent Linux distributions (such as Ubuntu Focal, Fedora 32, [Arch Linux](https://wiki.archlinux.org/index.php/Solo)) with systemd 244 or higher automatically detect FIDO devices (check with `systemctl --version`)
   - Fedora seems to use a ["universal" udev rule for FIDO devices](https://github.com/amluto/u2f-hidraw-policy)
   - Our udev rule made it into [libu2f-host](https://github.com/Yubico/libu2f-host/) v1.1.10
-  - Arch Linux [has this package](https://www.archlinux.org/packages/community/x86_64/libu2f-host/)
   - [Debian sid](https://packages.debian.org/sid/libu2f-udev) and [Ubuntu Eon](https://packages.ubuntu.com/eoan/libu2f-udev) can use the `libu2f-udev` package
   - FreeBSD has support in [u2f-devd](https://github.com/solokeys/solo/issues/144#issuecomment-500216020)
 
