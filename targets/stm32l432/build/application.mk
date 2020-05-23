@@ -41,7 +41,8 @@ MBEDTLS_CONFIG= -DMBEDTLS_CONFIG_FILE=\"mbedtls_config.h\"
 OP_SRC_DIRS :=  ../../openpgp/stm32l432 \
                 ../../openpgp/src \
                 ../../openpgp/src/applets \
-                ../../openpgp/src/applets/openpgp
+                ../../openpgp/src/applets/openpgp \
+                ../../openpgp/libs/stm32fs
 OP_SRC := $(sort $(foreach var, $(OP_SRC_DIRS), $(wildcard $(var)/*.cpp)))
 CPP_SRC = $(OP_SRC)
 
@@ -58,6 +59,7 @@ INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
 INC += -I../../openpgp/stm32l432 -I../../openpgp/src
 INC += -I../../openpgp/libs/spiffs -I../../openpgp/libs/spiffs/spiffs/src
 INC += -I../../openpgp/libs/mbedtls -I../../openpgp/libs/mbedtls/mbedtls/include -I../../openpgp/libs/mbedtls/mbedtls/crypto/include
+INC += -I../../openpgp/libs/stm32fs
 
 SEARCH=-L../../tinycbor/lib
 
@@ -81,10 +83,10 @@ DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAP
 
 CFLAGS=$(INC) -c $(DEFINES) -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections \
 	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS) $(MBEDTLS_CONFIG)
-CPPFLAGS=$(INC) -c $(DEFINES) -std=c++17 -Os -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections \
-	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS) -fno-exceptions
-LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -lnosys
-LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor
+CPPFLAGS=$(INC) -c $(DEFINES) -std=c++17 -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections \
+	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS) -fno-exceptions -fno-rtti
+LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -lnosys -lstdc++
+LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor -Wl,--print-memory-usage
 
 ECC_CFLAGS = $(CFLAGS) -DuECC_PLATFORM=5 -DuECC_OPTIMIZATION_LEVEL=4 -DuECC_SQUARE_FUNC=1 -DuECC_SUPPORT_COMPRESSED_POINT=0
 
