@@ -19,11 +19,6 @@ SRC += ../../fido2/extensions/wallet.c
 SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c
 SRC += ../../crypto/cifra/src/sha512.c ../../crypto/cifra/src/blockwise.c
 
-# spiffs
-SP_PATH = ../../openpgp/libs/spiffs/spiffs/src/
-SRC += $(SP_PATH)spiffs_nucleus.c $(SP_PATH)spiffs_gc.c $(SP_PATH)spiffs_hydrogen.c 
-SRC += $(SP_PATH)spiffs_cache.c $(SP_PATH)spiffs_check.c 
-
 # mbedtls
 MBEDTLS_PATH = ../../openpgp/libs/mbedtls/mbedtls/crypto/library/
 _SRCS = aes.c asn1parse.c asn1write.c bignum.c \
@@ -57,7 +52,6 @@ INC += -I../../tinycbor/src -I../../crypto/sha256 -I../../crypto/micro-ecc
 INC += -I../../crypto/tiny-AES-c
 INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
 INC += -I../../openpgp/stm32l432 -I../../openpgp/src
-INC += -I../../openpgp/libs/spiffs -I../../openpgp/libs/spiffs/spiffs/src
 INC += -I../../openpgp/libs/mbedtls -I../../openpgp/libs/mbedtls/mbedtls/include -I../../openpgp/libs/mbedtls/mbedtls/crypto/include
 INC += -I../../openpgp/libs/stm32fs
 
