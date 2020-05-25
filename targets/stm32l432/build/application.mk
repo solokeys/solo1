@@ -28,9 +28,20 @@ _SRCS = aes.c asn1parse.c asn1write.c bignum.c \
         havege.c dhm.c entropy.c entropy_poll.c \
         ecp.c ecp_curves.c ecdsa.c ecdh.c \
         md.c md2.c md4.c md5.c oid.c
-MBEDTLS_SRCS := $(foreach var, $(_SRCS), $(MBEDTLS_PATH)$(var))
+MBEDTLS_SRCS = $(foreach var, $(_SRCS), $(MBEDTLS_PATH)$(var))
 SRC += $(MBEDTLS_SRCS)
 MBEDTLS_CONFIG= -DMBEDTLS_CONFIG_FILE=\"mbedtls_config.h\"
+
+# bearSSL
+BEARSSL_PATH = ../../openpgp/libs/bearssl/
+_SRCSB = rsa_i15_modulus.c i15_encode.c i15_decode.c i15_mulacc.c i15_bitlen.c \
+         rsa_i15_priv.c i15_sub.c i15_add.c i15_reduce.c i15_modpow.c i15_modpow2.c \
+         i15_ninv15.c i15_tmont.c i15_fmont.c i15_montmul.c i15_decred.c i15_muladd.c \
+         i15_rshift.c ccopy.c rsa_i15_privexp.c i32_div32.c i15_moddiv.c rsa_i31_keygen_inner.c \
+         i15_addon.c rsa_default_keygen.c rsa_default_pkcs1_sign.c 
+
+BEARSSL_SRCS = $(foreach var, $(_SRCSB), $(BEARSSL_PATH)$(var))
+SRC += $(BEARSSL_SRCS)
 
 # OpenPGP
 OP_SRC_DIRS :=  ../../openpgp/stm32l432 \
@@ -53,6 +64,7 @@ INC += -I../../crypto/tiny-AES-c
 INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
 INC += -I../../openpgp/stm32l432 -I../../openpgp/src
 INC += -I../../openpgp/libs/mbedtls -I../../openpgp/libs/mbedtls/mbedtls/include -I../../openpgp/libs/mbedtls/mbedtls/crypto/include
+INC += -I../../openpgp/libs/bearssl
 INC += -I../../openpgp/libs/stm32fs
 
 SEARCH=-L../../tinycbor/lib
@@ -110,10 +122,6 @@ all: $(TARGET).elf
 clean:
 	rm -f *.o src/*.o *.elf  bootloader/*.o $(OBJ)
 
-
 cbor:
 	cd ../../tinycbor/ && make clean
-	cd ../../tinycbor/ && make CC="$(CC)" AR=$(AR) \
-LDFLAGS="$(LDFLAGS_LIB)" \
-CFLAGS="$(CFLAGS) -Os  -DCBOR_PARSER_MAX_RECURSIONS=3"
-
+	cd ../../tinycbor/ && make CC="$(CC)" AR=$(AR) LDFLAGS="$(LDFLAGS_LIB)" CFLAGS="$(CFLAGS) -Os -DCBOR_PARSER_MAX_RECURSIONS=3"
