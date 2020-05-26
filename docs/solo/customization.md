@@ -140,3 +140,42 @@ Now you have a newly created `bundle.hex` file with a custom attestation key and
 with Solo in DFU mode](/solo/programming#procedure).
 
 Are you interested in customizing in bulk?  Contact hello@solokeys.com and we can help.
+
+## Custom application signing
+
+You can customize the bootloader to only accept application updates that are signed by a private key that only you hold.
+
+For this, we first need a key pair.  If you are using custom attestation keys following the instructions above then you can use your `root_key.pem`.  Simply use that file instead of `firmware_key.pem` in the commands below.  Otherwise, generate `firmware_key.pem`:
+
+```
+# Run for 1 second, then hit control-c
+solo key rng raw > seed.bin
+openssl ecparam -genkey -name prime256v1 -out firmware_key.pem -rand seed.bin
+```
+
+Now, extract the public key from `firmware_key.pem`:
+
+```
+openssl ec -noout -text -in firmware_key.pem | grep '^pub:' -A 5 | tail -n 5 | sed 's/:/\\\x/g' | tr -d ' \n' | cut -c 3-
+```
+
+Note that we cut the `04` prefix from the public key.  This is important.  The prefix just indicates that the key is uncompressed but the bootloader functions expect a key format without this prefix.
+
+Now, replace the public key in the `targets/stm32l432/bootloader/pubkey_bootloader.c` file with the pulic key you obtained from `firmware.pem`.  Double check that everything went well by comparing the public key from `openssl ec -noout -text -in firmware_key.pem` to the one you now have in `pubkey_bootloader.c`.
+
+With this change, [build your application and verifying bootloader](/solo/building) and [program the resulting `bundle.hex` file with Solo in DFU mode](/solo/programming#procedure).  You can also combine this step with your custom attestation key and cert as described above.
+
+At this point, your Solo is locked and accepts application updates only if they are signed by you.  To update the application, [build your application](/solo/building) to get a `solo.hex` and then sign it:
+
+```
+solo sign firmware_key.pem solo.hex firmware.json
+```
+
+Now, you can program the signed `firmware.json`:
+
+```
+solo program aux enter-bootloader
+solo program bootloader firmware.json
+```
+
+Make sure to safely store your `firmware_key.pem` because without this file you cannot update your Solo application anymore.
