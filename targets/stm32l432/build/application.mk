@@ -37,7 +37,8 @@ BEARSSL_PATH = ../../openpgp/libs/bearssl/
 _SRCSB = rsa_i15_modulus.c i15_encode.c i15_decode.c i15_mulacc.c i15_bitlen.c \
          rsa_i15_priv.c i15_sub.c i15_add.c i15_reduce.c i15_modpow.c i15_modpow2.c \
          i15_ninv15.c i15_tmont.c i15_fmont.c i15_montmul.c i15_decred.c i15_muladd.c \
-         i15_rshift.c ccopy.c rsa_i15_privexp.c i32_div32.c i15_moddiv.c rsa_i31_keygen_inner.c \
+         i15_rshift.c ccopy.c rsa_i15_privexp.c i32_div32.c i15_moddiv.c \
+         rsa_i31_keygen_inner.c rsa_i15_keygen.c \
          i15_addon.c rsa_default_keygen.c rsa_default_pkcs1_sign.c 
 
 BEARSSL_SRCS = $(foreach var, $(_SRCSB), $(BEARSSL_PATH)$(var))
