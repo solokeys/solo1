@@ -14,7 +14,7 @@ DRIVER_LIBS := lib/stm32l4xx_hal_pcd.c lib/stm32l4xx_hal_pcd_ex.c lib/stm32l4xx_
 USB_LIB := lib/usbd/usbd_cdc.c lib/usbd/usbd_cdc_if.c lib/usbd/usbd_composite.c \
 	   lib/usbd/usbd_conf.c lib/usbd/usbd_core.c lib/usbd/usbd_ioreq.c \
        lib/usbd/usbd_ctlreq.c lib/usbd/usbd_desc.c lib/usbd/usbd_hid.c \
-	   lib/usbd/usbd_ccid.c
+	   lib/usbd/usbd_ccid.c lib/usbd/usbd_kbd.c
 
 VERSION_FULL?=$(SOLO_VERSION_FULL)
 VERSION:=$(SOLO_VERSION)

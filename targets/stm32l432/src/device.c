@@ -48,6 +48,7 @@ extern PCD_HandleTypeDef hpcd;
 static int _NFC_status = 0;
 static bool isLowFreq = 0;
 static bool _up_disabled = false;
+static bool _up_wait = false;
 
 // #define IS_BUTTON_PRESSED()         (0  == (LL_GPIO_ReadInputPort(SOLO_BUTTON_PORT) & SOLO_BUTTON_PIN))
 static int is_physical_button_pressed(void)
@@ -127,6 +128,7 @@ void TIM6_DAC_IRQHandler(void)
 // Interrupt on rising edge of button (button released)
 void EXTI0_IRQHandler(void)
 {
+    uint8_t report[8] = {0, 0, 0x1e, 0x1f, 0x20, 0x21, 0, 0};
     EXTI->PR1 = EXTI->PR1;
     if (is_physical_button_pressed == IS_BUTTON_PRESSED)
     {
@@ -134,6 +136,12 @@ void EXTI0_IRQHandler(void)
         if ((millis() - __last_button_bounce_time) > 25)
         {
             __last_button_press_time = millis();
+            if (!_up_wait)
+            {
+                usbkbd_send(report);
+                memset(report, 0, sizeof(report));
+                usbkbd_send(report);
+            }
         }
         __last_button_bounce_time = millis();
     }
@@ -396,6 +404,18 @@ void usbhid_send(uint8_t * msg)
     USBD_LL_Transmit(&Solo_USBD_Device, HID_EPIN_ADDR, msg, HID_PACKET_SIZE);
 
 
+}
+
+void usbkbd_send(uint8_t * msg)
+{
+    printf1(TAG_DUMP2,"<< ");
+    dump_hex1(TAG_DUMP2, msg, KBD_PACKET_SIZE);
+
+    Solo_USBD_Device.ep_in[KBD_EPIN_ADDR & 0xFU].total_length = KBD_PACKET_SIZE;
+
+    while (PCD_GET_EP_TX_STATUS(USB, KBD_EPIN_ADDR & 0x0f) == USB_EP_TX_VALID)
+        ;
+    USBD_LL_Transmit(&Solo_USBD_Device, KBD_EPIN_ADDR, msg, KBD_PACKET_SIZE);
 }
 
 void ctaphid_write_block(uint8_t * data)
@@ -742,6 +762,7 @@ int ctap_user_presence_test(uint32_t up_delay)
 
     // Set LED status and wait.
     led_rgb(0xff3520);
+    _up_wait = true;
 
     // Block and wait for some time.
     ret = wait_for_button_activate(up_delay);
@@ -755,13 +776,14 @@ int ctap_user_presence_test(uint32_t up_delay)
         goto done;
     }
 
-
+    _up_wait = false;
     return 0;
 
 
 done:
     ret = wait_for_button_release(up_delay);
     __last_button_press_time = 0;
+    _up_wait = false;
     return 1;
 
 }

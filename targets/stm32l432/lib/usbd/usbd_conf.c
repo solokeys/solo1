@@ -272,6 +272,8 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CDC_OUT_EP , PCD_SNG_BUF, 0xd8 + 64*5);  // data OUT
   HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , CDC_IN_EP , PCD_SNG_BUF, 0xd8 + 64*6);  // data IN
 
+  // KBD
+  HAL_PCDEx_PMAConfig((PCD_HandleTypeDef*)pdev->pData , KBD_EPIN_ADDR , PCD_SNG_BUF, 0xd8 + 64*7);  // data IN
   // dump_pma_header("usbd_conf");
 
   return USBD_OK;
