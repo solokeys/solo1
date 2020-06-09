@@ -64,7 +64,7 @@ In that case the mentioned patch would not be required.
 
 Environment: Fedora 29 x64, Linux 4.19.9
 
-See <https://docs.solokeys.io/solo/building/> for the original guide. Here details not included there will be covered.
+See <https://docs.solokeys.dev/building/> for the original guide. Here details not included there will be covered.
 
 ### Install ARM tools Linux
 
@@ -102,7 +102,7 @@ export PATH="/Applications/STMicroelectronics/STM32Cube/STM32CubeProgrammer/STM3
 
 ### Building
 
-Please follow <https://docs.solokeys.io/solo/building/>, as the build way changes rapidly.
+Please follow <https://docs.solokeys.dev/building/>, as the build way changes rapidly.
 Currently (8.1.19) to build the firmware, following lines should be executed
 
 ```bash

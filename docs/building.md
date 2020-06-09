@@ -131,7 +131,7 @@ solo mergehex  \
     bundle.hex
 ```
 
-See [here for more information on custom attestation](/solo/customization/).
+See [here for more information on custom attestation](/customization/).
 
-To learn more about normal updates or a "full" update, you should [read more on Solo's boot stages](/solo/bootloader-mode).
+To learn more about normal updates or a "full" update, you should [read more on Solo's boot stages](/bootloader-mode).
 
