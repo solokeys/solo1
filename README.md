@@ -30,7 +30,7 @@ Solo for Hacker is a special version of Solo that let you customize its firmware
 
 Check out [solokeys.com](https://solokeys.com), for options on where to buy Solo.  Solo Hacker can be converted to a secure version, but normal Solo cannot be converted to a Hacker version.
 
-If you have a Solo for Hacker, here's how you can load your own code on it. You can find more details, including how to permanently lock it, in our [documentation](https://docs.solokeys.io/solo/building/). We support Python3.
+If you have a Solo for Hacker, here's how you can load your own code on it. You can find more details, including how to permanently lock it, in our [documentation](https://docs.solokeys.dev/building/). We support Python3.
 
 For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/solokeys/solo/blob/master/targets/stm32l432/src/app.h#L48) and change `LED_INIT_VALUE`
 to be a different hex color.
@@ -63,17 +63,17 @@ git submodule update --init --recursive
 
 ## Installing the toolchain and applying updates
 
-In order to compile ARM code, you need the ARM compiler and other things like bundling bootloader and firmware require the [solo-python](https://github.com/solokeys/solo-python) python package. Check our [documentation](https://docs.solokeys.io/solo/) for details.
+In order to compile ARM code, you need the ARM compiler and other things like bundling bootloader and firmware require the [solo-python](https://github.com/solokeys/solo-python) python package. Check our [documentation](https://docs.solokeys.dev/) for details.
 
 You can update your solokey after running `pip3 install solo-python` with `solo key update` for the latest version. To apply a custom image use `solo program bootloader <file>(.json|.hex)`.
 
-## Installing the toolkit and compiling in Docker 
+## Installing the toolkit and compiling in Docker
 Alternatively, you can use Docker to create a container with the toolchain.
 You can run:
 
 ```bash
 # Build the toolchain container
-make docker-build-toolchain 
+make docker-build-toolchain
 
 # Build all versions of the firmware in the "builds" folder
 make docker-build-all
@@ -83,7 +83,7 @@ The `builds` folder will contain all the variation on the firmware in `.hex` fil
 
 ## Build locally
 
-If you have the toolchain installed on your machine you can build the firmware with: 
+If you have the toolchain installed on your machine you can build the firmware with:
 
 ```bash
 cd targets/stm32l432
@@ -122,12 +122,12 @@ Run the Solo application:
 
 In another shell, you can run our [test suite](https://github.com/solokeys/fido2-tests).
 
-You can find more details in our [documentation](https://docs.solokeys.io/solo/), including how to build on the the NUCLEO-L432KC development board.
+You can find more details in our [documentation](https://docs.solokeys.dev/), including how to build on the the NUCLEO-L432KC development board.
 
 
 # Documentation
 
-Check out our [official documentation](https://docs.solokeys.io/solo/).
+Check out our [official documentation](https://docs.solokeys.dev/).
 
 
 # Contributors ✨
