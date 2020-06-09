@@ -1,34 +1,34 @@
 site_name: Solo Technical Documentation
 site_author: SoloKeys
 site_description: 'Documentation for the SoloKeys solo software'
-site_url: 'https://docs.solokeys.io/solo/'
+site_url: 'https://docs.solokeys.dev/'
 repo_url: 'https://github.com/solokeys/solo'
 repo_name: 'solokeys/solo'
 copyright: 'Copyright &copy; 2018 - 2019 SoloKeys'
 
 nav:
-    - Home: solo/index.md
-    - FIDO2 Implementation: solo/fido2-impl.md
-    - Metadata Statements: solo/metadata-statements.md
-    - Build instructions: solo/building.md
-    - Programming instructions: solo/programming.md
-    - Bootloader mode: solo/bootloader-mode.md
-    - Customization: solo/customization.md
-    - Solo Extras: solo/solo-extras.md
-    - Application Ideas: solo/application-ideas.md
-    - Running on Nucleo32 board: solo/nucleo32-board.md
-    - Signed update process: solo/signed-updates.md
-    - Usage and Porting guide: solo/porting.md
-    - Code documentation: solo/code-overview.md
-    - Contributing Code: solo/contributing.md
-    - Contributing Docs: solo/documenting.md
-    - udev Rules: solo/udev.md
-    - About: solo/repo-readme.md
+    - Home: index.md
+    - FIDO2 Implementation: fido2-impl.md
+    - Metadata Statements: metadata-statements.md
+    - Build instructions: building.md
+    - Programming instructions: programming.md
+    - Bootloader mode: bootloader-mode.md
+    - Customization: customization.md
+    - Solo Extras: solo-extras.md
+    - Application Ideas: application-ideas.md
+    - Running on Nucleo32 board: nucleo32-board.md
+    - Signed update process: signed-updates.md
+    - Usage and Porting guide: porting.md
+    - Code documentation: code-overview.md
+    - Contributing Code: contributing.md
+    - Contributing Docs: documenting.md
+    - udev Rules: udev.md
+    - About: repo-readme.md
 
 theme:
   name: material
-  logo: 'solo/images/logo.svg'
-  favicon: 'solo/images/favicon.ico'
+  logo: 'images/logo.svg'
+  favicon: 'images/favicon.ico'
 
 markdown_extensions:
   - markdown_include.include

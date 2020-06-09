@@ -13,7 +13,7 @@ pip3 install solo-python
 ## Updating the firmware
 
 If you just want to update the firmware, you can run one of the following commands.
-Make sure your key [is in bootloader mode](/solo/bootloader-mode#solo-bootloader) first.
+Make sure your key [is in bootloader mode](/bootloader-mode#solo-bootloader) first.
 
 ```bash
 solo key update <--secure | --hacker>
@@ -26,11 +26,11 @@ solo program bootloader <firmware.hex | firmware.json>
 ```
 
 Note you won't be able to use `all.hex` or the `bundle-*.hex` builds, as these include the solo bootloader.  You shouldn't
-risk changing the Solo bootloader unless you want to make it a secure device, or [make other customizations](/solo/customization/).
+risk changing the Solo bootloader unless you want to make it a secure device, or [make other customizations](/customization/).
 
 ## Updating a Hacker to a Secure Solo
 
-Updating a hacker to be a secure build overwrites the [Solo bootloader](/solo/bootloader-mode#solo-bootloader).
+Updating a hacker to be a secure build overwrites the [Solo bootloader](/bootloader-mode#solo-bootloader).
 So it's important to not mess this up or you may brick your device.
 
 You can use a firmware build from the [latest release](https://github.com/solokeys/solo/releases) or use

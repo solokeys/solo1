@@ -19,7 +19,7 @@ and program it.
 ### Creating your attestation key pair
 
 Since we are generating keys, it's important to use a good entropy source.
-You can use the [True RNG on your Solo](/solo/solo-extras) to generate some good random numbers.
+You can use the [True RNG on your Solo](/solo-extras) to generate some good random numbers.
 
 ```
 # Run for 1 second, then hit control-c
@@ -114,7 +114,7 @@ If the checks succeed, you are ready to program the device attestation key and c
 
 ### Programming an attestation key and certificate
 
-First, [Build your solo application and bootloader](/solo/building).
+First, [Build your solo application and bootloader](/building).
 
 Print your attestation key in a hex string format.  Using our utility script:
 
@@ -137,6 +137,6 @@ solo mergehex  \
 **Warning**: Using the `--lock` flag prevents the DFU from being accessed on the device again.  It's recommended to try first without the `--lock` flag to make sure it works.
 
 Now you have a newly created `bundle.hex` file with a custom attestation key and cert.  You can [program this `bundle.hex` file
-with Solo in DFU mode](/solo/programming#procedure).
+with Solo in DFU mode](/programming#procedure).
 
 Are you interested in customizing in bulk?  Contact hello@solokeys.com and we can help.
