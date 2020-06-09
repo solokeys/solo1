@@ -26,7 +26,12 @@ _SRCSB = rsa_i15_modulus.c i15_encode.c i15_decode.c i15_mulacc.c i15_bitlen.c \
          i15_ninv15.c i15_tmont.c i15_fmont.c i15_montmul.c i15_decred.c i15_muladd.c \
          i15_rshift.c ccopy.c rsa_i15_privexp.c i32_div32.c i15_moddiv.c \
          rsa_i31_keygen_inner.c rsa_i15_keygen.c \
-         i15_addon.c rsa_default_keygen.c rsa_default_pkcs1_sign.c 
+         i15_addon.c rsa_default_keygen.c rsa_default_pkcs1_sign.c \
+         ec_keygen.c ec_pubkey.c ec_all_m15.c ec_prime_i15.c ec_p256_m15.c ec_c25519_m15.c \
+         ec_secp256r1.c ec_secp384r1.c ec_secp521r1.c \
+         i15_decmod.c i15_iszero.c \
+         ecdsa_i15_sign_raw.c ecdsa_i15_bits.c hmac_drbg.c hmac.c sha2small.c enc32be.c dec32be.c \
+         aes_ct.c aes_ct_cbcdec.c aes_ct_cbcenc.c aes_ct_dec.c aes_ct_enc.c
 
 BEARSSL_SRCS = $(foreach var, $(_SRCSB), $(BEARSSL_PATH)$(var))
 SRC += $(BEARSSL_SRCS)
