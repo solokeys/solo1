@@ -19,6 +19,10 @@ SRC += ../../fido2/extensions/wallet.c
 SRC += ../../crypto/sha256/sha256.c ../../crypto/micro-ecc/uECC.c ../../crypto/tiny-AES-c/aes.c
 SRC += ../../crypto/cifra/src/sha512.c ../../crypto/cifra/src/blockwise.c
 
+#libsalty
+LIBSALTY_PATH = ../../crypto/libsalty
+LIBSALTY_LIB = $(LIBSALTY_PATH)/libsalty-asm.a $(LIBSALTY_PATH)/libsalty.a
+
 # bearSSL
 BEARSSL_PATH = ../../openpgp/libs/bearssl/
 _SRCSB = rsa_i15_modulus.c i15_encode.c i15_decode.c i15_mulacc.c i15_bitlen.c \
@@ -39,8 +43,8 @@ SRC += $(BEARSSL_SRCS)
 # OpenPGP
 OP_SRC_DIRS :=  ../../openpgp/stm32l432 \
                 ../../openpgp/src \
-                ../../openpgp/src/applets \
-                ../../openpgp/src/applets/openpgp \
+                ../../openpgp/src/applications \
+                ../../openpgp/src/applications/openpgp \
                 ../../openpgp/libs/stm32fs
 OP_SRC := $(sort $(foreach var, $(OP_SRC_DIRS), $(wildcard $(var)/*.cpp)))
 CPP_SRC = $(OP_SRC)
@@ -58,8 +62,9 @@ INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
 INC += -I../../openpgp/stm32l432 -I../../openpgp/src
 INC += -I../../openpgp/libs/bearssl
 INC += -I../../openpgp/libs/stm32fs
+INC += -I../../crypto/libsalty
 
-SEARCH=-L../../tinycbor/lib
+SEARCH=-L../../tinycbor/lib -L$(LIBSALTY_PATH)
 
 ifndef LDSCRIPT
 LDSCRIPT=linker/stm32l4xx.ld
@@ -83,8 +88,8 @@ CFLAGS=$(INC) -c $(DEFINES) -Wall -Wextra -Wno-unused-parameter -Wno-missing-fie
 	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS)
 CPPFLAGS=$(INC) -c $(DEFINES) -std=c++17 -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections \
 	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS) -fno-exceptions -fno-rtti
-LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -lnosys -lstdc++
-LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor -Wl,--print-memory-usage
+LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -lnosys -lstdc++ 
+LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor -Wl,--print-memory-usage  $(LIBSALTY_LIB)
 
 ECC_CFLAGS = $(CFLAGS) -DuECC_PLATFORM=5 -DuECC_OPTIMIZATION_LEVEL=4 -DuECC_SQUARE_FUNC=1 -DuECC_SUPPORT_COMPRESSED_POINT=0
 
