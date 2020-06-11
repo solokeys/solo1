@@ -4,7 +4,7 @@ site_description: 'Documentation for the SoloKeys solo software'
 site_url: 'https://docs.solokeys.dev/'
 repo_url: 'https://github.com/solokeys/solo'
 repo_name: 'solokeys/solo'
-copyright: 'Copyright &copy; 2018 - 2019 SoloKeys'
+copyright: 'Copyright &copy; 2018 - 2020 SoloKeys'
 
 nav:
     - Home: index.md
