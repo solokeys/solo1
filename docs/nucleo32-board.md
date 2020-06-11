@@ -33,6 +33,11 @@ Make sure 5V is not connected, and is covered from contacting with the board ele
 
 Based on [USB-A_schematic.pdf].
 
+## Nucleo board connection illustration
+The picture below shows the connection to Nucleo board. If you want to power the Nucleo board over USB connection, you have to add **USB 5V** to **VIN** Pin. In this case you couldn't use the ST-Link for powering the Nucleo board.
+
+<img src="../images/nucleo_board_connection.png" title="Nucleo Board Connection" />
+
 ## Firmware modification
 
 Following patch has to be applied to skip the user presence confirmation, for tests. Might be applied at a later stage.
@@ -97,6 +102,26 @@ If you're on MacOS X and installed the STM32CubeProg, you need to add the follow
 # ~/.bash_profile
 export PATH="/Applications/STMicroelectronics/STM32Cube/STM32CubeProgrammer/STM32CubeProgrammer.app/Contents/MacOs/bin/":$PATH
 ```
+
+### Adding udev rules Linux
+
+On Linux it might be necessary to install udev rules for **ST-Link V2**.<br>
+In case you couldn't download your programm to you Nucleoboard you should add the rules for ST-Link.
+
+Add following file:<br>
+***/etc/udev/rules.d/49-stlinkv2-1.rules*** with this content.
+
+```
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374a", \
+    MODE:="0666", \
+    SYMLINK+="stlinkv2-1_%n"
+
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374b", \
+    MODE:="0666", \
+    SYMLINK+="stlinkv2-1_%n"
+```
+
+After logout and new login, the ST-Link should work.
 
 ## Building and flashing
 
