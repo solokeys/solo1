@@ -24,8 +24,6 @@ uint32_t millis();
 */
 void usbhid_send(uint8_t * msg);
 
-void usbkbd_send(uint8_t * msg);
-
 /** Reboot / power reset the device.
  *  **Optional** this is not used for FIDO2, and simply won't do anything if not implemented.
 */

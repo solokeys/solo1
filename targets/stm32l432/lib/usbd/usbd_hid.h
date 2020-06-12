@@ -104,6 +104,7 @@ extern USBD_ClassTypeDef  USBD_KBD;
 
 
 void usb_hid_recieve_callback(uint8_t ep);
+void usb_kbd_send(uint8_t *msg, int len);
 
 
 #ifdef __cplusplus

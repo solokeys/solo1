@@ -128,7 +128,6 @@ void TIM6_DAC_IRQHandler(void)
 // Interrupt on rising edge of button (button released)
 void EXTI0_IRQHandler(void)
 {
-    uint8_t report[8] = {0, 0, 0x1e, 0x1f, 0x20, 0x21, 0, 0};
     EXTI->PR1 = EXTI->PR1;
     if (is_physical_button_pressed == IS_BUTTON_PRESSED)
     {
@@ -136,12 +135,13 @@ void EXTI0_IRQHandler(void)
         if ((millis() - __last_button_bounce_time) > 25)
         {
             __last_button_press_time = millis();
+#ifndef IS_BOOTLOADER
+            uint8_t msg[8] = {'F', 'i', '0', '`', ']', '$', '}', '<'};
             if (!_up_wait)
             {
-                usbkbd_send(report);
-                memset(report, 0, sizeof(report));
-                usbkbd_send(report);
+                usb_kbd_send(msg, 8);
             }
+#endif
         }
         __last_button_bounce_time = millis();
     }
@@ -404,18 +404,6 @@ void usbhid_send(uint8_t * msg)
     USBD_LL_Transmit(&Solo_USBD_Device, HID_EPIN_ADDR, msg, HID_PACKET_SIZE);
 
 
-}
-
-void usbkbd_send(uint8_t * msg)
-{
-    printf1(TAG_DUMP2,"<< ");
-    dump_hex1(TAG_DUMP2, msg, KBD_PACKET_SIZE);
-
-    Solo_USBD_Device.ep_in[KBD_EPIN_ADDR & 0xFU].total_length = KBD_PACKET_SIZE;
-
-    while (PCD_GET_EP_TX_STATUS(USB, KBD_EPIN_ADDR & 0x0f) == USB_EP_TX_VALID)
-        ;
-    USBD_LL_Transmit(&Solo_USBD_Device, KBD_EPIN_ADDR, msg, KBD_PACKET_SIZE);
 }
 
 void ctaphid_write_block(uint8_t * data)

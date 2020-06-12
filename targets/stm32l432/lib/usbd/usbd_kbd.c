@@ -63,6 +63,46 @@ static uint8_t  USBD_KBD_Setup (USBD_HandleTypeDef *pdev,
 
 static uint8_t  USBD_KBD_DataIn (USBD_HandleTypeDef *pdev, uint8_t epnum);
 
+static uint8_t key_map[][3] =
+{
+    {'0', 0, 0x27},
+    {'-', 0, 0x2d},
+    {'=', 0, 0x2e},
+    {'[', 0, 0x2f},
+    {']', 0, 0x30},
+    {'\\', 0, 0x31},
+    {';', 0, 0x33},
+    {'\'', 0, 0x34},
+    {'`', 0, 0x35},
+    {',', 0, 0x36},
+    {'.', 0, 0x37},
+    {'/', 0, 0x38},
+    {' ', 0, 0x2c},
+    {'\n', 0, 0x28},
+
+    {'~', 2, 0x35},
+    {'!', 2, 0x1e},
+    {'@', 2, 0x1f},
+    {'#', 2, 0x20},
+    {'$', 2, 0x21},
+    {'%', 2, 0x22},
+    {'^', 2, 0x23},
+    {'&', 2, 0x24},
+    {'*', 2, 0x25},
+    {'(', 2, 0x26},
+    {')', 2, 0x27},
+    {'_', 2, 0x2d},
+    {'+', 2, 0x2e},
+    {'{', 2, 0x2f},
+    {'}', 2, 0x30},
+    {':', 2, 0x33},
+    {'"', 2, 0x34},
+    {'|', 2, 0x31},
+    {'<', 2, 0x36},
+    {'>', 2, 0x37},
+    {'?', 2, 0x38},
+    {0, 0, 0},
+};
 
 USBD_ClassTypeDef  USBD_KBD =
 {
@@ -310,3 +350,54 @@ static uint8_t  USBD_KBD_DataIn (USBD_HandleTypeDef *pdev,
   return USBD_OK;
 }
 
+static void USBD_KBD_Transmit(uint8_t * msg)
+{
+    printf1(TAG_DUMP2,"<< ");
+    dump_hex1(TAG_DUMP2, msg, KBD_PACKET_SIZE);
+
+    Solo_USBD_Device.ep_in[KBD_EPIN_ADDR & 0xFU].total_length = KBD_PACKET_SIZE;
+
+    while (PCD_GET_EP_TX_STATUS(USB, KBD_EPIN_ADDR & 0x0f) == USB_EP_TX_VALID)
+        ;
+    USBD_LL_Transmit(&Solo_USBD_Device, KBD_EPIN_ADDR, msg, KBD_PACKET_SIZE);
+}
+
+void usb_kbd_send(uint8_t *msg, int len)
+{
+    uint8_t report[8];
+    for (int i = 0; i < len; i++)
+    {
+        memset(report, 0, sizeof(report));
+        uint8_t ch = msg[i];
+        if (ch >= 'a' && ch <= 'z')
+        {
+            report[2] = ch - 'a' + 4;
+            USBD_KBD_Transmit(report);
+        }
+        else if (ch >= 'A' && ch <= 'Z')
+        {
+            report[0] = 2; //left shift
+            report[2] = ch - 'A' + 4;
+            USBD_KBD_Transmit(report);
+        }
+        else if (ch >= '1' && ch <= '9')
+        {
+            report[2] = ch - '1' + 0x1e;
+            USBD_KBD_Transmit(report);
+        }
+        else
+        {
+            for (int j=0; key_map[j][0] != 0; j++)
+            {
+                if (ch == key_map[j][0]) {
+                    report[0] = key_map[j][1];
+                    report[2] = key_map[j][2];
+                    USBD_KBD_Transmit(report);
+                    break;
+                }
+            }
+        }
+        memset(report, 0, sizeof(report));
+        USBD_KBD_Transmit(report);
+    }
+}
