@@ -354,7 +354,9 @@ void ccid_send_parameters(CCID_HEADER * c, uint8_t status, uint8_t error)
 void handle_ccid(uint8_t * msg, int len)
 {
     CCID_HEADER * h = (CCID_HEADER *) msg;
+#ifdef ENABLE_CCID
     uint32_t rlength = 0;
+#endif
     switch(h->type)
     {
         case CCID_SLOT_STATUS:
