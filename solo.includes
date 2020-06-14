@@ -28,8 +28,8 @@ openpgp/libs/bearssl
 openpgp/libs/stm32fs
 openpgp/pc
 openpgp/src
-openpgp/src/applets
-openpgp/src/applets/openpgp
+openpgp/src/applications
+openpgp/src/applications/openpgp
 openpgp/stm32l432
 pc
 targets/stm32l432/bootloader
@@ -42,3 +42,6 @@ tinycbor/src
 targets/stm32l432
 openpgp
 targets/stm32l432/build
+openpgp/src/applications/openpgp
+openpgp/src/applications
+crypto/libsalty
