@@ -31,7 +31,7 @@ _SRCSB = rsa_i15_modulus.c i15_encode.c i15_decode.c i15_mulacc.c i15_bitlen.c \
          i15_rshift.c ccopy.c rsa_i15_privexp.c i32_div32.c i15_moddiv.c \
          rsa_i31_keygen_inner.c rsa_i15_keygen.c \
          i15_addon.c rsa_default_keygen.c rsa_default_pkcs1_sign.c \
-         ec_keygen.c ec_pubkey.c ec_all_m15.c ec_prime_i15.c ec_p256_m15.c ec_c25519_m15.c \
+         ec_keygen.c ec_pubkey.c ec_prime_i15.c ec_c25519_m15.c \
          ec_secp256r1.c ec_secp384r1.c ec_secp521r1.c \
          i15_decmod.c i15_iszero.c \
          ecdsa_i15_sign_raw.c ecdsa_i15_bits.c hmac_drbg.c hmac.c sha2small.c enc32be.c dec32be.c \
