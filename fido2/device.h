@@ -162,6 +162,8 @@ void ctap_load_rk(int index,CTAP_residentKey * rk);
 */
 void ctap_overwrite_rk(int index,CTAP_residentKey * rk);
 
+void ctap_load_kbd(CTAP_soloKbd * kbd);
+void ctap_store_kbd(CTAP_soloKbd * kbd);
 
 /** Called by HID layer to indicate that a wink behavior should be performed.
  *  Should not block, and the wink behavior should occur in parallel to FIDO operations.

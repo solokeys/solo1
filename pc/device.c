@@ -449,6 +449,11 @@ void ctap_store_rk(int index, CTAP_residentKey * rk)
 
 }
 
+void ctap_store_kbd(CTAP_soloKbd * kbd)
+{
+    // nop
+}
+
 void ctap_delete_rk(int index)
 {
     CTAP_residentKey rk;

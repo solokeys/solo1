@@ -1738,6 +1738,20 @@ uint8_t ctap_cred_mgmt(CborEncoder * encoder, uint8_t * request, int length)
     return 0;
 }
 
+uint8_t ctap_solo_kbd(CborEncoder * encoder, uint8_t * request, int length)
+{
+    CTAP_soloKbd KBD;
+    int ret = ctap_parse_solo_kbd(&KBD, request, length);
+    if (ret != 0)
+    {
+        printf2(TAG_ERR,"error, ctap_parse_solo_kbd failed\n");
+        return ret;
+    }
+    dump_hex1(TAG_CTAP, KBD.sequence, KBD.length);
+    ctap_store_kbd(&KBD);
+    return 0;
+}
+
 uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_getAssertion GA;
@@ -2317,6 +2331,10 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
 
             dump_hex1(TAG_DUMP,buf, resp->length);
+            break;
+        case CTAP_SOLO_KBD:
+            printf1(TAG_CTAP,"CTAP_SOLO_KBD\n");
+            status = ctap_solo_kbd(&encoder, pkt_raw, length);
             break;
         default:
             status = CTAP1_ERR_INVALID_COMMAND;

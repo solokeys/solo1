@@ -136,10 +136,14 @@ void EXTI0_IRQHandler(void)
         {
             __last_button_press_time = millis();
 #ifndef IS_BOOTLOADER
-            uint8_t msg[8] = {'F', 'i', '0', '`', ']', '$', '}', '<'};
             if (!_up_wait)
             {
-                usb_kbd_send(msg, 8);
+                CTAP_soloKbd kbd;
+                ctap_load_kbd(&kbd);
+                if (kbd.length > 0)
+                {
+                    usb_kbd_send(kbd.sequence, kbd.length);
+                }
             }
 #endif
         }
@@ -854,6 +858,20 @@ void ctap_overwrite_rk(int index,CTAP_residentKey * rk)
         printf2(TAG_ERR,"Out of bounds reading index %d for rk\n", index);
     }
     printf1(TAG_GREEN, "4\r\n");
+}
+
+void ctap_store_kbd(CTAP_soloKbd * kbd)
+{
+    uint8_t buf[PAGE_SIZE];
+    memmove(buf, kbd, sizeof(CTAP_soloKbd));
+    flash_erase_page(KEYBOARD_PAGE);
+    flash_write(KEYBOARD_PAGE_ADDR, buf, 2048);
+}
+
+void ctap_load_kbd(CTAP_soloKbd * kbd)
+{
+    uint32_t * ptr = (uint32_t *) flash_addr(KEYBOARD_PAGE);
+    memmove(kbd, ptr, sizeof(CTAP_soloKbd));
 }
 
 void boot_st_bootloader(void)
