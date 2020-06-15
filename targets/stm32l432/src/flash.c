@@ -79,7 +79,7 @@ void flash_erase_page(uint8_t page)
     __disable_irq();
 
     // Wait if flash is busy
-    while (FLASH->SR & (1<<16))
+    while (FLASH->SR & FLASH_SR_BSY)
         ;
     flash_unlock();
 
@@ -90,11 +90,11 @@ void flash_erase_page(uint8_t page)
     FLASH->CR |= (page<<3) | (1<<1);
 
     // Go!
-    FLASH->CR |= (1<<16);
-    while (FLASH->SR & (1<<16))
+    FLASH->CR |= FLASH_CR_STRT;
+    while (FLASH->SR & FLASH_SR_BSY)
         ;
 
-    if(FLASH->SR & (1<<1))
+    if(FLASH->SR & FLASH_SR_OPERR)
     {
         printf2(TAG_ERR,"erase NOT successful %lx\r\n", FLASH->SR);
     }
@@ -110,20 +110,20 @@ void flash_write_dword(uint32_t addr, uint64_t data)
         return;
     
     __disable_irq();
-    while (FLASH->SR & (1<<16))
+    while (FLASH->SR & FLASH_SR_BSY)
         ;
     FLASH->SR = FLASH->SR;
 
     // Select program action
-    FLASH->CR |= (1<<0);
+    FLASH->CR |= FLASH_CR_PG;
 
     *(volatile uint32_t*)addr = data;
     *(volatile uint32_t*)(addr+4) = data>>32;
 
-    while (FLASH->SR & (1<<16))
+    while (FLASH->SR & FLASH_SR_BSY)
         ;
 
-    if(FLASH->SR & (1<<1))
+    if(FLASH->SR & FLASH_SR_OPERR)
     {
         printf2(TAG_ERR,"program NOT successful %lx\r\n", FLASH->SR);
     }
@@ -137,7 +137,7 @@ void flash_write(uint32_t addr, uint8_t * data, size_t sz)
 {
     unsigned int i;
     uint8_t buf[8];
-    while (FLASH->SR & (1<<16))
+    while (FLASH->SR & FLASH_SR_BSY)
         ;
     flash_unlock();
 
