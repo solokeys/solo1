@@ -248,6 +248,11 @@ uint16_t device_attestation_cert_der_get_size();
  * */
 void device_read_aaguid(uint8_t * dst);
 
+/** Sleep.
+ * @param ms for sleep.
+ * */
+void delay(uint32_t ms);
+
 #ifdef __cplusplus
 }
 #endif
