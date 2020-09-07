@@ -39,6 +39,7 @@ cd targets/stm32l432
 Now build the Solo application.
 
 ```
+make cbor
 make firmware
 ```
 
