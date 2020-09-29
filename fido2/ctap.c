@@ -459,10 +459,10 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
         }
 
         // Generate credRandom
-        crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY2, 0, credRandom);
+        crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY, 0, credRandom);
         crypto_sha256_update((uint8_t*)&ext->hmac_secret.credential->id, sizeof(CredentialId));
         crypto_sha256_update(&getAssertionState.user_verified, 1);
-        crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY2, 0, credRandom);
+        crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY, 0, credRandom);
 
         // Decrypt saltEnc
         crypto_aes256_init(shared_secret, NULL);
