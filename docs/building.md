@@ -104,7 +104,7 @@ solo mergehex bootloader.hex solo.hex bundle.hex
 
 `bundle.hex` is our complete firmware build.  Note it is in this step that you can
 include a custom attestation certificate or lock the device from debugging/DFU.
-By default the "hacker" attestation certifcate and key is used.  Use the `--lock` flag
+By default the "hacker" attestation certificate and key is used.  Use the `--lock` flag
 to make this permanent.
 
 ```

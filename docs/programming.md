@@ -71,7 +71,7 @@ concern with using our default attestation key, aside from a small privacy impli
 
 3. Boot the device
 
-    Once Solo boots a secure build, it will lock the flash permantly from debugger access.  Also the bootloader
+    Once Solo boots a secure build, it will lock the flash permanently from debugger access.  Also the bootloader
     will only accept signed firmware updates.
 
         solo program aux leave-dfu

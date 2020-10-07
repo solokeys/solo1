@@ -55,7 +55,7 @@ If you can't generate your key on **Ubuntu** (error message), you may add Yubico
 
 ## Login into Linux
 ### Passwordless
-To login passwordless into your Linux system, you have to edit the file **lightdm** (or **gdm** or which display manager you prefered).
+To login passwordless into your Linux system, you have to edit the file **lightdm** (or **gdm** or which display manager you preferred).
 In case of lightdm and VIM as editor:
 
 ```
@@ -175,9 +175,9 @@ and add
 <br>
 
 Save the file and test it. <br>
-In case your Solo is not present, your password will be incrorrect. If Solo is plugged into your USB port, it will signal pressing the button and you will be able to login into Linux.
+In case your Solo is not present, your password will be incorrect. If Solo is plugged into your USB port, it will signal pressing the button and you will be able to login into Linux.
 
-Why **required**? If you choose the option **sufficent** your Solo is optional. You could also login without second factor if your Solo is not connected.
+Why **required**? If you choose the option **sufficient** your Solo is optional. You could also login without second factor if your Solo is not connected.
 
 **But remember:**<br>
 If you lose your Solo you won't be able to login into your system.

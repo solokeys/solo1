@@ -2,7 +2,7 @@
 
 ## Random number generation
 
-Solo contains a True Random Number Generator (TRNG).  A TRNG is a hardware based mechanism
+Solo contains a True Random Number Generator (TRNG). A TRNG is a hardware based mechanism
 that leverages natural phenomenon to generate random numbers, which can be better than a traditional
 RNG that has state and updates deterministically using cryptographic methods.
 
