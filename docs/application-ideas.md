@@ -1,9 +1,10 @@
 # Using Solo for passwordless or second factor login on Linux 
 
-## Setup on Ubuntu and Manjaro
+## Setup on Ubuntu, Manjaro, and Fedora
 Before you can use Solo for passwordless or second factor login in your Linux system you have to install some packages.
  
-This was tested on **Linux Mint 19.3** and on **Manjaro 18.x**
+This was tested on **Linux Mint 19.3**, **Manjaro 18.x**, and **Fedora 33**.<br>
+<sub>Fedora's setup will work on CentOS and RHEL.</sub>
 
 First you have to install PAM modules for u2f.
 
@@ -27,7 +28,7 @@ To use Solo as passwordless or second factor login, you have to setup your syste
 First create a new folder named **Yubico** in your **.config** folder in your **home** directory
 
 ```
-  mkdir ~/.config/Yubico
+  mkdir -p ~/.config/Yubico
 ```
 
 Then create a new key for PAM U2F module. If it is your first key you want to register use following command:
@@ -166,7 +167,7 @@ GDM: Search the following entry in `/etc/pam.d/gdm-password`
 
 and add
 ```
-  auth    sufficient    pam_u2f.so
+  auth    required    pam_u2f.so
 ```
 
 **after** *auth    substack   password-auth*
@@ -179,4 +180,4 @@ In case your Solo is not present, your password will be incrorrect. If Solo is p
 Why **required**? If you choose the option **sufficent** your Solo is optional. You could also login without second factor if your Solo is not connected.
 
 **But remember:**<br>
-If you loose your Solo you won't be able to login into your system.
+If you lose your Solo you won't be able to login into your system.
