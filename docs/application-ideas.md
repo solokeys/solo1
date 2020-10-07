@@ -12,11 +12,15 @@ First you have to install PAM modules for u2f.
   sudo apt install libpam-u2f pamu2fcfg
 ```
 
-**Manjaro**
+**Manjaro:**
 ```
   pacman -Syu pam-u2f
 ```
 
+**Fedora:**
+```
+  sudo dnf install --refresh pamu2fcfg pam-u2f
+```
 
 ## Setting up key
 To use Solo as passwordless or second factor login, you have to setup your system with your Solo.
@@ -45,7 +49,7 @@ If you can't generate your key on **Ubuntu** (error message), you may add Yubico
   sudo apt-get upgrade
 ```
 
-**Manjaro** should work without problems.
+**Manjaro** and **Fedora** should work without problems.
 
 
 ## Login into Linux
@@ -70,8 +74,8 @@ and add
 <br>
 <br>
 
-**On Manjaro**<br>
-Search following enrty
+**On Manjaro:**<br>
+Search following entry
 ```
   auth    include   system-login
 ```
@@ -81,9 +85,25 @@ and add
   auth    sufficient    pam_u2f.so
 ```
 
-** before** *auth include system-login*.
+**before** *auth include system-login*.
 <br>
 <br>
+
+**On Fedora:**<br>
+GDM: Search the following entry in `/etc/pam.d/gdm-password`
+```
+  auth    substack   password-auth
+```
+
+and add
+```
+  auth    sufficient    pam_u2f.so
+```
+
+**before** *auth    substack   password-auth*
+<br>
+<br>
+
 
 Now save the file and test it.<br>
 Insert Solo in your USB port and logout.
@@ -110,7 +130,7 @@ To use Solo as second factor, for login into your Linux system, is nearly the sa
   sudo vim /etc/pam.d/lightdm
 ```
 
-**On Ubuntu**<br>
+**On Ubuntu:**<br>
 Search following entry:
 ```
   @include common-auth
@@ -123,7 +143,7 @@ and add
 <br>
 <br>
 
-**On Manjaro**<br>
+**On Manjaro:**<br>
 Search following entry:
 ```
   auth   include    system-login
@@ -135,6 +155,21 @@ Add following entry
 ```
 
 **after** *auth include system-login*.
+<br>
+<br>
+
+**On Fedora:**<br>
+GDM: Search the following entry in `/etc/pam.d/gdm-password`
+```
+  auth    substack   password-auth
+```
+
+and add
+```
+  auth    sufficient    pam_u2f.so
+```
+
+**after** *auth    substack   password-auth*
 <br>
 <br>
 
