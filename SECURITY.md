@@ -21,7 +21,7 @@ To report vulnerabilities you have found:
 - preferably contact [@conor1](https://keybase.io/conor1), [@0x0ece](https://keybase.io/0x0ece) or [@nickray](https://keybase.io/nickray) via Keybase, or
 - send us e-mail using OpenPGP to [security@solokeys.com](mailto:security@solokeys.com).
 
-<https://keys.openpgp.org/vks/v1/by-fingerprint/85AFA2769F4381E5712C36A04DDFC46FEF1F7F3F>
+<https://keys.openpgp.org/vks/v1/by-fingerprint/BFA3F5387D025E8945CF907FC2F2505A63868DFA>
 
 We do not currently run a paid bug bounty program, but are happy to provide you with a bunch of Solo keys in recognition of your findings.
 
