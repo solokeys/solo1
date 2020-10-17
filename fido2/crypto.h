@@ -31,6 +31,9 @@ void crypto_load_external_key(uint8_t * key, int len);
 void crypto_ecc256_sign(uint8_t * data, int len, uint8_t * sig);
 void crypto_ecdsa_sign(uint8_t * data, int len, uint8_t * sig, int MBEDTLS_ECP_ID);
 
+void crypto_ed25519_derive_public_key(uint8_t * data, int len, uint8_t * x);
+void crypto_ed25519_sign(uint8_t * data1, int len1, uint8_t * sig);
+void crypto_ed25519_load_key(uint8_t * data, int len);
 
 void generate_private_key(uint8_t * data, int len, uint8_t * data2, int len2, uint8_t * privkey);
 void crypto_ecc256_make_key_pair(uint8_t * pubkey, uint8_t * privkey);

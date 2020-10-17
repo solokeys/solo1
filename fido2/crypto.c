@@ -6,7 +6,7 @@
 // copied, modified, or distributed except according to those terms.
 /*
  *  Wrapper for crypto implementation on device.
- * 
+ *
  *  Can be replaced with different crypto implementation by
  *  defining EXTERNAL_SOLO_CRYPTO
  *
@@ -31,6 +31,11 @@
 #include APP_CONFIG
 #include "log.h"
 
+#if defined(STM32L432xx)
+#include "salty.h"
+#else
+#include <sodium/crypto_sign_ed25519.h>
+#endif
 
 typedef enum
 {
@@ -358,5 +363,65 @@ void crypto_aes256_encrypt(uint8_t * buf, int length)
     AES_CBC_encrypt_buffer(&aes_ctx, buf, length);
 }
 
+void crypto_ed25519_derive_public_key(uint8_t * data, int len, uint8_t * x)
+{
+#if defined(STM32L432xx)
+
+    uint8_t seed[salty_SECRETKEY_SEED_LENGTH];
+
+    generate_private_key(data, len, NULL, 0, seed);
+    salty_public_key(seed, x);
+
+#else
+
+    uint8_t seed[crypto_sign_ed25519_SEEDBYTES];
+    uint8_t   sk[crypto_sign_ed25519_SECRETKEYBYTES];
+
+    generate_private_key(data, len, NULL, 0, seed);
+    crypto_sign_ed25519_seed_keypair(x, sk, seed);
+
+#endif
+}
+
+void crypto_ed25519_load_key(uint8_t * data, int len)
+{
+#if defined(STM32L432xx)
+
+    static uint8_t seed[salty_SECRETKEY_SEED_LENGTH];
+
+    generate_private_key(data, len, NULL, 0, seed);
+
+    _signing_key = seed;
+    _key_len = salty_SECRETKEY_SEED_LENGTH;
+
+#else
+
+    uint8_t seed[crypto_sign_ed25519_SEEDBYTES];
+    uint8_t   pk[crypto_sign_ed25519_PUBLICKEYBYTES];
+    static uint8_t sk[crypto_sign_ed25519_SECRETKEYBYTES];
+
+    generate_private_key(data, len, NULL, 0, seed);
+    crypto_sign_ed25519_seed_keypair(pk, sk, seed);
+
+    _signing_key = sk;
+    _key_len = crypto_sign_ed25519_SECRETKEYBYTES;
+
+#endif
+}
+
+void crypto_ed25519_sign(uint8_t * data, int len, uint8_t * sig)
+{
+#if defined(STM32L432xx)
+
+    // TODO: check that correct load_key() had been called?
+    salty_sign(_signing_key, data, len, sig);
+
+#else
+
+    // TODO: check that correct load_key() had been called?
+    crypto_sign_ed25519_detached(sig, NULL, data, len, _signing_key);
+
+#endif
+}
 
 #endif

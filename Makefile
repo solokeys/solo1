@@ -22,7 +22,7 @@ ifeq ($(shell uname -s),Darwin)
 else
   export LDFLAGS = -Wl,--gc-sections
 endif
-LDFLAGS += $(LIBSOLO) $(LIBCBOR)
+LDFLAGS += $(LIBSOLO) $(LIBCBOR) -lsodium
 
 
 CFLAGS = -O2 -fdata-sections -ffunction-sections -g

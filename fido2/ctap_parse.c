@@ -256,7 +256,7 @@ static int pub_key_cred_param_supported(uint8_t cred, int32_t alg)
 {
     if (cred == PUB_KEY_CRED_PUB_KEY)
     {
-        if (alg == COSE_ALG_ES256)
+        if (alg == COSE_ALG_ES256 || alg == COSE_ALG_EDDSA)
         {
             return  CREDENTIAL_IS_SUPPORTED;
         }
@@ -1025,7 +1025,7 @@ static uint8_t parse_cred_mgmt_subcommandparams(CborValue * val, CTAP_credMgmt *
 
     ret = cbor_value_enter_container(val,&map);
     check_ret(ret);
-    
+
     const uint8_t * start_byte = cbor_value_get_next_byte(&map) - 1;
 
     ret = cbor_value_get_map_length(val, &map_length);

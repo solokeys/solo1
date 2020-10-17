@@ -78,6 +78,9 @@
 #define EXT_CRED_PROTECT_OPTIONAL_WITH_CREDID   0x02
 #define EXT_CRED_PROTECT_REQUIRED               0x03
 
+#define CREDID_ALG_ES256            0x0
+#define CREDID_ALG_EDDSA            0x1
+
 #define RESP_versions               0x1
 #define RESP_extensions             0x2
 #define RESP_aaguid                 0x3
@@ -357,10 +360,10 @@ typedef struct
 
 
 struct _getAssertionState {
-    // Room for both authData struct and extensions
+    // Room for both authData struct and extensions + clientDataHash for efficient ED25519 signature generation
     struct {
         CTAP_authDataHeader authData;
-        uint8_t extensions[80];
+        uint8_t extensions[80 + CLIENT_DATA_HASH_SIZE];
     } __attribute__((packed)) buf;
     CTAP_extensions extensions;
     uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
