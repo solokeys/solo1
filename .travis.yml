@@ -8,6 +8,7 @@ addons:
     packages:
       - gcc-8
       - cppcheck
+      - libsodium-dev
 services:
   - docker
 before_install:
