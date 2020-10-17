@@ -41,8 +41,11 @@ all: main
 tinycbor/Makefile crypto/tiny-AES-c/aes.c:
 	git submodule update --init
 
-.PHONY: cbor
+.PHONY: cbor cborclean
 cbor: $(LIBCBOR)
+
+cborclean:
+	cd tinycbor && $(MAKE) clean
 
 $(LIBCBOR):
 	cd tinycbor/ && $(MAKE)  LDFLAGS='' -j8
@@ -54,6 +57,7 @@ version:
 	@git describe
 
 test: venv
+	$(MAKE) cborclean
 	$(MAKE) clean
 	$(MAKE) -C . main
 	$(MAKE) clean

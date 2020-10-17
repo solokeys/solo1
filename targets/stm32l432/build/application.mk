@@ -86,3 +86,6 @@ cbor:
 LDFLAGS="$(LDFLAGS_LIB)" \
 CFLAGS="$(CFLAGS) -Os  -DCBOR_PARSER_MAX_RECURSIONS=3"
 
+salty:
+	cd ../../crypto/salty/c-api && cargo clean
+	cd ../../crypto/salty/c-api && $(MAKE)
