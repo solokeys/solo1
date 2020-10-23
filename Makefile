@@ -1,68 +1,28 @@
-include fido2/version.mk
+#Load commons variables
+include common.mk
 
-#define uECC_arch_other 0
-#define uECC_x86        1
-#define uECC_x86_64     2
-#define uECC_arm        3
-#define uECC_arm_thumb  4
-#define uECC_arm_thumb2 5
-#define uECC_arm64      6
-#define uECC_avr        7
-ecc_platform=2
+.PHONY: all $(LIBCBOR) $(LIBSOLO) black blackcheck cppcheck wink clean full-clean travis test clean version pc stm32l432
+all: pc stm32l432
 
-src = pc/device.c pc/main.c
+pc:
+	$(MAKE) -C $(TARGET_PC_PATH) $(ACTION)
 
-obj = $(src:.c=.o)
+stm32l432:
+	$(MAKE) -C $(TARGET_STM32L432_PATH) $(ACTION)
 
-LIBCBOR = tinycbor/lib/libtinycbor.a
-LIBSOLO = fido2/libsolo.a
-
-ifeq ($(shell uname -s),Darwin)
-  export LDFLAGS = -Wl,-dead_strip
-else
-  export LDFLAGS = -Wl,--gc-sections
-endif
-LDFLAGS += $(LIBSOLO) $(LIBCBOR)
-
-
-CFLAGS = -O2 -fdata-sections -ffunction-sections -g
-ECC_CFLAGS = -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform)
-
-INCLUDES =  -I../ -I./fido2/ -I./pc -I../pc -I./tinycbor/src
-
-CFLAGS += $(INCLUDES)
-CFLAGS += -DAES256=1  -DSOLO_EXPERIMENTAL=1 -DDEBUG_LEVEL=1
-
-name = main
-
-.PHONY: all $(LIBCBOR) $(LIBSOLO) black blackcheck cppcheck wink fido2-test clean full-clean travis test clean version
-all: main
-
-tinycbor/Makefile crypto/tiny-AES-c/aes.c:
+$(LIB_TINYCBOR_PATH)/Makefile $(LIB_TINY_AES_PATH)/aes.c:
 	git submodule update --init
-
-.PHONY: cbor
-cbor: $(LIBCBOR)
-
-$(LIBCBOR):
-	cd tinycbor/ && $(MAKE)  LDFLAGS='' -j8
-
-$(LIBSOLO):
-	cd fido2/ && $(MAKE) CFLAGS="$(CFLAGS)" ECC_CFLAGS="$(ECC_CFLAGS)" APP_CONFIG=app.h -j8
 
 version:
 	@git describe
 
 test: venv
 	$(MAKE) clean
-	$(MAKE) -C . main
+	$(MAKE) pc
 	$(MAKE) clean
-	$(MAKE) -C ./targets/stm32l432 test PREFIX=$(PREFIX) "VENV=$(VENV)" VERSION_FULL=${SOLO_VERSION_FULL}
+	$(MAKE) -C $(TARGET_STM32L432_PATH) test PREFIX=$(PREFIX) "VENV=$(VENV)" VERSION_FULL=${SOLO_VERSION_FULL}
 	$(MAKE) clean
 	$(MAKE) cppcheck
-
-$(name): $(obj) $(LIBCBOR) $(LIBSOLO)
-	$(CC) $(LDFLAGS) -o $@ $(obj) $(LDFLAGS)
 
 venv:
 	python3 -m venv venv
@@ -77,63 +37,42 @@ black: venv
 wink: venv
 	venv/bin/solo key wink
 
-fido2-test: venv
-	venv/bin/python tools/ctap_test.py
-
 update:
 	git fetch --tags
 	git checkout master
 	git rebase origin/master
 	git submodule update --init --recursive
 
-DOCKER_TOOLCHAIN_IMAGE := "solokeys/solo-firmware-toolchain"
+clean:
+	$(MAKE) -C $(LIB_TINYCBOR_PATH) clean
+	$(MAKE) pc ACTION=clean
+	$(MAKE) stm32l432 ACTION=clean-artifacts
+
+full-clean: clean
+	rm -rf venv
+
 
 docker-build-toolchain:
-	docker build -t $(DOCKER_TOOLCHAIN_IMAGE) .
+	docker build -t $(DOCKER_TOOLCHAIN_IMAGE) ./tools/docker/
 	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION}
 	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION_MAJ}
 	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION_MAJ}.${SOLO_VERSION_MIN}
 
 uncached-docker-build-toolchain:
-	docker build --no-cache -t $(DOCKER_TOOLCHAIN_IMAGE) .
+	docker build --no-cache -t $(DOCKER_TOOLCHAIN_IMAGE) ./tools/docker/
 	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION}
 	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION_MAJ}
 	docker tag $(DOCKER_TOOLCHAIN_IMAGE):latest $(DOCKER_TOOLCHAIN_IMAGE):${SOLO_VERSION_MAJ}.${SOLO_VERSION_MIN}
 
-docker-build-all:
-	docker run --rm -v "$(CURDIR)/builds:/builds" \
-					-v "$(CURDIR):/solo" \
-					-u $(shell id -u ${USER}):$(shell id -g ${USER}) \
-				    $(DOCKER_TOOLCHAIN_IMAGE) "solo/in-docker-build.sh" ${SOLO_VERSION_FULL}
-
 CPPCHECK_FLAGS=--quiet --error-exitcode=2
-
 cppcheck:
-	cppcheck $(CPPCHECK_FLAGS) crypto/aes-gcm
-	cppcheck $(CPPCHECK_FLAGS) crypto/sha256
-	cppcheck $(CPPCHECK_FLAGS) fido2
-	cppcheck $(CPPCHECK_FLAGS) pc
-
-clean:
-	rm -f *.o main.exe main $(obj)
-	for f in crypto/tiny-AES-c/Makefile tinycbor/Makefile ; do \
-	    if [ -f "$$f" ]; then \
-	    	(cd `dirname $$f` ; git checkout -- .) ;\
-	    fi ;\
-	done
-	cd fido2 && $(MAKE) clean
-
-full-clean: clean
-	rm -rf venv
-
-test-docker:
-	rm -rf builds/*
-	$(MAKE) uncached-docker-build-toolchain
-	# Check if there are 4 docker images/tas named "solokeys/solo-firmware-toolchain"
-	NTAGS=$$(docker images | grep -c "solokeys/solo-firmware-toolchain") && [ $$NTAGS -eq 4 ]
-	$(MAKE) docker-build-all
+	cppcheck $(CPPCHECK_FLAGS) $(LIB_AES_GCM_PATH)
+	cppcheck $(CPPCHECK_FLAGS) $(LIB_SHA256_PATH)
+	cppcheck $(CPPCHECK_FLAGS) $(LIB_SOLO_PATH)
+	$(MAKE) pc ACTION=cppcheck
 
 travis:
 	$(MAKE) test VENV=". ../../venv/bin/activate;"
-	$(MAKE) test-docker
+	$(MAKE) uncached-docker-build-toolchain
+	$(MAKE) stm32l432 ACTION=test-docker
 	$(MAKE) black

@@ -1,4 +1,5 @@
-include ../../fido2/version.mk
+include ../../common.mk
+include $(LIB_SOLO_PATH)/version.mk
 
 CC=$(PREFIX)arm-none-eabi-gcc
 CP=$(PREFIX)arm-none-eabi-objcopy

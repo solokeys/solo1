@@ -1,3 +1,6 @@
+include ../../common.mk
+
+
 ifndef DEBUG
 DEBUG=0
 endif
@@ -10,6 +13,12 @@ merge_hex=solo mergehex
 
 .PHONY: all all-hacker all-locked debugboot-app debugboot-boot boot-sig-checking boot-no-sig build-release-locked build-release build-release build-hacker build-debugboot clean clean2 flash flash_dfu flashboot detach cbor test
 
+#Build all flavours of arm targets using docker
+full:
+	docker run --rm -v "$(PROJECT_ROOT)/builds:/builds" \
+					-v "$(PROJECT_ROOT):/solo" \
+					-u $(shell id -u ${USER}):$(shell id -g ${USER}) \
+				    $(DOCKER_TOOLCHAIN_IMAGE) "solo/tools/docker/in-docker-build.sh" ${SOLO_VERSION_FULL} $(FLAVOUR)
 
 # The following are the main targets for reproducible builds.
 # TODO: better explanation
@@ -30,8 +39,23 @@ bootloader-verifying:
 
 full-clean: clean2
 
+clean-artifacts: full-clean
+	rm -f bootloader*.hex firmware*.hex bootloader*.sha2 firmware*.sha2 bundle*.hex bundle*.sha2
+	cd $(PROJECT_ROOT)/builds/ && rm -f bootloader*.hex firmware*.hex bootloader*.sha2 firmware*.sha2 bundle*.hex bundle*.sha2
 
+test-docker:
+	$(MAKE) clean-artifacts
+	# Check if there are 4 docker images/tas named "solokeys/solo-firmware-toolchain"
+	NTAGS=$$(docker images | grep -c "solokeys/solo-firmware-toolchain") && [ $$NTAGS -eq 4 ]
+	$(MAKE) full
+
+
+
+
+#
 # The older targets, may be re-organised
+#
+
 all:
 	$(MAKE) -f $(APPMAKE) -j8 solo.hex PREFIX=$(PREFIX) DEBUG=$(DEBUG) EXTRA_DEFINES='-DFLASH_ROP=1'
 
@@ -74,6 +98,7 @@ clean2:
 	rm -f solo.hex solo.map bootloader.hex bootloader.map all.hex
 	$(MAKE) -f $(APPMAKE) clean
 	$(MAKE) -f $(BOOTMAKE) clean
+
 
 flash: solo.hex bootloader.hex
 	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex

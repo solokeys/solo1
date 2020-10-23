@@ -86,3 +86,4 @@ main
 builds/*
 tools/testing/.idea/*
 tools/testing/tests/__pycache__/*
+.idea/*
