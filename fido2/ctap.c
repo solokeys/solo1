@@ -793,9 +793,7 @@ int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHa
     // calculate attestation sig
     if (alg == COSE_ALG_EDDSA)
     {
-        // ED25519 signing needs message in one chunk
-        memmove(data + datalen, clientDataHash, CLIENT_DATA_HASH_SIZE);
-        crypto_ed25519_sign(data, datalen + CLIENT_DATA_HASH_SIZE, sigder); // not DER, just plain binary!
+        crypto_ed25519_sign(data, datalen, clientDataHash, CLIENT_DATA_HASH_SIZE, sigder); // not DER, just plain binary!
         return 64;
     }
     else
@@ -903,7 +901,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     CTAP_makeCredential MC;
     int ret;
     unsigned int i;
-    uint8_t auth_data_buf[310 + CLIENT_DATA_HASH_SIZE];
+    uint8_t auth_data_buf[310];
     CTAP_credentialDescriptor * excl_cred = (CTAP_credentialDescriptor *) auth_data_buf;
     uint8_t * sigbuf = auth_data_buf + 32;
     uint8_t * sigder = auth_data_buf + 32 + 64;

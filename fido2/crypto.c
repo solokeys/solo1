@@ -409,8 +409,24 @@ void crypto_ed25519_load_key(uint8_t * data, int len)
 #endif
 }
 
-void crypto_ed25519_sign(uint8_t * data, int len, uint8_t * sig)
+void crypto_ed25519_sign(uint8_t * data1, int len1, uint8_t * data2, int len2, uint8_t * sig)
 {
+    // ed25519 signature APIs need the message at once (by design!) and in one
+    // contiguous buffer (could be changed).
+
+    // 512 is an arbitrary sanity limit, could be less
+    if (len1 < 0 || len2 < 0 || len1 > 512 || len2 > 512)
+    {
+        memset(sig, 0, 64); // ed25519 signature len is 64 bytes
+        return;
+    }
+    // XXX: dynamically sized allocation on the stack
+    const int len = len1 + len2; // 0 <= len <= 1024
+    uint8_t data[len1 + len2];
+
+    memcpy(data,        data1, len1);
+    memcpy(data + len1, data2, len2);
+
 #if defined(STM32L432xx)
 
     // TODO: check that correct load_key() had been called?
