@@ -370,7 +370,7 @@ void crypto_ed25519_derive_public_key(uint8_t * data, int len, uint8_t * x)
     uint8_t seed[salty_SECRETKEY_SEED_LENGTH];
 
     generate_private_key(data, len, NULL, 0, seed);
-    salty_public_key(seed, x);
+    salty_public_key(&seed, (uint8_t (*)[salty_PUBLICKEY_SERIALIZED_LENGTH])x);
 
 #else
 
@@ -430,7 +430,8 @@ void crypto_ed25519_sign(uint8_t * data1, int len1, uint8_t * data2, int len2, u
 #if defined(STM32L432xx)
 
     // TODO: check that correct load_key() had been called?
-    salty_sign(_signing_key, data, len, sig);
+    salty_sign((uint8_t (*)[salty_SECRETKEY_SEED_LENGTH])_signing_key, data, len,
+            (uint8_t (*)[salty_SIGNATURE_SERIALIZED_LENGTH])sig);
 
 #else
 
