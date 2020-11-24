@@ -25,7 +25,7 @@ endif
 LDFLAGS += $(LIBSOLO) $(LIBCBOR)
 
 
-CFLAGS = -O2 -fdata-sections -ffunction-sections -g
+CFLAGS = -O2 -fdata-sections -ffunction-sections -fcommon -g
 ECC_CFLAGS = -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform)
 
 INCLUDES =  -I../ -I./fido2/ -I./pc -I../pc -I./tinycbor/src
