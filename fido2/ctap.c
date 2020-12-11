@@ -1216,7 +1216,7 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
             if (memcmp(rk.id.rpIdHash, rpIdHash, 32) == 0)
             {
                 printf1(TAG_GA, "RK %d is a rpId match!\r\n", i);
-                if (count == ALLOW_LIST_MAX_SIZE-1)
+                if (count >= ALLOW_LIST_MAX_SIZE)
                 {
                     printf2(TAG_ERR, "not enough ram allocated for matching RK's (%d).  Skipping.\r\n", count);
                     break;
