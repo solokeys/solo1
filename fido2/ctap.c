@@ -1187,7 +1187,7 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
                     break;
                 }
                 GA->creds[count].type = PUB_KEY_CRED_PUB_KEY;
-                memmove(&(GA->creds[count].credential), &rk, sizeof(CTAP_residentKey));
+                memmove(&(GA->creds[count].credential), &rk, sizeof(struct Credential));
                 count++;
             }
         }
