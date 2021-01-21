@@ -5,8 +5,20 @@
 #include "stm32l4xx_ll_gpio.h"
 #include "stm32l4xx_hal_tsc.h"
 
-#define ELECTRODE_0     TSC_GROUP2_IO1
-#define ELECTRODE_1     TSC_GROUP2_IO2
+/**
+USB A Nano & USB C Touch TSC GPIO Configuration:
+PB4   ------> Channel 1 (electrode 1)
+PB5   ------> Channel 2 (electrode 2)
+PB6   ------> Channel 3 (sampling capacitor)
+PB7   ------> Channel 4 (unused)
+*/
+#define get_sampling_cap_io() TSC_GROUP2_IO3
+#define get_sampling_cap_pin() LL_GPIO_PIN_6
+#define get_first_electrode_io() TSC_GROUP2_IO1
+#define get_first_electrode_pin() LL_GPIO_PIN_4
+#define get_second_electrode_io() TSC_GROUP2_IO2
+#define get_second_electrode_pin() LL_GPIO_PIN_5
+#define get_tsc_threshold() 45
 
 void tsc_init(void)
 {
@@ -14,11 +26,7 @@ void tsc_init(void)
     // Enable TSC clock
     RCC->AHB1ENR |= (1<<16);
 
-    /** TSC GPIO Configuration
-    PA4   ------> Channel 1
-    PA5   ------> Channel 2
-    */
-    GPIO_InitStruct.Pin = LL_GPIO_PIN_5|LL_GPIO_PIN_4;
+    GPIO_InitStruct.Pin = get_first_electrode_pin() | get_second_electrode_pin();
     GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
     GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
@@ -26,15 +34,12 @@ void tsc_init(void)
     GPIO_InitStruct.Alternate = LL_GPIO_AF_9;
     LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    /** TSC GPIO Configuration
-    PA6   ------> sampling cap
-    */
-    GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+    GPIO_InitStruct.Pin = get_sampling_cap_pin();
     GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
     LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     // Channel IOs
-    uint32_t channel_ios = TSC_GROUP2_IO1 | TSC_GROUP2_IO2;
+    uint32_t channel_ios = get_first_electrode_io() | get_second_electrode_io();
 
     // enable
     TSC->CR = TSC_CR_TSCE;
@@ -44,7 +49,7 @@ void tsc_init(void)
                            (uint32_t)(1 << TSC_CR_SSD_Pos) |
                            TSC_SS_PRESC_DIV1 |
                            TSC_PG_PRESC_DIV16 |
-                           TSC_MCV_16383 |
+                           TSC_MCV_255 |
                            TSC_SYNC_POLARITY_FALLING |
                            TSC_ACQ_MODE_NORMAL);
 
@@ -55,10 +60,10 @@ void tsc_init(void)
     }
 
     // Schmitt trigger and hysteresis
-    TSC->IOHCR = (uint32_t)(~(channel_ios | 0 | TSC_GROUP2_IO3));
+    TSC->IOHCR = (uint32_t)(~(channel_ios | 0 | get_sampling_cap_io()));
 
     // Sampling IOs
-    TSC->IOSCR = TSC_GROUP2_IO3;
+    TSC->IOSCR = get_sampling_cap_io();
 
     // Groups
     uint32_t grps = 0x02;
@@ -106,31 +111,39 @@ uint32_t tsc_read_button(uint32_t index)
     switch(index)
     {
         case 0:
-            tsc_set_electrode(ELECTRODE_0);
+            tsc_set_electrode(get_first_electrode_io());
             break;
         case 1:
-            tsc_set_electrode(ELECTRODE_1);
+            tsc_set_electrode(get_second_electrode_io());
             break;
     }
     tsc_start_acq();
     tsc_wait_on_acq();
-    return tsc_read(1) < 45;
+    return tsc_read(1) < get_tsc_threshold();
 }
 
-int tsc_sensor_exists(void)
-{
-    static uint8_t does = 0;
-    if (does) return 1;
+#define PIN_SHORTED_UNDEF 0
+#define PIN_SHORTED_YES 1
+#define PIN_SHORTED_NO 2
 
-    LL_GPIO_SetPinMode(GPIOB, (1 << 1), LL_GPIO_MODE_INPUT);
-    LL_GPIO_SetPinPull(GPIOB, (1 << 1), LL_GPIO_PULL_UP);
+int pin_grounded(GPIO_TypeDef* bank, int pin_mask) {
+    LL_GPIO_SetPinMode(bank, (pin_mask), LL_GPIO_MODE_INPUT);
+    LL_GPIO_SetPinPull(bank, (pin_mask), LL_GPIO_PULL_UP);
 
     // Short delay before reading pin
     asm("nop"); asm("nop"); asm("nop"); asm("nop");
 
-    does = (LL_GPIO_ReadInputPort(GPIOB) & (1 << 1)) == 0;
+    int result = (LL_GPIO_ReadInputPort(bank) & (pin_mask)) == 0;
 
-    LL_GPIO_SetPinPull(GPIOB, 1, LL_GPIO_PULL_NO);
+    LL_GPIO_SetPinPull(bank, 1, LL_GPIO_PULL_NO);
 
-    return does;
+    return result ? PIN_SHORTED_YES : PIN_SHORTED_NO;
+}
+
+int tsc_sensor_exists(void)
+{
+    // PB1 is grounded in USB A nano & USB C touch
+    static uint8_t does = PIN_SHORTED_UNDEF;
+    if (does == PIN_SHORTED_UNDEF) does = pin_grounded(GPIOB, LL_GPIO_PIN_1);
+    return does == PIN_SHORTED_YES;
 }

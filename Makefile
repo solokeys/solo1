@@ -68,7 +68,7 @@ venv:
 	python3 -m venv venv
 	venv/bin/pip -q install --upgrade pip
 	venv/bin/pip -q install --upgrade -r tools/requirements.txt
-	venv/bin/pip -q install --upgrade black
+	venv/bin/pip -q install --upgrade black==19.3b0 # Versions newer than this require regex, which fails to compile
 
 # selectively reformat our own code
 black: venv
@@ -111,7 +111,8 @@ CPPCHECK_FLAGS=--quiet --error-exitcode=2
 cppcheck:
 	cppcheck $(CPPCHECK_FLAGS) crypto/aes-gcm
 	cppcheck $(CPPCHECK_FLAGS) crypto/sha256
-	cppcheck $(CPPCHECK_FLAGS) fido2
+	cppcheck $(CPPCHECK_FLAGS) fido2 -DAPP_CONFIG=app.h
+	cppcheck $(CPPCHECK_FLAGS) fido2 -DAPP_CONFIG=bootloader.h
 	cppcheck $(CPPCHECK_FLAGS) pc
 
 clean:
