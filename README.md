@@ -2,9 +2,9 @@
 [![Keybase Chat](https://img.shields.io/badge/chat-on%20keybase-brightgreen.svg)](https://keybase.io/team/solokeys.public)
 [![Build Status](https://travis-ci.com/solokeys/solo.svg?style=flat-square&branch=master)](https://travis-ci.com/solokeys/solo)
 
-Solo is an open source security key, and you can get one at [solokeys.com](https://solokeys.com).
+Solo is an open source security key. We just launched Solo v2, join our campaign on [Kickstarter](https://solokeys.com/v2)!
 
-[<img src="https://static.solokeys.com/images/photos/hero-on-white-cropped.png" width="600">](https://solokeys.com)
+[<img src="https://ksr-ugc.imgix.net/assets/032/127/709/6fdd7fc45ce4b0fa125a2a26d260fb01_original.png?ixlib=rb-2.1.0&crop=faces&w=1024&h=576&fit=crop&v=1611596872&auto=format&frame=1&q=92&s=52b8b89ae6aad9b38b605b65e5cd6ff6" width="600">](https://solokeys.com/v2)
 
 Solo supports FIDO2 and U2F standards for strong two-factor authentication and password-less login, and it will protect you against phishing and other online attacks. With colored cases and multilingual guides we want to make secure login more personable and accessible to everyone around the globe.
 
