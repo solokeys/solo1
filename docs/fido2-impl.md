@@ -46,9 +46,9 @@ Now on authentication.
 3. Proceed normally as if `K` was loaded from storage memory.
 
 
-<!-- As part of FIDO2/U2F, there is a `KEYID` parameter that is bascially a
+<!-- As part of FIDO2/U2F, there is a `KEYID` parameter that is basically a
 binary blob that the authenticator returns to the service after registering,
-and the service must store it and provide it to the authenticator on subsquent
+and the service must store it and provide it to the authenticator on subsequent
 authentications.
 
 64 bytes of secrets will be generated to make master secret parts `M1` and

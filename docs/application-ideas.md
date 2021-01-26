@@ -1,9 +1,10 @@
 # Using Solo for passwordless or second factor login on Linux 
 
-## Setup on Ubuntu and Manjaro
+## Setup on Ubuntu, Manjaro, and Fedora
 Before you can use Solo for passwordless or second factor login in your Linux system you have to install some packages.
  
-This was tested on **Linux Mint 19.3** and on **Manjaro 18.x**
+This was tested on **Linux Mint 19.3**, **Manjaro 18.x**, and **Fedora 33**.<br>
+<sub>Fedora's setup will work on CentOS and RHEL.</sub>
 
 First you have to install PAM modules for u2f.
 
@@ -12,18 +13,22 @@ First you have to install PAM modules for u2f.
   sudo apt install libpam-u2f pamu2fcfg
 ```
 
-**Manjaro**
+**Manjaro:**
 ```
   pacman -Syu pam-u2f
 ```
 
+**Fedora:**
+```
+  sudo dnf install --refresh pamu2fcfg pam-u2f
+```
 
 ## Setting up key
 To use Solo as passwordless or second factor login, you have to setup your system with your Solo.
 First create a new folder named **Yubico** in your **.config** folder in your **home** directory
 
 ```
-  mkdir ~/.config/Yubico
+  mkdir -p ~/.config/Yubico
 ```
 
 Then create a new key for PAM U2F module. If it is your first key you want to register use following command:
@@ -45,12 +50,12 @@ If you can't generate your key on **Ubuntu** (error message), you may add Yubico
   sudo apt-get upgrade
 ```
 
-**Manjaro** should work without problems.
+**Manjaro** and **Fedora** should work without problems.
 
 
 ## Login into Linux
 ### Passwordless
-To login passwordless into your Linux system, you have to edit the file **lightdm** (or **gdm** or which display manager you prefered).
+To login passwordless into your Linux system, you have to edit the file **lightdm** (or **gdm** or which display manager you preferred).
 In case of lightdm and VIM as editor:
 
 ```
@@ -70,8 +75,8 @@ and add
 <br>
 <br>
 
-**On Manjaro**<br>
-Search following enrty
+**On Manjaro:**<br>
+Search following entry
 ```
   auth    include   system-login
 ```
@@ -81,9 +86,25 @@ and add
   auth    sufficient    pam_u2f.so
 ```
 
-** before** *auth include system-login*.
+**before** *auth include system-login*.
 <br>
 <br>
+
+**On Fedora:**<br>
+GDM: Search the following entry in `/etc/pam.d/gdm-password`
+```
+  auth    substack   password-auth
+```
+
+and add
+```
+  auth    sufficient    pam_u2f.so
+```
+
+**before** *auth    substack   password-auth*
+<br>
+<br>
+
 
 Now save the file and test it.<br>
 Insert Solo in your USB port and logout.
@@ -110,7 +131,7 @@ To use Solo as second factor, for login into your Linux system, is nearly the sa
   sudo vim /etc/pam.d/lightdm
 ```
 
-**On Ubuntu**<br>
+**On Ubuntu:**<br>
 Search following entry:
 ```
   @include common-auth
@@ -123,7 +144,7 @@ and add
 <br>
 <br>
 
-**On Manjaro**<br>
+**On Manjaro:**<br>
 Search following entry:
 ```
   auth   include    system-login
@@ -138,10 +159,25 @@ Add following entry
 <br>
 <br>
 
-Save the file and test it. <br>
-In case your Solo is not present, your password will be incrorrect. If Solo is plugged into your USB port, it will signal pressing the button and you will be able to login into Linux.
+**On Fedora:**<br>
+GDM: Search the following entry in `/etc/pam.d/gdm-password`
+```
+  auth    substack   password-auth
+```
 
-Why **required**? If you choose the option **sufficent** your Solo is optional. You could also login without second factor if your Solo is not connected.
+and add
+```
+  auth    required    pam_u2f.so
+```
+
+**after** *auth    substack   password-auth*
+<br>
+<br>
+
+Save the file and test it. <br>
+In case your Solo is not present, your password will be incorrect. If Solo is plugged into your USB port, it will signal pressing the button and you will be able to login into Linux.
+
+Why **required**? If you choose the option **sufficient** your Solo is optional. You could also login without second factor if your Solo is not connected.
 
 **But remember:**<br>
-If you loose your Solo you won't be able to login into your system.
+If you lose your Solo you won't be able to login into your system.

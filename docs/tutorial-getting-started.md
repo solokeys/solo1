@@ -2,12 +2,12 @@
 
 This is small guide to let you get started with the solo hacker key. In the end you will have set up everything you need and changed the LED from green to red.
 
-## Some additional ressources
+## Some additional resources
 
-This tutorial will take you through all the necessary steps needed to install and get the solo key running. Before we start, I will just list you additional ressources, which might have important information for you:
+This tutorial will take you through all the necessary steps needed to install and get the solo key running. Before we start, I will just list you additional resources, which might have important information for you:
 
 * [The git repository](https://github.com/solokeys/solo): Here you will find all the code and a quick readme.
-* [The Documenation](https://docs.solokeys.io/solo/building/): The official documentation. Especially the [build instructions](https://docs.solokeys.io/solo/building/) are worth a look, if you got stuck.
+* [The Documentation](https://docs.solokeys.io/solo/building/): The official documentation. Especially the [build instructions](https://docs.solokeys.io/solo/building/) are worth a look, if you got stuck.
 
 ## Getting the prerequisites
 
@@ -22,7 +22,7 @@ Besides that, you will also need to get the [solo code](https://github.com/solok
 
 ### Get the code
 
-The codebase for the solo hacker and other solo keys, can be found at this [git repository](https://github.com/solokeys/solo). So just clone this into your development folder. Make sure, that all the submodules are loaded by using the following command. I forgot to get all the submoules at my first try and the make command failed \(I got an error message telling me, that no solo.elf target can be found\).
+The codebase for the solo hacker and other solo keys, can be found at this [git repository](https://github.com/solokeys/solo). So just clone this into your development folder. Make sure, that all the submodules are loaded by using the following command. I forgot to get all the submodules at my first try and the make command failed \(I got an error message telling me, that no solo.elf target can be found\).
 
 ```bash
 git clone --recurse-submodules https://github.com/solokeys/solo

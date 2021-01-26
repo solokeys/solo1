@@ -27,7 +27,7 @@ uint8_t ctap_get_info(CborEncoder * encoder){
 //[...]
 }
 ```
-After you have added your identifier it should look similiar to this:
+After you have added your identifier it should look similar to this:
 ```c
 uint8_t ctap_get_info(CborEncoder * encoder){
 //[...]
