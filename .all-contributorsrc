@@ -218,11 +218,22 @@
         "test",
         "ideas"
       ]
+    },
+    {
+      "login": "dmpiergiacomo",
+      "name": "dmpiergiacomo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/15999043?v=4",
+      "profile": "https://github.com/dmpiergiacomo",
+      "contributions": [
+        "code",
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
   "projectName": "solo",
   "projectOwner": "solokeys",
   "repoType": "github",
-  "repoHost": "https://github.com"
+  "repoHost": "https://github.com",
+  "skipCi": true
 }
