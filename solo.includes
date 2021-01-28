@@ -45,3 +45,4 @@ targets/stm32l432/build
 openpgp/src/applications/openpgp
 openpgp/src/applications
 crypto/libsalty
+targets/stm32l432/linker

@@ -569,6 +569,10 @@ targets/stm32l432/lib/usbd/usbd_hid.c
 targets/stm32l432/lib/usbd/usbd_hid.h
 targets/stm32l432/lib/usbd/usbd_ioreq.c
 targets/stm32l432/lib/usbd/usbd_ioreq.h
+targets/stm32l432/linker/bootloader_stm32l4xx.ld
+targets/stm32l432/linker/bootloader_stm32l4xx_extra.ld
+targets/stm32l432/linker/stm32l4xx.ld
+targets/stm32l432/linker/stm32l4xx_extra.ld
 targets/stm32l432/src/ams.c
 targets/stm32l432/src/ams.h
 targets/stm32l432/src/app.h
