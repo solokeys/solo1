@@ -71,7 +71,11 @@ void flash_option_bytes_init(int boot_from_dfu)
 
     flash_lock();
 
-    __enable_irq();
+
+    /* Perform option byte loading which triggers a device reset. */
+    FLASH->CR |= FLASH_CR_OBL_LAUNCH;
+
+    while (true);
 }
 
 void flash_erase_page(uint8_t page)

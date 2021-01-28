@@ -2,9 +2,9 @@
 [![Keybase Chat](https://img.shields.io/badge/chat-on%20keybase-brightgreen.svg)](https://keybase.io/team/solokeys.public)
 [![Build Status](https://travis-ci.com/solokeys/solo.svg?style=flat-square&branch=master)](https://travis-ci.com/solokeys/solo)
 
-Solo is an open source security key, and you can get one at [solokeys.com](https://solokeys.com).
+Solo is an open source security key. We just launched Solo v2, join our campaign on [Kickstarter](https://solokeys.com/v2)!
 
-[<img src="https://static.solokeys.com/images/photos/hero-on-white-cropped.png" width="600">](https://solokeys.com)
+[<img src="https://ksr-ugc.imgix.net/assets/032/127/709/6fdd7fc45ce4b0fa125a2a26d260fb01_original.png?ixlib=rb-2.1.0&crop=faces&w=1024&h=576&fit=crop&v=1611596872&auto=format&frame=1&q=92&s=52b8b89ae6aad9b38b605b65e5cd6ff6" width="600">](https://solokeys.com/v2)
 
 Solo supports FIDO2 and U2F standards for strong two-factor authentication and password-less login, and it will protect you against phishing and other online attacks. With colored cases and multilingual guides we want to make secure login more personable and accessible to everyone around the globe.
 
@@ -83,6 +83,16 @@ The `builds` folder will contain all the variation on the firmware in `.hex` fil
 
 ## Build locally
 
+### Prereqs
+
+1. [Install Rust](https://www.rust-lang.org/tools/install) and add the `thumbv7em-none-eabihf` target.
+
+```
+rustup target add thumbv7em-none-eabihf
+```
+
+### Building
+
 If you have the toolchain installed on your machine you can build the firmware with:
 
 ```bash
@@ -98,6 +108,16 @@ solo program bootloader targets/stm32l432/solo.hex
 ```
 
 # Developing Solo (No Hardware Needed)
+
+## Prereqs
+
+1. Need libsodium.  On debian, install:
+
+```
+sudo apt install libsodium-dev 
+```
+
+## Building
 
 Clone Solo and build it
 
@@ -141,39 +161,46 @@ Look at the issues to see what is currently being worked on. Feel free to add is
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
 <table>
   <tr>
-    <td align="center"><a href="https://github.com/szszszsz"><img src="https://avatars0.githubusercontent.com/u/17005426?v=4" width="100px;" alt="Szczepan Zalega"/><br /><sub><b>Szczepan Zalega</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=szszszsz" title="Code">💻</a> <a href="https://github.com/solokeys/solo/commits?author=szszszsz" title="Documentation">📖</a> <a href="#ideas-szszszsz" title="Ideas, Planning, & Feedback">🤔</a></td>
-    <td align="center"><a href="https://github.com/Wesseldr"><img src="https://avatars1.githubusercontent.com/u/4012809?v=4" width="100px;" alt="Wessel dR"/><br /><sub><b>Wessel dR</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=Wesseldr" title="Documentation">📖</a></td>
-    <td align="center"><a href="https://www.imperialviolet.org"><img src="https://avatars3.githubusercontent.com/u/21203?v=4" width="100px;" alt="Adam Langley"/><br /><sub><b>Adam Langley</b></sub></a><br /><a href="https://github.com/solokeys/solo/issues?q=author%3Aagl" title="Bug reports">🐛</a> <a href="https://github.com/solokeys/solo/commits?author=agl" title="Code">💻</a></td>
-    <td align="center"><a href="http://www.lotteam.com"><img src="https://avatars2.githubusercontent.com/u/807634?v=4" width="100px;" alt="Oleg Moiseenko"/><br /><sub><b>Oleg Moiseenko</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=merlokk" title="Code">💻</a></td>
-    <td align="center"><a href="https://github.com/aseigler"><img src="https://avatars1.githubusercontent.com/u/6605560?v=4" width="100px;" alt="Alex Seigler"/><br /><sub><b>Alex Seigler</b></sub></a><br /><a href="https://github.com/solokeys/solo/issues?q=author%3Aaseigler" title="Bug reports">🐛</a></td>
-    <td align="center"><a href="https://www.cotech.de/services/"><img src="https://avatars3.githubusercontent.com/u/321888?v=4" width="100px;" alt="Dominik Schürmann"/><br /><sub><b>Dominik Schürmann</b></sub></a><br /><a href="https://github.com/solokeys/solo/issues?q=author%3Adschuermann" title="Bug reports">🐛</a></td>
-    <td align="center"><a href="https://github.com/ehershey"><img src="https://avatars0.githubusercontent.com/u/286008?v=4" width="100px;" alt="Ernie Hershey"/><br /><sub><b>Ernie Hershey</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=ehershey" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/szszszsz"><img src="https://avatars0.githubusercontent.com/u/17005426?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Szczepan Zalega</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=szszszsz" title="Code">💻</a> <a href="https://github.com/solokeys/solo/commits?author=szszszsz" title="Documentation">📖</a> <a href="#ideas-szszszsz" title="Ideas, Planning, & Feedback">🤔</a></td>
+    <td align="center"><a href="https://github.com/Wesseldr"><img src="https://avatars1.githubusercontent.com/u/4012809?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Wessel dR</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=Wesseldr" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://www.imperialviolet.org"><img src="https://avatars3.githubusercontent.com/u/21203?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Adam Langley</b></sub></a><br /><a href="https://github.com/solokeys/solo/issues?q=author%3Aagl" title="Bug reports">🐛</a> <a href="https://github.com/solokeys/solo/commits?author=agl" title="Code">💻</a></td>
+    <td align="center"><a href="http://www.lotteam.com"><img src="https://avatars2.githubusercontent.com/u/807634?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Oleg Moiseenko</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=merlokk" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/aseigler"><img src="https://avatars1.githubusercontent.com/u/6605560?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Alex Seigler</b></sub></a><br /><a href="https://github.com/solokeys/solo/issues?q=author%3Aaseigler" title="Bug reports">🐛</a></td>
+    <td align="center"><a href="https://www.cotech.de/services/"><img src="https://avatars3.githubusercontent.com/u/321888?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Dominik Schürmann</b></sub></a><br /><a href="https://github.com/solokeys/solo/issues?q=author%3Adschuermann" title="Bug reports">🐛</a></td>
+    <td align="center"><a href="https://github.com/ehershey"><img src="https://avatars0.githubusercontent.com/u/286008?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Ernie Hershey</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=ehershey" title="Documentation">📖</a></td>
   </tr>
   <tr>
-    <td align="center"><a href="https://github.com/YakBizzarro"><img src="https://avatars1.githubusercontent.com/u/767740?v=4" width="100px;" alt="Andrea Corna"/><br /><sub><b>Andrea Corna</b></sub></a><br /><a href="#infra-YakBizzarro" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
-    <td align="center"><a href="https://place.org/~pj/"><img src="https://avatars3.githubusercontent.com/u/11100?v=4" width="100px;" alt="Paul Jimenez"/><br /><sub><b>Paul Jimenez</b></sub></a><br /><a href="#infra-pjz" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="https://github.com/solokeys/solo/commits?author=pjz" title="Code">💻</a></td>
-    <td align="center"><a href="https://github.com/yparitcher"><img src="https://avatars0.githubusercontent.com/u/38916402?v=4" width="100px;" alt="yparitcher"/><br /><sub><b>yparitcher</b></sub></a><br /><a href="#ideas-yparitcher" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-yparitcher" title="Maintenance">🚧</a></td>
-    <td align="center"><a href="https://github.com/StoyanDimitrov"><img src="https://avatars1.githubusercontent.com/u/10962709?v=4" width="100px;" alt="StoyanDimitrov"/><br /><sub><b>StoyanDimitrov</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=StoyanDimitrov" title="Documentation">📖</a></td>
-    <td align="center"><a href="https://github.com/alphathegeek"><img src="https://avatars2.githubusercontent.com/u/51253712?v=4" width="100px;" alt="alphathegeek"/><br /><sub><b>alphathegeek</b></sub></a><br /><a href="#ideas-alphathegeek" title="Ideas, Planning, & Feedback">🤔</a></td>
-    <td align="center"><a href="https://xakcop.com"><img src="https://avatars2.githubusercontent.com/u/271616?v=4" width="100px;" alt="Radoslav Gerganov"/><br /><sub><b>Radoslav Gerganov</b></sub></a><br /><a href="#ideas-rgerganov" title="Ideas, Planning, & Feedback">🤔</a> <a href="https://github.com/solokeys/solo/commits?author=rgerganov" title="Code">💻</a></td>
-    <td align="center"><a href="http://13-37.org"><img src="https://avatars3.githubusercontent.com/u/10274356?v=4" width="100px;" alt="Manuel Domke"/><br /><sub><b>Manuel Domke</b></sub></a><br /><a href="#ideas-manuel-domke" title="Ideas, Planning, & Feedback">🤔</a> <a href="https://github.com/solokeys/solo/commits?author=manuel-domke" title="Code">💻</a> <a href="#business-manuel-domke" title="Business development">💼</a></td>
+    <td align="center"><a href="https://github.com/YakBizzarro"><img src="https://avatars1.githubusercontent.com/u/767740?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Andrea Corna</b></sub></a><br /><a href="#infra-YakBizzarro" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a></td>
+    <td align="center"><a href="https://place.org/~pj/"><img src="https://avatars3.githubusercontent.com/u/11100?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Paul Jimenez</b></sub></a><br /><a href="#infra-pjz" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="https://github.com/solokeys/solo/commits?author=pjz" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/yparitcher"><img src="https://avatars0.githubusercontent.com/u/38916402?v=4?s=100" width="100px;" alt=""/><br /><sub><b>yparitcher</b></sub></a><br /><a href="#ideas-yparitcher" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-yparitcher" title="Maintenance">🚧</a></td>
+    <td align="center"><a href="https://github.com/StoyanDimitrov"><img src="https://avatars1.githubusercontent.com/u/10962709?v=4?s=100" width="100px;" alt=""/><br /><sub><b>StoyanDimitrov</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=StoyanDimitrov" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/alphathegeek"><img src="https://avatars2.githubusercontent.com/u/51253712?v=4?s=100" width="100px;" alt=""/><br /><sub><b>alphathegeek</b></sub></a><br /><a href="#ideas-alphathegeek" title="Ideas, Planning, & Feedback">🤔</a></td>
+    <td align="center"><a href="https://xakcop.com"><img src="https://avatars2.githubusercontent.com/u/271616?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Radoslav Gerganov</b></sub></a><br /><a href="#ideas-rgerganov" title="Ideas, Planning, & Feedback">🤔</a> <a href="https://github.com/solokeys/solo/commits?author=rgerganov" title="Code">💻</a></td>
+    <td align="center"><a href="http://13-37.org"><img src="https://avatars3.githubusercontent.com/u/10274356?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Manuel Domke</b></sub></a><br /><a href="#ideas-manuel-domke" title="Ideas, Planning, & Feedback">🤔</a> <a href="https://github.com/solokeys/solo/commits?author=manuel-domke" title="Code">💻</a> <a href="#business-manuel-domke" title="Business development">💼</a></td>
   </tr>
   <tr>
-    <td align="center"><a href="http://1bitsquared.com"><img src="https://avatars3.githubusercontent.com/u/17334?v=4" width="100px;" alt="Piotr Esden-Tempski"/><br /><sub><b>Piotr Esden-Tempski</b></sub></a><br /><a href="#business-esden" title="Business development">💼</a></td>
-    <td align="center"><a href="https://github.com/m3hm00d"><img src="https://avatars1.githubusercontent.com/u/42179593?v=4" width="100px;" alt="f.m3hm00d"/><br /><sub><b>f.m3hm00d</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=m3hm00d" title="Documentation">📖</a></td>
-    <td align="center"><a href="http://blogs.gnome.org/hughsie/"><img src="https://avatars0.githubusercontent.com/u/151380?v=4" width="100px;" alt="Richard Hughes"/><br /><sub><b>Richard Hughes</b></sub></a><br /><a href="#ideas-hughsie" title="Ideas, Planning, & Feedback">🤔</a> <a href="https://github.com/solokeys/solo/commits?author=hughsie" title="Code">💻</a> <a href="#infra-hughsie" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#tool-hughsie" title="Tools">🔧</a></td>
-    <td align="center"><a href="http://www.schulz.dk"><img src="https://avatars1.githubusercontent.com/u/1150049?v=4" width="100px;" alt="Kim Schulz"/><br /><sub><b>Kim Schulz</b></sub></a><br /><a href="#business-kimusan" title="Business development">💼</a> <a href="#ideas-kimusan" title="Ideas, Planning, & Feedback">🤔</a></td>
-    <td align="center"><a href="https://github.com/oplik0"><img src="https://avatars2.githubusercontent.com/u/25460763?v=4" width="100px;" alt="Jakub"/><br /><sub><b>Jakub</b></sub></a><br /><a href="https://github.com/solokeys/solo/issues?q=author%3Aoplik0" title="Bug reports">🐛</a></td>
-    <td align="center"><a href="https://github.com/jolo1581"><img src="https://avatars1.githubusercontent.com/u/53423977?v=4" width="100px;" alt="Jan A."/><br /><sub><b>Jan A.</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=jolo1581" title="Code">💻</a> <a href="https://github.com/solokeys/solo/commits?author=jolo1581" title="Documentation">📖</a></td>
-    <td align="center"><a href="https://github.com/ccinelli"><img src="https://avatars0.githubusercontent.com/u/38021940?v=4" width="100px;" alt="ccinelli"/><br /><sub><b>ccinelli</b></sub></a><br /><a href="#infra-ccinelli" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="https://github.com/solokeys/solo/commits?author=ccinelli" title="Tests">⚠️</a></td>
+    <td align="center"><a href="http://1bitsquared.com"><img src="https://avatars3.githubusercontent.com/u/17334?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Piotr Esden-Tempski</b></sub></a><br /><a href="#business-esden" title="Business development">💼</a></td>
+    <td align="center"><a href="https://github.com/m3hm00d"><img src="https://avatars1.githubusercontent.com/u/42179593?v=4?s=100" width="100px;" alt=""/><br /><sub><b>f.m3hm00d</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=m3hm00d" title="Documentation">📖</a></td>
+    <td align="center"><a href="http://blogs.gnome.org/hughsie/"><img src="https://avatars0.githubusercontent.com/u/151380?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Richard Hughes</b></sub></a><br /><a href="#ideas-hughsie" title="Ideas, Planning, & Feedback">🤔</a> <a href="https://github.com/solokeys/solo/commits?author=hughsie" title="Code">💻</a> <a href="#infra-hughsie" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="#tool-hughsie" title="Tools">🔧</a></td>
+    <td align="center"><a href="http://www.schulz.dk"><img src="https://avatars1.githubusercontent.com/u/1150049?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Kim Schulz</b></sub></a><br /><a href="#business-kimusan" title="Business development">💼</a> <a href="#ideas-kimusan" title="Ideas, Planning, & Feedback">🤔</a></td>
+    <td align="center"><a href="https://github.com/oplik0"><img src="https://avatars2.githubusercontent.com/u/25460763?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Jakub</b></sub></a><br /><a href="https://github.com/solokeys/solo/issues?q=author%3Aoplik0" title="Bug reports">🐛</a></td>
+    <td align="center"><a href="https://github.com/jolo1581"><img src="https://avatars1.githubusercontent.com/u/53423977?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Jan A.</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=jolo1581" title="Code">💻</a> <a href="https://github.com/solokeys/solo/commits?author=jolo1581" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/ccinelli"><img src="https://avatars0.githubusercontent.com/u/38021940?v=4?s=100" width="100px;" alt=""/><br /><sub><b>ccinelli</b></sub></a><br /><a href="#infra-ccinelli" title="Infrastructure (Hosting, Build-Tools, etc)">🚇</a> <a href="https://github.com/solokeys/solo/commits?author=ccinelli" title="Tests">⚠️</a></td>
   </tr>
   <tr>
-    <td align="center"><a href="https://www.nitrokey.com"><img src="https://avatars1.githubusercontent.com/u/9438831?v=4" width="100px;" alt="Nitrokey"/><br /><sub><b>Nitrokey</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=Nitrokey" title="Code">💻</a> <a href="https://github.com/solokeys/solo/commits?author=Nitrokey" title="Tests">⚠️</a> <a href="#ideas-Nitrokey" title="Ideas, Planning, & Feedback">🤔</a></td>
+    <td align="center"><a href="https://www.nitrokey.com"><img src="https://avatars1.githubusercontent.com/u/9438831?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Nitrokey</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=Nitrokey" title="Code">💻</a> <a href="https://github.com/solokeys/solo/commits?author=Nitrokey" title="Tests">⚠️</a> <a href="#ideas-Nitrokey" title="Ideas, Planning, & Feedback">🤔</a></td>
+    <td align="center"><a href="https://github.com/enrikb"><img src="https://avatars.githubusercontent.com/u/1910914?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Enrik Berkhan</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=enrikb" title="Code">💻</a> <a href="#maintenance-enrikb" title="Maintenance">🚧</a> <a href="#ideas-enrikb" title="Ideas, Planning, & Feedback">🤔</a></td>
+    <td align="center"><a href="https://github.com/saravanan30erd"><img src="https://avatars.githubusercontent.com/u/17641354?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Saravanan Palanisamy</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=saravanan30erd" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/dmpiergiacomo"><img src="https://avatars.githubusercontent.com/u/15999043?v=4?s=100" width="100px;" alt=""/><br /><sub><b>dmpiergiacomo</b></sub></a><br /><a href="https://github.com/solokeys/solo/commits?author=dmpiergiacomo" title="Code">💻</a> <a href="https://github.com/solokeys/solo/issues?q=author%3Admpiergiacomo" title="Bug reports">🐛</a></td>
   </tr>
 </table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 

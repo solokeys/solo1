@@ -8,7 +8,7 @@ BOOTMAKE=build/bootloader.mk VERSION_FULL=${VERSION_FULL}
 
 merge_hex=solo mergehex
 
-.PHONY: all all-hacker all-locked debugboot-app debugboot-boot boot-sig-checking boot-no-sig build-release-locked build-release build-release build-hacker build-debugboot clean clean2 flash flash_dfu flashboot detach cbor test
+.PHONY: all all-hacker all-locked debugboot-app debugboot-boot boot-sig-checking boot-no-sig build-release-locked build-release build-release build-hacker build-debugboot clean clean2 flash flash_dfu flashboot detach cbor salty test
 
 
 # The following are the main targets for reproducible builds.
@@ -55,13 +55,13 @@ boot-sig-checking:
 boot-no-sig:
 	$(MAKE) -f $(BOOTMAKE) -j8 bootloader.hex PREFIX=$(PREFIX) EXTRA_DEFINES='-DSOLO_HACKER' DEBUG=0
 
-build-release-locked: cbor clean2 boot-sig-checking clean all-locked
+build-release-locked: salty cbor clean2 boot-sig-checking clean all-locked
 	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
 
-build-release: cbor clean2 boot-sig-checking clean all
+build-release: salty cbor clean2 boot-sig-checking clean all
 	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
 
-build-hacker: cbor clean2 boot-no-sig clean all-hacker
+build-hacker: salty cbor clean2 boot-no-sig clean all-hacker
 	$(VENV) $(merge_hex) solo.hex bootloader.hex all.hex
 
 build-debugboot: clean2 debugboot-boot clean debugboot-app
@@ -106,6 +106,9 @@ solo.hex:
 
 cbor:
 	$(MAKE) -f $(APPMAKE) -j8 cbor
+
+salty:
+	$(MAKE) -f $(APPMAKE) -j8 salty
 
 test:
 	$(MAKE) build-release-locked

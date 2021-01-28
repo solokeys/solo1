@@ -1,8 +1,8 @@
-# Using Solo for passwordless or second factor login on Linux 
+# Using Solo for passwordless or second factor login on Linux
 
 ## Setup on Ubuntu and Manjaro
 Before you can use Solo for passwordless or second factor login in your Linux system you have to install some packages.
- 
+
 This was tested on **Linux Mint 19.3** and on **Manjaro 18.x**
 
 First you have to install PAM modules for u2f.
@@ -145,3 +145,7 @@ Why **required**? If you choose the option **sufficent** your Solo is optional. 
 
 **But remember:**<br>
 If you loose your Solo you won't be able to login into your system.
+
+# Using SoloKey to unlock a LUKS encrypted partition
+
+[SoloKey Full Disk Encryption](https://github.com/saravanan30erd/solokey-full-disk-encryption), this project leverages SoloKey HMAC Challenge-Response mode for creating strong LUKS encrypted volume passphrases. You can encrypt the root OS partition and use Solo to unlock this encrypted partition in initramfs stage during boot process.

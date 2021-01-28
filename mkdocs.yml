@@ -19,6 +19,8 @@ nav:
     - Running on Nucleo32 board: nucleo32-board.md
     - Signed update process: signed-updates.md
     - Usage and Porting guide: porting.md
+    - Tutorial – Getting Started: tutorial-getting-started.md
+    - Tutorial - Writing extensions: tutorial-writing-extensions.md
     - Code documentation: code-overview.md
     - Contributing Code: contributing.md
     - Contributing Docs: documenting.md

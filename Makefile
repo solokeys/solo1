@@ -22,10 +22,10 @@ ifeq ($(shell uname -s),Darwin)
 else
   export LDFLAGS = -Wl,--gc-sections
 endif
-LDFLAGS += $(LIBSOLO) $(LIBCBOR)
+LDFLAGS += $(LIBSOLO) $(LIBCBOR) -lsodium
 
 
-CFLAGS = -O2 -fdata-sections -ffunction-sections -g
+CFLAGS = -O2 -fdata-sections -ffunction-sections -fcommon -g
 ECC_CFLAGS = -O2 -fdata-sections -ffunction-sections -DuECC_PLATFORM=$(ecc_platform)
 
 INCLUDES =  -I../ -I./fido2/ -I./pc -I../pc -I./tinycbor/src
@@ -41,8 +41,11 @@ all: main
 tinycbor/Makefile crypto/tiny-AES-c/aes.c:
 	git submodule update --init
 
-.PHONY: cbor
+.PHONY: cbor cborclean
 cbor: $(LIBCBOR)
+
+cborclean:
+	cd tinycbor && $(MAKE) clean
 
 $(LIBCBOR):
 	cd tinycbor/ && $(MAKE)  LDFLAGS='' -j8
@@ -54,6 +57,7 @@ version:
 	@git describe
 
 test: venv
+	$(MAKE) cborclean
 	$(MAKE) clean
 	$(MAKE) -C . main
 	$(MAKE) clean
