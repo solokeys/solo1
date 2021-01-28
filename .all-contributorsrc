@@ -218,11 +218,21 @@
         "test",
         "ideas"
       ]
+    },
+    {
+      "login": "saravanan30erd",
+      "name": "Saravanan Palanisamy",
+      "avatar_url": "https://avatars.githubusercontent.com/u/17641354?v=4",
+      "profile": "https://github.com/saravanan30erd",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
   "projectName": "solo",
   "projectOwner": "solokeys",
   "repoType": "github",
-  "repoHost": "https://github.com"
+  "repoHost": "https://github.com",
+  "skipCi": true
 }
