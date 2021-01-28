@@ -33,7 +33,7 @@ typedef struct {
 } version_t;
 
 bool is_newer(const version_t* const newer, const version_t* const older);
-const version_t firmware_version ;
+extern const version_t firmware_version ;
 
 
 #endif
