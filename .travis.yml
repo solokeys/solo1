@@ -8,13 +8,25 @@ addons:
     packages:
       - gcc-8
       - cppcheck
+      - libsodium-dev
 services:
   - docker
 before_install:
-    - sudo add-apt-repository -y ppa:team-gcc-arm-embedded/ppa
-    - sudo apt-get update -q
-    - sudo apt-get install -y gcc-arm-embedded python3-venv
+  - sudo add-apt-repository -y ppa:team-gcc-arm-embedded/ppa
+  - sudo apt-get update -q
+  - sudo apt-get install -y gcc-arm-embedded python3-venv
+  - >
+    set -eu;
+    url="https://raw.githubusercontent.com/rust-lang/rustup/1.22.1/rustup-init.sh";
+    wget -O rustup-init.sh "$url";
+    echo "b273275cf4d83cb6b991c1090baeca54  rustup-init.sh" | md5sum -c -;
+    echo "8928261388c8fae83bfd79b08d9030dfe21d17a8b59e9dcabda779213f6a3d14  rustup-init.sh" | sha256sum -c -;
+    bash ./rustup-init.sh --profile=minimal -y -t thumbv7em-none-eabihf;
+    rm rustup-init.sh;
+    set +eu
+
 script:
   - export CC=gcc-8
+  - source ${HOME}/.cargo/env
   - pyenv shell 3.6.7
   - make travis

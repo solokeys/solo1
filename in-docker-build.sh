@@ -2,11 +2,13 @@
 version=$1
 
 export PREFIX=/opt/gcc-arm-none-eabi-8-2019-q3-update/bin/
+source ${CARGO_HOME}/env
 
 cd /solo/targets/stm32l432
 ls
 
 make cbor
+make salty
 
 out_dir="/builds"
 
