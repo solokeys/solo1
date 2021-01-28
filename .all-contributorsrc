@@ -218,11 +218,23 @@
         "test",
         "ideas"
       ]
+    },
+    {
+      "login": "enrikb",
+      "name": "Enrik Berkhan",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1910914?v=4",
+      "profile": "https://github.com/enrikb",
+      "contributions": [
+        "code",
+        "maintenance",
+        "ideas"
+      ]
     }
   ],
   "contributorsPerLine": 7,
   "projectName": "solo",
   "projectOwner": "solokeys",
   "repoType": "github",
-  "repoHost": "https://github.com"
+  "repoHost": "https://github.com",
+  "skipCi": true
 }
