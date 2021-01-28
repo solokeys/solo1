@@ -304,6 +304,12 @@ void device_init()
 
     hw_init(LOW_FREQUENCY);
 
+#if BOOT_TO_DFU
+    flash_option_bytes_init(1);
+#else
+    flash_option_bytes_init(0);
+#endif
+
     if (! tsc_sensor_exists())
     {
         _NFC_status = nfc_init();
@@ -328,12 +334,6 @@ void device_init()
     ctap_init();
 
     device_migrate();
-
-#if BOOT_TO_DFU
-    flash_option_bytes_init(1);
-#else
-    flash_option_bytes_init(0);
-#endif
 
 
 }
