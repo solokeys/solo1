@@ -21,6 +21,8 @@ RUN set -eux; \
 	echo "b50b02b0a16e5aad8620e9d7c31110ef285c1dde28980b1a9448b764d77d8f92 gcc.tar.bz2" | sha256sum -c -; \
 	tar -C /opt -xf gcc.tar.bz2; \
 	rm gcc.tar.bz2;
+# Set Path for ARM compiler
+ENV PATH="$PATH:/opt/gcc-arm-none-eabi-8-2019-q3-update/bin"
 
 # Python3.7: for solo-python (merging etc.)
 RUN set -eux; \
@@ -50,3 +52,4 @@ RUN set -eux; \
     bash ./rustup-init.sh --profile=minimal -y -t thumbv7em-none-eabihf; \
     rm rustup-init.sh; \
     chmod -R go+rwX /rust
+
