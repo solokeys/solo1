@@ -124,8 +124,8 @@ cbor:
 	cd ../../tinycbor/ && make clean
 	cd ../../tinycbor/ && make CC="$(CC)" AR=$(AR) LDFLAGS="$(LDFLAGS_LIB)" CFLAGS="$(CFLAGS) -Os -DCBOR_PARSER_MAX_RECURSIONS=3"
   
-LDFLAGS="$(LDFLAGS_LIB)" \
-CFLAGS="$(CFLAGS) -Os  -DCBOR_PARSER_MAX_RECURSIONS=3"
+#LDFLAGS="$(LDFLAGS_LIB)" \
+#CFLAGS="$(CFLAGS) -Os  -DCBOR_PARSER_MAX_RECURSIONS=3"
 
 salty:
 	cd ../../crypto/salty/c-api && cargo clean
