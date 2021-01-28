@@ -83,6 +83,16 @@ The `builds` folder will contain all the variation on the firmware in `.hex` fil
 
 ## Build locally
 
+### Prereqs
+
+1. [Install Rust](https://www.rust-lang.org/tools/install) and add the `thumbv7em-none-eabihf` target.
+
+```
+rustup target add thumbv7em-none-eabihf
+```
+
+### Building
+
 If you have the toolchain installed on your machine you can build the firmware with:
 
 ```bash
@@ -98,6 +108,16 @@ solo program bootloader targets/stm32l432/solo.hex
 ```
 
 # Developing Solo (No Hardware Needed)
+
+## Prereqs
+
+1. Need libsodium.  On debian, install:
+
+```
+sudo apt install libsodium-dev 
+```
+
+## Building
 
 Clone Solo and build it
 
