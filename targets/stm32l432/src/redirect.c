@@ -26,14 +26,15 @@ void _putchar(char c)
 
 PUT_TO_SRAM2 static uint8_t logbuf[1000] = {0};
 PUT_TO_SRAM2 static uint8_t sendbuf[512] = {0};
-PUT_TO_SRAM2 static int logbuflen = 0;
+PUT_TO_SRAM2 static size_t logbuflen = 0;
 
 int _write (int fd, const void *buf, unsigned long int len)
 {
     uint8_t * data = (uint8_t *) buf;
 #if DEBUG_LEVEL>0
-    if (len > sizeof(logbuf))
+    if (len > sizeof(logbuf)) {
         len = sizeof(logbuf);
+    }
     
 	if (logbuflen + len > sizeof(logbuf)) {
         size_t mlen = logbuflen + len - sizeof(logbuf);
