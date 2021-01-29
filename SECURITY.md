@@ -11,7 +11,7 @@ To update your key:
 - either visit <https://update.solokeys.com>, or
 - use our commandline tool <https://github.com/solokeys/solo-python>:
 ```
-solo key update [--secure|--hacker]
+solo key update
 ```
 
 ## Reporting a Vulnerability
