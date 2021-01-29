@@ -134,7 +134,7 @@ solo key version
 To update to the newest version, use this command:
 
 ```bash
-solo key version
+solo key update
 ```
 
 **Note:** Sometimes the connection between Mac and key seemed to be broken and you might get an error stating: _No solo found_. Just unplug the key and plug it back in.
@@ -211,7 +211,7 @@ make build-hacker
 #Change to root
 cd ../..
 
-#Enter bootload mode
+#Enter bootloader mode
 solo program aux enter-bootloader
 
 #Deploy code

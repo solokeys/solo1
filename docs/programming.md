@@ -12,11 +12,10 @@ pip3 install solo-python
 
 ## Updating the firmware
 
-If you just want to update the firmware, you can run one of the following commands.
-Make sure your key [is in bootloader mode](/bootloader-mode#solo-bootloader) first.
+If you just want to update the firmware, you can run:
 
 ```bash
-solo key update <--secure | --hacker>
+solo key update
 ```
 
 You can manually install the [latest release](https://github.com/solokeys/solo/releases), or use a build that you made.
