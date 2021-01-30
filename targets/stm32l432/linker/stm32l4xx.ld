@@ -34,6 +34,8 @@ MEMORY
 
 SECTIONS
 {
+    /DISCARD/ : { *(.ARM.exidx.*) }
+
     .isr_vector :
     {
         . = ALIGN(8);
