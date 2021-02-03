@@ -34,7 +34,14 @@ MEMORY
 
 SECTIONS
 {
-    /DISCARD/ : { *(.ARM.exidx.*) }
+
+    /DISCARD/ :
+    {
+        /* Unused exception info */
+        *(.ARM.exidx);
+        *(.ARM.exidx.*);
+        *(.ARM.extab.*);
+    }
 
     .isr_vector :
     {
