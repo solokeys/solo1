@@ -127,7 +127,7 @@ cd solo
 make all
 ```
 
-This builds Solo as a standalone application. Solo application is set up to send and recv USB HID messages over UDP to ease development and reduce need for hardware.
+This builds Solo as a standalone application. Solo application is set up to send and recv USB HID messages over UDP or stdin/stdout to ease development and reduce need for hardware.
 
 Testing can be done using our fork of Yubico's client software, python-fido2. Our fork of python-fido2 has small changes to make it send USB HID over UDP to the authenticator application. You can install our fork by running the following:
 

@@ -21,7 +21,6 @@
 
 void printing_init();
 
-extern bool use_udp;
 
 //                              0xRRGGBB
 #define LED_INIT_VALUE			0x000800

@@ -25,6 +25,7 @@
 #define RK_NUM  50
 
 static bool use_udp = true;
+static bool use_stdio = false;
 
 struct ResidentKeyStore {
     CTAP_residentKey rks[RK_NUM];
@@ -122,7 +123,7 @@ uint32_t millis()
 }
 
 
-static int fd = 0;
+static int fd = -1;
 
 void usbhid_init()
 {
@@ -130,7 +131,7 @@ void usbhid_init()
     {
         fd = udp_server();
     }
-    else
+    else if (!use_stdio)
     {
         fd = open("/dev/hidg0", O_RDWR);
         if (fd < 0)
@@ -151,10 +152,11 @@ int usbhid_recv(uint8_t * msg)
     }
     else
     {
-        l = read(fd, msg, HID_MESSAGE_SIZE); /* Flawfinder: ignore */
+        const int read_fd = use_stdio ? STDIN_FILENO : fd;
+        l = read(read_fd, msg, HID_MESSAGE_SIZE); /* Flawfinder: ignore */
         if (l < 0)
         {
-            perror("hidg read");
+            perror(use_stdio ? "stdio read" : "hidg read");
             exit(1);
         }
     }
@@ -183,9 +185,10 @@ void usbhid_send(uint8_t * msg)
     }
     else
     {
-        if (write(fd, msg, HID_MESSAGE_SIZE) < 0)
+        const int write_fd = use_stdio ? STDOUT_FILENO : fd;
+        if (write(write_fd, msg, HID_MESSAGE_SIZE) < 0)
         {
-            perror("hidg write");
+            perror(use_stdio ? "stdio write" : "hidg write");
             exit(1);
         }
     }
@@ -195,13 +198,16 @@ void usbhid_send(uint8_t * msg)
 
 void usbhid_close()
 {
-    close(fd);
+    if (close >= 0)
+    {
+        close(fd);
+    }
 }
 
 void int_handler(int i)
 {
     usbhid_close();
-    printf("SIGINT... exiting.\n");
+    fprintf(stderr, "SIGINT... exiting.\n");
     exit(0);
 }
 
@@ -209,8 +215,8 @@ void int_handler(int i)
 
 void usage(const char * cmd)
 {
-    fprintf(stderr, "Usage: %s [-b udp|hidg]\n", cmd);
-    fprintf(stderr, "   -b      backing implementation: udp(default) or hidg\n");
+    fprintf(stderr, "Usage: %s [-b udp|stdio|hidg]\n", cmd);
+    fprintf(stderr, "   -b      backing implementation: udp(default), stdio or hidg\n");
     exit(1);
 }
 
@@ -227,10 +233,17 @@ void device_init(int argc, char *argv[])
                 if (strcmp("udp", optarg) == 0)
                 {
                     use_udp = true;
+                    use_stdio = false;
+                }
+                else if (strcmp("stdio", optarg) == 0)
+                {
+                    use_udp = false;
+                    use_stdio = true;
                 }
                 else if (strcmp("hidg", optarg) == 0)
                 {
                     use_udp = false;
+                    use_stdio = false;
                 }
                 else
                 {
@@ -245,7 +258,7 @@ void device_init(int argc, char *argv[])
 
     signal(SIGINT, int_handler);
 
-    printf1(TAG_GREEN, "Using %s backing\n", use_udp ? "UDP" : "hidg");
+    printf1(TAG_GREEN, "Using %s backing\n", use_udp ? "UDP" : use_stdio ? "stdio" : "hidg");
     usbhid_init();
 
     authenticator_initialize();
@@ -363,7 +376,7 @@ void authenticator_initialize()
     uint8_t * mem;
     if (access(state_file, F_OK) != -1)
     {
-        printf("state file exists\n");
+        fprintf(stderr, "state file exists\n");
         f = fopen(state_file, "rb");
         if (f== NULL)
         {
@@ -397,7 +410,7 @@ void authenticator_initialize()
     }
     else
     {
-        printf("state file does not exist, creating it\n");
+        fprintf(stderr, "state file does not exist, creating it\n");
         f = fopen(state_file, "wb+");
         if (f== NULL)
         {
