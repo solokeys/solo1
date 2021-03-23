@@ -443,6 +443,11 @@ static int is_matching_rk(CTAP_residentKey * rk, CTAP_residentKey * rk2)
            (rk->user.id_size == rk2->user.id_size);
 }
 
+static int is_cred_id_matching_rk(CredentialId * credId, CTAP_residentKey * rk)
+{
+    return (memcmp(credId, &rk->id, sizeof(CredentialId)) == 0);
+}
+
 static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf, unsigned int * ext_encoder_buf_size)
 {
     CborEncoder extensions;
@@ -1147,7 +1152,7 @@ static void add_existing_user_info(CTAP_credentialDescriptor * cred)
     for (i = 0; i < index; i++)
     {
         load_nth_valid_rk(i, &rk);
-        if (is_matching_rk(&rk, (CTAP_residentKey *)&cred->credential))
+        if (is_cred_id_matching_rk(&cred->credential.id, &rk))
         {
             printf1(TAG_GREEN, "found rk match for allowList item (%d)\r\n", i);
             memmove(&cred->credential.user, &rk.user, sizeof(CTAP_userEntity));
