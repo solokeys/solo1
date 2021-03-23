@@ -997,6 +997,7 @@ uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
         GA->credLen += 1;
         cred = &GA->creds[i];
 
+        memset(cred, 0, sizeof(CTAP_credentialDescriptor));
         ret = parse_credential_descriptor(&arr,cred);
         check_retr(ret);
 
