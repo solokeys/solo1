@@ -202,7 +202,7 @@ void usbhid_close()
 void int_handler(int i)
 {
     usbhid_close();
-    printf("SIGINT... exiting.\n");
+    fprintf(stderr, "SIGINT... exiting.\n");
     exit(0);
 }
 
@@ -364,7 +364,7 @@ void authenticator_initialize()
     uint8_t * mem;
     if (access(state_file, F_OK) != -1)
     {
-        printf("state file exists\n");
+        fprintf(stderr, "state file exists\n");
         f = fopen(state_file, "rb");
         if (f== NULL)
         {
@@ -398,7 +398,7 @@ void authenticator_initialize()
     }
     else
     {
-        printf("state file does not exist, creating it\n");
+        fprintf(stderr, "state file does not exist, creating it\n");
         f = fopen(state_file, "wb+");
         if (f== NULL)
         {

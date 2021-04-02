@@ -11,7 +11,7 @@ void dump_hex(uint8_t * buf, int size)
 {
     while(size--)
     {
-        printf("%02x ", *buf++);
+        fprintf(stderr, "%02x ", *buf++);
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 }
