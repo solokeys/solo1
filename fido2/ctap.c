@@ -2023,7 +2023,7 @@ uint8_t ctap_update_pin_if_verified(uint8_t * pinEnc, int len, uint8_t * platfor
     ret = trailing_zeros(pinEnc, NEW_PIN_ENC_MIN_SIZE - 1);
     ret = NEW_PIN_ENC_MIN_SIZE  - ret;
 
-    if (ret < NEW_PIN_MIN_SIZE || ret >= NEW_PIN_MAX_SIZE)
+    if (ret < NEW_PIN_MIN_SIZE || ret > NEW_PIN_MAX_SIZE)
     {
         printf2(TAG_ERR,"new PIN is too short or too long [%d bytes]\n", ret);
         return CTAP2_ERR_PIN_POLICY_VIOLATION;
