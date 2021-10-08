@@ -1144,7 +1144,8 @@ static int cred_cmp_func(const void * _a, const void * _b)
     return b->credential.id.count - a->credential.id.count;
 }
 
-static void add_existing_user_info(CTAP_credentialDescriptor * cred)
+// Return 1 if existing info found, 0 otherwise
+static int add_existing_user_info(CTAP_credentialDescriptor * cred)
 {
     CTAP_residentKey rk;
     int index = STATE.rk_stored;
@@ -1156,11 +1157,12 @@ static void add_existing_user_info(CTAP_credentialDescriptor * cred)
         {
             printf1(TAG_GREEN, "found rk match for allowList item (%d)\r\n", i);
             memmove(&cred->credential.user, &rk.user, sizeof(CTAP_userEntity));
-            return;
+            return 1;
         }
 
     }
     printf1(TAG_GREEN, "NO rk match for allowList item \r\n");
+    return 0;
 }
 
 // @return the number of valid credentials
@@ -1202,9 +1204,13 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
             }
             else
             {
-                // add user info if it exists
-                add_existing_user_info(&GA->creds[i]);
                 count++;
+                // add user info if it exists
+                if ( add_existing_user_info(&GA->creds[i]) ) {
+                    // If RK matches credential in the allow_list, we should
+                    // only return one credential.
+                    break;
+                }
             }
 
         }
