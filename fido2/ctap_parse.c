@@ -256,7 +256,7 @@ static int pub_key_cred_param_supported(uint8_t cred, int32_t alg)
 {
     if (cred == PUB_KEY_CRED_PUB_KEY)
     {
-        if (alg == COSE_ALG_ES256)
+        if (alg == COSE_ALG_ES256 || alg == COSE_ALG_EDDSA)
         {
             return  CREDENTIAL_IS_SUPPORTED;
         }
@@ -997,6 +997,7 @@ uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
         GA->credLen += 1;
         cred = &GA->creds[i];
 
+        memset(cred, 0, sizeof(CTAP_credentialDescriptor));
         ret = parse_credential_descriptor(&arr,cred);
         check_retr(ret);
 
@@ -1025,7 +1026,7 @@ static uint8_t parse_cred_mgmt_subcommandparams(CborValue * val, CTAP_credMgmt *
 
     ret = cbor_value_enter_container(val,&map);
     check_ret(ret);
-    
+
     const uint8_t * start_byte = cbor_value_get_next_byte(&map) - 1;
 
     ret = cbor_value_get_map_length(val, &map_length);
@@ -1064,7 +1065,7 @@ static uint8_t parse_cred_mgmt_subcommandparams(CborValue * val, CTAP_credMgmt *
 
     const uint8_t * end_byte = cbor_value_get_next_byte(&map);
 
-    uint32_t length = (uint32_t)end_byte - (uint32_t)start_byte;
+    uint32_t length = (uint32_t)(end_byte - start_byte);
     if (length > sizeof(CM->hashed.subCommandParamsCborCopy))
     {
         return CTAP2_ERR_LIMIT_EXCEEDED;

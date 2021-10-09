@@ -9,6 +9,8 @@ RUN apt-get update  \
     wget \
     bzip2 \
     git \
+    gcc \
+    libc6-dev \
   && rm -rf /var/lib/apt/lists/*
 
 # Install ARM compiler
@@ -19,6 +21,8 @@ RUN set -eux; \
 	echo "b50b02b0a16e5aad8620e9d7c31110ef285c1dde28980b1a9448b764d77d8f92 gcc.tar.bz2" | sha256sum -c -; \
 	tar -C /opt -xf gcc.tar.bz2; \
 	rm gcc.tar.bz2;
+# Set Path for ARM compiler
+ENV PATH="$PATH:/opt/gcc-arm-none-eabi-8-2019-q3-update/bin"
 
 # Python3.7: for solo-python (merging etc.)
 RUN set -eux; \
@@ -36,3 +40,16 @@ RUN set -eux; \
 
 # solo-python (Python3.7 script for merging etc.)
 RUN pip install -U solo-python
+
+# Rust for salty
+ENV RUSTUP_HOME=/rust/rustup
+ENV CARGO_HOME=/rust/cargo
+RUN set -eux; \
+    url="https://raw.githubusercontent.com/rust-lang/rustup/1.22.1/rustup-init.sh"; \
+    wget -O rustup-init.sh "$url"; \
+    echo "b273275cf4d83cb6b991c1090baeca54  rustup-init.sh" | md5sum -c -; \
+    echo "8928261388c8fae83bfd79b08d9030dfe21d17a8b59e9dcabda779213f6a3d14  rustup-init.sh" | sha256sum -c -; \
+    bash ./rustup-init.sh --profile=minimal -y -t thumbv7em-none-eabihf; \
+    rm rustup-init.sh; \
+    chmod -R go+rwX /rust
+

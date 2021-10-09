@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include "device.h"
 #include "cbor.h"

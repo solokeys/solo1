@@ -47,7 +47,7 @@ void flash_option_bytes_init(int boot_from_dfu)
     val &= ~(1<<25); // SRAM2_RST = 1 (erase sram on reset)
     val &= ~(1<<24); // SRAM2_PE = 1 (parity check en)
 
-    if (FLASH->OPTR == val)
+    if ((FLASH->OPTR & 0xb3f77ff) == (val & 0xb3f77ff))
     {
         return;
     }
@@ -68,9 +68,17 @@ void flash_option_bytes_init(int boot_from_dfu)
     while (FLASH->SR & (1<<16))
         ;
 
-    flash_lock();
+    if (FLASH->CR & (1<<30))
+    {
+        FLASH->OPTKEYR = 0x08192A3B;
+        FLASH->OPTKEYR = 0x4C5D6E7F;
+    }
 
-    __enable_irq();
+    /* Perform option byte loading which triggers a device reset. */
+    FLASH->CR |= FLASH_CR_OBL_LAUNCH;
+
+    while (true)
+        ;
 }
 
 void flash_erase_page(uint8_t page)

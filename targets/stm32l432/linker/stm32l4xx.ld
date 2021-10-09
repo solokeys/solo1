@@ -34,6 +34,15 @@ MEMORY
 
 SECTIONS
 {
+
+    /DISCARD/ :
+    {
+        /* Unused exception info */
+        *(.ARM.exidx);
+        *(.ARM.exidx.*);
+        *(.ARM.extab.*);
+    }
+
     .isr_vector :
     {
         . = ALIGN(8);

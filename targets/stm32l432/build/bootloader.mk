@@ -25,6 +25,7 @@ INC = -Ibootloader/ -Isrc/ -Isrc/cmsis/ -Ilib/ -Ilib/usbd/ -I../../fido2/ -I../.
 INC += -I../../tinycbor/src -I../../crypto/sha256 -I../../crypto/micro-ecc
 INC += -I../../crypto/tiny-AES-c
 INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
+INC += -I../../crypto/salty/c-api
 
 ifndef LDSCRIPT
 LDSCRIPT=linker/bootloader_stm32l4xx.ld

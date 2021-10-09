@@ -41,13 +41,13 @@ struct _getAssertionState getAssertionState;
 // Generate a mask to keep the confidentiality of the "metadata" field in the credential ID.
 // Mask = hmac(device-secret, 14-random-bytes-in-credential-id)
 // Masked_output = Mask ^ metadata
-static void add_masked_metadata_for_credential(CredentialId * credential, uint32_t cred_protect){
+static void add_masked_metadata_for_credential(CredentialId * credential, uint32_t metadata){
     uint8_t mask[32];
     crypto_sha256_hmac_init(CRYPTO_TRANSPORT_KEY, 0, mask);
     crypto_sha256_update(credential->entropy.nonce, CREDENTIAL_NONCE_SIZE - 4);
     crypto_sha256_hmac_final(CRYPTO_TRANSPORT_KEY,0, mask);
 
-    credential->entropy.metadata.value = *((uint32_t*)mask) ^ cred_protect;
+    credential->entropy.metadata.value = *((uint32_t*)mask) ^ metadata;
 }
 
 static uint32_t read_metadata_from_masked_credential(CredentialId * credential){
@@ -59,11 +59,29 @@ static uint32_t read_metadata_from_masked_credential(CredentialId * credential){
     return credential->entropy.metadata.value ^ *((uint32_t*)mask);
 }
 
-
-
-uint8_t check_credential_metadata(CredentialId * credential, uint8_t is_verified, uint8_t is_from_credid_list)
+static uint32_t read_cred_protect_from_masked_credential(CredentialId * credential)
 {
-    uint32_t cred_protect = read_metadata_from_masked_credential(credential);
+    return read_metadata_from_masked_credential(credential) & 0xffffU;
+}
+
+static int32_t read_cose_alg_from_masked_credential(CredentialId * credential)
+{
+    uint8_t  alg = (read_metadata_from_masked_credential(credential) >> 16) & 0xffU;
+
+    switch (alg)
+    {
+        default: // what else?
+        case CREDID_ALG_ES256:
+            return COSE_ALG_ES256;
+        case CREDID_ALG_EDDSA:
+            return COSE_ALG_EDDSA;
+    }
+}
+
+static uint8_t check_credential_metadata(CredentialId * credential, uint8_t is_verified, uint8_t is_from_credid_list)
+{
+    uint32_t cred_protect = read_cred_protect_from_masked_credential(credential);
+
     switch (cred_protect){
         case EXT_CRED_PROTECT_OPTIONAL_WITH_CREDID:
             if (!is_from_credid_list) {
@@ -80,6 +98,7 @@ uint8_t check_credential_metadata(CredentialId * credential, uint8_t is_verified
             }
         break;
     }
+
     return 0;
 }
 
@@ -146,10 +165,10 @@ uint8_t ctap_get_info(CborEncoder * encoder)
             ret = cbor_encoder_create_array(&map, &array, 2);
             check_ret(ret);
             {
-                ret = cbor_encode_text_stringz(&array, "hmac-secret");
+                ret = cbor_encode_text_stringz(&array, "credProtect");
                 check_ret(ret);
 
-                ret = cbor_encode_text_stringz(&array, "credProtect");
+                ret = cbor_encode_text_stringz(&array, "hmac-secret");
                 check_ret(ret);
             }
             ret = cbor_encoder_close_container(&map, &array);
@@ -250,7 +269,7 @@ uint8_t ctap_get_info(CborEncoder * encoder)
             check_ret(ret);
         }
 
-        ret = cbor_encode_uint(&map, 0x08); // maxCredentialIdLength 
+        ret = cbor_encode_uint(&map, 0x08); // maxCredentialIdLength
         check_ret(ret);
         {
             ret = cbor_encode_uint(&map, 128);
@@ -271,14 +290,14 @@ static int ctap_add_cose_key(CborEncoder * cose_key, uint8_t * x, uint8_t * y, u
     int ret;
     CborEncoder map;
 
-    ret = cbor_encoder_create_map(cose_key, &map, 5);
+    ret = cbor_encoder_create_map(cose_key, &map, algtype != COSE_ALG_EDDSA? 5 : 4);
     check_ret(ret);
 
 
     {
         ret = cbor_encode_int(&map, COSE_KEY_LABEL_KTY);
         check_ret(ret);
-        ret = cbor_encode_int(&map, COSE_KEY_KTY_EC2);
+        ret = cbor_encode_int(&map, algtype != COSE_ALG_EDDSA? COSE_KEY_KTY_EC2 : COSE_KEY_KTY_OKP);
         check_ret(ret);
     }
 
@@ -292,7 +311,7 @@ static int ctap_add_cose_key(CborEncoder * cose_key, uint8_t * x, uint8_t * y, u
     {
         ret = cbor_encode_int(&map, COSE_KEY_LABEL_CRV);
         check_ret(ret);
-        ret = cbor_encode_int(&map, COSE_KEY_CRV_P256);
+        ret = cbor_encode_int(&map, algtype != COSE_ALG_EDDSA? COSE_KEY_CRV_P256: COSE_KEY_CRV_ED25519);
         check_ret(ret);
     }
 
@@ -304,6 +323,7 @@ static int ctap_add_cose_key(CborEncoder * cose_key, uint8_t * x, uint8_t * y, u
         check_ret(ret);
     }
 
+    if (algtype != COSE_ALG_EDDSA)
     {
         ret = cbor_encode_int(&map, COSE_KEY_LABEL_Y);
         check_ret(ret);
@@ -330,6 +350,11 @@ static int ctap_generate_cose_key(CborEncoder * cose_key, uint8_t * hmac_input, 
         case COSE_ALG_ES256:
             if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
             crypto_ecc256_derive_public_key(hmac_input, len, x, y);
+            if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
+            break;
+        case COSE_ALG_EDDSA:
+            if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_FAST);
+            crypto_ed25519_derive_public_key(hmac_input, len, x);
             if (device_is_nfc() == NFC_IS_ACTIVE) device_set_clock_rate(DEVICE_LOW_POWER_IDLE);
             break;
         default:
@@ -416,6 +441,11 @@ static int is_matching_rk(CTAP_residentKey * rk, CTAP_residentKey * rk2)
     return (memcmp(rk->id.rpIdHash, rk2->id.rpIdHash, 32) == 0) &&
            (memcmp(rk->user.id, rk2->user.id, rk->user.id_size) == 0) &&
            (rk->user.id_size == rk2->user.id_size);
+}
+
+static int is_cred_id_matching_rk(CredentialId * credId, CTAP_residentKey * rk)
+{
+    return (memcmp(credId, &rk->id, sizeof(CredentialId)) == 0);
 }
 
 static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf, unsigned int * ext_encoder_buf_size)
@@ -523,15 +553,6 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
                     check_ret(ret);
                 }
             }
-            if (hmac_secret_requested_is_valid) {
-                {
-                    ret = cbor_encode_text_stringz(&extension_output_map, "hmac-secret");
-                    check_ret(ret);
-
-                    ret = cbor_encode_boolean(&extension_output_map, 1);
-                    check_ret(ret);
-                }
-            }
             if (cred_protect_is_valid) {
                 {
                     ret = cbor_encode_text_stringz(&extension_output_map, "credProtect");
@@ -541,6 +562,16 @@ static int ctap_make_extensions(CTAP_extensions * ext, uint8_t * ext_encoder_buf
                     check_ret(ret);
                 }
             }
+            if (hmac_secret_requested_is_valid) {
+                {
+                    ret = cbor_encode_text_stringz(&extension_output_map, "hmac-secret");
+                    check_ret(ret);
+
+                    ret = cbor_encode_boolean(&extension_output_map, 1);
+                    check_ret(ret);
+                }
+            }
+
             ret = cbor_encoder_close_container(&extensions, &extension_output_map);
             check_ret(ret);
 
@@ -627,8 +658,8 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
         check_retr(but);
         authData->head.flags = (1 << 0);        // User presence
     }
-    
-    
+
+
     device_set_status(CTAPHID_STATUS_PROCESSING);
 
     authData->head.flags |= (ctap_is_pin_set() << 2);
@@ -648,7 +679,9 @@ static int ctap_make_auth_data(struct rpId * rp, CborEncoder * map, uint8_t * au
         memset((uint8_t*)&authData->attest.id, 0, sizeof(CredentialId));
 
         ctap_generate_rng(authData->attest.id.entropy.nonce, CREDENTIAL_NONCE_SIZE);
-        add_masked_metadata_for_credential(&authData->attest.id, extensions->cred_protect);
+
+        uint8_t alg = credInfo->COSEAlgorithmIdentifier == COSE_ALG_EDDSA? CREDID_ALG_EDDSA : CREDID_ALG_ES256;
+        add_masked_metadata_for_credential(&authData->attest.id, extensions->cred_protect | (alg << 16));
 
         authData->attest.id.count = count;
 
@@ -725,12 +758,28 @@ int ctap_encode_der_sig(const uint8_t * const in_sigbuf, uint8_t * const out_sig
     uint8_t lead_s = 0;  // leading zeros
     uint8_t lead_r = 0;
     for (i=0; i < 32; i++)
-        if (in_sigbuf[i] == 0) lead_r++;
-        else break;
+    {
+        if (in_sigbuf[i] == 0)
+        {
+            lead_r++;
+        }
+        else
+        {
+            break;
+        }
+    }
 
     for (i=0; i < 32; i++)
-        if (in_sigbuf[i+32] == 0) lead_s++;
-        else break;
+    {
+        if (in_sigbuf[i+32] == 0)
+        {
+            lead_s++;
+        }
+        else
+        {
+            break;
+        }
+    }
 
     int8_t pad_s = ((in_sigbuf[32 + lead_s] & 0x80) == 0x80);
     int8_t pad_r = ((in_sigbuf[0 + lead_r] & 0x80) == 0x80);
@@ -755,22 +804,30 @@ int ctap_encode_der_sig(const uint8_t * const in_sigbuf, uint8_t * const out_sig
 }
 
 // require load_key prior to this
-// @data data to hash before signature
+// @data data to hash before signature, MUST have room to append clientDataHash for ED25519
 // @clientDataHash for signature
 // @tmp buffer for hash.  (can be same as data if data >= 32 bytes)
 // @sigbuf OUT location to deposit signature (must be 64 bytes)
 // @sigder OUT location to deposit der signature (must be 72 bytes)
 // @return length of der signature
-int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHash, uint8_t * hashbuf, uint8_t * sigbuf, uint8_t * sigder)
+int ctap_calculate_signature(uint8_t * data, int datalen, uint8_t * clientDataHash, uint8_t * hashbuf, uint8_t * sigbuf, uint8_t * sigder, int32_t alg)
 {
     // calculate attestation sig
-    crypto_sha256_init();
-    crypto_sha256_update(data, datalen);
-    crypto_sha256_update(clientDataHash, CLIENT_DATA_HASH_SIZE);
-    crypto_sha256_final(hashbuf);
+    if (alg == COSE_ALG_EDDSA)
+    {
+        crypto_ed25519_sign(data, datalen, clientDataHash, CLIENT_DATA_HASH_SIZE, sigder); // not DER, just plain binary!
+        return 64;
+    }
+    else
+    {
+        crypto_sha256_init();
+        crypto_sha256_update(data, datalen);
+        crypto_sha256_update(clientDataHash, CLIENT_DATA_HASH_SIZE);
+        crypto_sha256_final(hashbuf);
 
-    crypto_ecc256_sign(hashbuf, 32, sigbuf);
-    return ctap_encode_der_sig(sigbuf,sigder);
+        crypto_ecc256_sign(hashbuf, 32, sigbuf);
+        return ctap_encode_der_sig(sigbuf,sigder);
+    }
 }
 
 uint8_t ctap_add_attest_statement(CborEncoder * map, uint8_t * sigder, int len)
@@ -783,7 +840,7 @@ uint8_t ctap_add_attest_statement(CborEncoder * map, uint8_t * sigder, int len)
         return CTAP2_ERR_PROCESSING;
     }
     device_attestation_read_cert_der(cert);
-    
+
     CborEncoder stmtmap;
     CborEncoder x5carr;
 
@@ -975,7 +1032,7 @@ uint8_t ctap_make_credential(CborEncoder * encoder, uint8_t * request, int lengt
     }
 
     crypto_ecc256_load_attestation_key();
-    int sigder_sz = ctap_calculate_signature(auth_data_buf, auth_data_sz, MC.clientDataHash, auth_data_buf, sigbuf, sigder);
+    int sigder_sz = ctap_calculate_signature(auth_data_buf, auth_data_sz, MC.clientDataHash, auth_data_buf, sigbuf, sigder, COSE_ALG_ES256);
     printf1(TAG_MC,"der sig [%d]: ", sigder_sz); dump_hex1(TAG_MC, sigder, sigder_sz);
 
     ret = ctap_add_attest_statement(&map, sigder, sigder_sz);
@@ -1087,7 +1144,8 @@ static int cred_cmp_func(const void * _a, const void * _b)
     return b->credential.id.count - a->credential.id.count;
 }
 
-static void add_existing_user_info(CTAP_credentialDescriptor * cred)
+// Return 1 if existing info found, 0 otherwise
+static int add_existing_user_info(CTAP_credentialDescriptor * cred)
 {
     CTAP_residentKey rk;
     int index = STATE.rk_stored;
@@ -1095,15 +1153,16 @@ static void add_existing_user_info(CTAP_credentialDescriptor * cred)
     for (i = 0; i < index; i++)
     {
         load_nth_valid_rk(i, &rk);
-        if (is_matching_rk(&rk, (CTAP_residentKey *)&cred->credential))
+        if (is_cred_id_matching_rk(&cred->credential.id, &rk))
         {
             printf1(TAG_GREEN, "found rk match for allowList item (%d)\r\n", i);
             memmove(&cred->credential.user, &rk.user, sizeof(CTAP_userEntity));
-            return;
+            return 1;
         }
 
     }
     printf1(TAG_GREEN, "NO rk match for allowList item \r\n");
+    return 0;
 }
 
 // @return the number of valid credentials
@@ -1136,18 +1195,22 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
         else
         {
 
-            int protection_status = 
+            int protection_status =
                 check_credential_metadata(&GA->creds[i].credential.id, getAssertionState.user_verified, 1);
 
             if (protection_status != 0) {
                 printf1(TAG_GREEN,"skipping protected wrapped credential.\r\n");
                 GA->creds[i].credential.id.count = 0;      // invalidate
             }
-            else 
+            else
             {
-                // add user info if it exists
-                add_existing_user_info(&GA->creds[i]);
                 count++;
+                // add user info if it exists
+                if ( add_existing_user_info(&GA->creds[i]) ) {
+                    // If RK matches credential in the allow_list, we should
+                    // only return one credential.
+                    break;
+                }
             }
 
         }
@@ -1170,7 +1233,7 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
 
             printf1(TAG_GREEN, "rpIdHash%d: ", i);  dump_hex1(TAG_GREEN, rk.id.rpIdHash, 32);
 
-            int protection_status = 
+            int protection_status =
                 check_credential_metadata(&rk.id, getAssertionState.user_verified, 0);
 
             if (protection_status != 0) {
@@ -1181,13 +1244,13 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
             if (memcmp(rk.id.rpIdHash, rpIdHash, 32) == 0)
             {
                 printf1(TAG_GA, "RK %d is a rpId match!\r\n", i);
-                if (count == ALLOW_LIST_MAX_SIZE-1)
+                if (count >= ALLOW_LIST_MAX_SIZE)
                 {
                     printf2(TAG_ERR, "not enough ram allocated for matching RK's (%d).  Skipping.\r\n", count);
                     break;
                 }
                 GA->creds[count].type = PUB_KEY_CRED_PUB_KEY;
-                memmove(&(GA->creds[count].credential), &rk, sizeof(CTAP_residentKey));
+                memmove(&(GA->creds[count].credential), &rk, sizeof(struct Credential));
                 count++;
             }
         }
@@ -1200,8 +1263,8 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
 }
 
 
-static int8_t save_credential_list( uint8_t * clientDataHash, 
-                                    CTAP_credentialDescriptor * creds, 
+static int8_t save_credential_list( uint8_t * clientDataHash,
+                                    CTAP_credentialDescriptor * creds,
                                     uint32_t count,
                                     CTAP_extensions * extensions)
 {
@@ -1258,7 +1321,15 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
     }
 
     unsigned int cred_size = get_credential_id_size(cred->type);
-    crypto_ecc256_load_key((uint8_t*)&cred->credential.id, cred_size, NULL, 0);
+    int32_t cose_alg = read_cose_alg_from_masked_credential(&cred->credential.id);
+    if (cose_alg == COSE_ALG_EDDSA)
+    {
+        crypto_ed25519_load_key((uint8_t*)&cred->credential.id, cred_size);
+    }
+    else
+    {
+        crypto_ecc256_load_key((uint8_t*)&cred->credential.id, cred_size, NULL, 0);
+    }
 
 #ifdef ENABLE_U2F_EXTENSIONS
     if ( extend_fido2(&cred->credential.id, sigder) )
@@ -1268,8 +1339,10 @@ uint8_t ctap_end_get_assertion(CborEncoder * map, CTAP_credentialDescriptor * cr
     else
 #endif
     {
-        sigder_sz = ctap_calculate_signature(auth_data_buf, auth_data_buf_sz, clientDataHash, auth_data_buf, sigbuf, sigder);
+        sigder_sz = ctap_calculate_signature(auth_data_buf, auth_data_buf_sz, clientDataHash, auth_data_buf, sigbuf, sigder, cose_alg);
     }
+
+    printf1(TAG_GREEN, "sigder_sz = %d\n", sigder_sz);
 
     {
         ret = cbor_encode_int(map, RESP_signature);  // 3
@@ -1341,9 +1414,9 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
         }
     }
 
-    ret = ctap_end_get_assertion(&map, cred, 
-                                (uint8_t *)&getAssertionState.buf.authData, 
-                                sizeof(CTAP_authDataHeader) + ext_encoder_buf_size, 
+    ret = ctap_end_get_assertion(&map, cred,
+                                (uint8_t *)&getAssertionState.buf.authData,
+                                sizeof(CTAP_authDataHeader) + ext_encoder_buf_size,
                                 getAssertionState.clientDataHash);
 
     check_retr(ret);
@@ -1428,11 +1501,13 @@ uint8_t ctap_cred_rk(CborEncoder * encoder, int rk_ind, int rk_count)
     ctap_load_rk(rk_ind, &rk);
 
     uint32_t cred_protect = read_metadata_from_masked_credential(&rk.id);
-    if ( cred_protect == 0 || cred_protect > 3 ) 
+    if ( cred_protect == 0 || cred_protect > 3 )
     {
         // Take default value of userVerificationOptional
         cred_protect = EXT_CRED_PROTECT_OPTIONAL;
     }
+
+    int32_t cose_alg = read_cose_alg_from_masked_credential(&rk.id);
 
     CborEncoder map;
     size_t map_size = rk_count > 0 ? 5 : 4;
@@ -1456,7 +1531,7 @@ uint8_t ctap_cred_rk(CborEncoder * encoder, int rk_ind, int rk_count)
     ret = cbor_encode_int(&map, 8);
     check_ret(ret);
     {
-        ctap_generate_cose_key(&map, (uint8_t*)&rk.id, sizeof(CredentialId), PUB_KEY_CRED_PUB_KEY, COSE_ALG_ES256);
+        ctap_generate_cose_key(&map, (uint8_t*)&rk.id, sizeof(CredentialId), PUB_KEY_CRED_PUB_KEY, cose_alg);
     }
 
     if (rk_count > 0)
@@ -1479,8 +1554,8 @@ uint8_t ctap_cred_rk(CborEncoder * encoder, int rk_ind, int rk_count)
 
 uint8_t ctap_cred_mgmt_pinauth(CTAP_credMgmt *CM)
 {
-    if (CM->cmd != CM_cmdMetadata && 
-        CM->cmd != CM_cmdRPBegin && 
+    if (CM->cmd != CM_cmdMetadata &&
+        CM->cmd != CM_cmdRPBegin &&
         CM->cmd != CM_cmdRKBegin &&
         CM->cmd != CM_cmdRKDelete)
     {
@@ -1548,7 +1623,7 @@ static int scan_for_next_rp(int index){
         occurs_previously = 0;
 
         index++;
-        if ((unsigned int)index >= ctap_rk_size()) 
+        if ((unsigned int)index >= ctap_rk_size())
         {
             return -1;
         }
@@ -1598,7 +1673,7 @@ static int scan_for_next_rk(int index, uint8_t * initialRpIdHash){
     do
     {
         index++;
-        if ((unsigned int)index >= ctap_rk_size()) 
+        if ((unsigned int)index >= ctap_rk_size())
         {
             return -1;
         }
@@ -1870,8 +1945,8 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     ret = cbor_encoder_close_container(encoder, &map);
     check_ret(ret);
 
-    ret = save_credential_list( GA.clientDataHash, 
-                                GA.creds + 1 /* skip first credential*/, 
+    ret = save_credential_list( GA.clientDataHash,
+                                GA.creds + 1 /* skip first credential*/,
                                 validCredCount - 1,
                                 &GA.extensions);
     check_retr(ret);
@@ -2365,7 +2440,7 @@ static void ctap_state_init()
 
 /** Overwrite master secret from external source.
  * @param keybytes an array of KEY_SPACE_BYTES length.
- * 
+ *
  * This function should only be called from a privilege mode.
 */
 void ctap_load_external_keys(uint8_t * keybytes){

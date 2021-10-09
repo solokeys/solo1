@@ -78,6 +78,9 @@
 #define EXT_CRED_PROTECT_OPTIONAL_WITH_CREDID   0x02
 #define EXT_CRED_PROTECT_REQUIRED               0x03
 
+#define CREDID_ALG_ES256            0x0
+#define CREDID_ALG_EDDSA            0x1
+
 #define RESP_versions               0x1
 #define RESP_extensions             0x2
 #define RESP_aaguid                 0x3

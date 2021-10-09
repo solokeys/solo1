@@ -6,14 +6,14 @@
 // copied, modified, or distributed except according to those terms.
 
 /** device.c
- * 
+ *
  * This contains (weak) implementations
  * to get FIDO2 working initially on a device.  They probably
  * aren't what you want to keep, but are designed to be replaced
  * with some other platform specific implementation.
- * 
+ *
  * For real examples, see the STM32L4 implementation and the PC implementation of device.c.
- * 
+ *
 */
 #include <stdint.h>
 #include <stdlib.h>
@@ -24,7 +24,7 @@
 
 #define RK_NUM  50
 
-struct ResidentKeyStore {
+__attribute__((weak)) struct ResidentKeyStore {
     CTAP_residentKey rks[RK_NUM];
 } RK_STORE;
 
@@ -65,7 +65,7 @@ __attribute__((weak)) void device_attestation_read_cert_der(uint8_t * dst){
 }
 
 __attribute__((weak)) uint8_t * device_get_attestation_key(){
-    static uint8_t attestation_key[] = 
+    static uint8_t attestation_key[] =
         "\xcd\x67\xaa\x31\x0d\x09\x1e\xd1\x6e\x7e\x98\x92\xaa"
         "\x07\x0e\x19\x94\xfc\xd7\x14\xae\x7c\x40\x8f\xb9\x46"
         "\xb7\x2e\x5f\xe7\x5d\x30";
@@ -76,7 +76,7 @@ __attribute__((weak)) uint16_t device_attestation_cert_der_get_size(){
     return sizeof(_attestation_cert_der)-1;
 }
 
-__attribute__((weak)) void device_reboot() 
+__attribute__((weak)) void device_reboot()
 {
     printf1(TAG_RED, "REBOOT command recieved!\r\n");
     exit(100);
@@ -222,4 +222,3 @@ __attribute__((weak)) void device_read_aaguid(uint8_t * dst){
     uint8_t * aaguid = (uint8_t *)"\x00\x76\x63\x1b\xd4\xa0\x42\x7f\x57\x73\x0e\xc7\x1c\x9e\x02\x79";
     memmove(dst, aaguid, 16);
 }
-

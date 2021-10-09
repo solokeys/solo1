@@ -323,10 +323,6 @@ void device_init()
         device_init_button();
     }
 
-    usbhid_init();
-    ctaphid_init();
-    ctap_init();
-
     device_migrate();
 
 #if BOOT_TO_DFU
@@ -335,6 +331,9 @@ void device_init()
     flash_option_bytes_init(0);
 #endif
 
+    usbhid_init();
+    ctaphid_init();
+    ctap_init();
 
 }
 

@@ -24,12 +24,13 @@ OBJ=$(OBJ1:.s=.o)
 
 INC = -Isrc/ -Isrc/cmsis/ -Ilib/ -Ilib/usbd/
 
-INC+= -I../../fido2/ -I../../fido2/extensions
+INC += -I../../fido2/ -I../../fido2/extensions
 INC += -I../../tinycbor/src -I../../crypto/sha256 -I../../crypto/micro-ecc
 INC += -I../../crypto/tiny-AES-c
 INC += -I../../crypto/cifra/src -I../../crypto/cifra/src/ext
+INC += -I../../crypto/salty/c-api
 
-SEARCH=-L../../tinycbor/lib
+SEARCH=-L../../tinycbor/lib -L../../crypto/salty/c-api
 
 ifndef LDSCRIPT
 LDSCRIPT=linker/stm32l4xx.ld
@@ -52,7 +53,7 @@ DEFINES = -DDEBUG_LEVEL=$(DEBUG) -D$(CHIP) -DAES256=1  -DUSE_FULL_LL_DRIVER -DAP
 CFLAGS=$(INC) -c $(DEFINES)   -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -fdata-sections -ffunction-sections \
 	-fomit-frame-pointer $(HW) -g $(VERSION_FLAGS)
 LDFLAGS_LIB=$(HW) $(SEARCH) -specs=nano.specs  -specs=nosys.specs  -Wl,--gc-sections -lnosys
-LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor
+LDFLAGS=$(HW) $(LDFLAGS_LIB) -T$(LDSCRIPT) -Wl,-Map=$(TARGET).map,--cref -Wl,-Bstatic -ltinycbor -lsalty
 
 ECC_CFLAGS = $(CFLAGS) -DuECC_PLATFORM=5 -DuECC_OPTIMIZATION_LEVEL=4 -DuECC_SQUARE_FUNC=1 -DuECC_SUPPORT_COMPRESSED_POINT=0
 
@@ -86,3 +87,6 @@ cbor:
 LDFLAGS="$(LDFLAGS_LIB)" \
 CFLAGS="$(CFLAGS) -Os  -DCBOR_PARSER_MAX_RECURSIONS=3"
 
+salty:
+	cd ../../crypto/salty/c-api && cargo clean
+	cd ../../crypto/salty/c-api && $(MAKE)
