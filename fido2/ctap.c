@@ -1207,8 +1207,10 @@ int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
                 count++;
                 // add user info if it exists
                 if ( add_existing_user_info(&GA->creds[i]) ) {
+                    printf1(TAG_GREEN,"USER ID SIZE: %d\r\n", GA->creds[i].credential.user.id_size);
                     // If RK matches credential in the allow_list, we should
                     // only return one credential.
+                    GA->credLen = i+1;
                     break;
                 }
             }
@@ -1863,6 +1865,7 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
        map_size += 1;
     }
 
+    printf1(TAG_GREEN,"2 USER ID SIZE: %d\r\n", GA.creds[0].credential.user.id_size);
 
     if (GA.creds[validCredCount - 1].credential.user.id_size)
     {
