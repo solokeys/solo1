@@ -85,10 +85,15 @@ brew install arm-none-eabi-gcc
 ### Install flashing software
 
 ST provides a CLI flashing tool - `STM32_Programmer_CLI`. It can be downloaded directly from the vendor's site:
+
 1. Go to [download site URL](https://www.st.com/content/st_com/en/products/development-tools/software-development-tools/stm32-software-development-tools/stm32-programmers/stm32cubeprog.html), go to bottom page and from STM32CubeProg row select Download button.
+
 2. Unzip contents of the archive.
+
 3. Run \*Linux setup
+
 4. In installation directory go to `./bin` - there the `./STM32_Programmer_CLI` is located
+
 5. Add symlink to the STM32 CLI binary to `.local/bin`. Make sure the latter it is in `$PATH`.
 
 If you're on MacOS X and installed the STM32CubeProg, you need to add the following to your path:
@@ -97,7 +102,19 @@ If you're on MacOS X and installed the STM32CubeProg, you need to add the follow
 # ~/.bash_profile
 export PATH="/Applications/STMicroelectronics/STM32Cube/STM32CubeProgrammer/STM32CubeProgrammer.app/Contents/MacOs/bin/":$PATH
 ```
+If you're on Linux you need to install `libusb-1.0.0-dev`. On Ubuntu based systems, the following command can be used:
 
+```bash
+sudo apt-get install libusb-1.0.0-dev
+```
+Aditionally according to the usermanual (UM2237 Rev 14): To use ST-LINK probe or USB DFU to connect to a target, copy the rules files located under
+Driver/rules folder in /etc/udev/rules.d/ on Ubuntu ("sudo cp \*.\* /etc/udev/rules.d"). 
+
+To activate the new udev rules restart your computer or use the following command:
+
+```bash
+sudo udevadm control --reload-rules && sudo udevadm trigger
+```
 ## Building and flashing
 
 ### Building
