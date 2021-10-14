@@ -561,7 +561,7 @@ uint8_t ctap_parse_hmac_secret(CborValue * val, CTAP_hmac_secret * hs)
 {
     size_t map_length;
     size_t salt_len;
-    uint8_t parsed_count = 0;
+    size_t cose_key_parsed = 0, salt_enc_parsed = 0, salt_auth_parsed = 0;
     int key;
     int ret;
     unsigned int i;
@@ -595,26 +595,34 @@ uint8_t ctap_parse_hmac_secret(CborValue * val, CTAP_hmac_secret * hs)
         switch(key)
         {
             case EXT_HMAC_SECRET_COSE_KEY:
+                ++cose_key_parsed;
                 ret = parse_cose_key(&map, &hs->keyAgreement);
                 check_retr(ret);
-                parsed_count++;
             break;
             case EXT_HMAC_SECRET_SALT_ENC:
+                ++salt_enc_parsed;
                 salt_len = 64;
-                ret = cbor_value_copy_byte_string(&map, hs->saltEnc, &salt_len, NULL);
-                if ((salt_len != 32 && salt_len != 64) || ret == CborErrorOutOfMemory)
+                if (cbor_value_get_type(&map) == CborByteStringType)
                 {
-                    return CTAP1_ERR_INVALID_LENGTH;
+                    ret = cbor_value_copy_byte_string(&map, hs->saltEnc, &salt_len, NULL);
+                    if ((salt_len != 32 && salt_len != 64) || ret == CborErrorOutOfMemory)
+                    {
+                        return CTAP1_ERR_INVALID_LENGTH;
+                    }
+                    check_ret(ret);
                 }
-                check_ret(ret);
+                else
+                {
+                    printf2(TAG_ERR, "error, CborByteStringType expected\r\n");
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
                 hs->saltLen = salt_len;
-                parsed_count++;
             break;
             case EXT_HMAC_SECRET_SALT_AUTH:
+                ++salt_auth_parsed;
                 salt_len = 32;
                 ret = cbor_value_copy_byte_string(&map, hs->saltAuth, &salt_len, NULL);
                 check_ret(ret);
-                parsed_count++;
             break;
         }
 
@@ -622,9 +630,16 @@ uint8_t ctap_parse_hmac_secret(CborValue * val, CTAP_hmac_secret * hs)
         check_ret(ret);
     }
 
-    if (parsed_count != 3)
+    if (cose_key_parsed > 1 || salt_enc_parsed > 1 || salt_auth_parsed > 1)
     {
-        printf2(TAG_ERR, "ctap_parse_hmac_secret missing parameter.  Got %d.\r\n", parsed_count);
+        printf2(TAG_ERR, "ctap_parse_hmac_secret duplicate key.\r\n");
+        return CTAP2_ERR_INVALID_CBOR;
+    }
+
+    if (!(cose_key_parsed && salt_enc_parsed && salt_auth_parsed))
+    {
+        printf2(TAG_ERR, "ctap_parse_hmac_secret missing parameter.  Got %d.\r\n",
+                cose_key_parsed + salt_enc_parsed + salt_auth_parsed);
         return CTAP2_ERR_MISSING_PARAMETER;
     }
 
