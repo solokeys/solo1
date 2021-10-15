@@ -1444,24 +1444,55 @@ uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
     }
     if (ctap_is_pin_set() == 1)
     {
-        ret = verify_pin_auth(SH.pinAuth, SH.clientDataHash);
+        ret = verify_pin_auth_ex(SH.pinAuth, SH.hash, SH.hash_len);
         check_retr(ret);
     }
-    ret = ctap2_user_presence_test(CTAP2_UP_DELAY_MS);
+    ret = ctap2_user_presence_test();
     check_retr(ret);
-    ret = cbor_encoder_create_map(encoder, &map, 1);
+    ret = cbor_encoder_create_map(encoder, &map, SH.trusted_comment_present ? 2 : 1);
     check_ret(ret);
 
-    unsigned int cred_size = get_credential_id_size(&SH.cred);
-    crypto_ecc256_load_key((uint8_t*)&SH.cred.credential.id, cred_size, NULL, 0);
-    crypto_ecc256_sign(SH.clientDataHash, CLIENT_DATA_HASH_SIZE, sigbuf);
-    int sigder_sz = ctap_encode_der_sig(sigbuf,sigder);
-    printf1(TAG_SH,"der sig [%d]: ", sigder_sz); dump_hex1(TAG_SH, sigder, sigder_sz);
+    unsigned int cred_size = get_credential_id_size(SH.cred.type);
 
-    ret = cbor_encode_int(&map, 1);
-    check_ret(ret);
-    ret = cbor_encode_byte_string(&map, sigder, sigder_sz);
-    check_ret(ret);
+    int32_t cose_alg = read_cose_alg_from_masked_credential(&SH.cred.credential.id);
+    if (cose_alg == COSE_ALG_EDDSA)
+    {
+        crypto_ed25519_load_key((uint8_t*)&SH.cred.credential.id, cred_size);
+
+        crypto_ed25519_sign(SH.hash, SH.hash_len, NULL, 0, sigder);
+
+        ret = cbor_encode_int(&map, 1);
+        check_ret(ret);
+        ret = cbor_encode_byte_string(&map, sigder, 64);
+        check_ret(ret);
+
+        if (SH.trusted_comment_present)
+        {
+            crypto_ed25519_sign(sigder, 64, SH.trusted_comment, SH.trusted_comment_len, sigder);
+
+            ret = cbor_encode_int(&map, 2);
+            check_ret(ret);
+            ret = cbor_encode_byte_string(&map, sigder, 64);
+            check_ret(ret);
+        }
+    }
+    else
+    {
+        if (SH.trusted_comment_present)
+        {
+            printf2(TAG_ERR,"error, trusted comment is only supported with EdDSA\n");
+            return CTAP2_ERR_INVALID_OPTION;
+        }
+        crypto_ecc256_load_key((uint8_t*)&SH.cred.credential.id, cred_size, NULL, 0);
+        crypto_ecc256_sign(SH.hash, SH.hash_len, sigbuf);
+        int sigder_sz = ctap_encode_der_sig(sigbuf,sigder);
+        printf1(TAG_SH,"der sig [%d]: ", sigder_sz); dump_hex1(TAG_SH, sigder, sigder_sz);
+
+        ret = cbor_encode_int(&map, 1);
+        check_ret(ret);
+        ret = cbor_encode_byte_string(&map, sigder, sigder_sz);
+        check_ret(ret);
+    }
 
     ret = cbor_encoder_close_container(encoder, &map);
     check_ret(ret);

@@ -40,9 +40,10 @@
 #define GA_pinAuth                0x06
 #define GA_pinProtocol            0x07
 
-#define SH_clientDataHash         0x01
+#define SH_hash                   0x01
 #define SH_credential             0x02
 #define SH_pinAuth                0x03
+#define SH_trustedComment         0x04
 #define CM_cmd                    0x01
     #define CM_cmdMetadata        0x01
     #define CM_cmdRPBegin         0x02
@@ -128,6 +129,8 @@
 #define DISPLAY_NAME_LIMIT          32  // Must be minimum of 64 bytes but can be more.
 #define ICON_LIMIT                  128 // Must be minimum of 64 bytes but can be more.
 #define CTAP_MAX_MESSAGE_SIZE       1200
+#define SIGN_HASH_HASH_MAX_SIZE     64  //up to 512 bits
+#define SIGN_HASH_TRUSTED_COMMENT_MAX_SIZE 128
 
 #define CREDENTIAL_RK_FLASH_PAD     2   // size of RK should be 8-byte aligned to store in flash easily.
 #define CREDENTIAL_TAG_SIZE         16
@@ -329,7 +332,14 @@ typedef struct
 typedef struct
 {
     uint8_t pinAuth[16];
-    uint8_t clientDataHash[CLIENT_DATA_HASH_SIZE];
+
+    uint8_t hash[SIGN_HASH_HASH_MAX_SIZE];
+    uint8_t hash_len;
+
+    uint8_t trusted_comment[SIGN_HASH_TRUSTED_COMMENT_MAX_SIZE];
+    uint8_t trusted_comment_len;
+    uint8_t trusted_comment_present;
+
     CTAP_credentialDescriptor cred;
 } CTAP_signHash;
 

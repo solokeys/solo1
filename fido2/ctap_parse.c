@@ -1050,14 +1050,52 @@ uint8_t ctap_parse_sign_hash(CTAP_signHash * SH, uint8_t * request, int length)
 
         switch(key)
         {
-            case SH_clientDataHash:
-                printf1(TAG_SH, "SH_clientHash\n");
+            case SH_hash:
+                printf1(TAG_SH, "SH_hash\n");
 
-                ret = parse_fixed_byte_string(&map, SH->clientDataHash, CLIENT_DATA_HASH_SIZE);
-                check_retr(ret);
+                if (cbor_value_get_type(&map) == CborByteStringType)
+                {
+                    size_t hash_len = SIGN_HASH_HASH_MAX_SIZE;
+                    ret = cbor_value_copy_byte_string(&map, SH->hash, &hash_len, NULL);
+                    if (ret == CborErrorOutOfMemory)
+                    {
+                        printf2(TAG_ERR,"Error, hash too large\n");
+                        return CTAP2_ERR_LIMIT_EXCEEDED;
+                    }
+                    check_ret(ret);
+                    SH->hash_len = hash_len;
+                }
+                else
+                {
+                    printf2(TAG_ERR, "error, CborByteStringType expected for hash\r\n");
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
 
-                printf1(TAG_SH,"  "); dump_hex1(TAG_SH, SH->clientDataHash, CLIENT_DATA_HASH_SIZE);
+                printf1(TAG_SH,"  "); dump_hex1(TAG_SH, SH->hash, SH->hash_len);
                 break;
+
+            case SH_trustedComment:
+                printf1(TAG_SH, "SH_trustedComment\n");
+                if (cbor_value_get_type(&map) == CborByteStringType)
+                {
+                    size_t trusted_comment_len = SIGN_HASH_TRUSTED_COMMENT_MAX_SIZE;
+                    ret = cbor_value_copy_byte_string(&map, SH->trusted_comment, &trusted_comment_len, NULL);
+                    if (ret == CborErrorOutOfMemory)
+                    {
+                        printf2(TAG_ERR,"Error, trusted comment too large\n");
+                        return CTAP2_ERR_LIMIT_EXCEEDED;
+                    }
+                    check_ret(ret);
+                    SH->trusted_comment_len = trusted_comment_len;
+                    SH->trusted_comment_present = 1;
+                }
+                else
+                {
+                    printf2(TAG_ERR, "error, CborByteStringType expected for trusted comment\r\n");
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
+                break;
+
             case SH_credential:
                 printf1(TAG_SH, "SH_credential\n");
                 ret = parse_credential_descriptor(&map, &SH->cred);
