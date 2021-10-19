@@ -621,8 +621,16 @@ uint8_t ctap_parse_hmac_secret(CborValue * val, CTAP_hmac_secret * hs)
             case EXT_HMAC_SECRET_SALT_AUTH:
                 ++salt_auth_parsed;
                 salt_len = 32;
-                ret = cbor_value_copy_byte_string(&map, hs->saltAuth, &salt_len, NULL);
-                check_ret(ret);
+                if (cbor_value_get_type(&map) == CborByteStringType)
+                {
+                    ret = cbor_value_copy_byte_string(&map, hs->saltAuth, &salt_len, NULL);
+                    check_ret(ret);
+                }
+                else
+                {
+                    printf2(TAG_ERR, "error, CborByteStringType expected\r\n");
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
             break;
         }
 
