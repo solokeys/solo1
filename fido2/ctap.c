@@ -1449,6 +1449,22 @@ uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
     }
     ret = ctap2_user_presence_test();
     check_retr(ret);
+
+    const char * sign_hash_prefix = "solo-sign-hash:";
+    const char * rpId = (const char*)SH.rp.id;
+    const char * colon = strchr(rpId, ':');
+    if (! colon || strncmp(rpId, sign_hash_prefix, colon - rpId + 1) != 0)
+    {
+        printf2(TAG_ERR, "Error: invalid RP ID, should start with 'solo-sign-hash:'\n");
+        return CTAP2_ERR_INVALID_CREDENTIAL;
+    }
+
+    if (! ctap_authenticate_credential(&SH.rp, &SH.cred))
+    {
+        printf2(TAG_ERR, "Error: invalid credential\n");
+        return CTAP2_ERR_INVALID_CREDENTIAL;
+    }
+
     ret = cbor_encoder_create_map(encoder, &map, SH.trusted_comment_present ? 2 : 1);
     check_ret(ret);
 

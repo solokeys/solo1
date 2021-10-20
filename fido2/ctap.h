@@ -44,6 +44,7 @@
 #define SH_credential             0x02
 #define SH_pinAuth                0x03
 #define SH_trustedComment         0x04
+#define SH_rpId                   0x05
 #define CM_cmd                    0x01
     #define CM_cmdMetadata        0x01
     #define CM_cmdRPBegin         0x02
@@ -341,6 +342,7 @@ typedef struct
     uint8_t trusted_comment_present;
 
     CTAP_credentialDescriptor cred;
+    struct rpId rp;
 } CTAP_signHash;
 
 typedef struct

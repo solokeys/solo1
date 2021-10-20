@@ -1106,6 +1106,13 @@ uint8_t ctap_parse_sign_hash(CTAP_signHash * SH, uint8_t * request, int length)
                 ret = parse_fixed_byte_string(&map, SH->pinAuth, 16);
                 check_retr(ret);
                 break;
+            case SH_rpId:
+                printf1(TAG_SH, "SH_rpId\n");
+                ret = parse_rp_id(&SH->rp, &map);
+                check_retr(ret);
+
+                printf1(TAG_GA,"  ID: %s\n", SH->rp.id);
+                break;
         }
         ret = cbor_value_advance(&map);
         check_ret(ret);
