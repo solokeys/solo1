@@ -45,6 +45,9 @@
 #define SH_pinAuth                0x03
 #define SH_trustedComment         0x04
 #define SH_rpId                   0x05
+#define SH_RESP_signature         0x01
+#define SH_RESP_global_signature  0x02
+
 #define CM_cmd                    0x01
     #define CM_cmdMetadata        0x01
     #define CM_cmdRPBegin         0x02
@@ -130,8 +133,12 @@
 #define DISPLAY_NAME_LIMIT          32  // Must be minimum of 64 bytes but can be more.
 #define ICON_LIMIT                  128 // Must be minimum of 64 bytes but can be more.
 #define CTAP_MAX_MESSAGE_SIZE       1200
-#define SIGN_HASH_HASH_MAX_SIZE     64  //up to 512 bits
-#define SIGN_HASH_TRUSTED_COMMENT_MAX_SIZE 128
+#define EDDSA_SIGNATURE_SIZE        64
+
+#define SIGN_HASH_HASH_EDDSA_SIZE           64 // Minisign ED: Blake2b-512
+#define SIGN_HASH_HASH_ES256_SIZE           32 // ES256: SHA-256
+#define SIGN_HASH_HASH_MAX_SIZE             64 // Up to 512 bits
+#define SIGN_HASH_TRUSTED_COMMENT_MAX_SIZE  128
 
 #define CREDENTIAL_RK_FLASH_PAD     2   // size of RK should be 8-byte aligned to store in flash easily.
 #define CREDENTIAL_TAG_SIZE         16

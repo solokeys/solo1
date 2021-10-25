@@ -1432,16 +1432,13 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
 uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
 {
     CTAP_signHash SH;
-    CborEncoder map;
-    uint8_t sigbuf[64];
-    uint8_t sigder[72];
-
     int ret = ctap_parse_sign_hash(&SH, request, length);
     if (ret != 0)
     {
-        printf2(TAG_ERR,"error, ctap_parse_sign_hash failed\n");
+        printf2(TAG_ERR, "Error, ctap_parse_sign_hash failed\n");
         return ret;
     }
+
     if (ctap_is_pin_set() == 1)
     {
         ret = verify_pin_auth_ex(SH.pinAuth, SH.hash, SH.hash_len);
@@ -1450,21 +1447,24 @@ uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
     ret = ctap2_user_presence_test();
     check_retr(ret);
 
-    const char * sign_hash_prefix = "solo-sign-hash:";
-    const char * rpId = (const char*)SH.rp.id;
-    const char * colon = strchr(rpId, ':');
-    if (! colon || strncmp(rpId, sign_hash_prefix, colon - rpId + 1) != 0)
     {
-        printf2(TAG_ERR, "Error: invalid RP ID, should start with 'solo-sign-hash:'\n");
-        return CTAP2_ERR_INVALID_CREDENTIAL;
+        const char * sign_hash_prefix = "solo-sign-hash:";
+        const char * rpId = (const char*)SH.rp.id;
+        const char * colon = strchr(rpId, ':');
+        if (! colon || strncmp(rpId, sign_hash_prefix, colon - rpId + 1) != 0)
+        {
+            printf2(TAG_ERR, "Error: invalid RP ID, should start with 'solo-sign-hash:'\n");
+            return CTAP2_ERR_INVALID_CREDENTIAL;
+        }
+
+        if (! ctap_authenticate_credential(&SH.rp, &SH.cred))
+        {
+            printf2(TAG_ERR, "Error: invalid credential\n");
+            return CTAP2_ERR_INVALID_CREDENTIAL;
+        }
     }
 
-    if (! ctap_authenticate_credential(&SH.rp, &SH.cred))
-    {
-        printf2(TAG_ERR, "Error: invalid credential\n");
-        return CTAP2_ERR_INVALID_CREDENTIAL;
-    }
-
+    CborEncoder map;
     ret = cbor_encoder_create_map(encoder, &map, SH.trusted_comment_present ? 2 : 1);
     check_ret(ret);
 
@@ -1473,8 +1473,7 @@ uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
     int32_t cose_alg = read_cose_alg_from_masked_credential(&SH.cred.credential.id);
     if (cose_alg == COSE_ALG_EDDSA)
     {
-        // Enforce 64-byte hash (Minisign ED: Blake2b-512)
-        if (SH.hash_len != 64)
+        if (SH.hash_len != SIGN_HASH_HASH_EDDSA_SIZE)
         {
             printf2(TAG_ERR, "Error, invalid hash length for EdDSA, must be 64 B\n");
             return CTAP1_ERR_INVALID_LENGTH;
@@ -1482,27 +1481,32 @@ uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
 
         crypto_ed25519_load_key((uint8_t*)&SH.cred.credential.id, cred_size);
 
-        crypto_ed25519_sign(SH.hash, SH.hash_len, NULL, 0, sigder);
+        uint8_t main_signature[EDDSA_SIGNATURE_SIZE];
+        crypto_ed25519_sign(SH.hash, SH.hash_len,
+                            NULL, 0,
+                            main_signature);
 
-        ret = cbor_encode_int(&map, 1);
+        ret = cbor_encode_int(&map, SH_RESP_signature);
         check_ret(ret);
-        ret = cbor_encode_byte_string(&map, sigder, 64);
+        ret = cbor_encode_byte_string(&map, main_signature, EDDSA_SIGNATURE_SIZE);
         check_ret(ret);
 
         if (SH.trusted_comment_present)
         {
-            crypto_ed25519_sign(sigder, 64, SH.trusted_comment, SH.trusted_comment_len, sigder);
+            crypto_ed25519_sign(main_signature, EDDSA_SIGNATURE_SIZE,
+                                SH.trusted_comment, SH.trusted_comment_len,
+                                main_signature);
 
-            ret = cbor_encode_int(&map, 2);
+            ret = cbor_encode_int(&map, SH_RESP_global_signature);
             check_ret(ret);
-            ret = cbor_encode_byte_string(&map, sigder, 64);
+            ret = cbor_encode_byte_string(&map, main_signature, EDDSA_SIGNATURE_SIZE);
             check_ret(ret);
         }
+
     }
     else if (cose_alg == COSE_ALG_ES256)
     {
-        // Enforce 32-byte hash (ES256: SHA-256)
-        if (SH.hash_len != 32)
+        if (SH.hash_len != SIGN_HASH_HASH_ES256_SIZE)
         {
             printf2(TAG_ERR, "Error, invalid hash length for ES256, must be 32 B\n");
             return CTAP1_ERR_INVALID_LENGTH;
@@ -1510,19 +1514,20 @@ uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
 
         if (SH.trusted_comment_present)
         {
-            printf2(TAG_ERR,"error, trusted comment is only supported with EdDSA\n");
+            printf2(TAG_ERR, "Error, trusted comment is only supported with EdDSA\n");
             return CTAP2_ERR_INVALID_OPTION;
         }
 
         crypto_ecc256_load_key((uint8_t*)&SH.cred.credential.id, cred_size, NULL, 0);
-        crypto_ecc256_sign(SH.hash, SH.hash_len, sigbuf);
-        int sigder_sz = ctap_encode_der_sig(sigbuf,sigder);
-        printf1(TAG_SH,"der sig [%d]: ", sigder_sz); dump_hex1(TAG_SH, sigder, sigder_sz);
+        uint8_t tmp_sigbuf[64], signature_der[72];
+        crypto_ecc256_sign(SH.hash, SH.hash_len, tmp_sigbuf);
+        int sigder_sz = ctap_encode_der_sig(tmp_sigbuf, signature_der);
 
-        ret = cbor_encode_int(&map, 1);
+        ret = cbor_encode_int(&map, SH_RESP_signature);
         check_ret(ret);
-        ret = cbor_encode_byte_string(&map, sigder, sigder_sz);
+        ret = cbor_encode_byte_string(&map, signature_der, sigder_sz);
         check_ret(ret);
+
     }
     else
     {
