@@ -1473,6 +1473,13 @@ uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
     int32_t cose_alg = read_cose_alg_from_masked_credential(&SH.cred.credential.id);
     if (cose_alg == COSE_ALG_EDDSA)
     {
+        // Enforce 64-byte hash (Minisign ED: Blake2b-512)
+        if (SH.hash_len != 64)
+        {
+            printf2(TAG_ERR, "Error, invalid hash length for EdDSA, must be 64 B\n");
+            return CTAP1_ERR_INVALID_LENGTH;
+        }
+
         crypto_ed25519_load_key((uint8_t*)&SH.cred.credential.id, cred_size);
 
         crypto_ed25519_sign(SH.hash, SH.hash_len, NULL, 0, sigder);
@@ -1492,13 +1499,21 @@ uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
             check_ret(ret);
         }
     }
-    else
+    else if (cose_alg == COSE_ALG_ES256)
     {
+        // Enforce 32-byte hash (ES256: SHA-256)
+        if (SH.hash_len != 32)
+        {
+            printf2(TAG_ERR, "Error, invalid hash length for ES256, must be 32 B\n");
+            return CTAP1_ERR_INVALID_LENGTH;
+        }
+
         if (SH.trusted_comment_present)
         {
             printf2(TAG_ERR,"error, trusted comment is only supported with EdDSA\n");
             return CTAP2_ERR_INVALID_OPTION;
         }
+
         crypto_ecc256_load_key((uint8_t*)&SH.cred.credential.id, cred_size, NULL, 0);
         crypto_ecc256_sign(SH.hash, SH.hash_len, sigbuf);
         int sigder_sz = ctap_encode_der_sig(sigbuf,sigder);
@@ -1508,6 +1523,11 @@ uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
         check_ret(ret);
         ret = cbor_encode_byte_string(&map, sigder, sigder_sz);
         check_ret(ret);
+    }
+    else
+    {
+        printf2(TAG_ERR, "Error, unsupported credential algorithm\n");
+        return CTAP2_ERR_UNSUPPORTED_ALGORITHM;
     }
 
     ret = cbor_encoder_close_container(encoder, &map);

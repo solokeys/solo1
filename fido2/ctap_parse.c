@@ -1057,9 +1057,9 @@ uint8_t ctap_parse_sign_hash(CTAP_signHash * SH, uint8_t * request, int length)
                 {
                     size_t hash_len = SIGN_HASH_HASH_MAX_SIZE;
                     ret = cbor_value_copy_byte_string(&map, SH->hash, &hash_len, NULL);
-                    if ((hash_len != 32 && hash_len != 64) || ret == CborErrorOutOfMemory)
+                    if (ret == CborErrorOutOfMemory)
                     {
-                        printf2(TAG_ERR,"Error, invalid hash length, should be 32/64 B\n");
+                        printf2(TAG_ERR,"Error, hash too long\n");
                         return CTAP1_ERR_INVALID_LENGTH;
                     }
                     check_ret(ret);
