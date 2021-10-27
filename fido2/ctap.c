@@ -1449,9 +1449,7 @@ uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
 
     {
         const char * sign_hash_prefix = "solo-sign-hash:";
-        const char * rpId = (const char*)SH.rp.id;
-        const char * colon = strchr(rpId, ':');
-        if (! colon || strncmp(rpId, sign_hash_prefix, colon - rpId + 1) != 0)
+        if (strncmp((const char*)SH.rp.id, sign_hash_prefix, strlen(sign_hash_prefix)) != 0)
         {
             printf2(TAG_ERR, "Error: invalid RP ID, should start with 'solo-sign-hash:'\n");
             return CTAP2_ERR_INVALID_CREDENTIAL;
