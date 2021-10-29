@@ -1165,6 +1165,14 @@ static int add_existing_user_info(CTAP_credentialDescriptor * cred)
     return 0;
 }
 
+// @rpId NULL-terminated RP ID
+// @return true if rpId starts with the solo-sign-hash prefix
+bool is_solo_sign_rpid(const uint8_t * const rpId)
+{
+    const char sign_hash_prefix[] = "solo-sign-hash:";
+    return strncmp((const char*)rpId, sign_hash_prefix, sizeof(sign_hash_prefix) - 1) == 0;
+}
+
 // @return the number of valid credentials
 // sorts the credentials.  Most recent creds will be first, invalid ones last.
 int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
@@ -1447,19 +1455,16 @@ uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
     ret = ctap2_user_presence_test();
     check_retr(ret);
 
+    if (! is_solo_sign_rpid(SH.rp.id))
     {
-        const char * sign_hash_prefix = "solo-sign-hash:";
-        if (strncmp((const char*)SH.rp.id, sign_hash_prefix, strlen(sign_hash_prefix)) != 0)
-        {
-            printf2(TAG_ERR, "Error: invalid RP ID, should start with 'solo-sign-hash:'\n");
-            return CTAP2_ERR_INVALID_CREDENTIAL;
-        }
+        printf2(TAG_ERR, "Error: invalid RP ID, should start with 'solo-sign-hash:'\n");
+        return CTAP2_ERR_INVALID_CREDENTIAL;
+    }
 
-        if (! ctap_authenticate_credential(&SH.rp, &SH.cred))
-        {
-            printf2(TAG_ERR, "Error: invalid credential\n");
-            return CTAP2_ERR_INVALID_CREDENTIAL;
-        }
+    if (! ctap_authenticate_credential(&SH.rp, &SH.cred))
+    {
+        printf2(TAG_ERR, "Error: invalid credential\n");
+        return CTAP2_ERR_INVALID_CREDENTIAL;
     }
 
     CborEncoder map;
@@ -1957,6 +1962,13 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     {
         return CTAP2_ERR_MISSING_PARAMETER;
     }
+
+    if (is_solo_sign_rpid(GA.rp.id))
+    {
+        printf2(TAG_ERR, "Error: solo-sign-hash RP ID cannot be used with getAssertion\n");
+        return CTAP2_ERR_INVALID_CREDENTIAL;
+    }
+
     CborEncoder map;
 
     int map_size = 3;
