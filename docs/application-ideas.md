@@ -139,7 +139,7 @@ Add following entry
 <br>
 
 Save the file and test it. <br>
-In case your Solo is not present, your password will be incrorrect. If Solo is plugged into your USB port, it will signal pressing the button and you will be able to login into Linux.
+In case your Solo is not present, your password will be incorrect. If Solo is plugged into your USB port, it will signal pressing the button and you will be able to login into Linux.
 
 Why **required**? If you choose the option **sufficent** your Solo is optional. You could also login without second factor if your Solo is not connected.
 
