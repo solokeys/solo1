@@ -36,7 +36,7 @@ Based on [USB-A_schematic.pdf].
 ## Nucleo board connection illustration
 The picture below shows the connection to Nucleo board. If you want to power the Nucleo board over USB connection, you have to add **USB 5V** to **VIN** Pin. In this case you couldn't use the ST-Link for powering the Nucleo board.
 
-<img src="../images/nucleo_board_connection.png" title="Nucleo Board Connection" />
+<img src="images/nucleo_board_connection.png" title="Nucleo Board Connection" />
 
 ## Firmware modification
 
