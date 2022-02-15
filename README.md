@@ -12,6 +12,8 @@ This repo contains the Solo firmware, including implementations of FIDO2 and U2F
 
 For development no hardware is needed, Solo also runs as a standalone application for Windows, Linux, and Mac OSX. If you like (or want to learn) hardware instead, you can run Solo on the NUCLEO-L432KC development board, or we make Solo for Hacker, an unlocked version of Solo that lets you customize its firmware.
 
+<br />
+<br />
 
 # Security
 
@@ -23,6 +25,8 @@ Solo is based on the STM32L432 microcontroller. It offers the following security
 - 256 KB of memory to support hardened crypto implementations and, later, additional features such as OpenPGP or SSH.
 - No NDA needed to develop for.
 
+<br />
+<br />
 
 # Solo for Hackers
 
@@ -41,6 +45,9 @@ In the Hacker version, hardware is the same but the firmware is unlocked, so you
 
 Hacker Solo isn't really secure so you should only use it for development. An attacker with physical access to a Solo for Hacker can reflash it following the steps above, and even a malware on your computer could possibly reflash it.
 
+<br />
+<br />
+
 ## Checking out the code
 ```bash
 git clone --recurse-submodules https://github.com/solokeys/solo
@@ -51,6 +58,9 @@ If you forgot the `--recurse-submodules` while cloning, simply run `git submodul
 
 `make update` will also checkout the latest code on `master` and submodules.
 
+<br />
+<br />
+
 ## Checking out the code to build a specific version
 
 You can checkout the code to build a specific version of the firmware with:
@@ -60,12 +70,17 @@ git fetch --tags
 git checkout ${VERSION_TO_BUILD}
 git submodule update --init --recursive
 ```
+<br />
+<br />
 
 ## Installing the toolchain and applying updates
 
 In order to compile ARM code, you need the ARM compiler and other things like bundling bootloader and firmware require the [solo-python](https://github.com/solokeys/solo-python) python package. Check our [documentation](https://docs.solokeys.dev/) for details.
 
 You can update your solokey after running `pip3 install solo-python` with `solo key update` for the latest version. To apply a custom image use `solo program bootloader <file>(.json|.hex)`.
+
+<br />
+<br />
 
 ## Installing the toolkit and compiling in Docker
 Alternatively, you can use Docker to create a container with the toolchain.
@@ -80,6 +95,9 @@ make docker-build-all
 ```
 
 The `builds` folder will contain all the variation on the firmware in `.hex` files.
+
+<br />
+<br />
 
 ## Build locally
 
@@ -106,6 +124,11 @@ source venv/bin/activate
 solo program aux enter-bootloader
 solo program bootloader targets/stm32l432/solo.hex
 ```
+<br />
+<br />
+<br />
+<br />
+<br />
 
 # Developing Solo (No Hardware Needed)
 
@@ -116,6 +139,7 @@ solo program bootloader targets/stm32l432/solo.hex
 ```
 sudo apt install libsodium-dev 
 ```
+<br />
 
 ## Building
 
@@ -144,11 +168,15 @@ In another shell, you can run our [test suite](https://github.com/solokeys/fido2
 
 You can find more details in our [documentation](https://docs.solokeys.dev/), including how to build on the the NUCLEO-L432KC development board.
 
+<br />
+<br />
 
 # Documentation
 
 Check out our [official documentation](https://docs.solokeys.dev/).
 
+<br />
+<br />
 
 # Contributors ✨
 
@@ -204,6 +232,8 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
+<br />
+<br />
 
 # License
 
@@ -222,6 +252,9 @@ You may use Solo documentation under the terms of the CC-BY-SA 4.0 license
 
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fsolokeys%2Fsolo.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fsolokeys%2Fsolo?ref=badge_large)
+
+<br />
+<br />
 
 # Where To Buy Solo
 
