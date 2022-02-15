@@ -261,7 +261,7 @@ You may use Solo documentation under the terms of the CC-BY-SA 4.0 license
 You can buy Solo, Solo Tap, and Solo for Hackers at [solokeys.com](https://solokeys.com).
 
 <br/>
-<hr/>
+<br/>
 <br/>
 
 [![License](https://img.shields.io/github/license/solokeys/solo.svg)](https://github.com/solokeys/solo/blob/master/LICENSE)
