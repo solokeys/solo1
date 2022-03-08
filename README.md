@@ -63,9 +63,9 @@ git submodule update --init --recursive
 
 ## Installing the toolchain and applying updates
 
-In order to compile ARM code, you need the ARM compiler and other things like bundling bootloader and firmware require the [solo-python](https://github.com/solokeys/solo-python) python package. Check our [documentation](https://docs.solokeys.dev/) for details.
+In order to compile ARM code, you need the ARM compiler and other things like bundling bootloader and firmware require the [solo1](https://github.com/solokeys/solo1-cli) python package. Check our [documentation](https://docs.solokeys.dev/) for details.
 
-You can update your solokey after running `pip3 install solo-python` with `solo key update` for the latest version. To apply a custom image use `solo program bootloader <file>(.json|.hex)`.
+You can update your solokey after running `pip3 install solo1` with `solo1 key update` for the latest version. To apply a custom image use `solo1 program bootloader <file>(.json|.hex)`.
 
 ## Installing the toolkit and compiling in Docker
 Alternatively, you can use Docker to create a container with the toolchain.
@@ -103,8 +103,8 @@ cd ../..
 
 make venv
 source venv/bin/activate
-solo program aux enter-bootloader
-solo program bootloader targets/stm32l432/solo.hex
+solo1 program aux enter-bootloader
+solo1 program bootloader targets/stm32l432/solo.hex
 ```
 
 # Developing Solo (No Hardware Needed)
@@ -114,7 +114,7 @@ solo program bootloader targets/stm32l432/solo.hex
 1. Need libsodium.  On debian, install:
 
 ```
-sudo apt install libsodium-dev 
+sudo apt install libsodium-dev
 ```
 
 ## Building

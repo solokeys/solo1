@@ -12,7 +12,7 @@ Install the [latest ARM compiler toolchain](https://developer.arm.com/open-sourc
 You can also install the ARM toolchain  using a package manager like `apt-get` or `pacman`,
 but be warned they might be out of date.  Typically it will be called `gcc-arm-none-eabi binutils-arm-none-eabi`.
 
-Install `solo-python` usually with `pip3 install solo-python`. The `solo` python application may also be used for [programming](#programming).
+Install `solo1` usually with `pip3 install solo1`. The `solo` python application may also be used for [programming](#programming).
 
 ## Obtain source code and solo tool
 
@@ -23,9 +23,9 @@ Source code can be downloaded from:
 
 **solo** tool can be downloaded from:
 
--   from python programs [repository](https://pypi.org/project/solo-python/) `pip install solo-python`
+-   from python programs [repository](https://pypi.org/project/solo1/) `pip install solo1`
 -   from installing prerequisites `pip3 install -r tools/requirements.txt`
--   github repository: [repository](https://github.com/solokeys/solo-python)
+-   github repository: [repository](https://github.com/solokeys/solo1-cli)
 -   installation python enviroment with command `make venv` from root directory of source code
 
 ## Compilation
@@ -75,7 +75,7 @@ We recommend using our `solo` tool as a serial emulator since it will automatica
 reconnect each time you program Solo.
 
 ```
-solo monitor <serial-port>
+solo1 monitor <serial-port>
 ```
 
 #### Linux Users:
@@ -99,7 +99,7 @@ make bootloader-nonverifying
 This outputs `bootloader.hex`.  We can then merge the bootloader and application.
 
 ```
-solo mergehex bootloader.hex solo.hex bundle.hex
+solo1 mergehex bootloader.hex solo.hex bundle.hex
 ```
 
 `bundle.hex` is our complete firmware build.  Note it is in this step that you can
@@ -108,7 +108,7 @@ By default the "hacker" attestation certifcate and key is used.  Use the `--lock
 to make this permanent.
 
 ```
-solo mergehex  \
+solo1 mergehex  \
     --attestation-key "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF" \
     --attestation-cert attestation.der \
     solo.hex \
@@ -122,7 +122,7 @@ The new bootloader may be able to accept (signed) updates still, depending on ho
 
 ```
 # Permanent!
-solo mergehex  \
+solo1 mergehex  \
     --attestation-key "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF" \
     --attestation-cert attestation.der \
     --lock \

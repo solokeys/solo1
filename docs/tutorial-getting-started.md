@@ -16,8 +16,8 @@ There are two main tools you will need to work on your solo hacker:
 * ARM Compiler tool chain
 * Solo python tool
 
-The ARM Compiler is used to compile your C-code to a hex file, which can then be deployed onto your solo hacker. The solo tool helps with deploying, updating etc. of the solo hacker. It is a python3 tool. So make sure, that you got Python3 installed on your system \([pip](https://pip.pypa.io/en/stable/) might also come in handy\).  
-  
+The ARM Compiler is used to compile your C-code to a hex file, which can then be deployed onto your solo hacker. The solo tool helps with deploying, updating etc. of the solo hacker. It is a python3 tool. So make sure, that you got Python3 installed on your system \([pip](https://pip.pypa.io/en/stable/) might also come in handy\).
+
 Besides that, you will also need to get the [solo code](https://github.com/solokeys/solo).
 
 ### Get the code
@@ -30,12 +30,12 @@ git clone --recurse-submodules https://github.com/solokeys/solo
 
 ### Getting the ARM Compiler tool chain
 
-Download the Compiler tool chain for your system [here](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads). After you have downloaded it, you will have to unzip it and add the path to the installation folder.   
-  
-**Readme**  
-There is a readme.txt __ in _gcc-arm-none-eabi-x-yyyy-dd-major/share/doc/gcc-arm-none-eabi_. It contains installation guides for Linux, Windows and Mac.   
-  
-**Installation**  
+Download the Compiler tool chain for your system [here](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads). After you have downloaded it, you will have to unzip it and add the path to the installation folder.
+
+**Readme**
+There is a readme.txt __ in _gcc-arm-none-eabi-x-yyyy-dd-major/share/doc/gcc-arm-none-eabi_. It contains installation guides for Linux, Windows and Mac.
+
+**Installation**
 As I used Mac, I will guide you through the installation using MacOS. If you have unpacked the folder already, you can skip the first step.
 
 ```bash
@@ -61,10 +61,10 @@ compilation terminated.
 There are several ways, which are listed at the [build instructions](https://docs.solokeys.io/solo/building/). If you are familiar with pip, just use this.
 
 ```bash
-pip install solo-python
+pip install solo1
 
 #Or
-pip3 install solo-python
+pip3 install solo1
 ```
 
 **Install all other requirements**
@@ -128,13 +128,13 @@ make cbor
 You should also make sure to check, that your key has the newest solo firmware installed. To check the firmware on the device, use this command:
 
 ```bash
-solo key version
+solo1 key version
 ```
 
 To update to the newest version, use this command:
 
 ```bash
-solo key update
+solo1 key update
 ```
 
 **Note:** Sometimes the connection between Mac and key seemed to be broken and you might get an error stating: _No solo found_. Just unplug the key and plug it back in.
@@ -172,7 +172,7 @@ This will generate a file _solo.hex_, which has the compiled code on it. If you 
 
 #### Deploy code
 
-To deploy the code make sure you are back at the source root. 
+To deploy the code make sure you are back at the source root.
 
 ```bash
 cd ../..
@@ -181,7 +181,7 @@ cd ../..
 First we will have to change into bootload modus:
 
 ```bash
-solo program aux enter-bootloader
+solo1 program aux enter-bootloader
 ```
 
 This is needed to be able to load the new firmware on the device. If we forget this step, the solo tool will do it for us in the next step.
@@ -189,13 +189,13 @@ This is needed to be able to load the new firmware on the device. If we forget t
 This is the moment of truth. We delete the old firmware and deploy the new one with the changed LED lights to the solo key. For this step we will also stay in the source root.
 
 ```bash
-solo program bootloader targets/stm32l432/solo.hex
+solo1 program bootloader targets/stm32l432/solo.hex
 ```
 
-If there is another hex-File, that you want to load, you can just exchange the last argument.  
-  
-And that's it, now your LED should be red.  
-  
+If there is another hex-File, that you want to load, you can just exchange the last argument.
+
+And that's it, now your LED should be red.
+
 To summarize, here are again the steps to update your solo:
 
 1. Change code
@@ -212,8 +212,8 @@ make build-hacker
 cd ../..
 
 #Enter bootloader mode
-solo program aux enter-bootloader
+solo1 program aux enter-bootloader
 
 #Deploy code
-solo program bootloader targets/stm32l432/solo.hex
+solo1 program bootloader targets/stm32l432/solo.hex
 ```

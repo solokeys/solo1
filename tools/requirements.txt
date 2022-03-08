@@ -1,6 +1,6 @@
 ecdsa
 intelhex
 pyserial
-solo-python
 pyusb
+solo1
 wheel

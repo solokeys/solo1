@@ -2,16 +2,16 @@
 
 ## Supported Versions
 
-We fix security issues as soon as they are found, and release firmware updates.  
+We fix security issues as soon as they are found, and release firmware updates.
 Each such release is accompanied by release notes, see <https://github.com/solokeys/solo/releases>.
 
 The latest version can be determined using the file <https://github.com/solokeys/solo/blob/master/STABLE_VERSION>.
 
 To update your key:
 - either visit <https://update.solokeys.com>, or
-- use our commandline tool <https://github.com/solokeys/solo-python>:
+- use our commandline tool <https://github.com/solokeys/solo1-cli>:
 ```
-solo key update
+solo1 key update
 ```
 
 ## Reporting a Vulnerability

@@ -24,7 +24,7 @@ RUN set -eux; \
 # Set Path for ARM compiler
 ENV PATH="$PATH:/opt/gcc-arm-none-eabi-8-2019-q3-update/bin"
 
-# Python3.7: for solo-python (merging etc.)
+# Python3.7: for solo1-cli (merging etc.)
 RUN set -eux; \
 	url="https://repo.anaconda.com/miniconda/Miniconda3-4.5.12-Linux-x86_64.sh"; \
 	wget -O miniconda.sh "$url"; \
@@ -38,8 +38,8 @@ RUN set -eux; \
 	rm miniconda.sh; \
   pip install -U pip
 
-# solo-python (Python3.7 script for merging etc.)
-RUN pip install -U solo-python
+# solo1-cli (Python3.7 script for merging etc.)
+RUN pip install -U solo1
 
 # Rust for salty
 ENV RUSTUP_HOME=/rust/rustup
