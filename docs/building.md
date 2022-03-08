@@ -26,7 +26,7 @@ Source code can be downloaded from:
 -   from python programs [repository](https://pypi.org/project/solo1/) `pip install solo1`
 -   from installing prerequisites `pip3 install -r tools/requirements.txt`
 -   github repository: [repository](https://github.com/solokeys/solo1-cli)
--   installation python enviroment with command `make venv` from root directory of source code
+-   installation python environment with command `make venv` from root directory of source code
 
 ## Compilation
 
