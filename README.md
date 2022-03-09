@@ -65,7 +65,7 @@ git submodule update --init --recursive
 
 In order to compile ARM code, you need the ARM compiler and other things like bundling bootloader and firmware require the [solo1](https://github.com/solokeys/solo1-cli) python package. Check our [documentation](https://docs.solokeys.dev/) for details.
 
-You can update your solokey after running `pip3 install solo1` with `solo1 key update` for the latest version. To apply a custom image use `solo1 program bootloader <file>(.json|.hex)`.
+You can update your SoloKey after running `pip3 install solo1` with `solo1 key update` for the latest version. To apply a custom image use `solo1 program bootloader <file>(.json|.hex)`.
 
 ## Installing the toolkit and compiling in Docker
 Alternatively, you can use Docker to create a container with the toolchain.
@@ -127,7 +127,7 @@ cd solo
 make all
 ```
 
-This builds Solo as a standalone application. Solo application is set up to send and recv USB HID messages over UDP to ease development and reduce need for hardware.
+This builds Solo as a standalone application. Solo application is set up to send and receive USB HID messages over UDP to ease development and reduce need for hardware.
 
 Testing can be done using our fork of Yubico's client software, python-fido2. Our fork of python-fido2 has small changes to make it send USB HID over UDP to the authenticator application. You can install our fork by running the following:
 
