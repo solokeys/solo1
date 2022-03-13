@@ -7,7 +7,7 @@ solo program aux enter-bootloader
 ```
 
 If your Solo is a bit older (<=2.5.3) You can put Solo into bootloader mode by using the button method:
-Hold down button while plugging in Solo.  After 2 seconds, bootloader mode will activate.
+Hold down button first and keep pressed, then plug in Solo.  After 2 seconds, bootloader mode will activate.
 You'll see a yellowish flashing light and you can let go of the button.
 
 Now Solo is ready to [accept firmware updates](/signed-updates).  If the Solo is a secured model, it can only accept signed updates, typically in the `firmware-*.json` format.
