@@ -1429,6 +1429,45 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
     return 0;
 }
 
+uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
+{
+    CTAP_signHash SH;
+    CborEncoder map;
+    uint8_t sigbuf[64];
+    uint8_t sigder[72];
+
+    int ret = ctap_parse_sign_hash(&SH, request, length);
+    if (ret != 0)
+    {
+        printf2(TAG_ERR,"error, ctap_parse_sign_hash failed\n");
+        return ret;
+    }
+    if (ctap_is_pin_set() == 1)
+    {
+        ret = verify_pin_auth(SH.pinAuth, SH.clientDataHash);
+        check_retr(ret);
+    }
+    ret = ctap2_user_presence_test(CTAP2_UP_DELAY_MS);
+    check_retr(ret);
+    ret = cbor_encoder_create_map(encoder, &map, 1);
+    check_ret(ret);
+
+    unsigned int cred_size = get_credential_id_size(&SH.cred);
+    crypto_ecc256_load_key((uint8_t*)&SH.cred.credential.id, cred_size, NULL, 0);
+    crypto_ecc256_sign(SH.clientDataHash, CLIENT_DATA_HASH_SIZE, sigbuf);
+    int sigder_sz = ctap_encode_der_sig(sigbuf,sigder);
+    printf1(TAG_SH,"der sig [%d]: ", sigder_sz); dump_hex1(TAG_SH, sigder, sigder_sz);
+
+    ret = cbor_encode_int(&map, 1);
+    check_ret(ret);
+    ret = cbor_encode_byte_string(&map, sigder, sigder_sz);
+    check_ret(ret);
+
+    ret = cbor_encoder_close_container(encoder, &map);
+    check_ret(ret);
+    return 0;
+}
+
 uint8_t ctap_cred_metadata(CborEncoder * encoder)
 {
     CborEncoder map;
@@ -2304,6 +2343,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     {
         case CTAP_MAKE_CREDENTIAL:
         case CTAP_GET_ASSERTION:
+        case CTAP_SOLO_SIGN:
         case CTAP_CBOR_CRED_MGMT:
         case CTAP_CBOR_CRED_MGMT_PRE:
             if (ctap_device_locked())
@@ -2386,6 +2426,12 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
                 printf2(TAG_ERR, "unwanted GET_NEXT_ASSERTION.  lastcmd == 0x%02x\n", getAssertionState.lastcmd);
                 status = CTAP2_ERR_NOT_ALLOWED;
             }
+            break;
+        case CTAP_SOLO_SIGN:
+            printf1(TAG_CTAP,"CTAP_SOLO_SIGN\n");
+            status = ctap_sign_hash(&encoder, pkt_raw, length);
+            resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
+            dump_hex1(TAG_DUMP, buf, resp->length);
             break;
         case CTAP_CBOR_CRED_MGMT:
         case CTAP_CBOR_CRED_MGMT_PRE:
