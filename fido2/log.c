@@ -72,7 +72,7 @@ void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...)
     {
         if (tag & tagtable[i].tagn)
         {
-            if (tagtable[i].tag[0] && !(tag & TAG_NO_TAG)) printf("[%s] ", tagtable[i].tag);
+            if (tagtable[i].tag[0] && !(tag & TAG_NO_TAG)) fprintf(stderr, "[%s] ", tagtable[i].tag);
             i = 0;
             break;
         }
@@ -86,12 +86,12 @@ void LOG(uint32_t tag, const char * filename, int num, const char * fmt, ...)
 #ifdef ENABLE_FILE_LOGGING
     if (tag & TAG_FILENO)
     {
-        printf("%s:%d: ", filename, num);
+        fprintf(stderr, "%s:%d: ", filename, num);
     }
 #endif
     va_list args;
     va_start(args, fmt);
-    vprintf(fmt, args);
+    vfprintf(stderr, fmt, args);
     va_end(args);
 }
 
