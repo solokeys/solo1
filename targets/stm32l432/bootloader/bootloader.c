@@ -65,14 +65,24 @@ static void erase_application()
     }
 }
 
-static void disable_bootloader()
+/**
+ * Clear 4 bytes of the last 8 bytes of the last application page-1,
+ * which is 108th.
+ * @param offset byte offset - skip the first offset bytes
+ */
+static void clear_page_bytes(uint8_t offset)
 {
-    // Clear last 4 bytes of the last application page-1, which is 108th
     uint8_t page[PAGE_SIZE];
     memmove(page, (uint8_t*)LAST_ADDR, PAGE_SIZE);
-    memset(page+PAGE_SIZE -4, 0, 4);
+    memset(page+PAGE_SIZE-8+offset, 0, 4);
     flash_erase_page(LAST_PAGE);
     flash_write(LAST_ADDR, page, PAGE_SIZE);
+}
+
+static void disable_bootloader()
+{
+    // Clear last 4 bytes of the page 108.
+    clear_page_bytes(4);
 }
 
 static void authorize_application()
@@ -84,14 +94,9 @@ static void authorize_application()
     // uint32_t * ptr;
     // ptr = (uint32_t *)AUTH_WORD_ADDR;
     // flash_write((uint32_t)ptr, (uint8_t *)&zero, 4);
-    uint8_t page[PAGE_SIZE];
     if (is_authorized_to_boot())
         return;
-    // FIXME refactor: code same as in disable_bootloader(), except clearing start address (-8)
-    memmove(page, (uint8_t*)LAST_ADDR, PAGE_SIZE);
-    memset(page+PAGE_SIZE -8, 0, 4);
-    flash_erase_page(LAST_PAGE);
-    flash_write(LAST_ADDR, page, PAGE_SIZE);
+    clear_page_bytes(0);
 }
 
 int is_authorized_to_boot()
