@@ -10,7 +10,7 @@ ENTRY(Reset_Handler)
 /* End of RAM */
 _estack = 0x2000c000;
 
-_MIN_STACK_SIZE = 0x400;
+_MIN_STACK_SIZE = 0x1000;
 
 /*
 len  |   20 KB/10p|      196KB-8-8/98p   |        2kB/1p         |      38 KB/19p  |
@@ -98,5 +98,42 @@ SECTIONS
         . = . + _MIN_STACK_SIZE;
         . = ALIGN(8);
     } > ram
+    
+    .sram2 :
+    {
+        *(.sram2)
+    } > sram2
 
+	/* C++ Static constructors/destructors, also used for __attribute__
+	 * ((constructor)) and the likes */
+    .preinit_array :
+    {
+        . = ALIGN(4);
+        _spreinit_array = .;
+        KEEP (*(.preinit_array))
+        KEEP (*(.preinit_array*))
+        _epreinit_array = .;
+        . = ALIGN(4);
+    } > flash
+
+    .init_array :
+    {
+        . = ALIGN(4);
+        _sinit_array = .;
+        KEEP (*(.init_array))
+        KEEP (*(.init_array*))
+        _einit_array = .;
+        . = ALIGN(4);
+    } > flash
+
+    .fini_array :
+    {
+        . = ALIGN(4);
+        _sfini_array = .;
+        KEEP (*(.fini_array))
+        KEEP (*(.fini_array*))
+        _efini_array = .;
+        . = ALIGN(4);
+    } > flash
+    
 }

@@ -12,6 +12,7 @@
 #include APP_CONFIG
 #include "flash.h"
 #include "log.h"
+#include "util.h"
 #include "device.h"
 
 static void flash_lock(void)
@@ -86,7 +87,7 @@ void flash_erase_page(uint8_t page)
     __disable_irq();
 
     // Wait if flash is busy
-    while (FLASH->SR & (1<<16))
+    while (FLASH->SR & FLASH_SR_BSY)
         ;
     flash_unlock();
 
@@ -97,11 +98,11 @@ void flash_erase_page(uint8_t page)
     FLASH->CR |= (page<<3) | (1<<1);
 
     // Go!
-    FLASH->CR |= (1<<16);
-    while (FLASH->SR & (1<<16))
+    FLASH->CR |= FLASH_CR_STRT;
+    while (FLASH->SR & FLASH_SR_BSY)
         ;
 
-    if(FLASH->SR & (1<<1))
+    if(FLASH->SR & FLASH_SR_OPERR)
     {
         printf2(TAG_ERR,"erase NOT successful %lx\r\n", FLASH->SR);
     }
@@ -112,21 +113,25 @@ void flash_erase_page(uint8_t page)
 
 void flash_write_dword(uint32_t addr, uint64_t data)
 {
+    // check if we try to write the same data
+    if (data == *((uint64_t *)addr)) 
+        return;
+    
     __disable_irq();
-    while (FLASH->SR & (1<<16))
+    while (FLASH->SR & FLASH_SR_BSY)
         ;
     FLASH->SR = FLASH->SR;
 
     // Select program action
-    FLASH->CR |= (1<<0);
+    FLASH->CR |= FLASH_CR_PG;
 
     *(volatile uint32_t*)addr = data;
     *(volatile uint32_t*)(addr+4) = data>>32;
 
-    while (FLASH->SR & (1<<16))
+    while (FLASH->SR & FLASH_SR_BSY)
         ;
 
-    if(FLASH->SR & (1<<1))
+    if(FLASH->SR & FLASH_SR_OPERR)
     {
         printf2(TAG_ERR,"program NOT successful %lx\r\n", FLASH->SR);
     }
@@ -140,7 +145,7 @@ void flash_write(uint32_t addr, uint8_t * data, size_t sz)
 {
     unsigned int i;
     uint8_t buf[8];
-    while (FLASH->SR & (1<<16))
+    while (FLASH->SR & FLASH_SR_BSY)
         ;
     flash_unlock();
 
@@ -158,6 +163,79 @@ void flash_write(uint32_t addr, uint8_t * data, size_t sz)
         addr += 8;
     }
 
+}
+
+uint64_t get_data_block(uint8_t blockn, uint8_t delta, uint8_t *data, size_t sz) {
+    uint8_t buf[8];
+    if ((sz == 0) || (data == NULL) || (blockn > (sz + delta) / 8))
+        return 0;
+
+    if (blockn == 0) {
+        memset(buf, 0xff, sizeof(buf));
+        size_t tsize = MIN(sz, ABS(8U - delta)); 
+        memcpy(&buf[delta], data, tsize);
+        return *(uint64_t*)buf;
+    }
+
+    if (blockn == (sz + delta) / 8) {
+        if ((sz + delta) % 8 == 0)
+            return 0;
+        memset(buf, 0xff, sizeof(buf));
+        size_t tsize = (sz + delta) % 8; 
+        memcpy(buf, &data[blockn * 8 - delta], tsize);
+        return *(uint64_t*)buf;
+    }
+    
+    memcpy(buf, &data[blockn * 8 - delta], 8);
+    return *(uint64_t*)buf;
+}
+
+void flash_write_ex(uint32_t addr, uint8_t * data, size_t sz) 
+{
+    uint8_t delta = addr & 0x07;
+    uint32_t addr_bg = addr & ~(0x07);
+    uint32_t addr_en = ((addr + sz - 1) & ~(0x07)) + 0x07;
+    size_t blocks_cnt = (sz + delta + 7) / 8;
+    
+    bool needs_erase = false;
+    
+    uint32_t blockn = 0;
+    for (uint32_t block_address = addr_bg; block_address < addr_en; block_address += 8){
+        uint64_t d_flash = *(uint64_t *)block_address;
+        uint64_t d_ram = get_data_block(blockn, delta, data, sz);
+        blockn++;
+
+        if (d_flash == d_ram)
+            continue;
+        
+        if (d_flash == 0xffffffffffffffffULL)
+            continue;
+        
+        needs_erase = true;
+        break;
+    }
+    
+    if (!needs_erase) {
+        while (FLASH->SR & (1<<16))
+            ;
+        flash_unlock();
+        
+        for(uint32_t i = 0; i < blocks_cnt; i++)
+            flash_write_dword(addr_bg + i * 8, get_data_block(i, delta, data, sz));        
+    } else {
+        uint8_t eeprom_data[2048];
+        memset(eeprom_data, 0xff, sizeof(eeprom_data));
+        uint8_t page = flash_page(addr_bg);
+        uint32_t p_addr = flash_addr(page);
+
+        memcpy(eeprom_data, (uint8_t *)p_addr, 2048);
+        memcpy(&eeprom_data[addr - p_addr], data, sz);
+
+        flash_erase_page(page);
+         
+        // if we switch off power here - flash will corrupt....
+        flash_write(p_addr, eeprom_data, 2048);       
+    }
 }
 
 // NOT YET working

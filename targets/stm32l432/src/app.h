@@ -20,7 +20,7 @@
 #endif
 
 // Enable the CCID USB interface
-// #define ENABLE_CCID
+#define ENABLE_CCID
 
 #define NON_BLOCK_PRINTING 0
 
