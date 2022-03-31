@@ -164,7 +164,7 @@ void crypto_sha256_hmac_final(uint8_t * key, uint32_t klen, uint8_t * hmac)
         key = master_secret;
         klen = sizeof(master_secret)/2;
     }
-    else if (key == CRYPTO_TRANSPORT_KEY2)
+    else if (key == CRYPTO_TRANSPORT_KEY)
     {
         key = transport_secret;
         klen = 32;
