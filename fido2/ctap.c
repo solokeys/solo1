@@ -1502,7 +1502,7 @@ uint8_t ctap_cred_rk(CborEncoder * encoder, int rk_ind, int rk_count)
     CTAP_residentKey rk;
     ctap_load_rk(rk_ind, &rk);
 
-    uint32_t cred_protect = read_metadata_from_masked_credential(&rk.id);
+    uint32_t cred_protect = read_cred_protect_from_masked_credential(&rk.id);
     if ( cred_protect == 0 || cred_protect > 3 )
     {
         // Take default value of userVerificationOptional
