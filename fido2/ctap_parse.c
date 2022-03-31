@@ -1008,6 +1008,118 @@ uint8_t parse_allow_list(CTAP_getAssertion * GA, CborValue * it)
     return 0;
 }
 
+uint8_t ctap_parse_sign_hash(CTAP_signHash * SH, uint8_t * request, int length)
+{
+    int key;
+    size_t i, map_length;
+    CborParser parser;
+    CborValue it,map;
+
+    memset(SH, 0, sizeof(CTAP_signHash));
+    int ret = cbor_parser_init(request, length, CborValidateCanonicalFormat, &parser, &it);
+    check_ret(ret);
+
+    CborType type = cbor_value_get_type(&it);
+    if (type != CborMapType)
+    {
+        printf2(TAG_ERR,"Error, expecting cbor map\n");
+        return CTAP2_ERR_INVALID_CBOR_TYPE;
+    }
+
+    ret = cbor_value_enter_container(&it,&map);
+    check_ret(ret);
+
+    ret = cbor_value_get_map_length(&it, &map_length);
+    check_ret(ret);
+
+    printf1(TAG_SH, "SH map has %d elements\n", map_length);
+
+    for (i = 0; i < map_length; i++)
+    {
+        type = cbor_value_get_type(&map);
+        if (type != CborIntegerType)
+        {
+            printf2(TAG_ERR,"Error, expecting int for map key\n");
+            return CTAP2_ERR_INVALID_CBOR_TYPE;
+        }
+        ret = cbor_value_get_int_checked(&map, &key);
+        check_ret(ret);
+
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+
+        switch(key)
+        {
+            case SH_hash:
+                printf1(TAG_SH, "SH_hash\n");
+
+                if (cbor_value_get_type(&map) == CborByteStringType)
+                {
+                    size_t hash_len = SIGN_HASH_HASH_MAX_SIZE;
+                    ret = cbor_value_copy_byte_string(&map, SH->hash, &hash_len, NULL);
+                    if (ret == CborErrorOutOfMemory)
+                    {
+                        printf2(TAG_ERR,"Error, hash too long\n");
+                        return CTAP1_ERR_INVALID_LENGTH;
+                    }
+                    check_ret(ret);
+                    SH->hash_len = hash_len;
+                }
+                else
+                {
+                    printf2(TAG_ERR, "error, CborByteStringType expected for hash\r\n");
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
+
+                printf1(TAG_SH,"  "); dump_hex1(TAG_SH, SH->hash, SH->hash_len);
+                break;
+
+            case SH_trustedComment:
+                printf1(TAG_SH, "SH_trustedComment\n");
+                if (cbor_value_get_type(&map) == CborByteStringType)
+                {
+                    size_t trusted_comment_len = SIGN_HASH_TRUSTED_COMMENT_MAX_SIZE;
+                    ret = cbor_value_copy_byte_string(&map, SH->trusted_comment, &trusted_comment_len, NULL);
+                    if (ret == CborErrorOutOfMemory)
+                    {
+                        printf2(TAG_ERR,"Error, trusted comment too large\n");
+                        return CTAP2_ERR_LIMIT_EXCEEDED;
+                    }
+                    check_ret(ret);
+                    SH->trusted_comment_len = trusted_comment_len;
+                    SH->trusted_comment_present = 1;
+                }
+                else
+                {
+                    printf2(TAG_ERR, "error, CborByteStringType expected for trusted comment\r\n");
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
+                break;
+
+            case SH_credential:
+                printf1(TAG_SH, "SH_credential\n");
+                ret = parse_credential_descriptor(&map, &SH->cred);
+                check_ret(ret);
+                break;
+            case SH_pinAuth:
+                printf1(TAG_SH, "SH_pinAuth\n");
+                ret = parse_fixed_byte_string(&map, SH->pinAuth, 16);
+                check_retr(ret);
+                break;
+            case SH_rpId:
+                printf1(TAG_SH, "SH_rpId\n");
+                ret = parse_rp_id(&SH->rp, &map);
+                check_retr(ret);
+
+                printf1(TAG_GA,"  ID: %s\n", SH->rp.id);
+                break;
+        }
+        ret = cbor_value_advance(&map);
+        check_ret(ret);
+    }
+    return 0;
+}
+
 static uint8_t parse_cred_mgmt_subcommandparams(CborValue * val, CTAP_credMgmt * CM)
 {
     size_t map_length;

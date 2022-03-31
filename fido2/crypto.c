@@ -424,8 +424,11 @@ void crypto_ed25519_sign(uint8_t * data1, int len1, uint8_t * data2, int len2, u
     const int len = len1 + len2; // 0 <= len <= 1024
     uint8_t data[len1 + len2];
 
-    memcpy(data,        data1, len1);
-    memcpy(data + len1, data2, len2);
+    memcpy(data, data1, len1);
+    if (len2)
+    {
+        memcpy(data + len1, data2, len2);
+    }
 
 #if defined(STM32L432xx)
 

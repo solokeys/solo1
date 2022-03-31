@@ -1165,6 +1165,14 @@ static int add_existing_user_info(CTAP_credentialDescriptor * cred)
     return 0;
 }
 
+// @rpId NULL-terminated RP ID
+// @return true if rpId starts with the solo-sign-hash prefix
+bool is_solo_sign_rpid(const uint8_t * const rpId)
+{
+    const char sign_hash_prefix[] = "solo-sign-hash:";
+    return strncmp((const char*)rpId, sign_hash_prefix, sizeof(sign_hash_prefix) - 1) == 0;
+}
+
 // @return the number of valid credentials
 // sorts the credentials.  Most recent creds will be first, invalid ones last.
 int ctap_filter_invalid_credentials(CTAP_getAssertion * GA)
@@ -1426,6 +1434,112 @@ uint8_t ctap_get_next_assertion(CborEncoder * encoder)
     ret = cbor_encoder_close_container(encoder, &map);
     check_ret(ret);
 
+    return 0;
+}
+
+uint8_t ctap_sign_hash(CborEncoder * encoder, uint8_t * request, int length)
+{
+    CTAP_signHash SH;
+    int ret = ctap_parse_sign_hash(&SH, request, length);
+    if (ret != 0)
+    {
+        printf2(TAG_ERR, "Error, ctap_parse_sign_hash failed\n");
+        return ret;
+    }
+
+    if (ctap_is_pin_set() == 1)
+    {
+        ret = verify_pin_auth_ex(SH.pinAuth, SH.hash, SH.hash_len);
+        check_retr(ret);
+    }
+    ret = ctap2_user_presence_test();
+    check_retr(ret);
+
+    if (! is_solo_sign_rpid(SH.rp.id))
+    {
+        printf2(TAG_ERR, "Error: invalid RP ID, should start with 'solo-sign-hash:'\n");
+        return CTAP2_ERR_INVALID_CREDENTIAL;
+    }
+
+    if (! ctap_authenticate_credential(&SH.rp, &SH.cred))
+    {
+        printf2(TAG_ERR, "Error: invalid credential\n");
+        return CTAP2_ERR_INVALID_CREDENTIAL;
+    }
+
+    CborEncoder map;
+    ret = cbor_encoder_create_map(encoder, &map, SH.trusted_comment_present ? 2 : 1);
+    check_ret(ret);
+
+    unsigned int cred_size = get_credential_id_size(SH.cred.type);
+
+    int32_t cose_alg = read_cose_alg_from_masked_credential(&SH.cred.credential.id);
+    if (cose_alg == COSE_ALG_EDDSA)
+    {
+        if (SH.hash_len != SIGN_HASH_HASH_EDDSA_SIZE)
+        {
+            printf2(TAG_ERR, "Error, invalid hash length for EdDSA, must be 64 B\n");
+            return CTAP1_ERR_INVALID_LENGTH;
+        }
+
+        crypto_ed25519_load_key((uint8_t*)&SH.cred.credential.id, cred_size);
+
+        uint8_t main_signature[EDDSA_SIGNATURE_SIZE];
+        crypto_ed25519_sign(SH.hash, SH.hash_len,
+                            NULL, 0,
+                            main_signature);
+
+        ret = cbor_encode_int(&map, SH_RESP_signature);
+        check_ret(ret);
+        ret = cbor_encode_byte_string(&map, main_signature, EDDSA_SIGNATURE_SIZE);
+        check_ret(ret);
+
+        if (SH.trusted_comment_present)
+        {
+            crypto_ed25519_sign(main_signature, EDDSA_SIGNATURE_SIZE,
+                                SH.trusted_comment, SH.trusted_comment_len,
+                                main_signature);
+
+            ret = cbor_encode_int(&map, SH_RESP_global_signature);
+            check_ret(ret);
+            ret = cbor_encode_byte_string(&map, main_signature, EDDSA_SIGNATURE_SIZE);
+            check_ret(ret);
+        }
+
+    }
+    else if (cose_alg == COSE_ALG_ES256)
+    {
+        if (SH.hash_len != SIGN_HASH_HASH_ES256_SIZE)
+        {
+            printf2(TAG_ERR, "Error, invalid hash length for ES256, must be 32 B\n");
+            return CTAP1_ERR_INVALID_LENGTH;
+        }
+
+        if (SH.trusted_comment_present)
+        {
+            printf2(TAG_ERR, "Error, trusted comment is only supported with EdDSA\n");
+            return CTAP2_ERR_INVALID_OPTION;
+        }
+
+        crypto_ecc256_load_key((uint8_t*)&SH.cred.credential.id, cred_size, NULL, 0);
+        uint8_t tmp_sigbuf[64], signature_der[72];
+        crypto_ecc256_sign(SH.hash, SH.hash_len, tmp_sigbuf);
+        int sigder_sz = ctap_encode_der_sig(tmp_sigbuf, signature_der);
+
+        ret = cbor_encode_int(&map, SH_RESP_signature);
+        check_ret(ret);
+        ret = cbor_encode_byte_string(&map, signature_der, sigder_sz);
+        check_ret(ret);
+
+    }
+    else
+    {
+        printf2(TAG_ERR, "Error, unsupported credential algorithm\n");
+        return CTAP2_ERR_UNSUPPORTED_ALGORITHM;
+    }
+
+    ret = cbor_encoder_close_container(encoder, &map);
+    check_ret(ret);
     return 0;
 }
 
@@ -1848,6 +1962,13 @@ uint8_t ctap_get_assertion(CborEncoder * encoder, uint8_t * request, int length)
     {
         return CTAP2_ERR_MISSING_PARAMETER;
     }
+
+    if (is_solo_sign_rpid(GA.rp.id))
+    {
+        printf2(TAG_ERR, "Error: solo-sign-hash RP ID cannot be used with getAssertion\n");
+        return CTAP2_ERR_INVALID_CREDENTIAL;
+    }
+
     CborEncoder map;
 
     int map_size = 3;
@@ -2304,6 +2425,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
     {
         case CTAP_MAKE_CREDENTIAL:
         case CTAP_GET_ASSERTION:
+        case CTAP_SOLO_SIGN:
         case CTAP_CBOR_CRED_MGMT:
         case CTAP_CBOR_CRED_MGMT_PRE:
             if (ctap_device_locked())
@@ -2386,6 +2508,12 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
                 printf2(TAG_ERR, "unwanted GET_NEXT_ASSERTION.  lastcmd == 0x%02x\n", getAssertionState.lastcmd);
                 status = CTAP2_ERR_NOT_ALLOWED;
             }
+            break;
+        case CTAP_SOLO_SIGN:
+            printf1(TAG_CTAP,"CTAP_SOLO_SIGN\n");
+            status = ctap_sign_hash(&encoder, pkt_raw, length);
+            resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
+            dump_hex1(TAG_DUMP, buf, resp->length);
             break;
         case CTAP_CBOR_CRED_MGMT:
         case CTAP_CBOR_CRED_MGMT_PRE:
