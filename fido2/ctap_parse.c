@@ -1046,6 +1046,11 @@ static uint8_t parse_cred_mgmt_subcommandparams(CborValue * val, CTAP_credMgmt *
         switch(key)
         {
             case CM_subCommandRpId:
+                if (cbor_value_get_type(&map) != CborByteStringType)
+                {
+                    printf2(TAG_ERR,"Error, expecting byte-string type for sub-command RpId map value, got %s\n", cbor_value_get_type_string(&map));
+                    return CTAP2_ERR_INVALID_CBOR_TYPE;
+                }
                 ret = cbor_value_copy_byte_string(&map, CM->subCommandParams.rpIdHash, &sz, NULL);
                 if (ret == CborErrorOutOfMemory)
                 {
