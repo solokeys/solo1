@@ -32,8 +32,7 @@ Check out [solokeys.com](https://solokeys.com), for options on where to buy Solo
 
 If you have a Solo for Hacker, here's how you can load your own code on it. You can find more details, including how to permanently lock it, in our [documentation](https://docs.solokeys.dev/building/). We support Python3.
 
-For example, if you want to turn off any blue light emission, you can edit [`led_rgb()`](https://github.com/solokeys/solo/blob/master/targets/stm32l432/src/app.h#L48) and change `LED_INIT_VALUE`
-to be a different hex color.
+For example, if you want to turn off any blue light emission, you can edit [`app.h`](https://github.com/solokeys/solo/blob/master/targets/stm32l432/src/app.h) and change `LED_WINK_VALUE` to be a different hex color.
 
 Then recompile, load your new firmware, and enjoy a different LED color Solo.
 
