@@ -1,8 +1,6 @@
 {
     "description": "Solo Tap Secp256R1 FIDO2 CTAP2 Authenticator",
     "aaguid": "8976631b-d4a0-427f-5773-0ec71c9e0279",
-    "alternativeDescriptions": {
-    },
     "protocolFamily": "fido2",
     "authenticatorVersion": 2,
     "upv": [

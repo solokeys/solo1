@@ -1,14 +1,12 @@
 {
     "description": "Solo Secp256R1 U2F Authenticator",
     "attestationCertificateKeyIdentifiers": ["3be6d2c06ff2e7b07c9d9e28c020b00d07c815c8"],
-    "alternativeDescriptions": {
-    },
     "protocolFamily": "u2f",
     "authenticatorVersion": 2,
     "upv": [
         {
             "major": 1,
-            "minor": 2
+            "minor": 1
         }
     ],
     "assertionScheme": "U2FV1BIN",
