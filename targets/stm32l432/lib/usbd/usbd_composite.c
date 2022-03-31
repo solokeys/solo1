@@ -36,6 +36,14 @@ static uint8_t *USBD_Composite_GetDeviceQualifierDescriptor (uint16_t *length);
 #define CCID_SIZE           0
 #endif
 
+#ifdef ENABLE_KBD
+#define KBD_SIZE 25
+#define KBD_NUM_INTERFACE  1
+#else
+#define KBD_NUM_INTERFACE  0
+#define KBD_SIZE 0
+#endif
+
 #if DEBUG_LEVEL > 0
 #define CDC_SIZE            (49 + 8 + 9 + 4)
 #define CDC_NUM_INTERFACE   2
@@ -46,15 +54,16 @@ static uint8_t *USBD_Composite_GetDeviceQualifierDescriptor (uint16_t *length);
 
 #define HID_SIZE            41
 
-#define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (HID_SIZE + CDC_SIZE + CCID_SIZE)
-#define NUM_INTERFACES                      (1 + CDC_NUM_INTERFACE + CCID_NUM_INTERFACE)
-#define NUM_CLASSES                         3
+#define COMPOSITE_CDC_HID_DESCRIPTOR_SIZE   (HID_SIZE + CDC_SIZE + CCID_SIZE + KBD_SIZE)
+#define NUM_INTERFACES                      (1 + CDC_NUM_INTERFACE + CCID_NUM_INTERFACE + KBD_NUM_INTERFACE)
+#define NUM_CLASSES                         4
 
 
 #define HID_INTF_NUM                                0
 #define CDC_MASTER_INTF_NUM                         1
 #define CDC_SLAVE_INTF_NUM                          2
 #define CCID_INTF_NUM                               3
+#define KBD_INTF_NUM                                1
 __ALIGN_BEGIN uint8_t COMPOSITE_CDC_HID_DESCRIPTOR[COMPOSITE_CDC_HID_DESCRIPTOR_SIZE] __ALIGN_END =
     {
         /*Configuration Descriptor*/
@@ -284,7 +293,40 @@ __ALIGN_BEGIN uint8_t COMPOSITE_CDC_HID_DESCRIPTOR[COMPOSITE_CDC_HID_DESCRIPTOR_
 
 #endif
 
+#ifdef ENABLE_KBD
+        /*     */
+        /* KBD */
+        /*     */
 
+        /************** Descriptor of Keyboard interface ****************/
+        0x09,                    /*bLength: Interface Descriptor size*/
+        USB_DESC_TYPE_INTERFACE, /*bDescriptorType: Interface descriptor type*/
+        KBD_INTF_NUM,            /*bInterfaceNumber: Number of Interface*/
+        0x00,                    /*bAlternateSetting: Alternate setting*/
+        0x01,                    /*bNumEndpoints*/
+        0x03,                    /*bInterfaceClass: HID*/
+        0x01,                    /*bInterfaceSubClass : 1=BOOT, 0=no boot*/
+        0x01,                    /*nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse*/
+        2,                       /*iInterface: Index of string descriptor*/
+        /******************** Descriptor of Keyboard HID ********************/
+        0x09,                /*bLength: HID Descriptor size*/
+        HID_DESCRIPTOR_TYPE, /*bDescriptorType: HID*/
+        0x11,                /*bcdHID: HID Class Spec release number*/
+        0x01,
+        0x00,                      /*bCountryCode: Hardware target country*/
+        0x01,                      /*bNumDescriptors: Number of HID class descriptors to follow*/
+        0x22,                      /*bDescriptorType*/
+        HID_KBD_REPORT_DESC_SIZE,  /*wItemLength: Total length of Report descriptor*/
+        0,
+        /******************** Descriptor of Keyboard endpoint ********************/
+        0x07,                   /*bLength: Endpoint Descriptor size*/
+        USB_DESC_TYPE_ENDPOINT, /*bDescriptorType:*/
+        KBD_EPIN_ADDR,          /*bEndpointAddress: Endpoint Address (IN)*/
+        0x03,                   /*bmAttributes: Interrupt endpoint*/
+        KBD_EPIN_SIZE,          /*wMaxPacketSize: 4 Byte max */
+        0x00,
+        KBD_BINTERVAL, /*bInterval: Polling Interval */
+#endif
 };
 
 USBD_ClassTypeDef USBD_Composite =
@@ -311,7 +353,7 @@ int in_endpoint_to_class[MAX_ENDPOINTS];
 
 int out_endpoint_to_class[MAX_ENDPOINTS];
 
-void USBD_Composite_Set_Classes(USBD_ClassTypeDef *hid_class, USBD_ClassTypeDef *ccid_class, USBD_ClassTypeDef *cdc_class) {
+void USBD_Composite_Set_Classes(USBD_ClassTypeDef *hid_class, USBD_ClassTypeDef *ccid_class, USBD_ClassTypeDef *cdc_class, USBD_ClassTypeDef *kbd_class) {
     memset(USBD_Classes, 0 , sizeof(USBD_Classes));
     USBD_Classes[0] = hid_class;
 #ifdef ENABLE_CCID
@@ -319,6 +361,9 @@ void USBD_Composite_Set_Classes(USBD_ClassTypeDef *hid_class, USBD_ClassTypeDef 
 #endif
 #if DEBUG_LEVEL > 0
     USBD_Classes[2] = cdc_class;
+#endif
+#ifdef ENABLE_KBD
+    USBD_Classes[1] = kbd_class;
 #endif
 }
 
@@ -336,6 +381,10 @@ static USBD_ClassTypeDef * getClass(uint8_t index)
     case CDC_MASTER_INTF_NUM:
     case CDC_SLAVE_INTF_NUM:
         return USBD_Classes[2];
+#endif
+#ifdef ENABLE_KBD
+    case KBD_INTF_NUM:
+        return USBD_Classes[1];
 #endif
     }
     return NULL;
@@ -364,7 +413,6 @@ static uint8_t  USBD_Composite_DeInit (USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 }
 
 static uint8_t USBD_Composite_Setup (USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req) {
-    int i;
     USBD_ClassTypeDef * device_class;
     device_class = getClass(req->wIndex);
 
@@ -380,12 +428,7 @@ static uint8_t USBD_Composite_Setup (USBD_HandleTypeDef *pdev, USBD_SetupReqType
             switch (req->bRequest) {
 
                 case USB_REQ_GET_DESCRIPTOR :
-                    for(i = 0; i < NUM_CLASSES; i++) {
-                        if (USBD_Classes[i] != NULL && USBD_Classes[i]->Setup(pdev, req) != USBD_OK) {
-                            return USBD_FAIL;
-                        }
-                    }
-
+                    return device_class->Setup(pdev, req);
                 break;
 
         case USB_REQ_GET_INTERFACE :

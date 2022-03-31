@@ -713,6 +713,28 @@ uint8_t ctap_parse_extensions(CborValue * val, CTAP_extensions * ext)
     return 0;
 }
 
+uint8_t ctap_parse_solo_kbd(CTAP_soloKbd * KBD, uint8_t * request, int length)
+{
+    int ret;
+    CborParser parser;
+    CborValue it;
+
+    memset(KBD, 0, sizeof(CTAP_soloKbd));
+    ret = cbor_parser_init(request, length, CborValidateCanonicalFormat, &parser, &it);
+    check_retr(ret);
+    CborType type = cbor_value_get_type(&it);
+    if (type != CborByteStringType)
+    {
+        printf2(TAG_ERR,"Error, expecting cbor byte string\n");
+        return CTAP2_ERR_CBOR_UNEXPECTED_TYPE;
+    }
+    size_t len = sizeof(KBD->sequence);
+    ret = cbor_value_copy_byte_string(&it, KBD->sequence, &len, NULL);
+    check_ret(ret);
+    KBD->length = len;
+    return ret;
+}
+
 uint8_t ctap_parse_make_credential(CTAP_makeCredential * MC, CborEncoder * encoder, uint8_t * request, int length)
 {
     int ret;

@@ -24,7 +24,6 @@ uint32_t millis();
 */
 void usbhid_send(uint8_t * msg);
 
-
 /** Reboot / power reset the device.
  *  **Optional** this is not used for FIDO2, and simply won't do anything if not implemented.
 */
@@ -163,6 +162,8 @@ void ctap_load_rk(int index,CTAP_residentKey * rk);
 */
 void ctap_overwrite_rk(int index,CTAP_residentKey * rk);
 
+void ctap_load_kbd(CTAP_soloKbd * kbd);
+void ctap_store_kbd(CTAP_soloKbd * kbd);
 
 /** Called by HID layer to indicate that a wink behavior should be performed.
  *  Should not block, and the wink behavior should occur in parallel to FIDO operations.

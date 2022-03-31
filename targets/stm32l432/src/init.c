@@ -709,9 +709,11 @@ void init_usb(void)
     // Enable USB Clock
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_USBFSEN);
 #ifndef IS_BOOTLOADER
-    USBD_Composite_Set_Classes(&USBD_HID, &USBD_CCID, &USBD_CDC);
+    USBD_Composite_Set_Classes(&USBD_HID, &USBD_CCID, &USBD_CDC, &USBD_KBD);
     in_endpoint_to_class[HID_EPIN_ADDR & 0x7F] = 0;
     out_endpoint_to_class[HID_EPOUT_ADDR & 0x7F] = 0;
+
+    in_endpoint_to_class[KBD_EPIN_ADDR & 0x7F] = 1;
 
     in_endpoint_to_class[CCID_IN_EP & 0x7F] = 1;
     out_endpoint_to_class[CCID_OUT_EP & 0x7F] = 1;

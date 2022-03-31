@@ -60,13 +60,19 @@
 #define HID_EPOUT_ADDR                  0x01U
 #define HID_EPOUT_SIZE                  HID_PACKET_SIZE
 
+#define KBD_PACKET_SIZE                 8
+#define KBD_EPIN_ADDR                   0x82U
+#define KBD_EPIN_SIZE                   KBD_PACKET_SIZE
+
 #define USB_HID_DESC_SIZ                9U
 #define HID_FIDO_REPORT_DESC_SIZE       34U
+#define HID_KBD_REPORT_DESC_SIZE        63U
 
 #define HID_DESCRIPTOR_TYPE             0x21U
 #define HID_REPORT_DESC                 0x22U
 
 #define HID_BINTERVAL                   5
+#define KBD_BINTERVAL                   10
 
 #define HID_REQ_SET_PROTOCOL            0x0BU
 #define HID_REQ_GET_PROTOCOL            0x03U
@@ -94,9 +100,11 @@ typedef struct
 USBD_HID_HandleTypeDef;
 
 extern USBD_ClassTypeDef  USBD_HID;
+extern USBD_ClassTypeDef  USBD_KBD;
 
 
 void usb_hid_recieve_callback(uint8_t ep);
+void usb_kbd_send(uint8_t *msg, int len);
 
 
 #ifdef __cplusplus

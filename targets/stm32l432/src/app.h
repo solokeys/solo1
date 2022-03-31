@@ -22,6 +22,9 @@
 // Enable the CCID USB interface
 // #define ENABLE_CCID
 
+// Enable the KBD USB interface
+// #define ENABLE_KBD
+
 #define NON_BLOCK_PRINTING 0
 
 

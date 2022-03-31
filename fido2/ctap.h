@@ -19,6 +19,7 @@
 #define CTAP_CBOR_CRED_MGMT         0x0A
 #define CTAP_VENDOR_FIRST           0x40
 #define CTAP_CBOR_CRED_MGMT_PRE     0x41
+#define CTAP_SOLO_KBD               0x51
 #define CTAP_VENDOR_LAST            0xBF
 
 #define MC_clientDataHash         0x01
@@ -341,6 +342,11 @@ typedef struct
     int pinProtocol;
 } CTAP_credMgmt;
 
+typedef struct
+{
+    uint8_t sequence[64];
+    uint8_t length;
+} CTAP_soloKbd;
 
 typedef struct
 {
