@@ -81,12 +81,27 @@
 #define CREDID_ALG_ES256            0x0
 #define CREDID_ALG_EDDSA            0x1
 
-#define RESP_versions               0x1
-#define RESP_extensions             0x2
-#define RESP_aaguid                 0x3
-#define RESP_options                0x4
-#define RESP_maxMsgSize             0x5
-#define RESP_pinProtocols           0x6
+#define RESP_versions                           0x01
+#define RESP_extensions                         0x02
+#define RESP_aaguid                             0x03
+#define RESP_options                            0x04
+#define RESP_maxMsgSize                         0x05
+#define RESP_pinProtocols                       0x06
+#define RESP_maxCredentialCountInList           0x07
+#define RESP_maxCredentialIdLength              0x08
+#define RESP_transports                         0x09
+#define RESP_algorithms                         0x0A
+#define RESP_maxSerializedLargeBlobArray        0x0B
+#define RESP_forcePINChange                     0x0C
+#define RESP_minPINLength                       0x0D
+#define RESP_firmwareVersion                    0X0E
+#define RESP_maxCredBlobLength                  0x0F
+#define RESP_maxRPIDsForSetMinPINLength         0x10
+#define RESP_preferredPlatformUvAttempts        0x11
+#define RESP_uvModality                         0x12
+#define RESP_certifications                     0x13
+#define RESP_remainingDiscoverableCredentials   0x14
+#define RESP_vendorPrototypeConfigCommands      0x15
 
 #define RESP_fmt                    0x01
 #define RESP_authData               0x02

@@ -82,7 +82,7 @@ env3/
 .tags*
 targets/*/docs/
 main
-
+.vscode/
 builds/*
 tools/testing/.idea/*
 tools/testing/tests/__pycache__/*
