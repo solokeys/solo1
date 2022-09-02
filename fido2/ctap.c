@@ -2412,7 +2412,6 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             status = ctap_get_info(&encoder);
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
-            dump_hex(buf,resp->length);
             dump_hex1(TAG_DUMP, buf, resp->length);
 
             break;
