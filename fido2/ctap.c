@@ -140,7 +140,7 @@ uint8_t ctap_get_info(CborEncoder * encoder)
     uint8_t aaguid[16];
     device_read_aaguid(aaguid);
 
-    ret = cbor_encoder_create_map(encoder, &map, 8);
+    ret = cbor_encoder_create_map(encoder, &map, 11);
     check_ret(ret);
     {
 
@@ -190,24 +190,10 @@ uint8_t ctap_get_info(CborEncoder * encoder)
             ret = cbor_encoder_create_map(&map, &options,5);
             check_ret(ret);
             {
-                ret = cbor_encode_text_string(&options, "plat", 4);
-                check_ret(ret);
-                {
-                    ret = cbor_encode_boolean(&options, 0);     // Not attached to platform
-                    check_ret(ret);
-                }
-
                 ret = cbor_encode_text_string(&options, "rk", 2);
                 check_ret(ret);
                 {
                     ret = cbor_encode_boolean(&options, 1);     // Capable of storing keys locally
-                    check_ret(ret);
-                }
-
-                ret = cbor_encode_text_string(&options, "clientPin", 9);
-                check_ret(ret);
-                {
-                    ret = cbor_encode_boolean(&options, ctap_is_pin_set());
                     check_ret(ret);
                 }
 
@@ -218,6 +204,26 @@ uint8_t ctap_get_info(CborEncoder * encoder)
                     check_ret(ret);
                 }
 
+                ret = cbor_encode_text_string(&options, "plat", 4);
+                check_ret(ret);
+                {
+                    ret = cbor_encode_boolean(&options, 0);     // Not attached to platform
+                    check_ret(ret);
+                }
+
+                ret = cbor_encode_text_string(&options, "credMgmt", 8);
+                check_ret(ret);
+                {
+                    ret = cbor_encode_boolean(&options, 1);
+                    check_ret(ret);
+                }
+
+                ret = cbor_encode_text_string(&options, "clientPin", 9);
+                check_ret(ret);
+                {
+                    ret = cbor_encode_boolean(&options, ctap_is_pin_set());
+                    check_ret(ret);
+                }
                 // NOT [yet] capable of verifying user
                 // Do not add option if UV isn't supported.
                 //
@@ -227,13 +233,6 @@ uint8_t ctap_get_info(CborEncoder * encoder)
                 //     ret = cbor_encode_boolean(&options, 0);
                 //     check_ret(ret);
                 // }
-
-                ret = cbor_encode_text_string(&options, "credMgmt", 8);
-                check_ret(ret);
-                {
-                    ret = cbor_encode_boolean(&options, 1);
-                    check_ret(ret);
-                }
             }
             ret = cbor_encoder_close_container(&map, &options);
             check_ret(ret);
@@ -298,42 +297,42 @@ uint8_t ctap_get_info(CborEncoder * encoder)
             ret = cbor_encoder_create_array(&map, &array, 2);
             check_ret(ret);
             {
-                ret = cbor_encoder_create_map(&map, &algorithms, 2);
+                ret = cbor_encoder_create_map(&array, &algorithms, 2);
                 check_ret(ret);
                 {
+                    ret = cbor_encode_text_string(&algorithms, "alg", 3);
+                    check_ret(ret);
+                    {
+                        ret = cbor_encode_int(&algorithms, COSE_ALG_EDDSA);
+                        check_ret(ret);
+                    }
                     ret = cbor_encode_text_string(&algorithms, "type", 4);
                     check_ret(ret);
                     {
                         ret = cbor_encode_text_string(&algorithms, "public-key", 10);
                         check_ret(ret);
                     }
-                    ret = cbor_encode_text_string(&algorithms, "alg", 3);
-                    check_ret(ret);
-                    {
-                        ret = cbor_encode_uint(&algorithms, COSE_ALG_EDDSA);
-                        check_ret(ret);
-                    }
                 }
-                ret = cbor_encoder_close_container(&map, &algorithms);
+                ret = cbor_encoder_close_container(&array, &algorithms);
                 check_ret(ret);
 
-                ret = cbor_encoder_create_map(&map, &algorithms, 2);
+                ret = cbor_encoder_create_map(&array, &algorithms, 2);
                 check_ret(ret);
                 {
+                    ret = cbor_encode_text_string(&algorithms, "alg", 3);
+                    check_ret(ret);
+                    {
+                        ret = cbor_encode_int(&algorithms, COSE_ALG_ES256);
+                        check_ret(ret);
+                    }
                     ret = cbor_encode_text_string(&algorithms, "type", 4);
                     check_ret(ret);
                     {
                         ret = cbor_encode_text_string(&algorithms, "public-key", 10);
                         check_ret(ret);
                     }
-                    ret = cbor_encode_text_string(&algorithms, "alg", 3);
-                    check_ret(ret);
-                    {
-                        ret = cbor_encode_uint(&algorithms, COSE_ALG_ES256);
-                        check_ret(ret);
-                    }
                 }
-                ret = cbor_encoder_close_container(&map, &algorithms);
+                ret = cbor_encoder_close_container(&array, &algorithms);
                 check_ret(ret);
             }
             ret = cbor_encoder_close_container(&map, &array);
@@ -342,7 +341,7 @@ uint8_t ctap_get_info(CborEncoder * encoder)
         ret = cbor_encode_uint(&map, RESP_firmwareVersion);
         check_ret(ret);
         {
-            ret = cbor_encode_uint(&map, &firmware_version);
+            ret = cbor_encode_uint(&map, __builtin_bswap32(firmware_version.raw) >> 8);
             check_ret(ret);
         }
     }
@@ -2413,7 +2412,7 @@ uint8_t ctap_request(uint8_t * pkt_raw, int length, CTAP_RESPONSE * resp)
             status = ctap_get_info(&encoder);
 
             resp->length = cbor_encoder_get_buffer_size(&encoder, buf);
-
+            dump_hex(buf,resp->length);
             dump_hex1(TAG_DUMP, buf, resp->length);
 
             break;
