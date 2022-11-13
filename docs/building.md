@@ -7,7 +7,7 @@ There exists a development board [NUCLEO-L432KC](https://www.st.com/en/evaluatio
 
 ## Prerequisites
 
-Install the [latest ARM compiler toolchain](https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads) for your system.  We recommend getting the latest compilers from ARM.
+Install the [latest ARM compiler toolchain](https://developer.arm.com/Tools%20and%20Software/GNU%20Toolchain) for your system.  We recommend getting the latest compilers from ARM.
 
 You can also install the ARM toolchain  using a package manager like `apt-get` or `pacman`,
 but be warned they might be out of date.  Typically it will be called `gcc-arm-none-eabi binutils-arm-none-eabi`.
